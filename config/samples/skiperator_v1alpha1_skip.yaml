@@ -1,0 +1,7 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Skip
+metadata:
+  name: skip-sample
+spec:
+  networkPolicies:
+    - acceptIngressTraffic: true
