@@ -35,10 +35,6 @@ spec:
           spec:
             description: SkipSpec defines the desired state of Skip
             properties:
-              foo:
-                description: Foo is an example field of Skip. Edit skip_types.go to
-                  remove/update
-                type: string
               networkPolicies:
                 items:
                   properties:

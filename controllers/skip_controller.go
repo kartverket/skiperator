@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	"istio.io/api/security/v1beta1"
+	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,8 +56,9 @@ type SkipReconciler struct {
 func (r *SkipReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Lookup the Memcached instance for this reconcile request
+	// Lookup the Skip instance for this reconcile request
 	skip := &skiperatorv1alpha1.Skip{}
+	log.Info("The incoming skip object is", "SKIP", skip)
 	err := r.Get(ctx, req.NamespacedName, skip)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -70,33 +73,48 @@ func (r *SkipReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		return ctrl.Result{}, err
 	}
 
-	// Check if the deployment already exists, if not create a new one
-	found := &networkingv1.NetworkPolicy{}
-	err = r.Get(ctx, types.NamespacedName{Name: skip.Name, Namespace: skip.Namespace}, found)
+	// Check if the networkPolicy already exists, if not create a new one
+	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
+	err = r.Get(ctx, types.NamespacedName{Name: skip.Name, Namespace: skip.Namespace}, existingNetworkPolicy)
 	if err != nil && errors.IsNotFound(err) {
-		// Define a new deployment
-		dep := r.networkPolicyForApp(skip)
-		log.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-		err = r.Create(ctx, dep)
+		// Define a new networkPolicy
+		networkPolicy := r.buildNetworkPolicy(skip)
+		log.Info("Creating a new NetworkPolicy", "NetworkPolicy.Namespace", networkPolicy.Namespace, "NetworkPolicy.Name", networkPolicy.Name)
+		err = r.Create(ctx, networkPolicy)
 		if err != nil {
-			log.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+			log.Error(err, "Failed to create new NetworkPolicy", "NetworkPolicy.Namespace", networkPolicy.Namespace, "NetworkPolicy.Name", networkPolicy.Name)
 			return ctrl.Result{}, err
 		}
 		// Deployment created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
-		log.Error(err, "Failed to get Deployment")
+		log.Error(err, "Failed to get NetworkPolicy")
 		return ctrl.Result{}, err
 	}
 
-	log.Info("The incoming skip object is", "SKIP", skip)
-	// TODO(user): your logic here
+	// Check if the peerAuthentication already exists, if not create a new one
+	existingPeerAuthentication := &securityv1beta1.PeerAuthentication{}
+	err = r.Get(ctx, types.NamespacedName{Name: skip.Name, Namespace: skip.Namespace}, existingPeerAuthentication)
+	if err != nil && errors.IsNotFound(err) {
+		peerAuthencitaion := r.buildPeerAuthentication(skip)
+		log.Info("Creating a new PeerAuthentication", "PeerAuthentication.Namespace", peerAuthencitaion.Namespace, "PeerAuthentication.Name", peerAuthencitaion.Name)
+		err = r.Create(ctx, peerAuthencitaion)
+		if err != nil {
+			log.Error(err, "Failed to create new PeerAuthentication", "PeerAuthentication.Namespace", peerAuthencitaion.Namespace, "PeerAuthentication.Name", peerAuthencitaion.Name)
+			return ctrl.Result{}, err
+		}
+		// peerAuthentication created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get PeerAuthentication")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, err
 }
 
-func (reconciler *SkipReconciler) networkPolicyForApp(skip *skiperatorv1alpha1.Skip) *networkingv1.NetworkPolicy {
-	ls := labelsForMemcached(skip.Name)
+func (reconciler *SkipReconciler) buildNetworkPolicy(skip *skiperatorv1alpha1.Skip) *networkingv1.NetworkPolicy {
+	ls := labelsForSkip(skip.Name)
 
 	dep := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -118,7 +136,7 @@ func (reconciler *SkipReconciler) networkPolicyForApp(skip *skiperatorv1alpha1.S
 
 // returns the labels for selecting the resources
 // belonging to the given CRD name.
-func labelsForMemcached(name string) map[string]string {
+func labelsForSkip(name string) map[string]string {
 	return map[string]string{"app": "memcached", "memcached_cr": name}
 }
 
@@ -179,10 +197,25 @@ func buildIngressRules(skip *skiperatorv1alpha1.Skip) []networkingv1.NetworkPoli
 	*/
 }
 
+func (reconciler *SkipReconciler) buildPeerAuthentication(skip *skiperatorv1alpha1.Skip) *securityv1beta1.PeerAuthentication {
+	return &securityv1beta1.PeerAuthentication{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: skip.Namespace,
+			Name:      skip.Name,
+		},
+		Spec: v1beta1.PeerAuthentication{
+			Mtls: &v1beta1.PeerAuthentication_MutualTLS{
+				Mode: v1beta1.PeerAuthentication_MutualTLS_STRICT,
+			},
+		},
+	}
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *SkipReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Skip{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&securityv1beta1.PeerAuthentication{}).
 		Complete(r)
 }

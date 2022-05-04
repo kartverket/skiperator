@@ -33,6 +33,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/controllers"
+	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -45,6 +46,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
