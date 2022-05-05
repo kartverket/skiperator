@@ -1,7 +1,25 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
-kind: Skip
+kind: Application
 metadata:
-  name: skip-sample
+  name: application-sample
 spec:
-  networkPolicies:
-    - acceptIngressTraffic: true
+  image: "nginx:latest"
+  port: 8080
+  ingresses:
+  - testapp.dev.skip.statkart.no
+  accessPolicy:
+    inbound:
+      rules:
+      - application: other-app
+      - application: third-app
+        namespace: other-namespace
+    outbound:
+      rules:
+      - application: other-app
+      external:
+      - host: nrk.no
+      - host: smtp.mailgrid.com
+        ports: 
+        - name: smtp
+          protocol: TCP
+          port: 587

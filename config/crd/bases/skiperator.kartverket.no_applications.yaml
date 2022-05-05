@@ -1,0 +1,130 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: applications.skiperator.kartverket.no
+spec:
+  group: skiperator.kartverket.no
+  names:
+    kind: Application
+    listKind: ApplicationList
+    plural: applications
+    singular: application
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Application is the Schema for the application API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ApplicationSpec defines the desired state of Application
+            properties:
+              accessPolicy:
+                properties:
+                  inbound:
+                    properties:
+                      rules:
+                        items:
+                          properties:
+                            application:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    required:
+                    - rules
+                    type: object
+                  outbound:
+                    properties:
+                      external:
+                        items:
+                          properties:
+                            host:
+                              type: string
+                            ports:
+                              items:
+                                description: List of port rules for external communication.
+                                  Must be specified if using protocols other than
+                                  HTTPS.
+                                properties:
+                                  name:
+                                    description: Human-readable identifier for this
+                                      rule.
+                                    type: string
+                                  port:
+                                    description: The port used for communication.
+                                    type: integer
+                                  protocol:
+                                    description: 'The protocol used for communication.
+                                      Allowed values: GRPC, HTTP, HTTP2, HTTPS, MONGO,
+                                      TCP, TLS'
+                                    type: string
+                                required:
+                                - name
+                                - protocol
+                                type: object
+                              type: array
+                          required:
+                          - host
+                          type: object
+                        type: array
+                      rules:
+                        items:
+                          properties:
+                            application:
+                              type: string
+                            namespace:
+                              type: string
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    required:
+                    - external
+                    - rules
+                    type: object
+                type: object
+              image:
+                type: string
+              ingresses:
+                items:
+                  type: string
+                type: array
+              port:
+                type: integer
+            required:
+            - image
+            type: object
+          status:
+            description: ApplicationStatus defines the observed state of Application
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

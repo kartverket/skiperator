@@ -34,44 +34,45 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 )
 
-// SkipReconciler reconciles a Skip object
-type SkipReconciler struct {
+// ApplicationReconciler reconciles a Application object
+type ApplicationReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skips,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skips/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skips/finalizers,verbs=update
+//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
-// the Skip object against the actual cluster state, and then
+// the Application object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *SkipReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
-	// Lookup the Skip instance for this reconcile request
-	skip := &skiperatorv1alpha1.Skip{}
-	log.Info("The incoming skip object is", "SKIP", skip)
+	// Lookup the Application instance for this reconcile request
+	skip := &skiperatorv1alpha1.Application{}
 	err := r.Get(ctx, req.NamespacedName, skip)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			log.Info("Skip resource not found. Ignoring since object must be deleted")
+			log.Info("Application resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		log.Error(err, "Failed to get Skip")
+		log.Error(err, "Failed to get Application")
 		return ctrl.Result{}, err
 	}
+
+	log.Info("The incoming skip object is", "SKIP", skip)
 
 	// Check if the networkPolicy already exists, if not create a new one
 	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
@@ -113,8 +114,8 @@ func (r *SkipReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	return ctrl.Result{}, err
 }
 
-func (reconciler *SkipReconciler) buildNetworkPolicy(skip *skiperatorv1alpha1.Skip) *networkingv1.NetworkPolicy {
-	ls := labelsForSkip(skip.Name)
+func (reconciler *ApplicationReconciler) buildNetworkPolicy(skip *skiperatorv1alpha1.Application) *networkingv1.NetworkPolicy {
+	ls := labelsForApplication(skip.Name)
 
 	dep := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -136,34 +137,33 @@ func (reconciler *SkipReconciler) buildNetworkPolicy(skip *skiperatorv1alpha1.Sk
 
 // returns the labels for selecting the resources
 // belonging to the given CRD name.
-func labelsForSkip(name string) map[string]string {
+func labelsForApplication(name string) map[string]string {
 	return map[string]string{"app": "memcached", "memcached_cr": name}
 }
 
-func buildIngressRules(skip *skiperatorv1alpha1.Skip) []networkingv1.NetworkPolicyIngressRule {
+func buildIngressRules(app *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
 	rule := []networkingv1.NetworkPolicyIngressRule{}
 
-	for _, policy := range skip.Spec.NetworkPolicies {
-		if policy.AcceptIngressTraffic {
-			port := intstr.FromInt(8080)
-			rule = append(rule, networkingv1.NetworkPolicyIngressRule{
-				From: []networkingv1.NetworkPolicyPeer{{
-					NamespaceSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"kubernetes.io/metadata.name": "istio-system",
-						},
+	// When ingresses are set, allow traffic from ingressgateway
+	if len(app.Spec.Ingresses) > 0 {
+		port := intstr.FromInt(app.Spec.Port)
+		rule = append(rule, networkingv1.NetworkPolicyIngressRule{
+			From: []networkingv1.NetworkPolicyPeer{{
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"kubernetes.io/metadata.name": "istio-system",
 					},
-					PodSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"ingress": "external",
-						},
+				},
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"ingress": "external",
 					},
-				}},
-				Ports: []networkingv1.NetworkPolicyPort{{
-					Port: &port,
-				}},
-			})
-		}
+				},
+			}},
+			Ports: []networkingv1.NetworkPolicyPort{{
+				Port: &port,
+			}},
+		})
 	}
 
 	return rule
@@ -197,7 +197,7 @@ func buildIngressRules(skip *skiperatorv1alpha1.Skip) []networkingv1.NetworkPoli
 	*/
 }
 
-func (reconciler *SkipReconciler) buildPeerAuthentication(skip *skiperatorv1alpha1.Skip) *securityv1beta1.PeerAuthentication {
+func (reconciler *ApplicationReconciler) buildPeerAuthentication(skip *skiperatorv1alpha1.Application) *securityv1beta1.PeerAuthentication {
 	return &securityv1beta1.PeerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: skip.Namespace,
@@ -212,9 +212,9 @@ func (reconciler *SkipReconciler) buildPeerAuthentication(skip *skiperatorv1alph
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *SkipReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Skip{}).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Complete(r)

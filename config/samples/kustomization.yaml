@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - skiperator_v1alpha1_skip.yaml
+- minimal_skiperator_v1alpha1_skip.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples
