@@ -19,8 +19,10 @@ package controllers
 import (
 	"context"
 
-	"istio.io/api/security/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	istioApiNetworkingv1beta1 "istio.io/api/networking/v1beta1"
+	istioApiSecurityv1beta1 "istio.io/api/security/v1beta1"
+	istioNetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioSecurityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,12 +56,12 @@ type ApplicationReconciler struct {
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.0/pkg/reconcile
-func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 
 	// Lookup the Application instance for this reconcile request
 	app := &skiperatorv1alpha1.Application{}
-	err := r.Get(ctx, req.NamespacedName, app)
+	err := reconciler.Get(ctx, req.NamespacedName, app)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -77,16 +79,24 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Check if the networkPolicy already exists, if not create a new one
 	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
-	newNetworkPolicy := r.buildNetworkPolicy(app)
-	shouldReturn, result, err := r.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
+	newNetworkPolicy := reconciler.buildNetworkPolicy(app)
+	shouldReturn, result, err := reconciler.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
 	if shouldReturn {
 		return result, err
 	}
 
 	// Check if the peerAuthentication already exists, if not create a new one
-	existingPeerAuthentication := &securityv1beta1.PeerAuthentication{}
-	newPeerAuthencitaion := r.buildPeerAuthentication(app)
-	shouldReturn, result, err = r.installObject(ctx, app, existingPeerAuthentication, newPeerAuthencitaion)
+	existingPeerAuthentication := &istioSecurityv1beta1.PeerAuthentication{}
+	newPeerAuthencitaion := reconciler.buildPeerAuthentication(app)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingPeerAuthentication, newPeerAuthencitaion)
+	if shouldReturn {
+		return result, err
+	}
+
+	// Check if the Sidecar already exists, if not create a new one
+	existingSidecar := &istioNetworkingv1beta1.Sidecar{}
+	newSidecar := reconciler.buildSidecar(app)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingSidecar, newSidecar)
 	if shouldReturn {
 		return result, err
 	}
@@ -94,9 +104,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return ctrl.Result{}, err
 }
 
-func (r *ApplicationReconciler) installObject(ctx context.Context, app *skiperatorv1alpha1.Application, existingObject client.Object, newObject client.Object) (bool, reconcile.Result, error) {
+func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app *skiperatorv1alpha1.Application, existingObject client.Object, newObject client.Object) (bool, reconcile.Result, error) {
 	log := log.FromContext(ctx)
-	err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, existingObject)
+	err := reconciler.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, existingObject)
 
 	if err != nil && errors.IsNotFound(err) {
 		// TODO: Get Kind from object here
@@ -106,7 +116,7 @@ func (r *ApplicationReconciler) installObject(ctx context.Context, app *skiperat
 
 		log.Info("Creating a new "+kind, "newObject.Namespace", namespace, "newObject.Name", name)
 		// TODO Look into using ctrl.CreateOrUpdate to make code less imperative
-		err = r.Create(ctx, newObject)
+		err = reconciler.Create(ctx, newObject)
 
 		if err != nil {
 			log.Error(err, "Failed to create new "+kind, "newObject.Namespace", newObject.GetNamespace(), "newObject.Name", newObject.GetName())
@@ -122,8 +132,28 @@ func (r *ApplicationReconciler) installObject(ctx context.Context, app *skiperat
 	return false, reconcile.Result{}, nil
 }
 
+func (reconciler *ApplicationReconciler) buildSidecar(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Sidecar {
+	sidecar := &istioNetworkingv1beta1.Sidecar{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: istioApiNetworkingv1beta1.Sidecar{
+			OutboundTrafficPolicy: &istioApiNetworkingv1beta1.OutboundTrafficPolicy{
+				// TODO the value below is omitted when viewed in k8s due to JSON
+				// omitonly on the OutboundTrafficPolicy struct. Bug in istio API?
+				Mode: istioApiNetworkingv1beta1.OutboundTrafficPolicy_REGISTRY_ONLY,
+			},
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, sidecar, reconciler.Scheme)
+	return sidecar
+}
+
 func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alpha1.Application) *networkingv1.NetworkPolicy {
-	ls := labelsForApplication(app)
+	labels := labelsForApplication(app)
 	ingressRules := buildIngressPolicy(app)
 
 	for _, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
@@ -137,7 +167,7 @@ func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alp
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: ls,
+				MatchLabels: labels,
 			},
 			Ingress: ingressRules,
 		},
@@ -146,12 +176,6 @@ func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alp
 	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
 	ctrl.SetControllerReference(app, policy, reconciler.Scheme)
 	return policy
-}
-
-// returns the labels for selecting the resources
-// belonging to the given CRD name.
-func labelsForApplication(app *skiperatorv1alpha1.Application) map[string]string {
-	return map[string]string{"app": app.Name}
 }
 
 func buildIngressPolicy(app *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
@@ -181,6 +205,7 @@ func buildIngressPolicy(app *skiperatorv1alpha1.Application) []networkingv1.Netw
 
 	return rule
 }
+
 func buildIngressRules(app *skiperatorv1alpha1.Application, inboundApp skiperatorv1alpha1.Rule) []networkingv1.NetworkPolicyIngressRule {
 	rule := []networkingv1.NetworkPolicyIngressRule{}
 
@@ -207,15 +232,15 @@ func buildIngressRules(app *skiperatorv1alpha1.Application, inboundApp skiperato
 	return rule
 }
 
-func (reconciler *ApplicationReconciler) buildPeerAuthentication(app *skiperatorv1alpha1.Application) *securityv1beta1.PeerAuthentication {
-	peerAuthentication := securityv1beta1.PeerAuthentication{
+func (reconciler *ApplicationReconciler) buildPeerAuthentication(app *skiperatorv1alpha1.Application) *istioSecurityv1beta1.PeerAuthentication {
+	peerAuthentication := istioSecurityv1beta1.PeerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: app.Namespace,
 			Name:      app.Name,
 		},
-		Spec: v1beta1.PeerAuthentication{
-			Mtls: &v1beta1.PeerAuthentication_MutualTLS{
-				Mode: v1beta1.PeerAuthentication_MutualTLS_STRICT,
+		Spec: istioApiSecurityv1beta1.PeerAuthentication{
+			Mtls: &istioApiSecurityv1beta1.PeerAuthentication_MutualTLS{
+				Mode: istioApiSecurityv1beta1.PeerAuthentication_MutualTLS_STRICT,
 			},
 		},
 	}
@@ -225,11 +250,17 @@ func (reconciler *ApplicationReconciler) buildPeerAuthentication(app *skiperator
 	return &peerAuthentication
 }
 
+// returns the labels for selecting the resources
+// belonging to the given CRD name.
+func labelsForApplication(app *skiperatorv1alpha1.Application) map[string]string {
+	return map[string]string{"application": app.Name}
+}
+
 // SetupWithManager sets up the controller with the Manager.
-func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+func (reconciler *ApplicationReconciler) SetupWithManager(manager ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(manager).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&securityv1beta1.PeerAuthentication{}).
-		Complete(r)
+		Owns(&istioSecurityv1beta1.PeerAuthentication{}).
+		Complete(reconciler)
 }
