@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 )
@@ -57,8 +58,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	log := log.FromContext(ctx)
 
 	// Lookup the Application instance for this reconcile request
-	skip := &skiperatorv1alpha1.Application{}
-	err := r.Get(ctx, req.NamespacedName, skip)
+	app := &skiperatorv1alpha1.Application{}
+	err := r.Get(ctx, req.NamespacedName, app)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -72,76 +73,88 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	log.Info("The incoming skip object is", "SKIP", skip)
+	log.Info("The incoming application object is", "Application", app)
 
 	// Check if the networkPolicy already exists, if not create a new one
 	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
-	err = r.Get(ctx, types.NamespacedName{Name: skip.Name, Namespace: skip.Namespace}, existingNetworkPolicy)
-	if err != nil && errors.IsNotFound(err) {
-		// Define a new networkPolicy
-		networkPolicy := r.buildNetworkPolicy(skip)
-		log.Info("Creating a new NetworkPolicy", "NetworkPolicy.Namespace", networkPolicy.Namespace, "NetworkPolicy.Name", networkPolicy.Name)
-		err = r.Create(ctx, networkPolicy)
-		if err != nil {
-			log.Error(err, "Failed to create new NetworkPolicy", "NetworkPolicy.Namespace", networkPolicy.Namespace, "NetworkPolicy.Name", networkPolicy.Name)
-			return ctrl.Result{}, err
-		}
-		// Deployment created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get NetworkPolicy")
-		return ctrl.Result{}, err
+	newNetworkPolicy := r.buildNetworkPolicy(app)
+	shouldReturn, result, err := r.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
+	if shouldReturn {
+		return result, err
 	}
 
 	// Check if the peerAuthentication already exists, if not create a new one
 	existingPeerAuthentication := &securityv1beta1.PeerAuthentication{}
-	err = r.Get(ctx, types.NamespacedName{Name: skip.Name, Namespace: skip.Namespace}, existingPeerAuthentication)
-	if err != nil && errors.IsNotFound(err) {
-		peerAuthencitaion := r.buildPeerAuthentication(skip)
-		log.Info("Creating a new PeerAuthentication", "PeerAuthentication.Namespace", peerAuthencitaion.Namespace, "PeerAuthentication.Name", peerAuthencitaion.Name)
-		err = r.Create(ctx, peerAuthencitaion)
-		if err != nil {
-			log.Error(err, "Failed to create new PeerAuthentication", "PeerAuthentication.Namespace", peerAuthencitaion.Namespace, "PeerAuthentication.Name", peerAuthencitaion.Name)
-			return ctrl.Result{}, err
-		}
-		// peerAuthentication created successfully - return and requeue
-		return ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get PeerAuthentication")
-		return ctrl.Result{}, err
+	newPeerAuthencitaion := r.buildPeerAuthentication(app)
+	shouldReturn, result, err = r.installObject(ctx, app, existingPeerAuthentication, newPeerAuthencitaion)
+	if shouldReturn {
+		return result, err
 	}
 
 	return ctrl.Result{}, err
 }
 
-func (reconciler *ApplicationReconciler) buildNetworkPolicy(skip *skiperatorv1alpha1.Application) *networkingv1.NetworkPolicy {
-	ls := labelsForApplication(skip.Name)
+func (r *ApplicationReconciler) installObject(ctx context.Context, app *skiperatorv1alpha1.Application, existingObject client.Object, newObject client.Object) (bool, reconcile.Result, error) {
+	log := log.FromContext(ctx)
+	err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, existingObject)
 
-	dep := &networkingv1.NetworkPolicy{
+	if err != nil && errors.IsNotFound(err) {
+		// TODO: Get Kind from object here
+		kind := "Object"
+		namespace := newObject.GetNamespace()
+		name := newObject.GetName()
+
+		log.Info("Creating a new "+kind, "newObject.Namespace", namespace, "newObject.Name", name)
+		// TODO Look into using ctrl.CreateOrUpdate to make code less imperative
+		err = r.Create(ctx, newObject)
+
+		if err != nil {
+			log.Error(err, "Failed to create new "+kind, "newObject.Namespace", newObject.GetNamespace(), "newObject.Name", newObject.GetName())
+			return true, ctrl.Result{}, err
+		}
+
+		return true, ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		log.Error(err, "Failed to get existing object")
+		return true, ctrl.Result{}, err
+	}
+
+	return false, reconcile.Result{}, nil
+}
+
+func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alpha1.Application) *networkingv1.NetworkPolicy {
+	ls := labelsForApplication(app)
+	ingressRules := buildIngressPolicy(app)
+
+	for _, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
+		ingressRules = append(ingressRules, buildIngressRules(app, inboundApp)...)
+	}
+
+	policy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      skip.Name,
-			Namespace: skip.Namespace,
+			Name:      app.Name,
+			Namespace: app.Namespace,
 		},
 		Spec: networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: ls,
 			},
-			Ingress: buildIngressRules(skip),
+			Ingress: ingressRules,
 		},
 	}
 
-	// Set instance as the owner and controller
-	// ctrl.SetControllerReference(reconciler, dep, reconciler.Scheme)
-	return dep
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, policy, reconciler.Scheme)
+	return policy
 }
 
 // returns the labels for selecting the resources
 // belonging to the given CRD name.
-func labelsForApplication(name string) map[string]string {
-	return map[string]string{"app": "memcached", "memcached_cr": name}
+func labelsForApplication(app *skiperatorv1alpha1.Application) map[string]string {
+	return map[string]string{"app": app.Name}
 }
 
-func buildIngressRules(app *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
+func buildIngressPolicy(app *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
 	rule := []networkingv1.NetworkPolicyIngressRule{}
 
 	// When ingresses are set, allow traffic from ingressgateway
@@ -167,41 +180,38 @@ func buildIngressRules(app *skiperatorv1alpha1.Application) []networkingv1.Netwo
 	}
 
 	return rule
-	/*
-		[]networkingv1.NetworkPolicyIngressRule{
-			networkingv1.NetworkPolicyIngressRule{
-				From: []networkingv1.NetworkPolicyPeer{
-					networkingv1.NetworkPolicyPeer{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"": "",
-							},
-						},
-					},
-					// TODO add iteration for all ingress apps
-					networkingv1.NetworkPolicyPeer{
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								app: "other",
-							},
-						},
-					}
+}
+func buildIngressRules(app *skiperatorv1alpha1.Application, inboundApp skiperatorv1alpha1.Rule) []networkingv1.NetworkPolicyIngressRule {
+	rule := []networkingv1.NetworkPolicyIngressRule{}
+
+	// Add ingress rule for app
+	namespace := inboundApp.Namespace
+	if len(namespace) == 0 {
+		namespace = app.Namespace
+	}
+	rule = append(rule, networkingv1.NetworkPolicyIngressRule{
+		From: []networkingv1.NetworkPolicyPeer{{
+			PodSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"application": inboundApp.Application,
 				},
-				Ports: []networkingv1.NetworkPolicyPort{
-					networkingv1.NetworkPolicyPort{
-						Port: 8080,
-					}
-				}
 			},
-		},
-	*/
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/metadata.name": namespace,
+				},
+			},
+		}},
+	})
+
+	return rule
 }
 
-func (reconciler *ApplicationReconciler) buildPeerAuthentication(skip *skiperatorv1alpha1.Application) *securityv1beta1.PeerAuthentication {
-	return &securityv1beta1.PeerAuthentication{
+func (reconciler *ApplicationReconciler) buildPeerAuthentication(app *skiperatorv1alpha1.Application) *securityv1beta1.PeerAuthentication {
+	peerAuthentication := securityv1beta1.PeerAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: skip.Namespace,
-			Name:      skip.Name,
+			Namespace: app.Namespace,
+			Name:      app.Name,
 		},
 		Spec: v1beta1.PeerAuthentication{
 			Mtls: &v1beta1.PeerAuthentication_MutualTLS{
@@ -209,6 +219,10 @@ func (reconciler *ApplicationReconciler) buildPeerAuthentication(skip *skiperato
 			},
 		},
 	}
+
+	// Setting controller as owner makes the PeerAuthentication garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, &peerAuthentication, reconciler.Scheme)
+	return &peerAuthentication
 }
 
 // SetupWithManager sets up the controller with the Manager.
