@@ -24,6 +24,7 @@ import (
 	istioNetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	istioSecurityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -79,7 +80,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	log.Info("The incoming application object is", "Application", app)
 
-	// Check if the deployment already exists, if not create a new one
+	// Deployment: Check if already exists, if not create a new one
 	existingDeployment := &appsv1.Deployment{}
 	newDeployment := reconciler.buildDeployment(app)
 	shouldReturn, result, err := reconciler.installObject(ctx, app, existingDeployment, newDeployment)
@@ -87,7 +88,17 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		return result, err
 	}
 
-	// Check if the deployment already exists, if not create a new one
+	if !app.Spec.Replicas.DisableAutoScaling {
+		// HorizontalPodAutoscaler: Check if already exists, if not create a new one
+		existingAutoscaler := &autoscalingv1.HorizontalPodAutoscaler{}
+		newAutoscaler := reconciler.buildAutoscaler(app)
+		shouldReturn, result, err := reconciler.installObject(ctx, app, existingAutoscaler, newAutoscaler)
+		if shouldReturn {
+			return result, err
+		}
+	}
+
+	// Service: Check if already exists, if not create a new one
 	existingService := &v1.Service{}
 	newService := reconciler.buildService(app)
 	shouldReturn, result, err = reconciler.installObject(ctx, app, existingService, newService)
@@ -95,11 +106,25 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		return result, err
 	}
 
-	// TODO make service
+	// Gateway: Check if already exists, if not create a new one
+	existingGateway := &istioNetworkingv1beta1.Gateway{}
+	newGateway := reconciler.buildGateway(app)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingGateway, newGateway)
+	if shouldReturn {
+		return result, err
+	}
 
-	// TODO make Gateway
+	// VirtualService: Check if already exists, if not create a new one
+	existingVirtualService := &istioNetworkingv1beta1.VirtualService{}
+	newVirtualService := reconciler.buildVirtualService(app)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingVirtualService, newVirtualService)
+	if shouldReturn {
+		return result, err
+	}
 
-	// TODO make VirtualService
+	// TODO make ServiceEntry for egress
+
+	// TODO make VirtualServices for egress
 
 	// TODO make ResourceLimit
 
@@ -107,7 +132,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// TODO make image pull Secret
 
-	// Check if the networkPolicy already exists, if not create a new one
+	// NetworkPolicy: Check if already exists, if not create a new one
 	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
 	newNetworkPolicy := reconciler.buildNetworkPolicy(app)
 	shouldReturn, result, err = reconciler.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
@@ -115,7 +140,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		return result, err
 	}
 
-	// Check if the peerAuthentication already exists, if not create a new one
+	// PeerAuthentication: Check if already exists, if not create a new one
 	existingPeerAuthentication := &istioSecurityv1beta1.PeerAuthentication{}
 	newPeerAuthencitaion := reconciler.buildPeerAuthentication(app)
 	shouldReturn, result, err = reconciler.installObject(ctx, app, existingPeerAuthentication, newPeerAuthencitaion)
@@ -123,7 +148,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		return result, err
 	}
 
-	// Check if the Sidecar already exists, if not create a new one
+	// Sidecar: Check if already exists, if not create a new one
 	existingSidecar := &istioNetworkingv1beta1.Sidecar{}
 	newSidecar := reconciler.buildSidecar(app)
 	shouldReturn, result, err = reconciler.installObject(ctx, app, existingSidecar, newSidecar)
@@ -162,6 +187,71 @@ func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app 
 	return false, reconcile.Result{}, nil
 }
 
+func (reconciler *ApplicationReconciler) buildVirtualService(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.VirtualService {
+	virtualService := &istioNetworkingv1beta1.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: istioApiNetworkingv1beta1.VirtualService{
+			Hosts: app.Spec.Ingresses,
+			// The name of the local gateway config
+			Gateways: []string{app.Name},
+			Http: []*istioApiNetworkingv1beta1.HTTPRoute{{
+				Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
+					Port: 80,
+				}},
+				Route: []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
+					Destination: &istioApiNetworkingv1beta1.Destination{
+						// The name of the service
+						Host: app.Name,
+					},
+				}},
+			}},
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, virtualService, reconciler.Scheme)
+	return virtualService
+}
+
+func (reconciler *ApplicationReconciler) buildGateway(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Gateway {
+	gateway := &istioNetworkingv1beta1.Gateway{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: istioApiNetworkingv1beta1.Gateway{
+			Selector: map[string]string{
+				"istio": "ingressgateway",
+			},
+			Servers: []*istioApiNetworkingv1beta1.Server{{
+				Port: &istioApiNetworkingv1beta1.Port{
+					Number:   80,
+					Name:     "HTTP",
+					Protocol: "HTTP",
+				},
+				Hosts: app.Spec.Ingresses,
+			}, /* TODO: Add HTTPS routes.
+			It fails in validation when applied due to "configuration is invalid: server must have TLS settings for HTTPS/TLS protocols"
+			{
+				Port: &istioApiNetworkingv1beta1.Port{
+					Number:   443,
+					Name:     "HTTPS",
+					Protocol: "HTTPS",
+				},
+				Hosts: app.Spec.Ingresses,
+			}*/
+			},
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, gateway, reconciler.Scheme)
+	return gateway
+}
+
 func (reconciler *ApplicationReconciler) buildService(app *skiperatorv1alpha1.Application) *v1.Service {
 	labels := labelsForApplication(app)
 
@@ -183,6 +273,29 @@ func (reconciler *ApplicationReconciler) buildService(app *skiperatorv1alpha1.Ap
 	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
 	ctrl.SetControllerReference(app, service, reconciler.Scheme)
 	return service
+}
+
+func (reconciler *ApplicationReconciler) buildAutoscaler(app *skiperatorv1alpha1.Application) *autoscalingv1.HorizontalPodAutoscaler {
+	autoscaler := &autoscalingv1.HorizontalPodAutoscaler{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       app.Name,
+			},
+			MinReplicas:                    app.Spec.Replicas.Min,
+			MaxReplicas:                    app.Spec.Replicas.Max,
+			TargetCPUUtilizationPercentage: app.Spec.Replicas.CpuThresholdPercentage,
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, autoscaler, reconciler.Scheme)
+	return autoscaler
 }
 
 func (reconciler *ApplicationReconciler) buildDeployment(app *skiperatorv1alpha1.Application) *appsv1.Deployment {
@@ -373,6 +486,11 @@ func labelsForApplication(app *skiperatorv1alpha1.Application) map[string]string
 func (reconciler *ApplicationReconciler) SetupWithManager(manager ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(manager).
 		For(&skiperatorv1alpha1.Application{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&autoscalingv1.HorizontalPodAutoscaler{}).
+		Owns(&v1.Service{}).
+		Owns(&istioNetworkingv1beta1.Gateway{}).
+		Owns(&istioNetworkingv1beta1.VirtualService{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istioSecurityv1beta1.PeerAuthentication{}).
 		Complete(reconciler)

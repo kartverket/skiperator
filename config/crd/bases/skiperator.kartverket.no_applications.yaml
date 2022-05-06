@@ -114,6 +114,7 @@ spec:
               replicas:
                 properties:
                   cpuThresholdPercentage:
+                    format: int32
                     type: integer
                   disableAutoScaling:
                     type: boolean
@@ -124,7 +125,6 @@ spec:
                     format: int32
                     type: integer
                 required:
-                - disableAutoScaling
                 - min
                 type: object
             required:

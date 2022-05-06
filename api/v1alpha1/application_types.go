@@ -55,9 +55,9 @@ type AccessPolicy struct {
 }
 
 type Replicas struct {
-	CpuThresholdPercentage int    `json:"cpuThresholdPercentage,omitempty"`
-	DisableAutoScaling     bool   `json:"disableAutoScaling"`
-	Max                    *int32 `json:"max,omitempty"`
+	CpuThresholdPercentage *int32 `json:"cpuThresholdPercentage,omitempty"`
+	DisableAutoScaling     bool   `json:"disableAutoScaling,omitempty"`
+	Max                    int32  `json:"max,omitempty"`
 	Min                    *int32 `json:"min"`
 }
 

@@ -35,6 +35,7 @@ import (
 	"github.com/kartverket/skiperator/controllers"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -47,6 +48,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(autoscalingv1.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme

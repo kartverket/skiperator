@@ -7,6 +7,10 @@ spec:
   port: 8080
   ingresses:
   - testapp.dev.skip.statkart.no
+  replicas:
+    min: 3
+    max: 5
+    cpuThresholdPercentage: 80
   accessPolicy:
     inbound:
       rules:
