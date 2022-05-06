@@ -11,6 +11,12 @@ spec:
     min: 3
     max: 5
     cpuThresholdPercentage: 80
+  resources:
+    limits:
+      cpu: "1000m"
+      memory: "1G"
+    requests:
+      cpu: "1000m"
   accessPolicy:
     inbound:
       rules:

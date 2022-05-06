@@ -61,6 +61,16 @@ type Replicas struct {
 	Min                    *int32 `json:"min"`
 }
 
+type CpuMemory struct {
+	Cpu    string `json:"cpu,omitempty"`
+	Memory string `json:"memory,omitempty"`
+}
+
+type Resources struct {
+	Limits   *CpuMemory `json:"limits,omitempty"`
+	Requests *CpuMemory `json:"requests,omitempty"`
+}
+
 // ApplicationSpec defines the desired state of Application
 type ApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -70,7 +80,8 @@ type ApplicationSpec struct {
 	Image        string        `json:"image"`
 	Port         int           `json:"port,omitempty"`
 	Ingresses    []string      `json:"ingresses,omitempty"`
-	Replicas     Replicas      `json:"replicas,omitempty"`
+	Replicas     *Replicas     `json:"replicas,omitempty"`
+	Resources    *Resources    `json:"resources,omitempty"`
 	// TODO add env
 	// TODO add envFrom
 	// TODO add liveness

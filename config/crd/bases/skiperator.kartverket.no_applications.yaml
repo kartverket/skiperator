@@ -127,6 +127,23 @@ spec:
                 required:
                 - min
                 type: object
+              resources:
+                properties:
+                  limits:
+                    properties:
+                      cpu:
+                        type: string
+                      memory:
+                        type: string
+                    type: object
+                  requests:
+                    properties:
+                      cpu:
+                        type: string
+                      memory:
+                        type: string
+                    type: object
+                type: object
             required:
             - image
             type: object

@@ -28,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -82,14 +83,14 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Deployment: Check if already exists, if not create a new one
 	existingDeployment := &appsv1.Deployment{}
-	newDeployment := reconciler.buildDeployment(app)
+	newDeployment := reconciler.buildDeployment(ctx, app)
 	shouldReturn, result, err := reconciler.installObject(ctx, app, existingDeployment, newDeployment)
 	if shouldReturn {
 		return result, err
 	}
 
+	// HorizontalPodAutoscaler: Check if already exists, if not create a new one
 	if !app.Spec.Replicas.DisableAutoScaling {
-		// HorizontalPodAutoscaler: Check if already exists, if not create a new one
 		existingAutoscaler := &autoscalingv1.HorizontalPodAutoscaler{}
 		newAutoscaler := reconciler.buildAutoscaler(app)
 		shouldReturn, result, err := reconciler.installObject(ctx, app, existingAutoscaler, newAutoscaler)
@@ -125,10 +126,6 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	// TODO make ServiceEntry for egress
 
 	// TODO make VirtualServices for egress
-
-	// TODO make ResourceLimit
-
-	// TODO make autoscaling
 
 	// TODO make image pull Secret
 
@@ -298,7 +295,7 @@ func (reconciler *ApplicationReconciler) buildAutoscaler(app *skiperatorv1alpha1
 	return autoscaler
 }
 
-func (reconciler *ApplicationReconciler) buildDeployment(app *skiperatorv1alpha1.Application) *appsv1.Deployment {
+func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, app *skiperatorv1alpha1.Application) *appsv1.Deployment {
 	labels := labelsForApplication(app)
 	var uid int64 = 150
 	yes := true
@@ -342,9 +339,9 @@ func (reconciler *ApplicationReconciler) buildDeployment(app *skiperatorv1alpha1
 							RunAsGroup:               &uid,
 						},
 						Ports: []v1.ContainerPort{{
-							Name:          "main",
 							ContainerPort: int32(app.Spec.Port),
 						}},
+						Resources: reconciler.buildResources(ctx, app),
 						// TODO add env
 						// TODO add envFrom
 					}},
@@ -356,6 +353,45 @@ func (reconciler *ApplicationReconciler) buildDeployment(app *skiperatorv1alpha1
 	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
 	ctrl.SetControllerReference(app, deployment, reconciler.Scheme)
 	return deployment
+}
+
+func (reconciler *ApplicationReconciler) buildResources(ctx context.Context, app *skiperatorv1alpha1.Application) v1.ResourceRequirements {
+	log := log.FromContext(ctx)
+	limits := v1.ResourceList{}
+	requests := v1.ResourceList{}
+
+	cpuLimit, err := resource.ParseQuantity(app.Spec.Resources.Limits.Cpu)
+	if err == nil {
+		limits[v1.ResourceCPU] = cpuLimit
+	} else if len(app.Spec.Resources.Limits.Cpu) > 0 {
+		log.Error(err, "Failed to parse cpu limit object", "input", cpuLimit)
+	}
+
+	memLimit, err := resource.ParseQuantity(app.Spec.Resources.Limits.Memory)
+	if err == nil {
+		limits[v1.ResourceMemory] = memLimit
+	} else if len(app.Spec.Resources.Limits.Memory) > 0 {
+		log.Error(err, "Failed to parse mem limit object", "input", memLimit)
+	}
+
+	cpuRequest, err := resource.ParseQuantity(app.Spec.Resources.Requests.Cpu)
+	if err == nil {
+		requests[v1.ResourceCPU] = cpuRequest
+	} else if len(app.Spec.Resources.Requests.Cpu) > 0 {
+		log.Error(err, "Failed to parse cpu request object", "input", cpuRequest)
+	}
+
+	memRequest, err := resource.ParseQuantity(app.Spec.Resources.Requests.Memory)
+	if err == nil {
+		requests[v1.ResourceMemory] = memRequest
+	} else if len(app.Spec.Resources.Requests.Memory) > 0 {
+		log.Error(err, "Failed to parse mem request object", "input", memRequest)
+	}
+
+	return v1.ResourceRequirements{
+		Limits:   limits,
+		Requests: requests,
+	}
 }
 
 func (reconciler *ApplicationReconciler) buildSidecar(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Sidecar {
