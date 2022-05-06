@@ -111,6 +111,22 @@ spec:
                 type: array
               port:
                 type: integer
+              replicas:
+                properties:
+                  cpuThresholdPercentage:
+                    type: integer
+                  disableAutoScaling:
+                    type: boolean
+                  max:
+                    format: int32
+                    type: integer
+                  min:
+                    format: int32
+                    type: integer
+                required:
+                - disableAutoScaling
+                - min
+                type: object
             required:
             - image
             type: object

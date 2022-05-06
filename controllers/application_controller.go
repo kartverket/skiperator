@@ -23,6 +23,8 @@ import (
 	istioApiSecurityv1beta1 "istio.io/api/security/v1beta1"
 	istioNetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	istioSecurityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,10 +79,38 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	log.Info("The incoming application object is", "Application", app)
 
+	// Check if the deployment already exists, if not create a new one
+	existingDeployment := &appsv1.Deployment{}
+	newDeployment := reconciler.buildDeployment(app)
+	shouldReturn, result, err := reconciler.installObject(ctx, app, existingDeployment, newDeployment)
+	if shouldReturn {
+		return result, err
+	}
+
+	// Check if the deployment already exists, if not create a new one
+	existingService := &v1.Service{}
+	newService := reconciler.buildService(app)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingService, newService)
+	if shouldReturn {
+		return result, err
+	}
+
+	// TODO make service
+
+	// TODO make Gateway
+
+	// TODO make VirtualService
+
+	// TODO make ResourceLimit
+
+	// TODO make autoscaling
+
+	// TODO make image pull Secret
+
 	// Check if the networkPolicy already exists, if not create a new one
 	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
 	newNetworkPolicy := reconciler.buildNetworkPolicy(app)
-	shouldReturn, result, err := reconciler.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
+	shouldReturn, result, err = reconciler.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
 	if shouldReturn {
 		return result, err
 	}
@@ -130,6 +160,89 @@ func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app 
 	}
 
 	return false, reconcile.Result{}, nil
+}
+
+func (reconciler *ApplicationReconciler) buildService(app *skiperatorv1alpha1.Application) *v1.Service {
+	labels := labelsForApplication(app)
+
+	service := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: v1.ServiceSpec{
+			Selector: labels,
+			Type:     v1.ServiceTypeClusterIP,
+			Ports: []v1.ServicePort{{
+				Port:       int32(app.Spec.Port),
+				TargetPort: intstr.FromInt(app.Spec.Port),
+			}},
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, service, reconciler.Scheme)
+	return service
+}
+
+func (reconciler *ApplicationReconciler) buildDeployment(app *skiperatorv1alpha1.Application) *appsv1.Deployment {
+	labels := labelsForApplication(app)
+	var uid int64 = 150
+	yes := true
+	no := false
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: app.Spec.Replicas.Min,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: labels,
+			},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: labels,
+					Annotations: map[string]string{
+						"prometheus.io/scrape":                     "true",
+						"seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
+					},
+				},
+				Spec: v1.PodSpec{
+					SecurityContext: &v1.PodSecurityContext{
+						SupplementalGroups: []int64{uid},
+						FSGroup:            &uid,
+					},
+					ImagePullSecrets: []v1.LocalObjectReference{{
+						Name: "github-auth",
+					}},
+					Containers: []v1.Container{{
+						Name:            app.Name,
+						Image:           app.Spec.Image,
+						ImagePullPolicy: v1.PullAlways,
+						SecurityContext: &v1.SecurityContext{
+							Privileged:               &no,
+							AllowPrivilegeEscalation: &no,
+							ReadOnlyRootFilesystem:   &yes,
+							RunAsUser:                &uid,
+							RunAsGroup:               &uid,
+						},
+						Ports: []v1.ContainerPort{{
+							Name:          "main",
+							ContainerPort: int32(app.Spec.Port),
+						}},
+						// TODO add env
+						// TODO add envFrom
+					}},
+				},
+			},
+		},
+	}
+
+	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
+	ctrl.SetControllerReference(app, deployment, reconciler.Scheme)
+	return deployment
 }
 
 func (reconciler *ApplicationReconciler) buildSidecar(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Sidecar {

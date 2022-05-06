@@ -54,6 +54,13 @@ type AccessPolicy struct {
 	Outbound *OutboundPolicy `json:"outbound,omitempty"`
 }
 
+type Replicas struct {
+	CpuThresholdPercentage int    `json:"cpuThresholdPercentage,omitempty"`
+	DisableAutoScaling     bool   `json:"disableAutoScaling"`
+	Max                    *int32 `json:"max,omitempty"`
+	Min                    *int32 `json:"min"`
+}
+
 // ApplicationSpec defines the desired state of Application
 type ApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -63,6 +70,12 @@ type ApplicationSpec struct {
 	Image        string        `json:"image"`
 	Port         int           `json:"port,omitempty"`
 	Ingresses    []string      `json:"ingresses,omitempty"`
+	Replicas     Replicas      `json:"replicas,omitempty"`
+	// TODO add env
+	// TODO add envFrom
+	// TODO add liveness
+	// TODO add readiness
+	// TODO add filesFrom
 }
 
 // ApplicationStatus defines the observed state of Application

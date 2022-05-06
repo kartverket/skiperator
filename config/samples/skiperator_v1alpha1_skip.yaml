@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: application-sample
 spec:
-  image: "nginx:latest"
+  image: "wardsco/sleep:latest"
   port: 8080
   ingresses:
   - testapp.dev.skip.statkart.no
