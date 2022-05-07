@@ -90,6 +90,15 @@ type FilesFrom struct {
 	Secret                string `json:"secret,omitempty"`
 }
 
+type Probe struct {
+	FailureThreshold int    `json:"failureThreshold,omitempty"`
+	InitialDelay     int    `json:"initialDelay,omitempty"`
+	Path             string `json:"path"`
+	PeriodSeconds    int    `json:"periodSeconds,omitempty"`
+	Port             int    `json:"port"`
+	Timeout          int    `json:"timeout,omitempty"`
+}
+
 // ApplicationSpec defines the desired state of Application
 type ApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -104,8 +113,8 @@ type ApplicationSpec struct {
 	Env          []Env         `json:"env,omitempty"`
 	EnvFrom      []EnvFrom     `json:"envFrom,omitempty"`
 	FilesFrom    []FilesFrom   `json:"filesFrom,omitempty"`
-	// TODO add liveness
-	// TODO add readiness
+	Liveness     *Probe        `json:"liveness,omitempty"`
+	Readiness    *Probe        `json:"readiness,omitempty"`
 }
 
 // ApplicationStatus defines the observed state of Application

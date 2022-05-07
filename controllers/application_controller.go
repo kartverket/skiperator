@@ -307,6 +307,7 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 
 	envList, envFromList := reconciler.buildEnv(app)
 	volumeMounts, volumes := reconciler.buildVolumes(app)
+	livenessProbe, readinessProbe := reconciler.buildProbes(app)
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -348,10 +349,12 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 						Ports: []v1.ContainerPort{{
 							ContainerPort: int32(app.Spec.Port),
 						}},
-						Resources:    reconciler.buildResources(ctx, app),
-						Env:          envList,
-						EnvFrom:      envFromList,
-						VolumeMounts: volumeMounts,
+						Resources:      reconciler.buildResources(ctx, app),
+						Env:            envList,
+						EnvFrom:        envFromList,
+						VolumeMounts:   volumeMounts,
+						LivenessProbe:  livenessProbe,
+						ReadinessProbe: readinessProbe,
 					}},
 					Volumes: volumes,
 				},
@@ -362,6 +365,39 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
 	ctrl.SetControllerReference(app, deployment, reconciler.Scheme)
 	return deployment
+}
+
+func (*ApplicationReconciler) buildProbes(app *skiperatorv1alpha1.Application) (*v1.Probe, *v1.Probe) {
+	var livenessProbe *v1.Probe = nil
+	if app.Spec.Liveness != nil {
+		livenessProbe = &v1.Probe{
+			FailureThreshold:    int32(app.Spec.Liveness.FailureThreshold),
+			InitialDelaySeconds: int32(app.Spec.Liveness.InitialDelay),
+			TimeoutSeconds:      int32(app.Spec.Liveness.Timeout),
+			ProbeHandler: v1.ProbeHandler{
+				HTTPGet: &v1.HTTPGetAction{
+					Path: app.Spec.Liveness.Path,
+					Port: intstr.FromInt(app.Spec.Liveness.Port),
+				},
+			},
+		}
+	}
+
+	var readinessProbe *v1.Probe = nil
+	if app.Spec.Readiness != nil {
+		readinessProbe = &v1.Probe{
+			FailureThreshold:    int32(app.Spec.Readiness.FailureThreshold),
+			InitialDelaySeconds: int32(app.Spec.Readiness.InitialDelay),
+			TimeoutSeconds:      int32(app.Spec.Readiness.Timeout),
+			ProbeHandler: v1.ProbeHandler{
+				HTTPGet: &v1.HTTPGetAction{
+					Path: app.Spec.Readiness.Path,
+					Port: intstr.FromInt(app.Spec.Readiness.Port),
+				},
+			},
+		}
+	}
+	return livenessProbe, readinessProbe
 }
 
 func (*ApplicationReconciler) buildEnv(app *skiperatorv1alpha1.Application) ([]v1.EnvVar, []v1.EnvFromSource) {
@@ -400,6 +436,23 @@ func (*ApplicationReconciler) buildEnv(app *skiperatorv1alpha1.Application) ([]v
 func (*ApplicationReconciler) buildVolumes(app *skiperatorv1alpha1.Application) ([]v1.VolumeMount, []v1.Volume) {
 	volumeMounts := []v1.VolumeMount{}
 	volumes := []v1.Volume{}
+
+	// Add /tmp volume as we specify a read-only root file system and
+	// /tmp is commonly used in many containers out of the box
+	volumeMounts = append(volumeMounts, v1.VolumeMount{
+		Name:      "tmp",
+		MountPath: "/tmp",
+	})
+	volumes = append(volumes, v1.Volume{
+		Name: "tmp",
+		VolumeSource: v1.VolumeSource{
+			EmptyDir: &v1.EmptyDirVolumeSource{
+				Medium: v1.StorageMediumMemory,
+			},
+		},
+	})
+
+	// Add volumes specified in FromFiles
 	for _, file := range app.Spec.FilesFrom {
 		if len(file.Configmap) > 0 {
 			volumeMounts = append(volumeMounts, v1.VolumeMount{

@@ -225,8 +225,44 @@ spec:
                 items:
                   type: string
                 type: array
+              liveness:
+                properties:
+                  failureThreshold:
+                    type: integer
+                  initialDelay:
+                    type: integer
+                  path:
+                    type: string
+                  periodSeconds:
+                    type: integer
+                  port:
+                    type: integer
+                  timeout:
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
               port:
                 type: integer
+              readiness:
+                properties:
+                  failureThreshold:
+                    type: integer
+                  initialDelay:
+                    type: integer
+                  path:
+                    type: string
+                  periodSeconds:
+                    type: integer
+                  port:
+                    type: integer
+                  timeout:
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
               replicas:
                 properties:
                   cpuThresholdPercentage:
