@@ -11,6 +11,20 @@ spec:
     min: 3
     max: 5
     cpuThresholdPercentage: 80
+  env:
+  - name: ENV
+    value: PRODUCTION
+  - name: NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+  filesFrom:
+  #- configmap: some-configmap
+  #  mountPath: /var/run/configmap
+  #- secret: some-secret
+  #  mountPath: /var/run/secret
+  #- persistentVolumeClaim: some-pvc
+  #  mountPath: /var/run/volume
   resources:
     limits:
       cpu: "1000m"

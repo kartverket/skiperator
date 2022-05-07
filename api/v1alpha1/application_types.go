@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -71,6 +72,24 @@ type Resources struct {
 	Requests *CpuMemory `json:"requests,omitempty"`
 }
 
+type Env struct {
+	Name      string           `json:"name"`
+	Value     string           `json:"value,omitempty"`
+	ValueFrom *v1.EnvVarSource `json:"valueFrom,omitempty"`
+}
+
+type EnvFrom struct {
+	Configmap string `json:"configmap,omitempty"`
+	Secret    string `json:"secret,omitempty"`
+}
+
+type FilesFrom struct {
+	MountPath             string `json:"mountPath"`
+	Configmap             string `json:"configmap,omitempty"`
+	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
+	Secret                string `json:"secret,omitempty"`
+}
+
 // ApplicationSpec defines the desired state of Application
 type ApplicationSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
@@ -82,11 +101,11 @@ type ApplicationSpec struct {
 	Ingresses    []string      `json:"ingresses,omitempty"`
 	Replicas     *Replicas     `json:"replicas,omitempty"`
 	Resources    *Resources    `json:"resources,omitempty"`
-	// TODO add env
-	// TODO add envFrom
+	Env          []Env         `json:"env,omitempty"`
+	EnvFrom      []EnvFrom     `json:"envFrom,omitempty"`
+	FilesFrom    []FilesFrom   `json:"filesFrom,omitempty"`
 	// TODO add liveness
 	// TODO add readiness
-	// TODO add filesFrom
 }
 
 // ApplicationStatus defines the observed state of Application

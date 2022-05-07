@@ -90,7 +90,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	// HorizontalPodAutoscaler: Check if already exists, if not create a new one
-	if !app.Spec.Replicas.DisableAutoScaling {
+	if app.Spec.Replicas != nil && !app.Spec.Replicas.DisableAutoScaling {
 		existingAutoscaler := &autoscalingv1.HorizontalPodAutoscaler{}
 		newAutoscaler := reconciler.buildAutoscaler(app)
 		shouldReturn, result, err := reconciler.installObject(ctx, app, existingAutoscaler, newAutoscaler)
@@ -300,6 +300,13 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 	var uid int64 = 150
 	yes := true
 	no := false
+	var replicas int32 = 1
+	if app.Spec.Replicas != nil && app.Spec.Replicas.Min != nil {
+		replicas = *app.Spec.Replicas.Min
+	}
+
+	envList, envFromList := reconciler.buildEnv(app)
+	volumeMounts, volumes := reconciler.buildVolumes(app)
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -307,7 +314,7 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 			Namespace: app.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: app.Spec.Replicas.Min,
+			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -341,10 +348,12 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 						Ports: []v1.ContainerPort{{
 							ContainerPort: int32(app.Spec.Port),
 						}},
-						Resources: reconciler.buildResources(ctx, app),
-						// TODO add env
-						// TODO add envFrom
+						Resources:    reconciler.buildResources(ctx, app),
+						Env:          envList,
+						EnvFrom:      envFromList,
+						VolumeMounts: volumeMounts,
 					}},
+					Volumes: volumes,
 				},
 			},
 		},
@@ -355,10 +364,97 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 	return deployment
 }
 
+func (*ApplicationReconciler) buildEnv(app *skiperatorv1alpha1.Application) ([]v1.EnvVar, []v1.EnvFromSource) {
+	envList := []v1.EnvVar{}
+	for _, env := range app.Spec.Env {
+		envList = append(envList, v1.EnvVar{
+			Name:      env.Name,
+			Value:     env.Value,
+			ValueFrom: env.ValueFrom,
+		})
+	}
+
+	envFromList := []v1.EnvFromSource{}
+	for _, env := range app.Spec.EnvFrom {
+		if len(env.Configmap) > 0 {
+			envFromList = append(envFromList, v1.EnvFromSource{
+				ConfigMapRef: &v1.ConfigMapEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: env.Configmap,
+					},
+				},
+			})
+		} else if len(env.Secret) > 0 {
+			envFromList = append(envFromList, v1.EnvFromSource{
+				SecretRef: &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: env.Configmap,
+					},
+				},
+			})
+		}
+	}
+	return envList, envFromList
+}
+
+func (*ApplicationReconciler) buildVolumes(app *skiperatorv1alpha1.Application) ([]v1.VolumeMount, []v1.Volume) {
+	volumeMounts := []v1.VolumeMount{}
+	volumes := []v1.Volume{}
+	for _, file := range app.Spec.FilesFrom {
+		if len(file.Configmap) > 0 {
+			volumeMounts = append(volumeMounts, v1.VolumeMount{
+				Name:      file.Configmap,
+				MountPath: file.MountPath,
+			})
+			volumes = append(volumes, v1.Volume{
+				Name: file.Configmap,
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: file.Configmap,
+						},
+					},
+				},
+			})
+		} else if len(file.PersistentVolumeClaim) > 0 {
+			volumeMounts = append(volumeMounts, v1.VolumeMount{
+				Name:      file.PersistentVolumeClaim,
+				MountPath: file.MountPath,
+			})
+			volumes = append(volumes, v1.Volume{
+				Name: file.PersistentVolumeClaim,
+				VolumeSource: v1.VolumeSource{
+					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+						ClaimName: file.PersistentVolumeClaim,
+					},
+				},
+			})
+		} else if len(file.Secret) > 0 {
+			volumeMounts = append(volumeMounts, v1.VolumeMount{
+				Name:      file.Secret,
+				MountPath: file.MountPath,
+			})
+			volumes = append(volumes, v1.Volume{
+				Name: file.Secret,
+				VolumeSource: v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName: file.Secret,
+					},
+				},
+			})
+		}
+	}
+	return volumeMounts, volumes
+}
+
 func (reconciler *ApplicationReconciler) buildResources(ctx context.Context, app *skiperatorv1alpha1.Application) v1.ResourceRequirements {
 	log := log.FromContext(ctx)
 	limits := v1.ResourceList{}
 	requests := v1.ResourceList{}
+
+	if app.Spec.Resources == nil {
+		return v1.ResourceRequirements{}
+	}
 
 	cpuLimit, err := resource.ParseQuantity(app.Spec.Resources.Limits.Cpu)
 	if err == nil {
@@ -418,8 +514,10 @@ func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alp
 	labels := labelsForApplication(app)
 	ingressRules := buildIngressPolicy(app)
 
-	for _, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
-		ingressRules = append(ingressRules, buildIngressRules(app, inboundApp)...)
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Inbound != nil && app.Spec.AccessPolicy.Inbound.Rules != nil {
+		for _, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
+			ingressRules = append(ingressRules, buildIngressRules(app, inboundApp)...)
+		}
 	}
 
 	policy := &networkingv1.NetworkPolicy{
