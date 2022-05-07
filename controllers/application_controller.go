@@ -195,9 +195,12 @@ func (reconciler *ApplicationReconciler) buildVirtualService(app *skiperatorv1al
 			// The name of the local gateway config
 			Gateways: []string{app.Name},
 			Http: []*istioApiNetworkingv1beta1.HTTPRoute{{
-				Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
-					Port: 80,
-				}},
+				// TODO: Can we safely omit this when adding TLS?
+				// "Port specifies the ports on the host that is being addressed. Many services only expose a single port
+				// or label ports with the protocols they support, in these cases it is not required to explicitly select the port."
+				// Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
+				// 	Port: uint32(app.Spec.Port),
+				// }},
 				Route: []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
 					Destination: &istioApiNetworkingv1beta1.Destination{
 						// The name of the service
@@ -367,7 +370,7 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 	return deployment
 }
 
-func (*ApplicationReconciler) buildProbes(app *skiperatorv1alpha1.Application) (*v1.Probe, *v1.Probe) {
+func (*ApplicationReconciler) buildProbes(app *skiperatorv1alpha1.Application) (liveness *v1.Probe, readiness *v1.Probe) {
 	var livenessProbe *v1.Probe = nil
 	if app.Spec.Liveness != nil {
 		livenessProbe = &v1.Probe{
@@ -604,6 +607,7 @@ func buildIngressPolicy(app *skiperatorv1alpha1.Application) []networkingv1.Netw
 						"kubernetes.io/metadata.name": "istio-system",
 					},
 				},
+			}, {
 				PodSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"ingress": "external",
