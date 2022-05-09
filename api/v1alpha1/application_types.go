@@ -101,7 +101,6 @@ type Probe struct {
 
 // ApplicationSpec defines the desired state of Application
 type ApplicationSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
 	AccessPolicy *AccessPolicy `json:"accessPolicy,omitempty"`
@@ -119,7 +118,6 @@ type ApplicationSpec struct {
 
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 }
 

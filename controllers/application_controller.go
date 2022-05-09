@@ -51,6 +51,8 @@ type ApplicationReconciler struct {
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications/finalizers,verbs=update
 
+// TODO add more rbac rules above to autogenerate schema
+
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
 // TODO(user): Modify the Reconcile function to compare the state specified by
@@ -82,12 +84,25 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	log.Info("The incoming application object is", "Application", app)
 
 	// Deployment: Check if already exists, if not create a new one
-	existingDeployment := &appsv1.Deployment{}
-	newDeployment := reconciler.buildDeployment(ctx, app)
-	shouldReturn, result, err := reconciler.installObject(ctx, app, existingDeployment, newDeployment)
-	if shouldReturn {
-		return result, err
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	op, err := ctrl.CreateOrUpdate(ctx, reconciler.Client, deployment, func() error {
+		// Set deployment object to expected state in memory. If it's different than what
+		// the calling `CreateOrUpdate` function gets from Kubernetes, it will send an
+		// update request back to the apiserver with the expected state determined here.
+		reconciler.addDeploymentData(ctx, app, deployment)
+
+		// Setting controller as owner makes the object garbage collected when Application gets deleted in k8s
+		if err := ctrl.SetControllerReference(app, deployment, reconciler.Scheme); err != nil {
+			log.Error(err, "Failed to set owner reference on Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
+			return err
+		}
+		return nil
+
+	})
+	if err != nil {
+		log.Error(err, "Failed to reconcile Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
 	}
+	log.Info("Deployment reconciled", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name, "Operation", op)
 
 	// HorizontalPodAutoscaler: Check if already exists, if not create a new one
 	if app.Spec.Replicas != nil && !app.Spec.Replicas.DisableAutoScaling {
@@ -102,7 +117,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	// Service: Check if already exists, if not create a new one
 	existingService := &v1.Service{}
 	newService := reconciler.buildService(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingService, newService)
+	shouldReturn, result, err := reconciler.installObject(ctx, app, existingService, newService)
 	if shouldReturn {
 		return result, err
 	}
@@ -162,7 +177,7 @@ func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app 
 
 	if err != nil && errors.IsNotFound(err) {
 		// TODO: Get Kind from object here
-		kind := "Object"
+		kind := newObject.GetObjectKind().GroupVersionKind().Kind
 		namespace := newObject.GetNamespace()
 		name := newObject.GetName()
 
@@ -298,7 +313,7 @@ func (reconciler *ApplicationReconciler) buildAutoscaler(app *skiperatorv1alpha1
 	return autoscaler
 }
 
-func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, app *skiperatorv1alpha1.Application) *appsv1.Deployment {
+func (reconciler *ApplicationReconciler) addDeploymentData(ctx context.Context, app *skiperatorv1alpha1.Application, deployment *appsv1.Deployment) {
 	labels := labelsForApplication(app)
 	var uid int64 = 150
 	yes := true
@@ -308,132 +323,152 @@ func (reconciler *ApplicationReconciler) buildDeployment(ctx context.Context, ap
 		replicas = *app.Spec.Replicas.Min
 	}
 
-	envList, envFromList := reconciler.buildEnv(app)
-	volumeMounts, volumes := reconciler.buildVolumes(app)
-	livenessProbe, readinessProbe := reconciler.buildProbes(app)
+	if deployment.Spec.Selector == nil {
+		// This block only runs on initial creation
+		// It holds initialization of various objects in addition to immutable objects
+		// which are not possible to edit after creation
+		volumeMounts, volumes := reconciler.buildVolumes(app)
 
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-					Annotations: map[string]string{
-						"prometheus.io/scrape":                     "true",
-						"seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
-					},
-				},
-				Spec: v1.PodSpec{
-					SecurityContext: &v1.PodSecurityContext{
-						SupplementalGroups: []int64{uid},
-						FSGroup:            &uid,
-					},
-					ImagePullSecrets: []v1.LocalObjectReference{{
-						Name: "github-auth",
-					}},
-					Containers: []v1.Container{{
-						Name:            app.Name,
-						Image:           app.Spec.Image,
-						ImagePullPolicy: v1.PullAlways,
-						SecurityContext: &v1.SecurityContext{
-							Privileged:               &no,
-							AllowPrivilegeEscalation: &no,
-							ReadOnlyRootFilesystem:   &yes,
-							RunAsUser:                &uid,
-							RunAsGroup:               &uid,
-						},
-						Ports: []v1.ContainerPort{{
-							ContainerPort: int32(app.Spec.Port),
-						}},
-						Resources:      reconciler.buildResources(ctx, app),
-						Env:            envList,
-						EnvFrom:        envFromList,
-						VolumeMounts:   volumeMounts,
-						LivenessProbe:  livenessProbe,
-						ReadinessProbe: readinessProbe,
-					}},
-					Volumes: volumes,
-				},
-			},
-		},
+		deployment.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: labels,
+		}
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"prometheus.io/scrape":                     "true",
+			"seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
+		}
+		deployment.Spec.Template.Spec.Containers = make([]v1.Container, 1)
+		deployment.Spec.Template.Spec.Containers[0].Ports = make([]v1.ContainerPort, 1)
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext = &v1.SecurityContext{}
+		deployment.Spec.Template.Spec.ImagePullSecrets = []v1.LocalObjectReference{{
+			// TODO make this as part of operator in a safe way
+			Name: "github-auth",
+		}}
+		deployment.Spec.Template.Spec.SecurityContext = &v1.PodSecurityContext{}
+		deployment.Spec.Template.Spec.Volumes = volumes
+		deployment.Spec.Template.Spec.Containers[0].VolumeMounts = volumeMounts
 	}
 
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, deployment, reconciler.Scheme)
-	return deployment
+	// Re-create list when amount of elements change to flush and apply
+	if len(deployment.Spec.Template.Spec.Containers[0].Env) != len(app.Spec.Env) {
+		deployment.Spec.Template.Spec.Containers[0].Env = make([]v1.EnvVar, len(app.Spec.Env))
+	}
+
+	// Re-create list when amount of elements change to flush and apply
+	if len(deployment.Spec.Template.Spec.Containers[0].EnvFrom) != len(app.Spec.EnvFrom) {
+		deployment.Spec.Template.Spec.Containers[0].EnvFrom = make([]v1.EnvFromSource, len(app.Spec.EnvFrom))
+	}
+
+	deployment.Spec.Replicas = &replicas
+	deployment.Spec.Template.ObjectMeta.Labels = labels
+
+	deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
+	deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid
+
+	deployment.Spec.Template.Spec.Containers[0].Name = app.Name
+	deployment.Spec.Template.Spec.Containers[0].Image = app.Spec.Image
+	deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = v1.PullAlways
+
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.Privileged = &no
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation = &no
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = &yes
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsUser = &uid
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.RunAsGroup = &uid
+
+	deployment.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = int32(app.Spec.Port)
+	deployment.Spec.Template.Spec.Containers[0].Resources = reconciler.buildResources(ctx, app)
+
+	reconciler.addEnvData(app, deployment.Spec.Template.Spec.Containers[0].Env)
+	reconciler.addEnvFromData(app, deployment.Spec.Template.Spec.Containers[0].EnvFrom)
+	reconciler.addProbes(app, &deployment.Spec.Template.Spec.Containers[0])
 }
 
-func (*ApplicationReconciler) buildProbes(app *skiperatorv1alpha1.Application) (liveness *v1.Probe, readiness *v1.Probe) {
-	var livenessProbe *v1.Probe = nil
+func (*ApplicationReconciler) addProbes(app *skiperatorv1alpha1.Application, container *v1.Container) {
 	if app.Spec.Liveness != nil {
-		livenessProbe = &v1.Probe{
-			FailureThreshold:    int32(app.Spec.Liveness.FailureThreshold),
-			InitialDelaySeconds: int32(app.Spec.Liveness.InitialDelay),
-			TimeoutSeconds:      int32(app.Spec.Liveness.Timeout),
-			ProbeHandler: v1.ProbeHandler{
-				HTTPGet: &v1.HTTPGetAction{
-					Path: app.Spec.Liveness.Path,
-					Port: intstr.FromInt(app.Spec.Liveness.Port),
-				},
-			},
+		if container.LivenessProbe == nil {
+			container.LivenessProbe = &v1.Probe{}
+			container.LivenessProbe.ProbeHandler = v1.ProbeHandler{
+				HTTPGet: &v1.HTTPGetAction{},
+			}
 		}
+		// When unset in config (0) k8s sets default values which are different
+		// Prevent infinite update loop by only setting when non-null
+		if app.Spec.Liveness.FailureThreshold > 0 {
+			container.LivenessProbe.FailureThreshold = int32(app.Spec.Liveness.FailureThreshold)
+		}
+		if app.Spec.Liveness.InitialDelay > 0 {
+			container.LivenessProbe.InitialDelaySeconds = int32(app.Spec.Liveness.InitialDelay)
+		}
+		if app.Spec.Liveness.Timeout > 0 {
+			container.LivenessProbe.TimeoutSeconds = int32(app.Spec.Liveness.Timeout)
+		}
+		container.LivenessProbe.ProbeHandler.HTTPGet.Path = app.Spec.Liveness.Path
+		container.LivenessProbe.ProbeHandler.HTTPGet.Port = intstr.FromInt(app.Spec.Liveness.Port)
+	} else {
+		container.LivenessProbe = nil
 	}
 
-	var readinessProbe *v1.Probe = nil
 	if app.Spec.Readiness != nil {
-		readinessProbe = &v1.Probe{
-			FailureThreshold:    int32(app.Spec.Readiness.FailureThreshold),
-			InitialDelaySeconds: int32(app.Spec.Readiness.InitialDelay),
-			TimeoutSeconds:      int32(app.Spec.Readiness.Timeout),
-			ProbeHandler: v1.ProbeHandler{
-				HTTPGet: &v1.HTTPGetAction{
-					Path: app.Spec.Readiness.Path,
-					Port: intstr.FromInt(app.Spec.Readiness.Port),
-				},
-			},
+		if container.ReadinessProbe == nil {
+			container.ReadinessProbe = &v1.Probe{}
+			container.ReadinessProbe.ProbeHandler = v1.ProbeHandler{
+				HTTPGet: &v1.HTTPGetAction{},
+			}
 		}
+		// When unset in config (0) k8s sets default values which are different
+		// Prevent infinite update loop by only setting when non-null
+		if app.Spec.Readiness.FailureThreshold > 0 {
+			container.ReadinessProbe.FailureThreshold = int32(app.Spec.Readiness.FailureThreshold)
+		}
+		if app.Spec.Readiness.InitialDelay > 0 {
+			container.ReadinessProbe.InitialDelaySeconds = int32(app.Spec.Readiness.InitialDelay)
+		}
+		if app.Spec.Readiness.Timeout > 0 {
+			container.ReadinessProbe.TimeoutSeconds = int32(app.Spec.Readiness.Timeout)
+		}
+		container.ReadinessProbe.ProbeHandler.HTTPGet.Path = app.Spec.Readiness.Path
+		container.ReadinessProbe.ProbeHandler.HTTPGet.Port = intstr.FromInt(app.Spec.Liveness.Port)
+	} else {
+		container.ReadinessProbe = nil
 	}
-	return livenessProbe, readinessProbe
 }
 
-func (*ApplicationReconciler) buildEnv(app *skiperatorv1alpha1.Application) ([]v1.EnvVar, []v1.EnvFromSource) {
-	envList := []v1.EnvVar{}
-	for _, env := range app.Spec.Env {
-		envList = append(envList, v1.EnvVar{
-			Name:      env.Name,
-			Value:     env.Value,
-			ValueFrom: env.ValueFrom,
-		})
-	}
+func (*ApplicationReconciler) addEnvData(app *skiperatorv1alpha1.Application, envList []v1.EnvVar) {
+	for i, env := range app.Spec.Env {
+		envList[i].Name = env.Name
+		envList[i].Value = env.Value
 
-	envFromList := []v1.EnvFromSource{}
-	for _, env := range app.Spec.EnvFrom {
-		if len(env.Configmap) > 0 {
-			envFromList = append(envFromList, v1.EnvFromSource{
-				ConfigMapRef: &v1.ConfigMapEnvSource{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: env.Configmap,
-					},
-				},
-			})
-		} else if len(env.Secret) > 0 {
-			envFromList = append(envFromList, v1.EnvFromSource{
-				SecretRef: &v1.SecretEnvSource{
-					LocalObjectReference: v1.LocalObjectReference{
-						Name: env.Configmap,
-					},
-				},
-			})
+		if envList[i].ValueFrom == nil {
+			envList[i].ValueFrom = env.ValueFrom
+		}
+
+		// Allow unsetting
+		// TODO support changing the value somehow without infinite update loop
+		if envList[i].ValueFrom != nil && env.ValueFrom == nil {
+			envList[i].ValueFrom = nil
 		}
 	}
-	return envList, envFromList
+}
+
+func (*ApplicationReconciler) addEnvFromData(app *skiperatorv1alpha1.Application, envFromList []v1.EnvFromSource) {
+	for i, env := range app.Spec.EnvFrom {
+		if len(env.Configmap) > 0 {
+			if envFromList[i].ConfigMapRef == nil {
+				envFromList[i].ConfigMapRef = &v1.ConfigMapEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{},
+				}
+			}
+			envFromList[i].ConfigMapRef.LocalObjectReference.Name = env.Configmap
+			envFromList[i].SecretRef = nil // sanity check
+		} else if len(env.Secret) > 0 {
+			if envFromList[i].SecretRef == nil {
+				envFromList[i].SecretRef = &v1.SecretEnvSource{
+					LocalObjectReference: v1.LocalObjectReference{},
+				}
+			}
+			envFromList[i].SecretRef.LocalObjectReference.Name = env.Secret
+			envFromList[i].ConfigMapRef = nil // sanity check
+		}
+	}
 }
 
 func (*ApplicationReconciler) buildVolumes(app *skiperatorv1alpha1.Application) ([]v1.VolumeMount, []v1.Volume) {
