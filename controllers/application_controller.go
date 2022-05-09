@@ -85,24 +85,9 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// Deployment: Check if already exists, if not create a new one
 	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
-	op, err := ctrl.CreateOrUpdate(ctx, reconciler.Client, deployment, func() error {
-		// Set deployment object to expected state in memory. If it's different than what
-		// the calling `CreateOrUpdate` function gets from Kubernetes, it will send an
-		// update request back to the apiserver with the expected state determined here.
+	reconciler.reconcileObject("Deployment", ctx, app, deployment, func() {
 		reconciler.addDeploymentData(ctx, app, deployment)
-
-		// Setting controller as owner makes the object garbage collected when Application gets deleted in k8s
-		if err := ctrl.SetControllerReference(app, deployment, reconciler.Scheme); err != nil {
-			log.Error(err, "Failed to set owner reference on Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-			return err
-		}
-		return nil
-
 	})
-	if err != nil {
-		log.Error(err, "Failed to reconcile Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-	}
-	log.Info("Deployment reconciled", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name, "Operation", op)
 
 	// HorizontalPodAutoscaler: Check if already exists, if not create a new one
 	if app.Spec.Replicas != nil && !app.Spec.Replicas.DisableAutoScaling {
@@ -169,6 +154,29 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	return ctrl.Result{}, err
+}
+
+func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx context.Context, app *skiperatorv1alpha1.Application, object client.Object, f func()) {
+	log := log.FromContext(ctx)
+	op, err := ctrl.CreateOrUpdate(ctx, reconciler.Client, object, func() error {
+		// Set object to expected state in memory. If it's different than what
+		// the calling `CreateOrUpdate` function gets from Kubernetes, it will send an
+		// update request back to the apiserver with the expected state determined here.
+		f()
+
+		// Setting controller as owner makes the object garbage collected when Application gets deleted in k8s
+		if err := ctrl.SetControllerReference(app, object, reconciler.Scheme); err != nil {
+			log.Error(err, "Failed to set owner reference on "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
+			return err
+		}
+		return nil
+
+	})
+	if err != nil {
+		log.Error(err, "Failed to reconcile "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
+	} else {
+		log.Info(ident+" reconciled", ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName(), "Operation", op)
+	}
 }
 
 func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app *skiperatorv1alpha1.Application, existingObject client.Object, newObject client.Object) (bool, reconcile.Result, error) {
