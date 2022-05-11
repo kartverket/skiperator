@@ -21,11 +21,15 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
       labels:
         control-plane: controller-manager
     spec:
       securityContext:
         runAsNonRoot: true
+        fsGroup: 150
+        supplementalGroups:
+        - 150
       containers:
       - command:
         - /manager
@@ -35,6 +39,10 @@ spec:
         name: manager
         securityContext:
           allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsUser: 150
+          runAsGroup: 150
         livenessProbe:
           httpGet:
             path: /healthz
