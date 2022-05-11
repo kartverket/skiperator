@@ -31,12 +31,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 )
@@ -91,37 +89,32 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// HorizontalPodAutoscaler: Check if already exists, if not create a new one
 	if app.Spec.Replicas != nil && !app.Spec.Replicas.DisableAutoScaling {
-		existingAutoscaler := &autoscalingv1.HorizontalPodAutoscaler{}
-		newAutoscaler := reconciler.buildAutoscaler(app)
-		shouldReturn, result, err := reconciler.installObject(ctx, app, existingAutoscaler, newAutoscaler)
-		if shouldReturn {
-			return result, err
-		}
+		autoscaler := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.reconcileObject("HorizontalPodAutoscaler", ctx, app, autoscaler, func() {
+			reconciler.addAutoscalerData(app, autoscaler)
+		})
+	} else if app.Spec.Replicas == nil && app.Spec.Replicas.DisableAutoScaling {
+		autoscaler := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.Delete(ctx, autoscaler)
 	}
 
 	// Service: Check if already exists, if not create a new one
-	existingService := &v1.Service{}
-	newService := reconciler.buildService(app)
-	shouldReturn, result, err := reconciler.installObject(ctx, app, existingService, newService)
-	if shouldReturn {
-		return result, err
-	}
+	service := &v1.Service{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("Service", ctx, app, service, func() {
+		reconciler.addServiceData(app, service)
+	})
 
 	// Gateway: Check if already exists, if not create a new one
-	existingGateway := &istioNetworkingv1beta1.Gateway{}
-	newGateway := reconciler.buildGateway(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingGateway, newGateway)
-	if shouldReturn {
-		return result, err
-	}
+	gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("Gateway", ctx, app, gateway, func() {
+		reconciler.addGatewayData(app, gateway)
+	})
 
 	// VirtualService: Check if already exists, if not create a new one
-	existingVirtualService := &istioNetworkingv1beta1.VirtualService{}
-	newVirtualService := reconciler.buildVirtualService(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingVirtualService, newVirtualService)
-	if shouldReturn {
-		return result, err
-	}
+	virtualService := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("VirtualService", ctx, app, virtualService, func() {
+		reconciler.addVirtualServiceData(app, virtualService)
+	})
 
 	// TODO make ServiceEntry for egress
 
@@ -130,28 +123,22 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	// TODO make image pull Secret
 
 	// NetworkPolicy: Check if already exists, if not create a new one
-	existingNetworkPolicy := &networkingv1.NetworkPolicy{}
-	newNetworkPolicy := reconciler.buildNetworkPolicy(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingNetworkPolicy, newNetworkPolicy)
-	if shouldReturn {
-		return result, err
-	}
+	networkPolicy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicy, func() {
+		reconciler.addNetworkPolicyData(app, networkPolicy)
+	})
 
 	// PeerAuthentication: Check if already exists, if not create a new one
-	existingPeerAuthentication := &istioSecurityv1beta1.PeerAuthentication{}
-	newPeerAuthencitaion := reconciler.buildPeerAuthentication(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingPeerAuthentication, newPeerAuthencitaion)
-	if shouldReturn {
-		return result, err
-	}
+	peerAuthentication := &istioSecurityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("PeerAuthentication", ctx, app, peerAuthentication, func() {
+		reconciler.addPeerAuthenticationData(app, peerAuthentication)
+	})
 
 	// Sidecar: Check if already exists, if not create a new one
-	existingSidecar := &istioNetworkingv1beta1.Sidecar{}
-	newSidecar := reconciler.buildSidecar(app)
-	shouldReturn, result, err = reconciler.installObject(ctx, app, existingSidecar, newSidecar)
-	if shouldReturn {
-		return result, err
-	}
+	sidecar := &istioNetworkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+	reconciler.reconcileObject("Sidecar", ctx, app, sidecar, func() {
+		reconciler.addSidecarDara(app, sidecar)
+	})
 
 	return ctrl.Result{}, err
 }
@@ -179,146 +166,65 @@ func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx conte
 	}
 }
 
-func (reconciler *ApplicationReconciler) installObject(ctx context.Context, app *skiperatorv1alpha1.Application, existingObject client.Object, newObject client.Object) (bool, reconcile.Result, error) {
-	log := log.FromContext(ctx)
-	err := reconciler.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, existingObject)
-
-	if err != nil && errors.IsNotFound(err) {
-		// TODO: Get Kind from object here
-		kind := newObject.GetObjectKind().GroupVersionKind().Kind
-		namespace := newObject.GetNamespace()
-		name := newObject.GetName()
-
-		log.Info("Creating a new "+kind, "newObject.Namespace", namespace, "newObject.Name", name)
-		// TODO Look into using ctrl.CreateOrUpdate to make code less imperative
-		err = reconciler.Create(ctx, newObject)
-
-		if err != nil {
-			log.Error(err, "Failed to create new "+kind, "newObject.Namespace", newObject.GetNamespace(), "newObject.Name", newObject.GetName())
-			return true, ctrl.Result{}, err
-		}
-
-		return true, ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		log.Error(err, "Failed to get existing object")
-		return true, ctrl.Result{}, err
-	}
-
-	return false, reconcile.Result{}, nil
-}
-
-func (reconciler *ApplicationReconciler) buildVirtualService(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.VirtualService {
-	virtualService := &istioNetworkingv1beta1.VirtualService{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: istioApiNetworkingv1beta1.VirtualService{
-			Hosts: app.Spec.Ingresses,
-			// The name of the local gateway config
-			Gateways: []string{app.Name},
-			Http: []*istioApiNetworkingv1beta1.HTTPRoute{{
-				// TODO: Can we safely omit this when adding TLS?
-				// "Port specifies the ports on the host that is being addressed. Many services only expose a single port
-				// or label ports with the protocols they support, in these cases it is not required to explicitly select the port."
-				// Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
-				// 	Port: uint32(app.Spec.Port),
-				// }},
-				Route: []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
-					Destination: &istioApiNetworkingv1beta1.Destination{
-						// The name of the service
-						Host: app.Name,
-					},
-				}},
+func (reconciler *ApplicationReconciler) addVirtualServiceData(app *skiperatorv1alpha1.Application, virtualService *istioNetworkingv1beta1.VirtualService) {
+	if len(virtualService.Spec.Http) < 1 {
+		virtualService.Spec.Http = []*istioApiNetworkingv1beta1.HTTPRoute{{
+			// TODO: Can we safely omit this when adding TLS?
+			// "Port specifies the ports on the host that is being addressed. Many services only expose a single port
+			// or label ports with the protocols they support, in these cases it is not required to explicitly select the port."
+			// Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
+			// 	Port: uint32(app.Spec.Port),
+			// }},
+			Route: []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
+				Destination: &istioApiNetworkingv1beta1.Destination{},
 			}},
-		},
+		}}
 	}
 
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, virtualService, reconciler.Scheme)
-	return virtualService
+	virtualService.Spec.Hosts = app.Spec.Ingresses
+	virtualService.Spec.Gateways = []string{app.Name}
+	virtualService.Spec.Http[0].Route[0].Destination.Host = app.Name
 }
 
-func (reconciler *ApplicationReconciler) buildGateway(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Gateway {
-	gateway := &istioNetworkingv1beta1.Gateway{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: istioApiNetworkingv1beta1.Gateway{
-			Selector: map[string]string{
-				"istio": "ingressgateway",
-			},
-			Servers: []*istioApiNetworkingv1beta1.Server{{
-				Port: &istioApiNetworkingv1beta1.Port{
-					Number:   80,
-					Name:     "HTTP",
-					Protocol: "HTTP",
-				},
-				Hosts: app.Spec.Ingresses,
-			}, /* TODO: Add HTTPS routes.
-			It fails in validation when applied due to "configuration is invalid: server must have TLS settings for HTTPS/TLS protocols"
-			{
-				Port: &istioApiNetworkingv1beta1.Port{
-					Number:   443,
-					Name:     "HTTPS",
-					Protocol: "HTTPS",
-				},
-				Hosts: app.Spec.Ingresses,
-			}*/
-			},
-		},
+func (reconciler *ApplicationReconciler) addGatewayData(app *skiperatorv1alpha1.Application, gateway *istioNetworkingv1beta1.Gateway) {
+	gateway.Spec.Selector = map[string]string{
+		"istio": "ingressgateway",
 	}
 
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, gateway, reconciler.Scheme)
-	return gateway
+	gateway.Spec.Servers[0].Port.Number = 80
+	gateway.Spec.Servers[0].Port.Name = "HTTP"
+	gateway.Spec.Servers[0].Port.Protocol = "HTTP"
+	gateway.Spec.Servers[0].Hosts = app.Spec.Ingresses
+
+	/* TODO: Add HTTPS routes.
+	It fails in validation when applied due to "configuration is invalid: server must have TLS settings for HTTPS/TLS protocols"
+	gateway.Spec.Servers[0].Port.Number = 443
+	gateway.Spec.Servers[0].Port.Name = "HTTPS"
+	gateway.Spec.Servers[0].Port.Protocol = "HTTPS"
+	gateway.Spec.Servers[0].Hosts = app.Spec.Ingresses
+	*/
 }
 
-func (reconciler *ApplicationReconciler) buildService(app *skiperatorv1alpha1.Application) *v1.Service {
+func (reconciler *ApplicationReconciler) addServiceData(app *skiperatorv1alpha1.Application, service *v1.Service) {
 	labels := labelsForApplication(app)
 
-	service := &v1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: v1.ServiceSpec{
-			Selector: labels,
-			Type:     v1.ServiceTypeClusterIP,
-			Ports: []v1.ServicePort{{
-				Port:       int32(app.Spec.Port),
-				TargetPort: intstr.FromInt(app.Spec.Port),
-			}},
-		},
+	if len(service.Spec.Ports) < 1 {
+		service.Spec.Ports = make([]v1.ServicePort, 1)
 	}
 
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, service, reconciler.Scheme)
-	return service
+	service.Spec.Selector = labels
+	service.Spec.Type = v1.ServiceTypeClusterIP
+	service.Spec.Ports[0].Port = int32(app.Spec.Port)
+	service.Spec.Ports[0].TargetPort = intstr.FromInt(app.Spec.Port)
 }
 
-func (reconciler *ApplicationReconciler) buildAutoscaler(app *skiperatorv1alpha1.Application) *autoscalingv1.HorizontalPodAutoscaler {
-	autoscaler := &autoscalingv1.HorizontalPodAutoscaler{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: autoscalingv1.HorizontalPodAutoscalerSpec{
-			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
-				APIVersion: "apps/v1",
-				Kind:       "Deployment",
-				Name:       app.Name,
-			},
-			MinReplicas:                    app.Spec.Replicas.Min,
-			MaxReplicas:                    app.Spec.Replicas.Max,
-			TargetCPUUtilizationPercentage: app.Spec.Replicas.CpuThresholdPercentage,
-		},
-	}
-
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, autoscaler, reconciler.Scheme)
-	return autoscaler
+func (reconciler *ApplicationReconciler) addAutoscalerData(app *skiperatorv1alpha1.Application, autoscaler *autoscalingv1.HorizontalPodAutoscaler) {
+	autoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
+	autoscaler.Spec.ScaleTargetRef.Kind = "Deployment"
+	autoscaler.Spec.ScaleTargetRef.Name = app.Name
+	autoscaler.Spec.MinReplicas = app.Spec.Replicas.Min
+	autoscaler.Spec.MaxReplicas = app.Spec.Replicas.Max
+	autoscaler.Spec.TargetCPUUtilizationPercentage = app.Spec.Replicas.CpuThresholdPercentage
 }
 
 func (reconciler *ApplicationReconciler) addDeploymentData(ctx context.Context, app *skiperatorv1alpha1.Application, deployment *appsv1.Deployment) {
@@ -589,125 +495,94 @@ func (reconciler *ApplicationReconciler) buildResources(ctx context.Context, app
 	}
 }
 
-func (reconciler *ApplicationReconciler) buildSidecar(app *skiperatorv1alpha1.Application) *istioNetworkingv1beta1.Sidecar {
-	sidecar := &istioNetworkingv1beta1.Sidecar{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: istioApiNetworkingv1beta1.Sidecar{
-			OutboundTrafficPolicy: &istioApiNetworkingv1beta1.OutboundTrafficPolicy{
-				// TODO the value below is omitted when viewed in k8s due to JSON
-				// omitonly on the OutboundTrafficPolicy struct. Bug in istio API?
-				Mode: istioApiNetworkingv1beta1.OutboundTrafficPolicy_REGISTRY_ONLY,
-			},
-		},
+func (reconciler *ApplicationReconciler) addSidecarDara(app *skiperatorv1alpha1.Application, sidecar *istioNetworkingv1beta1.Sidecar) {
+	if sidecar.Spec.OutboundTrafficPolicy == nil {
+		sidecar.Spec.OutboundTrafficPolicy = &istioApiNetworkingv1beta1.OutboundTrafficPolicy{}
 	}
-
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, sidecar, reconciler.Scheme)
-	return sidecar
+	// TODO the value below is omitted when viewed in k8s due to JSON
+	// omitonly on the OutboundTrafficPolicy struct. Bug in istio API?
+	sidecar.Spec.OutboundTrafficPolicy.Mode = istioApiNetworkingv1beta1.OutboundTrafficPolicy_REGISTRY_ONLY
 }
 
-func (reconciler *ApplicationReconciler) buildNetworkPolicy(app *skiperatorv1alpha1.Application) *networkingv1.NetworkPolicy {
+func (reconciler *ApplicationReconciler) addNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
 	labels := labelsForApplication(app)
-	ingressRules := buildIngressPolicy(app)
+	port := intstr.FromInt(app.Spec.Port)
+	var ingressRules []networkingv1.NetworkPolicyIngressRule = networkPolicy.Spec.Ingress
+	rulesSize := 0
 
+	// Add rule for ingress traffic when exposed with hostname
+	if len(app.Spec.Ingresses) > 0 {
+		rulesSize = rulesSize + 1
+	}
+
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Inbound != nil {
+		rulesSize = rulesSize + len(app.Spec.AccessPolicy.Inbound.Rules)
+	}
+
+	// Initialize
+	if len(ingressRules) != rulesSize {
+		ingressRules = make([]networkingv1.NetworkPolicyIngressRule, rulesSize)
+	}
+
+	// Build rules for pods
 	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Inbound != nil && app.Spec.AccessPolicy.Inbound.Rules != nil {
-		for _, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
-			ingressRules = append(ingressRules, buildIngressRules(app, inboundApp)...)
+		for i, inboundApp := range app.Spec.AccessPolicy.Inbound.Rules {
+			namespace := inboundApp.Namespace
+			if len(namespace) == 0 {
+				namespace = app.Namespace
+			}
+
+			if len(ingressRules[i].From) != 2 {
+				ingressRules[i].From = []networkingv1.NetworkPolicyPeer{{
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}, {
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}}
+			}
+
+			ingressRules[i].From[0].PodSelector.MatchLabels["application"] = inboundApp.Application
+			ingressRules[i].From[1].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = namespace
 		}
 	}
 
-	policy := &networkingv1.NetworkPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      app.Name,
-			Namespace: app.Namespace,
-		},
-		Spec: networkingv1.NetworkPolicySpec{
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Ingress: ingressRules,
-		},
-	}
-
-	// Setting controller as owner makes the NetworkPolicy garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, policy, reconciler.Scheme)
-	return policy
-}
-
-func buildIngressPolicy(app *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
-	rule := []networkingv1.NetworkPolicyIngressRule{}
-
-	// When ingresses are set, allow traffic from ingressgateway
+	// Build rule for ingress gateway
 	if len(app.Spec.Ingresses) > 0 {
-		port := intstr.FromInt(app.Spec.Port)
-		rule = append(rule, networkingv1.NetworkPolicyIngressRule{
-			From: []networkingv1.NetworkPolicyPeer{{
-				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"kubernetes.io/metadata.name": "istio-system",
-					},
-				},
-			}, {
+		i := rulesSize - 1
+		if len(ingressRules[i].From) != 2 {
+			ingressRules[i].From = []networkingv1.NetworkPolicyPeer{{
 				PodSelector: &metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"ingress": "external",
 					},
 				},
-			}},
-			Ports: []networkingv1.NetworkPolicyPort{{
-				Port: &port,
-			}},
-		})
+			}, {
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"kubernetes.io/metadata.name": "istio-system",
+					},
+				},
+			}}
+		}
+
+		if len(ingressRules[i].Ports) != 1 {
+			ingressRules[i].Ports = make([]networkingv1.NetworkPolicyPort, 1)
+		}
+		ingressRules[i].Ports[0].Port = &port
 	}
 
-	return rule
+	networkPolicy.Spec.PodSelector.MatchLabels = labels
+	networkPolicy.Spec.Ingress = ingressRules
 }
 
-func buildIngressRules(app *skiperatorv1alpha1.Application, inboundApp skiperatorv1alpha1.Rule) []networkingv1.NetworkPolicyIngressRule {
-	rule := []networkingv1.NetworkPolicyIngressRule{}
-
-	// Add ingress rule for app
-	namespace := inboundApp.Namespace
-	if len(namespace) == 0 {
-		namespace = app.Namespace
+func (reconciler *ApplicationReconciler) addPeerAuthenticationData(app *skiperatorv1alpha1.Application, peerAuthentication *istioSecurityv1beta1.PeerAuthentication) {
+	if peerAuthentication.Spec.Mtls == nil {
+		peerAuthentication.Spec.Mtls = &istioApiSecurityv1beta1.PeerAuthentication_MutualTLS{}
 	}
-	rule = append(rule, networkingv1.NetworkPolicyIngressRule{
-		From: []networkingv1.NetworkPolicyPeer{{
-			PodSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"application": inboundApp.Application,
-				},
-			},
-			NamespaceSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"kubernetes.io/metadata.name": namespace,
-				},
-			},
-		}},
-	})
-
-	return rule
-}
-
-func (reconciler *ApplicationReconciler) buildPeerAuthentication(app *skiperatorv1alpha1.Application) *istioSecurityv1beta1.PeerAuthentication {
-	peerAuthentication := istioSecurityv1beta1.PeerAuthentication{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: app.Namespace,
-			Name:      app.Name,
-		},
-		Spec: istioApiSecurityv1beta1.PeerAuthentication{
-			Mtls: &istioApiSecurityv1beta1.PeerAuthentication_MutualTLS{
-				Mode: istioApiSecurityv1beta1.PeerAuthentication_MutualTLS_STRICT,
-			},
-		},
-	}
-
-	// Setting controller as owner makes the PeerAuthentication garbage collected when Application gets deleted in k8s
-	ctrl.SetControllerReference(app, &peerAuthentication, reconciler.Scheme)
-	return &peerAuthentication
+	peerAuthentication.Spec.Mtls.Mode = istioApiSecurityv1beta1.PeerAuthentication_MutualTLS_STRICT
 }
 
 // returns the labels for selecting the resources
