@@ -195,6 +195,10 @@ func (reconciler *ApplicationReconciler) addGatewayData(app *skiperatorv1alpha1.
 		"istio": "ingressgateway",
 	}
 
+	if len(gateway.Spec.Servers) == 0 {
+		gateway.Spec.Servers = make([]*istioApiNetworkingv1beta1.Server, 1)
+	}
+
 	gateway.Spec.Servers[0].Port.Number = 80
 	gateway.Spec.Servers[0].Port.Name = "HTTP"
 	gateway.Spec.Servers[0].Port.Protocol = "HTTP"
