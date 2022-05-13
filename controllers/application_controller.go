@@ -196,7 +196,9 @@ func (reconciler *ApplicationReconciler) addGatewayData(app *skiperatorv1alpha1.
 	}
 
 	if len(gateway.Spec.Servers) == 0 {
-		gateway.Spec.Servers = make([]*istioApiNetworkingv1beta1.Server, 1)
+		gateway.Spec.Servers = []*istioApiNetworkingv1beta1.Server{{
+			Port: &istioApiNetworkingv1beta1.Port{},
+		}}
 	}
 
 	gateway.Spec.Servers[0].Port.Number = 80
