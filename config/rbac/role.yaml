@@ -56,7 +56,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - service
+  - services
   verbs:
   - create
   - delete
@@ -66,9 +66,33 @@ rules:
   - update
   - watch
 - apiGroups:
-  - networking.k8s.io
+  - networking.istio.io
   resources:
   - gateways
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - sidecars
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - networking.istio.io
+  resources:
+  - virtualservices
   verbs:
   - create
   - delete
@@ -81,30 +105,6 @@ rules:
   - networking.k8s.io
   resources:
   - networkpolicies
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - sidecars
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - networking.k8s.io
-  resources:
-  - virtualservices
   verbs:
   - create
   - delete
