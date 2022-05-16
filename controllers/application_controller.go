@@ -109,10 +109,15 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	})
 
 	// Gateway: Check if already exists, if not create a new one
-	gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
-	reconciler.reconcileObject("Gateway", ctx, app, gateway, func() {
-		reconciler.addGatewayData(app, gateway)
-	})
+	if len(app.Spec.Ingresses) > 0 {
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.reconcileObject("Gateway", ctx, app, gateway, func() {
+			reconciler.addGatewayData(app, gateway)
+		})
+	} else {
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.Delete(ctx, gateway)
+	}
 
 	// VirtualService: Check if already exists, if not create a new one
 	virtualService := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
@@ -165,6 +170,8 @@ func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx conte
 	})
 	if err != nil {
 		log.Error(err, "Failed to reconcile "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
+		// TODO set failed status
+		// reconciler.Status().Update(ctx, )
 	} else {
 		log.Info(ident+" reconciled", ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName(), "Operation", op)
 	}
