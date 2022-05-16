@@ -7,14 +7,14 @@ spec:
   image: "ghcr.io/kartverket/dsa-frontend:anthos"
   port: 8080
   ingresses:
-  - dsa-skiperatortest.dev.skip.statkart.no
+  - dsa-skiperatortest.test.skip.statkart.no
   replicas:
     min: 3
     max: 5
     cpuThresholdPercentage: 80
   env:
   - name: API_URL
-    value: dsa-backend.skiperatortest.dev.skip.statkart.no:80
+    value: dsa-backend.skiperatortest.test.skip.statkart.no:80
   liveness:
     path: /
     port: 8080
