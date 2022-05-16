@@ -97,7 +97,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		reconciler.reconcileObject("HorizontalPodAutoscaler", ctx, app, autoscaler, func() {
 			reconciler.addAutoscalerData(app, autoscaler)
 		})
-	} else if app.Spec.Replicas == nil && app.Spec.Replicas.DisableAutoScaling {
+	} else if app.Spec.Replicas == nil || app.Spec.Replicas.DisableAutoScaling {
 		autoscaler := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
 		reconciler.Delete(ctx, autoscaler)
 	}
