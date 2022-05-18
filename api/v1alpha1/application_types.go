@@ -46,8 +46,8 @@ type InboundPolicy struct {
 }
 
 type OutboundPolicy struct {
-	Rules    []Rule         `json:"rules"`
-	External []ExternalRule `json:"external"`
+	Rules    []Rule         `json:"rules,omitempty"`
+	External []ExternalRule `json:"external,omitempty"`
 }
 
 type AccessPolicy struct {
