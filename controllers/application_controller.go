@@ -557,12 +557,11 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 				namespace = app.Namespace
 			}
 
-			if len(egressRules[i].To) != 2 {
+			if len(egressRules[i].To) != 1 {
 				egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
 					PodSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{},
 					},
-				}, {
 					NamespaceSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{},
 					},
@@ -570,7 +569,7 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 			}
 
 			egressRules[i].To[0].PodSelector.MatchLabels["application"] = inboundApp.Application
-			egressRules[i].To[1].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = namespace
+			egressRules[i].To[0].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = namespace
 		}
 	}
 
@@ -618,6 +617,10 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 				},
 			},
 		}}
+	}
+
+	if len(networkPolicy.Spec.PolicyTypes) != 1 {
+		networkPolicy.Spec.PolicyTypes = []networkingv1.PolicyType{networkingv1.PolicyTypeEgress}
 	}
 
 	networkPolicy.Spec.PodSelector.MatchLabels = labels
@@ -692,6 +695,10 @@ func (reconciler *ApplicationReconciler) addIngressNetworkPolicyData(app *skiper
 			ingressRules[i].Ports = make([]networkingv1.NetworkPolicyPort, 1)
 		}
 		ingressRules[i].Ports[0].Port = &port
+	}
+
+	if len(networkPolicy.Spec.PolicyTypes) != 1 {
+		networkPolicy.Spec.PolicyTypes = []networkingv1.PolicyType{networkingv1.PolicyTypeIngress}
 	}
 
 	networkPolicy.Spec.PodSelector.MatchLabels = labels
