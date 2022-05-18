@@ -131,10 +131,16 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 	// TODO make image pull Secret
 
-	// NetworkPolicy: Check if already exists, if not create a new one
+	// NetworkPolicy ingress: Check if already exists, if not create a new one
 	networkPolicy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
 	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicy, func() {
-		reconciler.addNetworkPolicyData(app, networkPolicy)
+		reconciler.addIngressNetworkPolicyData(app, networkPolicy)
+	})
+
+	// NetworkPolicy egress: Check if already exists, if not create a new one
+	networkPolicyEgress := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "egress", Namespace: app.Namespace}}
+	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicyEgress, func() {
+		reconciler.addEgressNetworkPolicyData(app, networkPolicyEgress)
 	})
 
 	// PeerAuthentication: Check if already exists, if not create a new one
@@ -521,7 +527,103 @@ func (reconciler *ApplicationReconciler) addSidecarDara(app *skiperatorv1alpha1.
 	sidecar.Spec.OutboundTrafficPolicy.Mode = istioApiNetworkingv1beta1.OutboundTrafficPolicy_REGISTRY_ONLY
 }
 
-func (reconciler *ApplicationReconciler) addNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
+func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
+	labels := labelsForApplication(app)
+	port := intstr.FromInt(app.Spec.Port)
+	var egressRules []networkingv1.NetworkPolicyEgressRule = networkPolicy.Spec.Egress
+	rulesSize := 1
+
+	// rulesSize = rulesSize + 1
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil {
+		rulesSize = rulesSize + len(app.Spec.AccessPolicy.Outbound.Rules)
+	}
+
+	// Initialize array
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.Rules) > 0 {
+		egressRules = make([]networkingv1.NetworkPolicyEgressRule, rulesSize)
+	}
+
+	// Build rules for pods
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && app.Spec.AccessPolicy.Outbound.Rules != nil {
+		for i, inboundApp := range app.Spec.AccessPolicy.Outbound.Rules {
+			namespace := inboundApp.Namespace
+			if len(namespace) == 0 {
+				namespace = app.Namespace
+			}
+
+			if len(egressRules[i].To) != 2 {
+				egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}, {
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{},
+					},
+				}}
+			}
+
+			egressRules[i].To[0].PodSelector.MatchLabels["application"] = inboundApp.Application
+			egressRules[i].To[1].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"] = namespace
+		}
+	}
+
+	/*
+		# Allow DNS traffic
+		- to:
+			- namespaceSelector:
+				matchLabels:
+				kubernetes.io/metadata.name: kube-system
+			podSelector:
+				matchLabels:
+				k8s-app: kube-dns
+			ports:
+			- protocol: TCP
+			port: 53
+			- protocol: UDP
+			port: 53
+		# Allow traffic to egress gateway
+		- to:
+			- namespaceSelector:
+				matchLabels:
+				kubernetes.io/metadata.name: istio-system
+			podSelector:
+				matchLabels:
+				egress: external
+	*/
+
+	// Build rule for ingress gateway
+	i := rulesSize - 1
+	dnsPort := 53
+	if len(egressRules[i].To) != 1 {
+		egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
+			PodSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"k8s-app": "kube-dns",
+				},
+			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/metadata.name": "kube-system",
+				},
+			},
+		}}
+		egressRules[i].Ports = []networkingv1.NetworkPolicyPort{{
+			Protocol: &v1.ProtocolTCP,
+			Port: 
+		}}
+	}
+
+	if len(egressRules[i].Ports) != 1 {
+		egressRules[i].Ports = make([]networkingv1.NetworkPolicyPort, 1)
+	}
+	egressRules[i].Ports[0].Port = &port
+
+	networkPolicy.Spec.PodSelector.MatchLabels = labels
+	networkPolicy.Spec.Egress = egressRules
+}
+
+func (reconciler *ApplicationReconciler) addIngressNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
 	labels := labelsForApplication(app)
 	port := intstr.FromInt(app.Spec.Port)
 	var ingressRules []networkingv1.NetworkPolicyIngressRule = networkPolicy.Spec.Ingress
