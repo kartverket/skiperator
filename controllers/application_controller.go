@@ -236,6 +236,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 
 func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx context.Context, app *skiperatorv1alpha1.Application, object client.Object, f func()) {
 	log := log.FromContext(ctx)
+	statusIdent := ident + "/" + object.GetName()
 	op, err := ctrl.CreateOrUpdate(ctx, reconciler.Client, object, func() error {
 		// Set object to expected state in memory. If it's different than what
 		// the calling `CreateOrUpdate` function gets from Kubernetes, it will send an
@@ -252,13 +253,13 @@ func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx conte
 	})
 	if err != nil {
 		log.Error(err, "Failed to reconcile "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
-		app.Status.Errors[object.GetName()] = err.Error()
+		app.Status.Errors[statusIdent] = err.Error()
 	} else {
 		log.Info(ident+" reconciled", ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName(), "Operation", op)
-		app.Status.Errors[object.GetName()] = "Success"
+		app.Status.Errors[statusIdent] = "Success"
 	}
 
-	app.Status.OperationResults[object.GetName()] = op
+	app.Status.OperationResults[statusIdent] = op
 	reconciler.Status().Update(ctx, app)
 }
 
