@@ -19,6 +19,7 @@ package v1alpha1
 import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // List of port rules for external communication. Must be specified if using protocols other than HTTPS.
@@ -119,6 +120,8 @@ type ApplicationSpec struct {
 // ApplicationStatus defines the observed state of Application
 type ApplicationStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
+	OperationResults map[string]controllerutil.OperationResult `json:"operationResults"`
+	Errors           map[string]string                         `json:"errors"`
 }
 
 //+kubebuilder:object:root=true

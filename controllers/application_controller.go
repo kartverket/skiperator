@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -83,6 +84,16 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		// Error reading the object - requeue the request.
 		log.Error(err, "Failed to get Application")
 		return ctrl.Result{}, err
+	}
+
+	// Ensure status fields are initialized
+	if app.Status.OperationResults == nil {
+		app.Status.OperationResults = map[string]controllerutil.OperationResult{}
+		reconciler.Status().Update(ctx, app)
+	}
+	if app.Status.Errors == nil {
+		app.Status.Errors = map[string]string{}
+		reconciler.Status().Update(ctx, app)
 	}
 
 	log.Info("The incoming application object is", "Application", app)
@@ -241,13 +252,14 @@ func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx conte
 	})
 	if err != nil {
 		log.Error(err, "Failed to reconcile "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
+		app.Status.Errors[object.GetName()] = err.Error()
 	} else {
 		log.Info(ident+" reconciled", ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName(), "Operation", op)
+		app.Status.Errors[object.GetName()] = "Success"
 	}
 
-	// TODO update status.Result as map of { ident: OperationResult }
-	// TODO update status.Error as map of { ident: error }
-	// reconciler.Status().Update(ctx, )
+	app.Status.OperationResults[object.GetName()] = op
+	reconciler.Status().Update(ctx, app)
 }
 
 func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiperatorv1alpha1.Application, virtualService *istioNetworkingv1beta1.VirtualService) {
@@ -1035,6 +1047,7 @@ func (reconciler *ApplicationReconciler) SetupWithManager(manager ctrl.Manager) 
 		Owns(&v1.Service{}).
 		Owns(&istioNetworkingv1beta1.Gateway{}).
 		Owns(&istioNetworkingv1beta1.VirtualService{}).
+		Owns(&istioNetworkingv1beta1.ServiceEntry{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istioSecurityv1beta1.PeerAuthentication{}).
 		Complete(reconciler)
