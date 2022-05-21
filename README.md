@@ -146,13 +146,20 @@ spec:
       rules:
       - application: other-app
       # external specifies which applications on the internet the application
-      # can reach. Only host is required unless it is on another port than 443,
-      # in which case port must be specified as well
+      # can reach. Only host is required unless it is on another port than HTTP
+      # on port 80 and HTTPS on port 443. If other ports or protocols are
+      # required then port must be specified as well
       external:
+        # The allowed hostname. Note that this does not unclude subdomains
       - host: nrk.no
       - host: smtp.mailgrid.com
+        # The ports to allow for the above hostname. When not specified HTTP and
+        # HTTPS on port 80 and 443 respectively are put into the allowlist
         ports: 
+          # Name is required and is an arbitrary name. Must be unique within
+          # this array
         - name: smtp
+          # Supported protocols are: TCP, HTTP, HTTPS
           protocol: TCP
           port: 587
 ```
