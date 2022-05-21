@@ -3,4 +3,5 @@ kind: Application
 metadata:
   name: minimal-application-sample
 spec:
-  image: "nginx:latest"
+  image: "ghcr.io/kartverket/example-app:latest"
+  port: 8080

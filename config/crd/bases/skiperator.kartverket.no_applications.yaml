@@ -12,6 +12,8 @@ spec:
     kind: Application
     listKind: ApplicationList
     plural: applications
+    shortNames:
+    - app
     singular: application
   scope: Namespaced
   versions:
@@ -98,9 +100,6 @@ spec:
                           - application
                           type: object
                         type: array
-                    required:
-                    - external
-                    - rules
                     type: object
                 type: object
               env:

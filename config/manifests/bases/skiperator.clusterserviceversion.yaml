@@ -1,0 +1,47 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+  name: skiperator.v0.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Application is the Schema for the application API
+      displayName: Application
+      kind: Application
+      name: applications.skiperator.kartverket.no
+      version: v1alpha1
+  description: skiperator
+  displayName: skiperator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - "yes"
+  links:
+  - name: Skiperator
+    url: https://skiperator.domain
+  maintainers:
+  - email: email
+    name: name
+  maturity: alpha
+  provider:
+    name: skiperator
+  version: 0.0.0

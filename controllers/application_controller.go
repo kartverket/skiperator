@@ -42,7 +42,8 @@ import (
 // ApplicationReconciler reconciles a Application object
 type ApplicationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme             *runtime.Scheme
+	PrevServiceEntries []string
 }
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch;create;update;patch;delete
@@ -56,6 +57,7 @@ type ApplicationReconciler struct {
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.istio.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.istio.io,resources=sidecars,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications,verbs=get;list;watch;create;update;patch;delete
 
@@ -108,33 +110,94 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 		reconciler.addServiceData(app, service)
 	})
 
-	// Gateway: Check if already exists, if not create a new one
+	// Gateway ingress: Check if already exists, if not create a new one
 	if len(app.Spec.Ingresses) > 0 {
-		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
 		reconciler.reconcileObject("Gateway", ctx, app, gateway, func() {
-			reconciler.addGatewayData(app, gateway)
+			reconciler.addIngressGatewayData(app, gateway)
 		})
 	} else {
-		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
 		reconciler.Delete(ctx, gateway)
 	}
 
-	// VirtualService: Check if already exists, if not create a new one
-	virtualService := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
-	reconciler.reconcileObject("VirtualService", ctx, app, virtualService, func() {
-		reconciler.addVirtualServiceData(app, virtualService)
-	})
+	// Gateway egress: Check if already exists, if not create a new one
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.External) > 0 {
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-egress", Namespace: app.Namespace}}
+		reconciler.reconcileObject("Gateway", ctx, app, gateway, func() {
+			reconciler.addEgressGatewayData(app, gateway)
+		})
+	} else {
+		gateway := &istioNetworkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-egress", Namespace: app.Namespace}}
+		reconciler.Delete(ctx, gateway)
+	}
 
-	// TODO make ServiceEntry for egress
+	// ServiceEntry: Create all that are defined in outgoing external
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && app.Spec.AccessPolicy.Outbound.External != nil {
+		for _, rule := range app.Spec.AccessPolicy.Outbound.External {
+			serviceEntry := &istioNetworkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-" + rule.Host, Namespace: app.Namespace}}
+			reconciler.reconcileObject("ServiceEntry", ctx, app, serviceEntry, func() {
+				reconciler.addServiceEntryData(app, &rule, serviceEntry)
+			})
+		}
+	}
 
-	// TODO make VirtualServices for egress
+	// Prune dangling ServiceEntries if any get deleted from Application
+	for _, entry := range reconciler.PrevServiceEntries {
+		// Check if entry is still in use by comparing with previous reconcile
+		isUsed := false
+		if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && app.Spec.AccessPolicy.Outbound.External != nil {
+			for _, rule := range app.Spec.AccessPolicy.Outbound.External {
+				if entry == rule.Host {
+					isUsed = true
+				}
+			}
+		}
 
-	// TODO make image pull Secret
+		// Delete unused entries
+		if !isUsed {
+			name := app.Name + "-" + entry
+			log.Info("Deleting ServiceEntry " + name)
+			serviceEntry := &istioNetworkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: app.Namespace}}
+			reconciler.Delete(ctx, serviceEntry)
+		}
+	}
+
+	// Set current ServiceEntries for next reconcile loop
+	newServiceEntries := []string{}
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && app.Spec.AccessPolicy.Outbound.External != nil {
+		for _, rule := range app.Spec.AccessPolicy.Outbound.External {
+			newServiceEntries = append(newServiceEntries, rule.Host)
+		}
+	}
+	reconciler.PrevServiceEntries = newServiceEntries
+
+	// VirtualService Ingress: Check if already exists, if not create a new one
+	if len(app.Spec.Ingresses) > 0 {
+		virtualServiceIngress := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
+		reconciler.reconcileObject("VirtualService", ctx, app, virtualServiceIngress, func() {
+			reconciler.addIngressVirtualServiceData(app, virtualServiceIngress)
+		})
+	} else {
+		virtualServiceIngress := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
+		reconciler.Delete(ctx, virtualServiceIngress)
+	}
+
+	// VirtualService Egress: Check if already exists, if not create a new one
+	if app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.External) > 0 {
+		virtualServiceEgress := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-egress", Namespace: app.Namespace}}
+		reconciler.reconcileObject("VirtualService", ctx, app, virtualServiceEgress, func() {
+			reconciler.addEgressVirtualServiceData(app, virtualServiceEgress)
+		})
+	} else {
+		virtualServiceEgress := &istioNetworkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-egress", Namespace: app.Namespace}}
+		reconciler.Delete(ctx, virtualServiceEgress)
+	}
 
 	// NetworkPolicy ingress: Check if already exists, if not create a new one
-	networkPolicy := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
-	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicy, func() {
-		reconciler.addIngressNetworkPolicyData(app, networkPolicy)
+	networkPolicyIngress := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-ingress", Namespace: app.Namespace}}
+	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicyIngress, func() {
+		reconciler.addIngressNetworkPolicyData(app, networkPolicyIngress)
 	})
 
 	// NetworkPolicy egress: Check if already exists, if not create a new one
@@ -154,6 +217,8 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	reconciler.reconcileObject("Sidecar", ctx, app, sidecar, func() {
 		reconciler.addSidecarDara(app, sidecar)
 	})
+
+	// TODO make image pull Secret
 
 	return ctrl.Result{}, err
 }
@@ -176,14 +241,197 @@ func (reconciler *ApplicationReconciler) reconcileObject(ident string, ctx conte
 	})
 	if err != nil {
 		log.Error(err, "Failed to reconcile "+ident, ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName())
-		// TODO set failed status
-		// reconciler.Status().Update(ctx, )
 	} else {
 		log.Info(ident+" reconciled", ident+".Namespace", object.GetNamespace(), ident+".Name", object.GetName(), "Operation", op)
 	}
+
+	// TODO update status.Result as map of { ident: OperationResult }
+	// TODO update status.Error as map of { ident: error }
+	// reconciler.Status().Update(ctx, )
 }
 
-func (reconciler *ApplicationReconciler) addVirtualServiceData(app *skiperatorv1alpha1.Application, virtualService *istioNetworkingv1beta1.VirtualService) {
+func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiperatorv1alpha1.Application, virtualService *istioNetworkingv1beta1.VirtualService) {
+	operatorOwnedGatewayName := app.Name + "-egress"
+	hasRules := app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.External) > 0
+	size := 0
+	if hasRules {
+		size = size + len(app.Spec.AccessPolicy.Outbound.External)
+	}
+
+	if len(virtualService.Spec.Http) < 1 {
+		virtualService.Spec.Http = make([]*istioApiNetworkingv1beta1.HTTPRoute, 1)
+		virtualService.Spec.Http[0] = &istioApiNetworkingv1beta1.HTTPRoute{
+			Match: []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
+				Gateways: []string{"mesh"},
+			}},
+			Route: []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
+				Destination: &istioApiNetworkingv1beta1.Destination{
+					Host: "egress-external.istio-system.svc.cluster.local",
+					Port: &istioApiNetworkingv1beta1.PortSelector{
+						Number: 80,
+					},
+				},
+			}},
+		}
+	}
+
+	// Get all hosts using TLS protocol
+	sniHosts := []string{}
+	if hasRules {
+		for _, host := range app.Spec.AccessPolicy.Outbound.External {
+			for _, port := range reconciler.getHostPorts(host) {
+				if port.Protocol == "HTTPS" {
+					sniHosts = append(sniHosts, host.Host)
+				}
+			}
+		}
+	}
+
+	// Initialize TLS when TLS is in use
+	if len(virtualService.Spec.Tls) < 1 && len(sniHosts) > 0 {
+		virtualService.Spec.Tls = make([]*istioApiNetworkingv1beta1.TLSRoute, 1)
+		virtualService.Spec.Tls[0] = &istioApiNetworkingv1beta1.TLSRoute{
+			Match: []*istioApiNetworkingv1beta1.TLSMatchAttributes{{
+				Gateways: []string{"mesh"},
+				SniHosts: sniHosts,
+			}},
+			Route: []*istioApiNetworkingv1beta1.RouteDestination{{
+				Destination: &istioApiNetworkingv1beta1.Destination{
+					Host: "egress-external.istio-system.svc.cluster.local",
+					Port: &istioApiNetworkingv1beta1.PortSelector{
+						Number: 80,
+					},
+				},
+			}},
+		}
+	} else if len(sniHosts) == 0 {
+		// Remove TLS when not in use
+		virtualService.Spec.Tls = nil
+	}
+
+	if len(virtualService.Spec.Tcp) < 1 {
+		virtualService.Spec.Tcp = make([]*istioApiNetworkingv1beta1.TCPRoute, 1)
+		virtualService.Spec.Tcp[0] = &istioApiNetworkingv1beta1.TCPRoute{
+			Match: []*istioApiNetworkingv1beta1.L4MatchAttributes{{
+				Gateways: []string{"mesh"},
+			}},
+			Route: []*istioApiNetworkingv1beta1.RouteDestination{{
+				Destination: &istioApiNetworkingv1beta1.Destination{
+					Host: "egress-external.istio-system.svc.cluster.local",
+					Port: &istioApiNetworkingv1beta1.PortSelector{
+						Number: 80,
+					},
+				},
+			}},
+		}
+	}
+
+	hosts := make([]string, size)
+	if hasRules {
+		for i, host := range app.Spec.AccessPolicy.Outbound.External {
+			hosts[i] = host.Host
+			// Set default ports when user does not specify them
+			ports := reconciler.getHostPorts(host)
+
+			for _, port := range ports {
+				if port.Protocol == "HTTP" || port.Protocol == "HTTP2" {
+					if len(virtualService.Spec.Http) < i+2 {
+						virtualService.Spec.Http = append(virtualService.Spec.Http, &istioApiNetworkingv1beta1.HTTPRoute{})
+					}
+
+					http := virtualService.Spec.Http[i+1]
+
+					if http.Match == nil {
+						http.Match = []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
+							Gateways: []string{operatorOwnedGatewayName},
+						}}
+					}
+
+					if http.Route == nil {
+						http.Route = []*istioApiNetworkingv1beta1.HTTPRouteDestination{{
+							Destination: &istioApiNetworkingv1beta1.Destination{
+								Port: &istioApiNetworkingv1beta1.PortSelector{},
+							},
+						}}
+					}
+					http.Route[0].Destination.Host = host.Host
+					http.Route[0].Destination.Port.Number = uint32(port.Port)
+					virtualService.Spec.Http[i+1] = http
+				} else if port.Protocol == "HTTPS" {
+					if len(virtualService.Spec.Tls) < i+2 {
+						virtualService.Spec.Tls = append(virtualService.Spec.Tls, &istioApiNetworkingv1beta1.TLSRoute{})
+					}
+
+					tls := virtualService.Spec.Tls[i+1]
+
+					if tls.Match == nil {
+						tls.Match = []*istioApiNetworkingv1beta1.TLSMatchAttributes{{
+							Gateways: []string{operatorOwnedGatewayName},
+						}}
+					}
+
+					if tls.Route == nil {
+						tls.Route = []*istioApiNetworkingv1beta1.RouteDestination{{
+							Destination: &istioApiNetworkingv1beta1.Destination{
+								Port: &istioApiNetworkingv1beta1.PortSelector{},
+							},
+						}}
+					}
+					tls.Match[0].SniHosts = []string{host.Host}
+					tls.Route[0].Destination.Host = host.Host
+					tls.Route[0].Destination.Port.Number = uint32(port.Port)
+					virtualService.Spec.Tls[i+1] = tls
+				} else if port.Protocol == "TCP" {
+					if len(virtualService.Spec.Tcp) < i+2 {
+						virtualService.Spec.Tcp = append(virtualService.Spec.Tcp, &istioApiNetworkingv1beta1.TCPRoute{})
+					}
+					tcp := virtualService.Spec.Tcp[i+1]
+
+					if tcp.Match == nil {
+						tcp.Match = []*istioApiNetworkingv1beta1.L4MatchAttributes{{
+							Gateways: []string{operatorOwnedGatewayName},
+						}}
+					}
+
+					if tcp.Route == nil {
+						tcp.Route = []*istioApiNetworkingv1beta1.RouteDestination{{
+							Destination: &istioApiNetworkingv1beta1.Destination{
+								Port: &istioApiNetworkingv1beta1.PortSelector{},
+							},
+						}}
+					}
+					tcp.Route[0].Destination.Host = host.Host
+					tcp.Route[0].Destination.Port.Number = uint32(port.Port)
+					virtualService.Spec.Tcp[i+1] = tcp
+				}
+			}
+		}
+	}
+
+	virtualService.Spec.ExportTo = []string{".", "istio-system"}
+	virtualService.Spec.Gateways = []string{"mesh", operatorOwnedGatewayName}
+	virtualService.Spec.Hosts = hosts
+}
+
+func (*ApplicationReconciler) getHostPorts(host skiperatorv1alpha1.ExternalRule) []skiperatorv1alpha1.Port {
+	ports := host.Ports
+
+	if len(ports) == 0 {
+		ports = []skiperatorv1alpha1.Port{{
+			Name:     "HTTP",
+			Protocol: "HTTP",
+			Port:     80,
+		}, {
+			Name:     "HTTPS",
+			Protocol: "HTTPS",
+			Port:     443,
+		}}
+	}
+
+	return ports
+}
+
+func (reconciler *ApplicationReconciler) addIngressVirtualServiceData(app *skiperatorv1alpha1.Application, virtualService *istioNetworkingv1beta1.VirtualService) {
 	if len(virtualService.Spec.Http) < 1 {
 		virtualService.Spec.Http = []*istioApiNetworkingv1beta1.HTTPRoute{{
 			// TODO: Can we safely omit this when adding TLS?
@@ -203,7 +451,67 @@ func (reconciler *ApplicationReconciler) addVirtualServiceData(app *skiperatorv1
 	virtualService.Spec.Http[0].Route[0].Destination.Host = app.Name
 }
 
-func (reconciler *ApplicationReconciler) addGatewayData(app *skiperatorv1alpha1.Application, gateway *istioNetworkingv1beta1.Gateway) {
+func (reconciler *ApplicationReconciler) addServiceEntryData(app *skiperatorv1alpha1.Application, rule *skiperatorv1alpha1.ExternalRule, serviceEntry *istioNetworkingv1beta1.ServiceEntry) {
+	if len(serviceEntry.Spec.Ports) != len(rule.Ports) {
+		serviceEntry.Spec.Ports = make([]*istioApiNetworkingv1beta1.Port, len(rule.Ports))
+	}
+
+	for i, port := range rule.Ports {
+		serviceEntry.Spec.Ports[i].Name = port.Name
+		serviceEntry.Spec.Ports[i].Number = uint32(port.Port)
+		serviceEntry.Spec.Ports[i].Protocol = port.Protocol
+	}
+
+	serviceEntry.Spec.Hosts = []string{rule.Host}
+	serviceEntry.Spec.ExportTo = []string{".", "istio-system"}
+	serviceEntry.Spec.Resolution = istioApiNetworkingv1beta1.ServiceEntry_DNS
+}
+
+func (reconciler *ApplicationReconciler) addEgressGatewayData(app *skiperatorv1alpha1.Application, gateway *istioNetworkingv1beta1.Gateway) {
+	gateway.Spec.Selector = map[string]string{
+		"egress": "external",
+	}
+
+	count := 0
+	for _, host := range app.Spec.AccessPolicy.Outbound.External {
+		for range reconciler.getHostPorts(host) {
+			count = count + 1
+		}
+	}
+
+	if len(gateway.Spec.Servers) != len(app.Spec.AccessPolicy.Outbound.External) {
+		gateway.Spec.Servers = make([]*istioApiNetworkingv1beta1.Server, count)
+	}
+
+	i := 0
+	for _, host := range app.Spec.AccessPolicy.Outbound.External {
+		for _, port := range reconciler.getHostPorts(host) {
+			if gateway.Spec.Servers[i] == nil {
+				gateway.Spec.Servers[i] = &istioApiNetworkingv1beta1.Server{
+					Port: &istioApiNetworkingv1beta1.Port{},
+				}
+			}
+
+			gateway.Spec.Servers[i].Port.Number = uint32(port.Port)
+			gateway.Spec.Servers[i].Port.Name = port.Name
+			gateway.Spec.Servers[i].Port.Protocol = port.Protocol
+			gateway.Spec.Servers[i].Hosts = []string{host.Host}
+
+			if port.Protocol == "HTTPS" {
+				if gateway.Spec.Servers[i].Tls == nil {
+					gateway.Spec.Servers[i].Tls = &istioApiNetworkingv1beta1.ServerTLSSettings{}
+				}
+				// TODO the value below is omitted when viewed in k8s due to JSON
+				// omitonly on the Tls.Mode struct. Bug in istio API?
+				gateway.Spec.Servers[i].Tls.Mode = istioApiNetworkingv1beta1.ServerTLSSettings_PASSTHROUGH
+			}
+
+			i = i + 1
+		}
+	}
+}
+
+func (reconciler *ApplicationReconciler) addIngressGatewayData(app *skiperatorv1alpha1.Application, gateway *istioNetworkingv1beta1.Gateway) {
 	gateway.Spec.Selector = map[string]string{
 		"istio": "ingressgateway",
 	}
@@ -573,8 +881,8 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 		}
 	}
 
-	// Build rule for ingress gateway
-	i := rulesSize - 2
+	// Build rule for allowing DNS traffic
+	i := rulesSize - 1
 	if len(egressRules[i].To) != 1 {
 		egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
 			PodSelector: &metav1.LabelSelector{
@@ -604,7 +912,7 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 
 	// Allow traffic to egress when egress traffic is configured
 	if shouldCreateEgressGatewayRule {
-		i = rulesSize - 1
+		i = rulesSize - 2
 		egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
 			PodSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{

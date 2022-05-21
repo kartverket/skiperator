@@ -46,8 +46,8 @@ type InboundPolicy struct {
 }
 
 type OutboundPolicy struct {
-	Rules    []Rule         `json:"rules"`
-	External []ExternalRule `json:"external"`
+	Rules    []Rule         `json:"rules,omitempty"`
+	External []ExternalRule `json:"external,omitempty"`
 }
 
 type AccessPolicy struct {
@@ -123,6 +123,7 @@ type ApplicationStatus struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName="app"
 
 // Application is the Schema for the application API
 type Application struct {
