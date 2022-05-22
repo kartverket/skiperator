@@ -1,0 +1,7 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestSuite
+namespace: kuttl-test-skiperator
+testDirs:
+- tests/e2e/
+crdDir: config/crd/bases/
+commands:
