@@ -163,3 +163,8 @@ spec:
           protocol: TCP
           port: 587
 ```
+
+## Developing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to develop the
+Skiperator.

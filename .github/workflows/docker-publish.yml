@@ -48,4 +48,4 @@ jobs:
           
       - name: Build and push Docker image
         id: build-and-push
-        run: make docker-build docker-push
+        run: make docker-build docker-push bundle-build bundle-push catalog-build catalog-push

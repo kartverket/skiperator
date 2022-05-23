@@ -15,8 +15,8 @@ spec:
       kind: Application
       name: applications.skiperator.kartverket.no
       version: v1alpha1
-  description: skiperator
-  displayName: skiperator
+  description: Runs applications on SKIP in a user friendly way
+  displayName: Skiperator
   icon:
   - base64data: ""
     mediatype: ""
@@ -34,14 +34,15 @@ spec:
   - supported: true
     type: AllNamespaces
   keywords:
-  - "yes"
+  - skip
   links:
   - name: Skiperator
-    url: https://skiperator.domain
+    url: https://github.com/kartverket/skiperator-poc
   maintainers:
-  - email: email
-    name: name
+  - email: espen.henriksen@kartverket.no
+    name: Espen Henriksen
   maturity: alpha
   provider:
-    name: skiperator
+    name: Statens Kartverk
+    url: https://github.com/kartverket/skiperator-poc
   version: 0.0.0

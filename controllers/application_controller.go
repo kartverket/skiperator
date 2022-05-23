@@ -347,6 +347,8 @@ func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiper
 
 	hosts := make([]string, size)
 	if hasRules {
+		// Counters for array indexing for each type
+		httpi, tlsi, tcpi := 0, 0, 0
 		for i, host := range app.Spec.AccessPolicy.Outbound.External {
 			hosts[i] = host.Host
 			// Set default ports when user does not specify them
@@ -354,11 +356,11 @@ func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiper
 
 			for _, port := range ports {
 				if port.Protocol == "HTTP" || port.Protocol == "HTTP2" {
-					if len(virtualService.Spec.Http) < i+2 {
+					if len(virtualService.Spec.Http) < httpi+2 {
 						virtualService.Spec.Http = append(virtualService.Spec.Http, &istioApiNetworkingv1beta1.HTTPRoute{})
 					}
 
-					http := virtualService.Spec.Http[i+1]
+					http := virtualService.Spec.Http[httpi+1]
 
 					if http.Match == nil {
 						http.Match = []*istioApiNetworkingv1beta1.HTTPMatchRequest{{
@@ -375,13 +377,14 @@ func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiper
 					}
 					http.Route[0].Destination.Host = host.Host
 					http.Route[0].Destination.Port.Number = uint32(port.Port)
-					virtualService.Spec.Http[i+1] = http
+					virtualService.Spec.Http[httpi+1] = http
+					httpi++
 				} else if port.Protocol == "HTTPS" {
-					if len(virtualService.Spec.Tls) < i+2 {
+					if len(virtualService.Spec.Tls) < tlsi+2 {
 						virtualService.Spec.Tls = append(virtualService.Spec.Tls, &istioApiNetworkingv1beta1.TLSRoute{})
 					}
 
-					tls := virtualService.Spec.Tls[i+1]
+					tls := virtualService.Spec.Tls[tlsi+1]
 
 					if tls.Match == nil {
 						tls.Match = []*istioApiNetworkingv1beta1.TLSMatchAttributes{{
@@ -399,12 +402,13 @@ func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiper
 					tls.Match[0].SniHosts = []string{host.Host}
 					tls.Route[0].Destination.Host = host.Host
 					tls.Route[0].Destination.Port.Number = uint32(port.Port)
-					virtualService.Spec.Tls[i+1] = tls
+					virtualService.Spec.Tls[tlsi+1] = tls
+					tlsi++
 				} else if port.Protocol == "TCP" {
-					if len(virtualService.Spec.Tcp) < i+2 {
+					if len(virtualService.Spec.Tcp) < tcpi+2 {
 						virtualService.Spec.Tcp = append(virtualService.Spec.Tcp, &istioApiNetworkingv1beta1.TCPRoute{})
 					}
-					tcp := virtualService.Spec.Tcp[i+1]
+					tcp := virtualService.Spec.Tcp[tcpi+1]
 
 					if tcp.Match == nil {
 						tcp.Match = []*istioApiNetworkingv1beta1.L4MatchAttributes{{
@@ -421,7 +425,8 @@ func (reconciler *ApplicationReconciler) addEgressVirtualServiceData(app *skiper
 					}
 					tcp.Route[0].Destination.Host = host.Host
 					tcp.Route[0].Destination.Port.Number = uint32(port.Port)
-					virtualService.Spec.Tcp[i+1] = tcp
+					virtualService.Spec.Tcp[tcpi+1] = tcp
+					tcpi++
 				}
 			}
 		}
@@ -476,6 +481,9 @@ func (reconciler *ApplicationReconciler) addServiceEntryData(app *skiperatorv1al
 	}
 
 	for i, port := range rule.Ports {
+		if serviceEntry.Spec.Ports[i] == nil {
+			serviceEntry.Spec.Ports[i] = &istioApiNetworkingv1beta1.Port{}
+		}
 		serviceEntry.Spec.Ports[i].Name = port.Name
 		serviceEntry.Spec.Ports[i].Number = uint32(port.Port)
 		serviceEntry.Spec.Ports[i].Protocol = port.Protocol
