@@ -218,16 +218,22 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	})
 
 	// PeerAuthentication: Check if already exists, if not create a new one
-	peerAuthentication := &istioSecurityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
-	reconciler.reconcileObject("PeerAuthentication", ctx, app, peerAuthentication, func() {
-		reconciler.addPeerAuthenticationData(app, peerAuthentication)
-	})
+	/*
+		TODO: Make sure traffic between pods works
+		peerAuthentication := &istioSecurityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.reconcileObject("PeerAuthentication", ctx, app, peerAuthentication, func() {
+			reconciler.addPeerAuthenticationData(app, peerAuthentication)
+		})
+	*/
 
 	// Sidecar: Check if already exists, if not create a new one
-	sidecar := &istioNetworkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
-	reconciler.reconcileObject("Sidecar", ctx, app, sidecar, func() {
-		reconciler.addSidecarDara(app, sidecar)
-	})
+	/*
+		TODO: Make sure traffic between pods works
+		sidecar := &istioNetworkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Name: app.Name, Namespace: app.Namespace}}
+		reconciler.reconcileObject("Sidecar", ctx, app, sidecar, func() {
+			reconciler.addSidecarDara(app, sidecar)
+		})
+	*/
 
 	// TODO make image pull Secret
 
