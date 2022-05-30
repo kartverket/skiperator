@@ -63,7 +63,7 @@ $ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,Virtual
 Now keep developing the app, change source code and restart the operator for
 every time you want to recompile. 
 
-### Writing code
+## Writing code
 
 Have a look at the following files:
 - The main logic is found in the reconcile function in https://github.com/kartverket/skiperator-poc/blob/main/controllers/application_controller.go
