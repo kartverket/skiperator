@@ -62,3 +62,14 @@ $ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,Virtual
 
 Now keep developing the app, change source code and restart the operator for
 every time you want to recompile. 
+
+### Writing code
+
+Have a look at the following files:
+- The main logic is found in the reconcile function in https://github.com/kartverket/skiperator-poc/blob/main/controllers/application_controller.go
+- The `Application` Custom Resource API is found in https://github.com/kartverket/skiperator-poc/blob/main/api/v1alpha1/application_types.go
+- Examples `Applications` that can be applied to the cluster are found in https://github.com/kartverket/skiperator-poc/tree/main/config/samples
+
+Also look at the following documentation pages:
+- https://sdk.operatorframework.io/docs/building-operators/golang/tutorial
+- https://sdk.operatorframework.io/docs/building-operators/golang/references/client/
