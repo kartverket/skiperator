@@ -574,6 +574,17 @@ func (reconciler *ApplicationReconciler) addServiceData(app *skiperatorv1alpha1.
 	service.Spec.Type = v1.ServiceTypeClusterIP
 	service.Spec.Ports[0].Port = int32(app.Spec.Port)
 	service.Spec.Ports[0].TargetPort = intstr.FromInt(app.Spec.Port)
+
+	tcp := "tcp"
+	http := "http"
+
+	if app.Spec.Port == 5432 {
+		service.Spec.Ports[0].AppProtocol = &tcp
+		service.Spec.Ports[0].Name = "tcp"
+	} else {
+		service.Spec.Ports[0].AppProtocol = &http
+		service.Spec.Ports[0].Name = "http"
+	}
 }
 
 func (reconciler *ApplicationReconciler) addAutoscalerData(app *skiperatorv1alpha1.Application, autoscaler *autoscalingv1.HorizontalPodAutoscaler) {
