@@ -21,11 +21,12 @@ spec:
     metadata:
       annotations:
         kubectl.kubernetes.io/default-container: manager
-        seccomp.security.alpha.kubernetes.io/pod: runtime/default
       labels:
         control-plane: controller-manager
     spec:
       securityContext:
+        seccompProfile:
+          type: RuntimeDefault
         runAsNonRoot: true
         fsGroup: 150
         supplementalGroups:

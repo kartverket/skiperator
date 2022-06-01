@@ -605,8 +605,7 @@ func (reconciler *ApplicationReconciler) addDeploymentData(ctx context.Context, 
 			MatchLabels: labels,
 		}
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
-			"prometheus.io/scrape":                     "true",
-			"seccomp.security.alpha.kubernetes.io/pod": "runtime/default",
+			"prometheus.io/scrape": "true",
 		}
 		deployment.Spec.Template.Spec.Containers = make([]v1.Container, 1)
 		deployment.Spec.Template.Spec.Containers[0].Ports = make([]v1.ContainerPort, 1)
@@ -640,6 +639,10 @@ func (reconciler *ApplicationReconciler) addDeploymentData(ctx context.Context, 
 	deployment.Spec.Template.Spec.Containers[0].Image = app.Spec.Image
 	deployment.Spec.Template.Spec.Containers[0].ImagePullPolicy = v1.PullAlways
 
+	if deployment.Spec.Template.Spec.Containers[0].SecurityContext.SeccompProfile == nil {
+		deployment.Spec.Template.Spec.Containers[0].SecurityContext.SeccompProfile = &v1.SeccompProfile{}
+	}
+	deployment.Spec.Template.Spec.Containers[0].SecurityContext.SeccompProfile.Type = "RuntimeDefault"
 	deployment.Spec.Template.Spec.Containers[0].SecurityContext.Privileged = &no
 	deployment.Spec.Template.Spec.Containers[0].SecurityContext.AllowPrivilegeEscalation = &no
 	deployment.Spec.Template.Spec.Containers[0].SecurityContext.ReadOnlyRootFilesystem = &yes
