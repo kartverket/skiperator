@@ -12,6 +12,7 @@ You're going to want to make sure to have the following things installed:
 - [kubectx and kubens](https://github.com/ahmetb/kubectx)
 - docker version 17.03+.
 - [kind](https://kind.sigs.k8s.io)
+- [istioctl](https://istio.io/latest/docs/setup/install/istioctl/)
 
 ### Running the operator
 
