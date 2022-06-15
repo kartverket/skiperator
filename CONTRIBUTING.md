@@ -27,12 +27,12 @@ Start a cluster on docker using `kind`.
 ```
 $ kind create cluster
 ```
-
 Make sure Kind is the active context
 ```
 $ kubectx kind-kind
 ```
-
+$ istioctl install
+```
 Run `make` to compile the project. If you wish to see what commands are
 available, run `make help` for a list of all commands. We're going to install
 the CRD into the cluster and then run the operator on your machine to make
