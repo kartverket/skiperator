@@ -471,7 +471,7 @@ func (reconciler *ApplicationReconciler) addIngressVirtualServiceData(app *skipe
 	}
 
 	virtualService.Spec.Hosts = app.Spec.Ingresses
-	virtualService.Spec.Gateways = []string{app.Name}
+	virtualService.Spec.Gateways = []string{app.Name + "-ingress"}
 	virtualService.Spec.Http[0].Route[0].Destination.Host = app.Name
 }
 
