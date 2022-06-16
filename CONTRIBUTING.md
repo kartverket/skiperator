@@ -31,6 +31,8 @@ Make sure Kind is the active context
 ```
 $ kubectx kind-kind
 ```
+Install Istio to make sure all CRDs are available
+```
 $ istioctl install
 ```
 Run `make` to compile the project. If you wish to see what commands are
