@@ -879,7 +879,7 @@ func (reconciler *ApplicationReconciler) addSidecarDara(app *skiperatorv1alpha1.
 func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
 	labels := labelsForApplication(app)
 	var egressRules []networkingv1.NetworkPolicyEgressRule = networkPolicy.Spec.Egress
-	rulesSize := 1 // Always create DNS rule
+	rulesSize := 3 // Always create DNS rule
 	shouldCreateOutboundRules := app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.Rules) > 0
 	shouldCreateEgressGatewayRule := app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.External) > 0
 
@@ -967,6 +967,26 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 			},
 		}}
 	}
+
+	egressRules[rulesSize-3].To = []networkingv1.NetworkPolicyPeer{{
+		PodSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"istio": "istiod",
+			},
+		},
+		NamespaceSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"kubernetes.io/metadata.name": "istio-system",
+			},
+		},
+	}}
+
+	egressRules[rulesSize-4].To = []networkingv1.NetworkPolicyPeer{{
+		IPBlock: &networkingv1.IPBlock{
+			CIDR:   "0.0.0.0/0",
+			Except: []string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/20"},
+		},
+	}}
 
 	if len(networkPolicy.Spec.PolicyTypes) != 1 {
 		networkPolicy.Spec.PolicyTypes = []networkingv1.PolicyType{networkingv1.PolicyTypeEgress}
