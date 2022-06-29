@@ -214,7 +214,7 @@ func (reconciler *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl
 	// NetworkPolicy egress: Check if already exists, if not create a new one
 	networkPolicyEgress := &networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Name: app.Name + "-egress", Namespace: app.Namespace}}
 	reconciler.reconcileObject("NetworkPolicy", ctx, app, networkPolicyEgress, func() {
-		reconciler.addEgressNetworkPolicyData(app, networkPolicyEgress)
+		reconciler.addEgressNetworkPolicyData(ctx, app, networkPolicyEgress)
 	})
 
 	// PeerAuthentication: Check if already exists, if not create a new one
@@ -876,7 +876,7 @@ func (reconciler *ApplicationReconciler) addSidecarDara(app *skiperatorv1alpha1.
 	sidecar.Spec.OutboundTrafficPolicy.Mode = istioApiNetworkingv1beta1.OutboundTrafficPolicy_REGISTRY_ONLY
 }
 
-func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
+func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(ctx context.Context, app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
 	labels := labelsForApplication(app)
 	var egressRules []networkingv1.NetworkPolicyEgressRule = networkPolicy.Spec.Egress
 	rulesSize := 3 // Always create DNS rule
@@ -953,7 +953,7 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 
 	// Allow traffic to egress when egress traffic is configured
 	if shouldCreateEgressGatewayRule {
-		i = rulesSize - 2
+		i = rulesSize - 4
 		egressRules[i].To = []networkingv1.NetworkPolicyPeer{{
 			PodSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
@@ -981,7 +981,7 @@ func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(app *skipera
 		},
 	}}
 
-	egressRules[rulesSize-4].To = []networkingv1.NetworkPolicyPeer{{
+	egressRules[rulesSize-2].To = []networkingv1.NetworkPolicyPeer{{
 		IPBlock: &networkingv1.IPBlock{
 			CIDR:   "0.0.0.0/0",
 			Except: []string{"10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/20"},
