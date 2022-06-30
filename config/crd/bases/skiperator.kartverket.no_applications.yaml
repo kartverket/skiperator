@@ -208,6 +208,8 @@ spec:
                   properties:
                     configmap:
                       type: string
+                    emptyDir:
+                      type: string
                     mountPath:
                       type: string
                     persistentVolumeClaim:

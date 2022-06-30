@@ -88,6 +88,7 @@ type FilesFrom struct {
 	MountPath             string `json:"mountPath"`
 	Configmap             string `json:"configmap,omitempty"`
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
+	EmptyDir              string `json:"emptyDir,omitempty"`
 	Secret                string `json:"secret,omitempty"`
 }
 

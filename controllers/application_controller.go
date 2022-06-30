@@ -819,6 +819,17 @@ func (*ApplicationReconciler) buildVolumes(app *skiperatorv1alpha1.Application) 
 					},
 				},
 			})
+		} else if len(file.EmptyDir) > 0 {
+			volumeMounts = append(volumeMounts, v1.VolumeMount{
+				Name:      file.EmptyDir,
+				MountPath: file.MountPath,
+			})
+			volumes = append(volumes, v1.Volume{
+				Name: file.EmptyDir,
+				VolumeSource: v1.VolumeSource{
+					EmptyDir: &v1.EmptyDirVolumeSource{},
+				},
+			})
 		}
 	}
 	return volumeMounts, volumes
