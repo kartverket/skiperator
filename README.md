@@ -59,6 +59,8 @@ spec:
   # filesFrom supports configmaps, secrets and pvcs. The Application resource
   # assumes these have already been created by you
   filesFrom:
+  - emptyDir: temp-dir
+    mountPath: /tmp
   - configmap: some-configmap
     mountPath: /var/run/configmap
   - secret: some-secret
