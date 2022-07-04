@@ -890,7 +890,7 @@ func (reconciler *ApplicationReconciler) addSidecarDara(app *skiperatorv1alpha1.
 func (reconciler *ApplicationReconciler) addEgressNetworkPolicyData(ctx context.Context, app *skiperatorv1alpha1.Application, networkPolicy *networkingv1.NetworkPolicy) {
 	labels := labelsForApplication(app)
 	var egressRules []networkingv1.NetworkPolicyEgressRule = networkPolicy.Spec.Egress
-	rulesSize := 3 // Always create DNS rule
+	rulesSize := 4 // Always create DNS rule
 	shouldCreateOutboundRules := app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.Rules) > 0
 	shouldCreateEgressGatewayRule := app.Spec.AccessPolicy != nil && app.Spec.AccessPolicy.Outbound != nil && len(app.Spec.AccessPolicy.Outbound.External) > 0
 
