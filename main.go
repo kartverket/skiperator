@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -35,7 +36,6 @@ import (
 	"github.com/kartverket/skiperator/controllers"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -46,9 +46,8 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(autoscalingv1.AddToScheme(scheme))
+	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
@@ -84,15 +83,73 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.ApplicationReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Application")
+	err = (&controllers.DeploymentReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
 
+	err = (&controllers.HorizontalPodAutoscalerReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "HorizontalPodAutoscaler")
+		os.Exit(1)
+	}
+
+	err = (&controllers.NetworkPolicyReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "NetworkPolicy")
+		os.Exit(1)
+	}
+
+	err = (&controllers.ServiceReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Service")
+		os.Exit(1)
+	}
+
+	err = (&controllers.SidecarReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Sidecar")
+		os.Exit(1)
+	}
+
+	err = (&controllers.PeerAuthenticationReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "PeerAuthentication")
+		os.Exit(1)
+	}
+
+	err = (&controllers.IngressGatewayReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IngressGateway")
+		os.Exit(1)
+	}
+
+	err = (&controllers.IngressVirtualServiceReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "IngressVirtualService")
+		os.Exit(1)
+	}
+
+	err = (&controllers.EgressServiceEntryReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "EgressServiceEntry")
+		os.Exit(1)
+	}
+
+	err = (&controllers.EgressGatewayReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "EgressGateway")
+		os.Exit(1)
+	}
+
+	err = (&controllers.EgressVirtualServiceReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "EgressVirtualService")
+		os.Exit(1)
+	}
+
+	//+kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)

@@ -1,10 +1,11 @@
 module github.com/kartverket/skiperator
 
-go 1.17
+go 1.18
 
 require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
+	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20220531010908-64602ec8d647
 	istio.io/client-go v1.13.4
 	k8s.io/api v0.24.1
@@ -39,7 +40,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
-	github.com/google/go-cmp v0.5.5 // indirect
+	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
