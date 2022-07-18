@@ -20,7 +20,6 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Application is the Schema for the application API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -35,7 +34,6 @@ spec:
           metadata:
             type: object
           spec:
-            description: ApplicationSpec defines the desired state of Application
             properties:
               accessPolicy:
                 properties:
@@ -50,6 +48,7 @@ spec:
                               type: string
                           required:
                           - application
+                          - namespace
                           type: object
                         type: array
                     required:
@@ -64,21 +63,12 @@ spec:
                               type: string
                             ports:
                               items:
-                                description: List of port rules for external communication.
-                                  Must be specified if using protocols other than
-                                  HTTPS.
                                 properties:
                                   name:
-                                    description: Human-readable identifier for this
-                                      rule.
                                     type: string
                                   port:
-                                    description: The port used for communication.
                                     type: integer
                                   protocol:
-                                    description: 'The protocol used for communication.
-                                      Allowed values: GRPC, HTTP, HTTP2, HTTPS, MONGO,
-                                      TCP, TLS'
                                     type: string
                                 required:
                                 - name
@@ -98,20 +88,39 @@ spec:
                               type: string
                           required:
                           - application
+                          - namespace
                           type: object
                         type: array
+                    required:
+                    - rules
                     type: object
                 type: object
+              command:
+                items:
+                  type: string
+                type: array
               env:
                 items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
                   properties:
                     name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
                       type: string
                     value:
+                      description: 'Variable references $(VAR_NAME) are expanded using
+                        the previously defined environment variables in the container
+                        and any service environment variables. If a variable cannot
+                        be resolved, the reference in the input string will be unchanged.
+                        Double $$ are reduced to a single $, which allows for escaping
+                        the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
+                        string literal "$(VAR_NAME)". Escaped references will never
+                        be expanded, regardless of whether the variable exists or
+                        not. Defaults to "".'
                       type: string
                     valueFrom:
-                      description: EnvVarSource represents a source for the value
-                        of an EnvVar.
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
                       properties:
                         configMapKeyRef:
                           description: Selects a key of a ConfigMap.
@@ -197,7 +206,7 @@ spec:
               envFrom:
                 items:
                   properties:
-                    configmap:
+                    configMap:
                       type: string
                     secret:
                       type: string
@@ -206,7 +215,7 @@ spec:
               filesFrom:
                 items:
                   properties:
-                    configmap:
+                    configMap:
                       type: string
                     emptyDir:
                       type: string
@@ -234,8 +243,6 @@ spec:
                     type: integer
                   path:
                     type: string
-                  periodSeconds:
-                    type: integer
                   port:
                     type: integer
                   timeout:
@@ -254,8 +261,6 @@ spec:
                     type: integer
                   path:
                     type: string
-                  periodSeconds:
-                    type: integer
                   port:
                     type: integer
                   timeout:
@@ -266,64 +271,48 @@ spec:
                 type: object
               replicas:
                 properties:
-                  cpuThresholdPercentage:
-                    format: int32
-                    type: integer
-                  disableAutoScaling:
-                    type: boolean
                   max:
-                    format: int32
                     type: integer
                   min:
-                    format: int32
+                    type: integer
+                  targetCpuUtilization:
                     type: integer
                 required:
                 - min
                 type: object
               resources:
+                description: ResourceRequirements describes the compute resource requirements.
                 properties:
                   limits:
-                    properties:
-                      cpu:
-                        type: string
-                      memory:
-                        type: string
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Limits describes the maximum amount of compute resources
+                      allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                   requests:
-                    properties:
-                      cpu:
-                        type: string
-                      memory:
-                        type: string
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: 'Requests describes the minimum amount of compute
+                      resources required. If Requests is omitted for a container,
+                      it defaults to Limits if that is explicitly specified, otherwise
+                      to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
                 type: object
             required:
             - image
-            type: object
-          status:
-            description: ApplicationStatus defines the observed state of Application
-            properties:
-              errors:
-                additionalProperties:
-                  type: string
-                type: object
-              operationResults:
-                additionalProperties:
-                  description: OperationResult is the action result of a CreateOrUpdate
-                    call.
-                  type: string
-                description: 'Important: Run "make" to regenerate code after modifying
-                  this file'
-                type: object
-            required:
-            - errors
-            - operationResults
+            - port
             type: object
         type: object
     served: true
     storage: true
-    subresources:
-      status: {}
 status:
   acceptedNames:
     kind: ""
