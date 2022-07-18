@@ -328,7 +328,7 @@ spec:
                 - --leader-elect
                 command:
                 - /manager
-                image: ghcr.io/kartverket/skiperator-controller:latest
+                image: ghcr.io/kartverket/skiperator-controller:v0.1.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
