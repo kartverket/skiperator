@@ -53,6 +53,4 @@ jobs:
 
       - name: Build and push Docker image
         id: build-and-push
-        run: |
-          go version
-          make docker-build docker-push bundle-build bundle-push catalog-build catalog-push
+        run: make docker-build docker-push bundle-build bundle-push catalog-build catalog-push
