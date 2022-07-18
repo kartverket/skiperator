@@ -7,9 +7,9 @@ name: Docker
 
 on:
   push:
-    #branches: [ main ]
+    branches: [ main ]
     # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
+    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -52,6 +52,10 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.0'
 
       - name: Build and push Docker image
         env:
