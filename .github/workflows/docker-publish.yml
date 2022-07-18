@@ -7,9 +7,9 @@ name: Docker
 
 on:
   push:
-    #branches: [ main ]
+    branches: [ main ]
     # Publish semver tags as releases.
-    #tags: [ 'v*.*.*' ]
+    tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -49,4 +49,6 @@ jobs:
           
       - name: Build and push Docker image
         id: build-and-push
-        run: make docker-build docker-push bundle-build bundle-push catalog-build catalog-push
+        run: |
+          go version
+          make docker-build docker-push bundle-build bundle-push catalog-build catalog-push
