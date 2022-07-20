@@ -168,8 +168,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			egress.To[0].NamespaceSelector.MatchLabels = labels
 
 			egress.To[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"app": rule.Application}
-			egress.To[0].PodSelector.MatchLabels = labels
+			egress.To[0].PodSelector.MatchLabels = svc.Spec.Selector
 
 			for i := range svc.Spec.Ports {
 				port := intstr.FromInt(int(svc.Spec.Ports[i].Port))
