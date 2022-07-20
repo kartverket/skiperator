@@ -98,6 +98,10 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
 
 			for i, rule := range application.Spec.AccessPolicy.Inbound.Rules {
+				if rule.Namespace == "" {
+					rule.Namespace = application.Namespace
+				}
+
 				ingress.From[i].NamespaceSelector = &metav1.LabelSelector{}
 				labels = map[string]string{"kubernetes.io/metadata.name": rule.Namespace}
 				ingress.From[i].NamespaceSelector.MatchLabels = labels
@@ -143,6 +147,10 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 
 		// Egress rules for internal peers
 		for _, rule := range application.Spec.AccessPolicy.Outbound.Rules {
+			if rule.Namespace == "" {
+				rule.Namespace = application.Namespace
+			}
+
 			other := skiperatorv1alpha1.Application{}
 			err = r.client.Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &other)
 			if err != nil {

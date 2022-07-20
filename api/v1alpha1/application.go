@@ -96,6 +96,7 @@ type OutboundPolicy struct {
 }
 
 type InternalRule struct {
+	//+kubebuilder:validation:Optional
 	Namespace   string `json:"namespace"`
 	Application string `json:"application"`
 }
