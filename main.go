@@ -18,7 +18,7 @@ package main
 
 import (
 	"flag"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"os"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -47,7 +47,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
+	utilruntime.Must(autoscalingv2beta2.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
