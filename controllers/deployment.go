@@ -121,7 +121,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 				volumes[i+1].ConfigMap = &corev1.ConfigMapVolumeSource{}
 				volumes[i+1].ConfigMap.Name = file.ConfigMap
 			} else if len(file.Secret) > 0 {
-				volumes[i+1].Name = file.PersistentVolumeClaim
+				volumes[i+1].Name = file.Secret
 				volumes[i+1].Secret = &corev1.SecretVolumeSource{}
 				volumes[i+1].Secret.SecretName = file.Secret
 			} else if len(file.EmptyDir) > 0 {
