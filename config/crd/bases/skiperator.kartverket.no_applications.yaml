@@ -48,7 +48,6 @@ spec:
                               type: string
                           required:
                           - application
-                          - namespace
                           type: object
                         type: array
                     required:
@@ -88,7 +87,6 @@ spec:
                               type: string
                           required:
                           - application
-                          - namespace
                           type: object
                         type: array
                     required:
