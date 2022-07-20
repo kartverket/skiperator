@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,7 +26,7 @@ func (r *HorizontalPodAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) e
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
-		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
+		Owns(&autoscalingv2beta2.HorizontalPodAutoscaler{}).
 		Complete(r)
 }
 
@@ -40,7 +40,7 @@ func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, req r
 	}
 	application.FillDefaults()
 
-	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
+	horizontalPodAutoscaler := autoscalingv2beta2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
 	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
 		err = ctrlutil.SetControllerReference(&application, &horizontalPodAutoscaler, r.scheme)
@@ -57,11 +57,11 @@ func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, req r
 		max := int32(application.Spec.Replicas.Max)
 		horizontalPodAutoscaler.Spec.MaxReplicas = max
 
-		horizontalPodAutoscaler.Spec.Metrics = make([]autoscalingv2.MetricSpec, 1)
-		horizontalPodAutoscaler.Spec.Metrics[0].Type = autoscalingv2.ResourceMetricSourceType
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource = &autoscalingv2.ResourceMetricSource{}
+		horizontalPodAutoscaler.Spec.Metrics = make([]autoscalingv2beta2.MetricSpec, 1)
+		horizontalPodAutoscaler.Spec.Metrics[0].Type = autoscalingv2beta2.ResourceMetricSourceType
+		horizontalPodAutoscaler.Spec.Metrics[0].Resource = &autoscalingv2beta2.ResourceMetricSource{}
 		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Name = "cpu"
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Target.Type = autoscalingv2.UtilizationMetricType
+		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Target.Type = autoscalingv2beta2.UtilizationMetricType
 		averageUtilization := int32(application.Spec.Replicas.TargetCpuUtilization)
 		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Target.AverageUtilization = &averageUtilization
 
