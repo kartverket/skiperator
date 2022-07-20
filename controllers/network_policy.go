@@ -151,8 +151,8 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 				rule.Namespace = application.Namespace
 			}
 
-			other := skiperatorv1alpha1.Application{}
-			err = r.client.Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &other)
+			svc := corev1.Service{}
+			err = r.client.Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &svc)
 			if err != nil {
 				return err
 			}
@@ -161,7 +161,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			egress := &networkPolicy.Spec.Egress[len(networkPolicy.Spec.Egress)-1]
 
 			egress.To = make([]networkingv1.NetworkPolicyPeer, 1)
-			egress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
+			egress.Ports = make([]networkingv1.NetworkPolicyPort, len(svc.Spec.Ports))
 
 			egress.To[0].NamespaceSelector = &metav1.LabelSelector{}
 			labels = map[string]string{"kubernetes.io/metadata.name": rule.Namespace}
@@ -171,8 +171,10 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			labels = map[string]string{"app": rule.Application}
 			egress.To[0].PodSelector.MatchLabels = labels
 
-			port := intstr.FromInt(other.Spec.Port)
-			egress.Ports[0].Port = &port
+			for i := range svc.Spec.Ports {
+				port := intstr.FromInt(int(svc.Spec.Ports[i].Port))
+				egress.Ports[i].Port = &port
+			}
 		}
 
 		// Egress rule for egress gateways
