@@ -60,8 +60,21 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 		}
 
 		// Ingress rules
+		internal := false
+		external := false
+		for _, hostname := range application.Spec.Ingresses {
+			if isExternal(hostname) {
+				external = true
+			} else {
+				internal = true
+			}
+		}
+
 		count := 0
-		if len(application.Spec.Ingresses) > 0 {
+		if internal {
+			count += 1
+		}
+		if external {
 			count += 1
 		}
 		if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
@@ -70,7 +83,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 		networkPolicy.Spec.Ingress = make([]networkingv1.NetworkPolicyIngressRule, 0, count)
 
 		// Ingress rule for ingress gateways
-		if len(application.Spec.Ingresses) > 0 {
+		if internal {
 			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
 			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
 
@@ -82,7 +95,25 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			ingress.From[0].NamespaceSelector.MatchLabels = labels
 
 			ingress.From[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"ingress": "external"} // TODO: Should be selectable
+			labels = map[string]string{"ingress": "internal"}
+			ingress.From[0].PodSelector.MatchLabels = labels
+
+			port := intstr.FromInt(application.Spec.Port)
+			ingress.Ports[0].Port = &port
+		}
+		if external {
+			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
+			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
+
+			ingress.From = make([]networkingv1.NetworkPolicyPeer, 1)
+			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
+
+			ingress.From[0].NamespaceSelector = &metav1.LabelSelector{}
+			labels = map[string]string{"kubernetes.io/metadata.name": "istio-system"}
+			ingress.From[0].NamespaceSelector.MatchLabels = labels
+
+			ingress.From[0].PodSelector = &metav1.LabelSelector{}
+			labels = map[string]string{"ingress": "external"}
 			ingress.From[0].PodSelector.MatchLabels = labels
 
 			port := intstr.FromInt(application.Spec.Port)
