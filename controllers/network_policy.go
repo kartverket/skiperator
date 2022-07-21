@@ -101,6 +101,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			port := intstr.FromInt(application.Spec.Port)
 			ingress.Ports[0].Port = &port
 		}
+
 		if external {
 			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
 			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
@@ -159,7 +160,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 
 		networkPolicy.Spec.Egress[0].To[0].IPBlock = &networkingv1.IPBlock{}
 		networkPolicy.Spec.Egress[0].To[0].IPBlock.CIDR = "0.0.0.0/0"
-		networkPolicy.Spec.Egress[0].To[0].IPBlock.Except = []string{"10.0.0.0/8", "172.16.0.0/12 ", "192.168.0.0/16"}
+		networkPolicy.Spec.Egress[0].To[0].IPBlock.Except = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
 
 		// Egress rule for DNS
 		networkPolicy.Spec.Egress[1].To = make([]networkingv1.NetworkPolicyPeer, 1)
