@@ -174,12 +174,12 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 		labels = map[string]string{"k8s-app": "kube-dns"}
 		networkPolicy.Spec.Egress[1].To[0].PodSelector.MatchLabels = labels
 
-		port := intstr.FromInt(53)
-		networkPolicy.Spec.Egress[1].Ports[0].Port = &port
+		dnsPort := intstr.FromInt(53)
+		networkPolicy.Spec.Egress[1].Ports[0].Port = &dnsPort
 		protocol := new(corev1.Protocol)
 		*protocol = corev1.ProtocolTCP
 		networkPolicy.Spec.Egress[1].Ports[0].Protocol = protocol
-		networkPolicy.Spec.Egress[1].Ports[1].Port = &port
+		networkPolicy.Spec.Egress[1].Ports[1].Port = &dnsPort
 		protocol = new(corev1.Protocol)
 		*protocol = corev1.ProtocolUDP
 		networkPolicy.Spec.Egress[1].Ports[1].Protocol = protocol
@@ -196,8 +196,8 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 		labels = map[string]string{"app": "istiod"}
 		networkPolicy.Spec.Egress[2].To[0].PodSelector.MatchLabels = labels
 
-		port = intstr.FromInt(15012)
-		networkPolicy.Spec.Egress[2].Ports[0].Port = &port
+		xdsPort := intstr.FromInt(15012)
+		networkPolicy.Spec.Egress[2].Ports[0].Port = &xdsPort
 
 		// Egress rules for internal peers
 		for _, rule := range application.Spec.AccessPolicy.Outbound.Rules {
