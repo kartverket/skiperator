@@ -89,8 +89,6 @@ spec:
                           - application
                           type: object
                         type: array
-                    required:
-                    - rules
                     type: object
                 type: object
               command:
@@ -303,6 +301,31 @@ spec:
                       it defaults to Limits if that is explicitly specified, otherwise
                       to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
                     type: object
+                type: object
+              startup:
+                properties:
+                  failureThreshold:
+                    type: integer
+                  initialDelay:
+                    type: integer
+                  path:
+                    type: string
+                  port:
+                    type: integer
+                  timeout:
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              strategy:
+                properties:
+                  type:
+                    default: RollingUpdate
+                    enum:
+                    - RollingUpdate
+                    - Recreate
+                    type: string
                 type: object
             required:
             - image

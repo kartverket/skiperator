@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -61,6 +62,11 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 			replicas = 1
 		}
 		deployment.Spec.Replicas = &replicas
+
+		deployment.Spec.Strategy.Type = appsv1.DeploymentStrategyType(application.Spec.Strategy.Type)
+		if application.Spec.Strategy.Type == "Recreate" {
+			deployment.Spec.Strategy.RollingUpdate = nil
+		}
 
 		deployment.Spec.Template.Spec.Containers = make([]corev1.Container, 1)
 		container := &deployment.Spec.Template.Spec.Containers[0]
@@ -155,6 +161,16 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 			container.LivenessProbe.HTTPGet = &corev1.HTTPGetAction{}
 			container.LivenessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Liveness.Port))
 			container.LivenessProbe.HTTPGet.Path = application.Spec.Liveness.Path
+		}
+		if application.Spec.Startup != nil {
+			container.StartupProbe = &corev1.Probe{}
+			container.StartupProbe.InitialDelaySeconds = int32(application.Spec.Startup.InitialDelay)
+			container.StartupProbe.TimeoutSeconds = int32(application.Spec.Startup.Timeout)
+			container.StartupProbe.FailureThreshold = int32(application.Spec.Startup.FailureThreshold)
+
+			container.StartupProbe.HTTPGet = &corev1.HTTPGetAction{}
+			container.StartupProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Startup.Port))
+			container.StartupProbe.HTTPGet.Path = application.Spec.Startup.Path
 		}
 
 		return nil

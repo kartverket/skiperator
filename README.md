@@ -36,7 +36,7 @@ spec:
     # Maximum number of replicas the deployment is allowed to scale to
     max: 5
     # When the average CPU utilization crosses this threshold another replica is started
-    cpuThresholdPercentage: 80
+    targetCpuUtilization: 80
   # Environment variables that will be set inside the Deployment's pod
   env:
   # Alternative 1: Keys and values provided directly
@@ -72,6 +72,14 @@ spec:
     mountPath: /var/run/secret
   - persistentVolumeClaim: some-pvc
     mountPath: /var/run/volume
+  # Defines an alternative strategy for the Kubernetes deployment is useful for when
+  # the deafult which is rolling deployments are not usable. Setting type to
+  # Recreate will take down all the pods before starting new pods, whereas the
+  # default of RollingUpdate will try to start the new pods before taking down the
+  # old ones
+  strategy:
+    # Valid values: RollingUpdate, Recreate. Default RollingUpdate
+    type: RollingUpdate
   # Liveness probes define a resource that returns 200 OK when the app is running
   # as intended. Returning a non-200 code will make kubernetes restart the app.
   # Liveness is optional, but when provided path and port is requred
@@ -94,19 +102,17 @@ spec:
   # marking the pod as Running and progressing with the deployment strategy.
   # Readiness is optional, but when provided path and port is requred
   readiness:
-    # The path to access on the HTTP server
-    path: /healthz
-    # Number of the port to access on the container
-    port: 8080
-    # Minimum consecutive failures for the probe to be considered failed after
-    # having succeeded. Defaults to 3. Minimum value is 1
-    failureThreshold: 3
-    # How often (in seconds) to perform the probe. Default to 10 seconds.
-    # Minimum value is 1
-    periodSeconds: 10
-    # Number of seconds after which the probe times out. Defaults to 1 second.
-    # Minimum value is 1
-    timeout: 1
+    # Readiness has the same options as liveness
+    path: ..
+  # Kubernetes uses startup probes to know when a container application has started.
+  # If such a probe is configured, it disables liveness and readiness checks until it
+  # succeeds, making sure those probes don't interfere with the application startup.
+  # This can be used to adopt liveness checks on slow starting containers, avoiding them
+  # getting killed by Kubernetes before they are up and running.
+  # Startup is optional, but when provided path and port is requred
+  startup:
+    # Startup has the same options as liveness
+    path: ..
   # Resource limits to apply to the deployment. It's common to set these to
   # prevent the app from swelling in resource usage and consuming all the
   # resources of other apps on the cluster.
