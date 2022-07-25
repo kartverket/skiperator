@@ -10,7 +10,7 @@ spec:
   replicas:
     min: 3
     max: 5
-    cpuThresholdPercentage: 80
+    targetCpuUtilization: 80
   env:
   - name: ENV
     value: PRODUCTION

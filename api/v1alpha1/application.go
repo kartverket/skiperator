@@ -37,6 +37,7 @@ type ApplicationSpec struct {
 
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
 	Replicas  Replicas                    `json:"replicas,omitempty"`
+	Strategy  Strategy                    `json:"strategy,omitempty"`
 
 	Env       []corev1.EnvVar `json:"env,omitempty"`
 	EnvFrom   []EnvFrom       `json:"envFrom,omitempty"`
@@ -46,6 +47,7 @@ type ApplicationSpec struct {
 	Port      int    `json:"port"`
 	Liveness  *Probe `json:"liveness,omitempty"`
 	Readiness *Probe `json:"readiness,omitempty"`
+	Startup   *Probe `json:"startup,omitempty"`
 
 	Ingresses    []string     `json:"ingresses,omitempty"`
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
@@ -56,6 +58,12 @@ type Replicas struct {
 	Max uint `json:"max,omitempty"`
 
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
+}
+
+type Strategy struct {
+	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
+	// +kubebuilder:default=RollingUpdate
+	Type string `json:"type,omitempty"`
 }
 
 type EnvFrom struct {
@@ -91,7 +99,7 @@ type InboundPolicy struct {
 }
 
 type OutboundPolicy struct {
-	Rules    []InternalRule `json:"rules"`
+	Rules    []InternalRule `json:"rules,omitempty"`
 	External []ExternalRule `json:"external,omitempty"`
 }
 
