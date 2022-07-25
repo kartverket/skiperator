@@ -1,0 +1,111 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      # Workaround: https://github.com/docker/build-push-action/issues/461
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@79abd3f86f79a9d68a23c75a09a9a85889262adf
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/skiperator-controller
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into registry ${{ env.REGISTRY }}
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push Docker image
+        env:
+          IMAGE: ghcr.io/kartverket/skiperator-controller:${{ steps.meta.outputs.version }}
+        run: make push
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+
+  dev:
+    name: Deploy to dev
+    permissions:
+      id-token: write
+      pull-requests: write
+      contents: read
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
+    needs: build
+    with:
+      runner: ubuntu-latest
+      environment: dev
+      kubernetes_cluster: atkv1-dev
+      terraform_workspace: dev
+      terraform_options:
+        -backend-config=bucket=terraform_state_skiperator_801d
+        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      working_directory: deployment
+      workload_identity_provider: projects/214581028419/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      service_account: skiperator-deploy@skip-dev-7d22.iam.gserviceaccount.com
+      project_id: kubernetes-dev-94b9
+
+  test:
+    name: Deploy to test
+    permissions:
+      id-token: write
+      pull-requests: write
+      contents: read
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
+    needs: build
+    with:
+      runner: ubuntu-latest
+      environment: test
+      kubernetes_cluster: atkv1-test
+      terraform_workspace: test
+      terraform_options:
+        -backend-config=bucket=terraform_state_skiperator_385c
+        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      working_directory: deployment
+      workload_identity_provider: projects/704673195983/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      service_account: skiperator-deploy@skip-test-b6e5.iam.gserviceaccount.com
+      project_id: skip-test-b6e5
+
+  prod:
+    name: Deploy to prod
+    permissions:
+      id-token: write
+      pull-requests: write
+      contents: read
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
+    needs: build
+    with:
+      runner: ubuntu-latest
+      environment: prod
+      kubernetes_cluster: atkv1-prod
+      terraform_workspace: prod
+      terraform_options:
+        -backend-config=bucket=terraform_state_skiperator_2ae6
+        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      working_directory: deployment
+      workload_identity_provider: projects/421909719843/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      service_account: skiperator-deploy@skip-prod-bda1.iam.gserviceaccount.com
+      project_id: skip-prod-bda1

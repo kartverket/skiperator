@@ -1,4 +1,17 @@
-# More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
-# Ignore build and test binaries.
+.github/
+.idea/
+.vscode/
+
+.git/
+.gitignore
+.dockerignore
+Dockerfile
+
+doc/
+**/LICENSE
+**/*.md
+
 bin/
-testbin/
+deployment/
+
+api/**/zz_generated.deepcopy.go
