@@ -21,6 +21,11 @@ spec:
   image: "kartverket/example:latest"
   # The port the deployment exposes
   port: 8080
+  # Override the command set in the Dockerfile. Usually only used when debugging
+  # or running third-party containers where you don't have control over the Dockerfile
+  command:
+    - node
+    - ./server.js
   # Any external hostnames that route to this application
   ingresses:
   - testapp.dev.skip.statkart.no
