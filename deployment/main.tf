@@ -1,7 +1,7 @@
 terraform {
   backend "kubernetes" {
     secret_suffix = "skiperator"
-    namespace = "skiperator-system"
+    namespace     = "skiperator-system"
   }
 }
 
