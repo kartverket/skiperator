@@ -27,7 +27,7 @@ resource "kubernetes_deployment_v1" "deployment" {
           image = var.image
           security_context {
             read_only_root_filesystem  = true
-            allow_privilege_escalation = true
+            allow_privilege_escalation = false
             run_as_user                = "65532"
             run_as_group               = "65532"
             seccomp_profile { type = "RuntimeDefault" }
