@@ -26,9 +26,10 @@ resource "kubernetes_deployment_v1" "deployment" {
           name  = "skiperator"
           image = var.image
           security_context {
-            read_only_root_filesystem = true
-            run_as_user               = "65532"
-            run_as_group              = "65532"
+            read_only_root_filesystem  = true
+            allow_privilege_escalation = true
+            run_as_user                = "65532"
+            run_as_group               = "65532"
             seccomp_profile { type = "RuntimeDefault" }
           }
           resources {
