@@ -25,6 +25,12 @@ resource "kubernetes_deployment_v1" "deployment" {
         container {
           name  = "skiperator"
           image = var.image
+          security_context {
+            read_only_root_filesystem = true
+            run_as_user               = "65532"
+            run_as_group              = "65532"
+            seccomp_profile { type = "RuntimeDefault" }
+          }
           resources {
             limits = {
               cpu    = "0.2"
