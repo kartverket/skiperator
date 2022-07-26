@@ -6,13 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func init() {
-	SchemeBuilder.Register(
-		&ApplicationList{},
-		&Application{},
-	)
-}
-
 //+kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -30,6 +23,7 @@ type Application struct {
 	Spec ApplicationSpec `json:"spec,omitempty"`
 }
 
+//+kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image   string   `json:"image"`
@@ -89,15 +83,18 @@ type Probe struct {
 	Path string `json:"path"`
 }
 
+//+kubebuilder:object:generate=true
 type AccessPolicy struct {
 	Inbound  InboundPolicy  `json:"inbound,omitempty"`
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
+//+kubebuilder:object:generate=true
 type InboundPolicy struct {
 	Rules []InternalRule `json:"rules"`
 }
 
+//+kubebuilder:object:generate=true
 type OutboundPolicy struct {
 	Rules    []InternalRule `json:"rules,omitempty"`
 	External []ExternalRule `json:"external,omitempty"`
@@ -109,6 +106,7 @@ type InternalRule struct {
 	Application string `json:"application"`
 }
 
+//+kubebuilder:object:generate=true
 type ExternalRule struct {
 	Host  string `json:"host"`
 	Ports []Port `json:"ports,omitempty"`
