@@ -1,6 +1,6 @@
 resource "kubernetes_service_account_v1" "service_account" {
   metadata {
-    namespace = kubernetes_namespace_v1.namespace.metadata[0].name
+    namespace = "skiperator-system"
     name      = kubernetes_deployment_v1.deployment.metadata[0].name
   }
 }
@@ -16,7 +16,7 @@ resource "kubernetes_cluster_role_binding_v1" "cluster_role_binding" {
   }
   subject {
     kind      = "ServiceAccount"
-    namespace = kubernetes_namespace_v1.namespace.metadata[0].name
+    namespace = "skiperator-system"
     name      = kubernetes_deployment_v1.deployment.metadata[0].name
   }
 }

@@ -60,9 +60,7 @@ jobs:
       environment: dev
       kubernetes_cluster: atkv1-dev
       terraform_workspace: dev
-      terraform_options:
-        -backend-config=bucket=terraform_state_skiperator_801d
-        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
       working_directory: deployment
       workload_identity_provider: projects/214581028419/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-dev-7d22.iam.gserviceaccount.com
@@ -81,13 +79,11 @@ jobs:
       environment: test
       kubernetes_cluster: atkv1-test
       terraform_workspace: test
-      terraform_options:
-        -backend-config=bucket=terraform_state_skiperator_385c
-        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
       working_directory: deployment
       workload_identity_provider: projects/704673195983/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-test-b6e5.iam.gserviceaccount.com
-      project_id: skip-test-b6e5
+      project_id: kubernetes-test-94f6
 
   prod:
     name: Deploy to prod
@@ -102,10 +98,8 @@ jobs:
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_options:
-        -backend-config=bucket=terraform_state_skiperator_2ae6
-        -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
       working_directory: deployment
       workload_identity_provider: projects/421909719843/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-prod-bda1.iam.gserviceaccount.com
-      project_id: skip-prod-bda1
+      project_id: kubernetes-prod-e4a2
