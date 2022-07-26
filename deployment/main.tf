@@ -2,10 +2,13 @@ terraform {
   backend "kubernetes" {
     secret_suffix = "skiperator"
     namespace     = "skiperator-system"
+    config_path   = "~/.kube/config"
   }
 }
 
-provider "kubernetes" {}
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
 
 resource "kubernetes_manifest" "custom_resource_definition" {
   manifest = yamldecode(file("${path.module}/skiperator.kartverket.no_applications.yaml"))

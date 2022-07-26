@@ -5,7 +5,6 @@ export GOBIN = $(realpath bin)
 export PATH := $(PATH):$(GOBIN)
 
 IMAGE ?= skiperator
-KUBECONFIG ?= ~/.kube/config
 
 .PHONY: tools
 tools:
@@ -34,6 +33,5 @@ push: image
 
 .PHONY: deploy
 deploy: generate push
-	KUBE_CONFIG_PATH=$(KUBECONFIG) \
 	TF_VAR_image=$(IMAGE) \
 	terraform -chdir=deployment apply -auto-approve
