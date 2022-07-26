@@ -48,7 +48,7 @@ resource "kubernetes_deployment_v1" "deployment" {
           }
           liveness_probe {
             http_get {
-              path = "/healtz"
+              path = "/healthz"
               port = "probes"
             }
           }
