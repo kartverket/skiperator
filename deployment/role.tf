@@ -1,13 +1,13 @@
 resource "kubernetes_service_account_v1" "service_account" {
   metadata {
     namespace = "skiperator-system"
-    name      = kubernetes_deployment_v1.deployment.metadata[0].name
+    name      = "skiperator"
   }
 }
 
 resource "kubernetes_cluster_role_binding_v1" "cluster_role_binding" {
   metadata {
-    name = kubernetes_deployment_v1.deployment.metadata[0].name
+    name = "skiperator"
   }
   role_ref {
     api_group = "rbac.authorization.k8s.io"
@@ -17,6 +17,6 @@ resource "kubernetes_cluster_role_binding_v1" "cluster_role_binding" {
   subject {
     kind      = "ServiceAccount"
     namespace = "skiperator-system"
-    name      = kubernetes_deployment_v1.deployment.metadata[0].name
+    name      = "skiperator"
   }
 }
