@@ -90,40 +90,52 @@ func (r *EgressVirtualServiceReconciler) Reconcile(ctx context.Context, req reco
 					virtualService.Spec.Http = append(virtualService.Spec.Http, http)
 
 					http.Match = make([]*networkingv1beta1api.HTTPMatchRequest, 1)
+					http.Match[0] = &networkingv1beta1api.HTTPMatchRequest{}
 					http.Match[0].Gateways = []string{"mesh"}
 					http.Route = make([]*networkingv1beta1api.HTTPRouteDestination, 1)
+					http.Route[0] = &networkingv1beta1api.HTTPRouteDestination{}
 					http.Route[0].Destination = &networkingv1beta1api.Destination{}
 					http.Route[0].Destination.Host = "egress-external.istio-system.svc.cluster.local"
+					http.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
 					http.Route[0].Destination.Port.Number = uint32(port.Port)
 
 					http = &networkingv1beta1api.HTTPRoute{}
 					virtualService.Spec.Http = append(virtualService.Spec.Http, http)
 
 					http.Match = make([]*networkingv1beta1api.HTTPMatchRequest, 1)
+					http.Match[0] = &networkingv1beta1api.HTTPMatchRequest{}
 					http.Match[0].Gateways = []string{name}
 					http.Route = make([]*networkingv1beta1api.HTTPRouteDestination, 1)
+					http.Route[0] = &networkingv1beta1api.HTTPRouteDestination{}
 					http.Route[0].Destination = &networkingv1beta1api.Destination{}
 					http.Route[0].Destination.Host = rule.Host
+					http.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
 					http.Route[0].Destination.Port.Number = uint32(port.Port)
 				} else if port.Protocol == "HTTPS" {
 					tls := &networkingv1beta1api.TLSRoute{}
 					virtualService.Spec.Tls = append(virtualService.Spec.Tls, tls)
 
 					tls.Match = make([]*networkingv1beta1api.TLSMatchAttributes, 1)
+					tls.Match[0] = &networkingv1beta1api.TLSMatchAttributes{}
 					tls.Match[0].Gateways = []string{"mesh"}
 					tls.Route = make([]*networkingv1beta1api.RouteDestination, 1)
+					tls.Route[0] = &networkingv1beta1api.RouteDestination{}
 					tls.Route[0].Destination = &networkingv1beta1api.Destination{}
 					tls.Route[0].Destination.Host = "egress-external.istio-system.svc.cluster.local"
+					tls.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
 					tls.Route[0].Destination.Port.Number = uint32(port.Port)
 
 					tls = &networkingv1beta1api.TLSRoute{}
 					virtualService.Spec.Tls = append(virtualService.Spec.Tls, tls)
 
 					tls.Match = make([]*networkingv1beta1api.TLSMatchAttributes, 1)
+					tls.Match[0] = &networkingv1beta1api.TLSMatchAttributes{}
 					tls.Match[0].Gateways = []string{name}
 					tls.Route = make([]*networkingv1beta1api.RouteDestination, 1)
+					tls.Route[0] = &networkingv1beta1api.RouteDestination{}
 					tls.Route[0].Destination = &networkingv1beta1api.Destination{}
 					tls.Route[0].Destination.Host = rule.Host
+					tls.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
 					tls.Route[0].Destination.Port.Number = uint32(port.Port)
 				} else {
 					panic("should never reach here")
