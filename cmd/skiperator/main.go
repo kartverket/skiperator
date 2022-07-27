@@ -42,6 +42,7 @@ func init() {
 
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
+	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
