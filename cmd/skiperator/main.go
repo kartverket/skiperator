@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"os"
 
@@ -40,12 +41,13 @@ func init() {
 }
 
 func main() {
+	leaderElection := flag.Bool("l", false, "enable leader election")
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		HealthProbeBindAddress: ":8081",
-		LeaderElection:         true,
+		LeaderElection:         *leaderElection,
 		LeaderElectionID:       "skiperator",
 	})
 	if err != nil {
