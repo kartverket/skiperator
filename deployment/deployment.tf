@@ -25,7 +25,7 @@ resource "kubernetes_deployment_v1" "deployment" {
         container {
           name  = "skiperator"
           image = var.image
-          args = ["-l"]
+          args  = ["-l"]
           security_context {
             read_only_root_filesystem  = true
             allow_privilege_escalation = false
