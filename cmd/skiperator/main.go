@@ -22,6 +22,7 @@ import (
 	//+kubebuilder:scaffold:imports
 )
 
+//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
 
 var (
