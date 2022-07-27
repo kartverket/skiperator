@@ -32,6 +32,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/skiperator-controller
+          tags: type=sha,format=long
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
