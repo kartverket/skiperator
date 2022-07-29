@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -73,7 +72,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 		container.Name = application.Name
 
 		// TODO: Make this as part of operator in a safe way
-		deployment.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "github-auth"}}
+		deployment.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: req.Name + "-registry"}}
 		container.Image = application.Spec.Image
 		container.ImagePullPolicy = corev1.PullAlways
 		container.Command = application.Spec.Command

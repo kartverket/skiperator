@@ -274,6 +274,19 @@ spec:
                 - path
                 - port
                 type: object
+              registry:
+                properties:
+                  mountPath:
+                    type: string
+                  secretKey:
+                    type: string
+                  secretPath:
+                    type: string
+                required:
+                - mountPath
+                - secretKey
+                - secretPath
+                type: object
               replicas:
                 properties:
                   max:

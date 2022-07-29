@@ -4,7 +4,9 @@ import (
 	"flag"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	"k8s.io/client-go/discovery"
 	"os"
+	"strconv"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -44,7 +46,9 @@ func init() {
 
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
+	vaultAddress := flag.String("vault-address", "", "set vault address")
 	flag.Parse()
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -58,10 +62,62 @@ func main() {
 		os.Exit(1)
 	}
 
+	client, err := discovery.NewDiscoveryClientForConfig(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "unable to create discovery client")
+		os.Exit(1)
+	}
+
+	version, err := client.ServerVersion()
+	if err != nil {
+		setupLog.Error(err, "unable to discover server version")
+		os.Exit(1)
+	}
+
+	major, err := strconv.Atoi(version.Major)
+	if err != nil {
+		setupLog.Error(err, "failed parsing major version")
+		os.Exit(1)
+	}
+
+	minor, err := strconv.Atoi(version.Minor)
+	if err != nil {
+		setupLog.Error(err, "failed parsing minor version")
+		os.Exit(1)
+	}
+
+	err = (&controllers.ServiceAccountReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ServiceAccount")
+		os.Exit(1)
+	}
+
+	if versionLessThan(major, minor, 1, 24) {
+		err = (&controllers.ServiceAccountSecretReconciler{}).SetupWithManager(mgr)
+		if err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ServiceAccountSecret")
+			os.Exit(1)
+		}
+	}
+
 	err = (&controllers.DeploymentReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
 		os.Exit(1)
+	}
+
+	if versionLessThan(major, minor, 1, 24) {
+		err = (&controllers.RegistrySecretPre124Reconciler{VaultAddress: *vaultAddress}).SetupWithManager(mgr)
+		if err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "RegistrySecret")
+			os.Exit(1)
+		}
+	} else {
+		err = (&controllers.RegistrySecretReconciler{VaultAddress: *vaultAddress}).SetupWithManager(mgr)
+		if err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "RegistrySecret")
+			os.Exit(1)
+		}
 	}
 
 	err = (&controllers.HorizontalPodAutoscalerReconciler{}).SetupWithManager(mgr)
@@ -132,5 +188,33 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+func versionLessThan(actualMajor, actualMinor, targetMajor, targetMinor int) bool {
+	if actualMajor < targetMajor {
+		return true
+	} else if actualMajor > targetMinor {
+		return false
+	} else if actualMinor < targetMinor {
+		return true
+	} else if actualMinor > targetMinor {
+		return false
+	} else {
+		return false
+	}
+}
+
+func versionGreaterThan(actualMajor, actualMinor, targetMajor, targetMinor int) bool {
+	if actualMajor > targetMajor {
+		return true
+	} else if actualMajor < targetMinor {
+		return false
+	} else if actualMinor > targetMinor {
+		return true
+	} else if actualMinor < targetMinor {
+		return false
+	} else {
+		return false
 	}
 }

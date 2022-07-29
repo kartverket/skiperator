@@ -28,6 +28,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
 	//+kubebuilder:validation:Optional
+	Registry *VaultSecretSource `json:"registry"`
+	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
@@ -95,6 +97,12 @@ type FilesFrom struct {
 	EmptyDir string `json:"emptyDir,omitempty"`
 	//+kubebuilder:validation:Optional
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
+}
+
+type VaultSecretSource struct {
+	MountPath  string `json:"mountPath"`
+	SecretPath string `json:"secretPath"`
+	SecretKey  string `json:"secretKey"`
 }
 
 type Probe struct {
