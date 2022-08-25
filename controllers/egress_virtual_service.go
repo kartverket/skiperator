@@ -68,6 +68,7 @@ func (r *EgressVirtualServiceReconciler) Reconcile(ctx context.Context, req reco
 			// Avoid leaking virtual service to other namespaces
 			virtualService.Spec.ExportTo = []string{".", "istio-system"}
 			virtualService.Spec.Gateways = []string{"mesh", name}
+			virtualService.Spec.Hosts = []string{rule.Host}
 
 			httpCount := 0
 			httpsCount := 0

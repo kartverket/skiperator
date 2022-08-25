@@ -70,7 +70,7 @@ func (r *EgressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.R
 			gateway.Spec.Selector = map[string]string{"egress": "external"}
 
 			// Generate separate destination per port
-			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, len(rule.Ports))
+			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 0, len(rule.Ports))
 			for _, port := range rule.Ports {
 				server := &networkingv1beta1api.Server{}
 				gateway.Spec.Servers = append(gateway.Spec.Servers, server)
