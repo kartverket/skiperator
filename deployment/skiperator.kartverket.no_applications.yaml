@@ -48,6 +48,7 @@ spec:
                               type: string
                           required:
                           - application
+                          - namespace
                           type: object
                         type: array
                     required:
@@ -68,9 +69,13 @@ spec:
                                   port:
                                     type: integer
                                   protocol:
+                                    enum:
+                                    - HTTP
+                                    - HTTPS
                                     type: string
                                 required:
                                 - name
+                                - port
                                 - protocol
                                 type: object
                               type: array
@@ -87,6 +92,7 @@ spec:
                               type: string
                           required:
                           - application
+                          - namespace
                           type: object
                         type: array
                     type: object
@@ -330,6 +336,8 @@ spec:
                     - RollingUpdate
                     - Recreate
                     type: string
+                required:
+                - type
                 type: object
             required:
             - image

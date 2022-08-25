@@ -48,6 +48,7 @@ type ApplicationSpec struct {
 }
 
 type Replicas struct {
+	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
 	Max uint `json:"max,omitempty"`
 
@@ -57,7 +58,7 @@ type Replicas struct {
 type Strategy struct {
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
-	Type string `json:"type,omitempty"`
+	Type string `json:"type"`
 }
 
 type EnvFrom struct {
@@ -66,6 +67,7 @@ type EnvFrom struct {
 }
 
 type FilesFrom struct {
+	//+kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
 	ConfigMap             string `json:"configMap,omitempty"`
@@ -79,7 +81,9 @@ type Probe struct {
 	Timeout          uint `json:"timeout,omitempty"`
 	FailureThreshold uint `json:"failureThreshold,omitempty"`
 
+	//+kubebuilder:validation:Required
 	Port uint16 `json:"port"`
+	//+kubebuilder:validation:Required
 	Path string `json:"path"`
 }
 
@@ -101,20 +105,25 @@ type OutboundPolicy struct {
 }
 
 type InternalRule struct {
-	//+kubebuilder:validation:Optional
-	Namespace   string `json:"namespace"`
+	Namespace string `json:"namespace"`
+	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 }
 
 //+kubebuilder:object:generate=true
 type ExternalRule struct {
+	//+kubebuilder:validation:Required
 	Host  string `json:"host"`
 	Ports []Port `json:"ports,omitempty"`
 }
 
 type Port struct {
-	Name     string `json:"name"`
-	Port     int    `json:"port,omitempty"`
+	//+kubebuilder:validation:Required
+	Name string `json:"name"`
+	//+kubebuilder:validation:Required
+	Port int `json:"port"`
+	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=HTTP;HTTPS
 	Protocol string `json:"protocol"`
 }
 
