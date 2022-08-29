@@ -26,59 +26,83 @@ type Application struct {
 //+kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
-	Image   string   `json:"image"`
+	Image string `json:"image"`
+	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
+	//+kubebuilder:validation:Optional
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	Replicas  Replicas                    `json:"replicas,omitempty"`
-	Strategy  Strategy                    `json:"strategy,omitempty"`
+	//+kubebuilder:validation:Optional
+	Replicas Replicas `json:"replicas,omitempty"`
+	//+kubebuilder:validation:Optional
+	Strategy Strategy `json:"strategy,omitempty"`
 
-	Env       []corev1.EnvVar `json:"env,omitempty"`
-	EnvFrom   []EnvFrom       `json:"envFrom,omitempty"`
-	FilesFrom []FilesFrom     `json:"filesFrom,omitempty"`
+	//+kubebuilder:validation:Optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
+	//+kubebuilder:validation:Optional
+	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
+	//+kubebuilder:validation:Optional
+	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Port      int    `json:"port"`
-	Liveness  *Probe `json:"liveness,omitempty"`
+	Port int `json:"port"`
+	//+kubebuilder:validation:Optional
+	Liveness *Probe `json:"liveness,omitempty"`
+	//+kubebuilder:validation:Optional
 	Readiness *Probe `json:"readiness,omitempty"`
-	Startup   *Probe `json:"startup,omitempty"`
+	//+kubebuilder:validation:Optional
+	Startup *Probe `json:"startup,omitempty"`
 
-	Ingresses    []string     `json:"ingresses,omitempty"`
+	//+kubebuilder:validation:Optional
+	Ingresses []string `json:"ingresses,omitempty"`
+	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
 }
 
 type Replicas struct {
 	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
+	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
+	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
 type Strategy struct {
+	//+kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
 	Type string `json:"type"`
 }
 
 type EnvFrom struct {
+	//+kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
-	Secret    string `json:"secret,omitempty"`
+	//+kubebuilder:validation:Optional
+	Secret string `json:"secret,omitempty"`
 }
 
 type FilesFrom struct {
 	//+kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
-	ConfigMap             string `json:"configMap,omitempty"`
-	Secret                string `json:"secret,omitempty"`
-	EmptyDir              string `json:"emptyDir,omitempty"`
+	//+kubebuilder:validation:Optional
+	ConfigMap string `json:"configMap,omitempty"`
+	//+kubebuilder:validation:Optional
+	Secret string `json:"secret,omitempty"`
+	//+kubebuilder:validation:Optional
+	EmptyDir string `json:"emptyDir,omitempty"`
+	//+kubebuilder:validation:Optional
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 }
 
 type Probe struct {
-	InitialDelay     uint `json:"initialDelay,omitempty"`
-	Timeout          uint `json:"timeout,omitempty"`
+	//+kubebuilder:validation:Optional
+	InitialDelay uint `json:"initialDelay,omitempty"`
+	//+kubebuilder:validation:Optional
+	Timeout uint `json:"timeout,omitempty"`
+	//+kubebuilder:validation:Optional
 	FailureThreshold uint `json:"failureThreshold,omitempty"`
 
 	//+kubebuilder:validation:Required
@@ -89,22 +113,28 @@ type Probe struct {
 
 //+kubebuilder:object:generate=true
 type AccessPolicy struct {
-	Inbound  InboundPolicy  `json:"inbound,omitempty"`
+	//+kubebuilder:validation:Optional
+	Inbound InboundPolicy `json:"inbound,omitempty"`
+	//+kubebuilder:validation:Optional
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
 //+kubebuilder:object:generate=true
 type InboundPolicy struct {
+	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
 //+kubebuilder:object:generate=true
 type OutboundPolicy struct {
-	Rules    []InternalRule `json:"rules,omitempty"`
+	//+kubebuilder:validation:Optional
+	Rules []InternalRule `json:"rules,omitempty"`
+	//+kubebuilder:validation:Optional
 	External []ExternalRule `json:"external,omitempty"`
 }
 
 type InternalRule struct {
+	//+kubebuilder:validation:Optional
 	Namespace string `json:"namespace"`
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
@@ -113,7 +143,8 @@ type InternalRule struct {
 //+kubebuilder:object:generate=true
 type ExternalRule struct {
 	//+kubebuilder:validation:Required
-	Host  string `json:"host"`
+	Host string `json:"host"`
+	//+kubebuilder:validation:Optional
 	Ports []Port `json:"ports,omitempty"`
 }
 

@@ -48,11 +48,8 @@ spec:
                               type: string
                           required:
                           - application
-                          - namespace
                           type: object
                         type: array
-                    required:
-                    - rules
                     type: object
                   outbound:
                     properties:
@@ -92,7 +89,6 @@ spec:
                               type: string
                           required:
                           - application
-                          - namespace
                           type: object
                         type: array
                     type: object
@@ -336,8 +332,6 @@ spec:
                     - RollingUpdate
                     - Recreate
                     type: string
-                required:
-                - type
                 type: object
             required:
             - image
