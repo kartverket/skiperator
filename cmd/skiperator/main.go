@@ -92,6 +92,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = (&controllers.CertificateReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Certificate")
+		os.Exit(1)
+	}
+
 	err = (&controllers.IngressGatewayReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "IngressGateway")
