@@ -8,10 +8,14 @@ import (
 	"hash/fnv"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 )
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch;create;update;patch;delete
@@ -28,8 +32,28 @@ func (r *CertificateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
-		Owns(&certmanagerv1.Certificate{}).
+		Watches(
+			&source.Kind{Type: &certmanagerv1.Certificate{}},
+			handler.EnqueueRequestsFromMapFunc(r.applicationFromCertificate),
+		).
 		Complete(r)
+}
+
+func (r *CertificateReconciler) applicationFromCertificate(obj client.Object) []reconcile.Request {
+	cert := obj.(*certmanagerv1.Certificate)
+
+	if cert.Namespace != "istio-system" {
+		return nil
+	}
+
+	segments := strings.SplitN(cert.Name, "-", 4)
+	if len(segments) != 4 {
+		return nil
+	}
+
+	return []reconcile.Request{
+		{NamespacedName: types.NamespacedName{Namespace: segments[0], Name: segments[1]}},
+	}
 }
 
 func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
@@ -50,7 +74,7 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		// Generate certificate name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-ingress-%x", req.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-%s-ingress-%x", req.Namespace, req.Name, hash.Sum64())
 		active[name] = struct{}{}
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
@@ -72,13 +96,19 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	// Clear out unused certificates
 	certificates := certmanagerv1.CertificateList{}
-	err = r.client.List(ctx, &certificates, client.InNamespace(req.Namespace))
+	err = r.client.List(ctx, &certificates, client.InNamespace("istio-system"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
 	for i := range certificates.Items {
 		certificate := &certificates.Items[i]
+
+		// Skip unrelated certificates
+		segments := strings.SplitN(certificate.Name, "-", 4)
+		if len(segments) != 4 || segments[0] != application.Namespace || segments[1] != application.Name {
+			continue
+		}
 
 		// Skip active certificates
 		_, ok := active[certificate.Name]

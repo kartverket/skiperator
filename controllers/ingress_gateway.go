@@ -88,7 +88,7 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 			gateway.Spec.Servers[1].Port.Name = "https"
 			gateway.Spec.Servers[1].Port.Protocol = "HTTPS"
 			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{}
-			gateway.Spec.Servers[1].Tls.CredentialName = name
+			gateway.Spec.Servers[1].Tls.CredentialName = req.Namespace + "-" + name
 
 			return nil
 		})
