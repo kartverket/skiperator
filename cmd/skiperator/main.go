@@ -68,6 +68,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = (&controllers.DefaultDenyNetworkPolicyReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DefaultDenyNetworkPolicy")
+		os.Exit(1)
+	}
+
 	err = (&controllers.NetworkPolicyReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkPolicy")
