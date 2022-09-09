@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"os"
 
@@ -37,6 +38,7 @@ func init() {
 	utilruntime.Must(autoscalingv2beta2.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
+	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
