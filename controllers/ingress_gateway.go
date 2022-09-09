@@ -48,7 +48,7 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 	application.FillDefaults()
 
 	// Keep track of active gateways
-	active := make(map[string]struct{}, len(application.Spec.AccessPolicy.Outbound.External))
+	active := make(map[string]struct{}, len(application.Spec.Ingresses))
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
@@ -72,22 +72,23 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
 			}
 
-			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 1)
+			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)
+
 			gateway.Spec.Servers[0] = &networkingv1beta1api.Server{}
 			gateway.Spec.Servers[0].Hosts = []string{hostname}
-
 			gateway.Spec.Servers[0].Port = &networkingv1beta1api.Port{}
 			gateway.Spec.Servers[0].Port.Number = 80
 			gateway.Spec.Servers[0].Port.Name = "http"
 			gateway.Spec.Servers[0].Port.Protocol = "HTTP"
 
-			/* TODO: Add HTTPS routes.
-			It fails in validation when applied due to "configuration is invalid: server must have TLS settings for HTTPS/TLS protocols"
-			gateway.Spec.Servers[0].Port.Number = 443
-			gateway.Spec.Servers[0].Port.Name = "https"
-			gateway.Spec.Servers[0].Port.Protocol = "HTTPS"
-			gateway.Spec.Servers[0].Hosts = app.Spec.Ingresses
-			*/
+			gateway.Spec.Servers[1] = &networkingv1beta1api.Server{}
+			gateway.Spec.Servers[1].Hosts = []string{hostname}
+			gateway.Spec.Servers[1].Port = &networkingv1beta1api.Port{}
+			gateway.Spec.Servers[1].Port.Number = 443
+			gateway.Spec.Servers[1].Port.Name = "https"
+			gateway.Spec.Servers[1].Port.Protocol = "HTTPS"
+			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{}
+			gateway.Spec.Servers[1].Tls.CredentialName = req.Namespace + "-" + name
 
 			return nil
 		})
