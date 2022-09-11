@@ -79,12 +79,6 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
 		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &certificate, func() error {
-			// Set application as owner of the certificate
-			err = ctrlutil.SetControllerReference(&application, &certificate, r.scheme)
-			if err != nil {
-				return err
-			}
-
 			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
 			certificate.Spec.IssuerRef.Name = "lets-encrypt"
 			certificate.Spec.DNSNames = []string{hostname}
@@ -92,6 +86,9 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 			return nil
 		})
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Clear out unused certificates
