@@ -58,6 +58,8 @@ spec:
                           properties:
                             host:
                               type: string
+                            ip:
+                              type: string
                             ports:
                               items:
                                 properties:
@@ -69,6 +71,7 @@ spec:
                                     enum:
                                     - HTTP
                                     - HTTPS
+                                    - TCP
                                     type: string
                                 required:
                                 - name

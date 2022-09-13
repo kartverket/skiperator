@@ -72,11 +72,14 @@ func (r *EgressVirtualServiceReconciler) Reconcile(ctx context.Context, req reco
 
 			httpCount := 0
 			httpsCount := 0
+			tcpCount := 0
 			for _, port := range rule.Ports {
 				if port.Protocol == "HTTP" {
 					httpCount++
 				} else if port.Protocol == "HTTPS" {
 					httpsCount++
+				} else if port.Protocol == "TCP" {
+					tcpCount++
 				} else {
 					return fmt.Errorf("invalid protocol: %s", port.Protocol)
 				}
@@ -84,6 +87,7 @@ func (r *EgressVirtualServiceReconciler) Reconcile(ctx context.Context, req reco
 
 			virtualService.Spec.Http = make([]*networkingv1beta1api.HTTPRoute, 0, httpCount*2)
 			virtualService.Spec.Tls = make([]*networkingv1beta1api.TLSRoute, 0, httpsCount*2)
+			virtualService.Spec.Tcp = make([]*networkingv1beta1api.TCPRoute, 0, tcpCount*2)
 
 			for _, port := range rule.Ports {
 				if port.Protocol == "HTTP" {
@@ -138,6 +142,32 @@ func (r *EgressVirtualServiceReconciler) Reconcile(ctx context.Context, req reco
 					tls.Route[0].Destination.Host = rule.Host
 					tls.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
 					tls.Route[0].Destination.Port.Number = uint32(port.Port)
+				} else if port.Protocol == "TCP" {
+					tcp := &networkingv1beta1api.TCPRoute{}
+					virtualService.Spec.Tcp = append(virtualService.Spec.Tcp, tcp)
+
+					tcp.Match = make([]*networkingv1beta1api.L4MatchAttributes, 1)
+					tcp.Match[0] = &networkingv1beta1api.L4MatchAttributes{}
+					tcp.Match[0].Gateways = []string{"mesh"}
+					tcp.Route = make([]*networkingv1beta1api.RouteDestination, 1)
+					tcp.Route[0] = &networkingv1beta1api.RouteDestination{}
+					tcp.Route[0].Destination = &networkingv1beta1api.Destination{}
+					tcp.Route[0].Destination.Host = "egress-external.istio-system.svc.cluster.local"
+					tcp.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
+					tcp.Route[0].Destination.Port.Number = uint32(port.Port)
+
+					tcp = &networkingv1beta1api.TCPRoute{}
+					virtualService.Spec.Tcp = append(virtualService.Spec.Tcp, tcp)
+
+					tcp.Match = make([]*networkingv1beta1api.L4MatchAttributes, 1)
+					tcp.Match[0] = &networkingv1beta1api.L4MatchAttributes{}
+					tcp.Match[0].Gateways = []string{name}
+					tcp.Route = make([]*networkingv1beta1api.RouteDestination, 1)
+					tcp.Route[0] = &networkingv1beta1api.RouteDestination{}
+					tcp.Route[0].Destination = &networkingv1beta1api.Destination{}
+					tcp.Route[0].Destination.Host = rule.Host
+					tcp.Route[0].Destination.Port = &networkingv1beta1api.PortSelector{}
+					tcp.Route[0].Destination.Port.Number = uint32(port.Port)
 				} else {
 					panic("should never reach here")
 				}
