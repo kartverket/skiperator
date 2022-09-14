@@ -145,6 +145,8 @@ type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
 	//+kubebuilder:validation:Optional
+	Ip string `json:"ip"`
+	//+kubebuilder:validation:Optional
 	Ports []Port `json:"ports,omitempty"`
 }
 
@@ -154,7 +156,7 @@ type Port struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=HTTP;HTTPS
+	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
 	Protocol string `json:"protocol"`
 }
 

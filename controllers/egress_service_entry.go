@@ -67,8 +67,14 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 			// Avoid leaking service entry to other namespaces
 			serviceEntry.Spec.ExportTo = []string{".", "istio-system"}
 
-			serviceEntry.Spec.Resolution = networkingv1beta1api.ServiceEntry_DNS
 			serviceEntry.Spec.Hosts = []string{rule.Host}
+			if rule.Ip == "" {
+				serviceEntry.Spec.Resolution = networkingv1beta1api.ServiceEntry_DNS
+			} else {
+				serviceEntry.Spec.Resolution = networkingv1beta1api.ServiceEntry_STATIC
+				serviceEntry.Spec.Addresses = []string{rule.Ip}
+				serviceEntry.Spec.Endpoints = []*networkingv1beta1api.WorkloadEntry{{Address: rule.Ip}}
+			}
 
 			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(rule.Ports))
 			for i, port := range rule.Ports {
