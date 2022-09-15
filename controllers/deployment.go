@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -79,6 +78,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 		container.Command = application.Spec.Command
 
 		var uid int64 = 150 // TODO: 65534? Evnt. hashed? Random?
+		deployment.Spec.Template.Spec.ServiceAccountName = req.Name
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 		deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
 		deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid
