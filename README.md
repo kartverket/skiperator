@@ -165,9 +165,10 @@ spec:
       external:
         # The allowed hostname. Note that this does not unclude subdomains
       - host: nrk.no
-        # Non-HTTP requests (i.e. using the TCP protocol) need to use IP instead
-        # of hostname
-      - ip: "123.123.123.123"
+        # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
+        # addition to hostname
+      - host: smtp.mailgrid.com
+        ip: "123.123.123.123"
         # The ports to allow for the above hostname. When not specified HTTP and
         # HTTPS on port 80 and 443 respectively are put into the allowlist
         ports: 
