@@ -47,11 +47,11 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
-	Liveness *Probe `json:"liveness,omitempty"`
+	Liveness *corev1.Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Readiness *Probe `json:"readiness,omitempty"`
+	Readiness *corev1.Probe `json:"readiness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Startup *Probe `json:"startup,omitempty"`
+	Startup *corev1.Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
@@ -95,20 +95,6 @@ type FilesFrom struct {
 	EmptyDir string `json:"emptyDir,omitempty"`
 	//+kubebuilder:validation:Optional
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
-}
-
-type Probe struct {
-	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
-	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
-	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
-	//+kubebuilder:validation:Required
-	Port uint16 `json:"port"`
-	//+kubebuilder:validation:Required
-	Path string `json:"path"`
 }
 
 //+kubebuilder:object:generate=true
