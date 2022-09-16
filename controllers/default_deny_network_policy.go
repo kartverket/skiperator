@@ -23,6 +23,16 @@ var excludedNamespaces = []string{
 	"kube-public",
 	"kube-system",
 	"skiperator-system",
+	"config-management-system",
+	"config-management-monitoring",
+	"asm-system",
+	"anthos-identity-service",
+	"binauthz-system",
+	"cert-manager",
+	"gatekeeper-system",
+	"gke-connect",
+	"gke-system",
+	"resource-group-controller-manager",
 }
 
 type DefaultDenyNetworkPolicyReconciler struct {
