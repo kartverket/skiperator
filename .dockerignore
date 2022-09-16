@@ -9,7 +9,7 @@ Dockerfile
 
 doc/
 **/LICENSE
-**/*.md
+**/*.mdf
 
 bin/
 deployment/
