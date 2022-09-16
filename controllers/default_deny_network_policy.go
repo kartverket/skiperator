@@ -36,6 +36,7 @@ var excludedNamespaces = []string{
 	"vault",
 	"kasten-io",
 	"nibas",
+	"sysdig-agent",
 }
 
 type DefaultDenyNetworkPolicyReconciler struct {
