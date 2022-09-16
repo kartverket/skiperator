@@ -18,7 +18,7 @@ metadata:
   name: application-frontend
 spec:
   # *Required*: A deployment will be created and this image will be run
-  image: "kartverket/example:latest"
+  image: "kartverket/example"
   # The port the deployment exposes
   port: 8080
   # Override the command set in the Dockerfile. Usually only used when debugging
