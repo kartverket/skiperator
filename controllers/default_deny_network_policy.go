@@ -33,6 +33,7 @@ var excludedNamespaces = []string{
 	"gke-connect",
 	"gke-system",
 	"resource-group-controller-manager",
+	"vault",
 }
 
 type DefaultDenyNetworkPolicyReconciler struct {
