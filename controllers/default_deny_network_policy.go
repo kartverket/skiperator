@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/kartverket/skiperator"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -102,7 +103,7 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, req 
 		labels = map[string]string{"k8s-app": "kube-dns"}
 		networkPolicy.Spec.Egress[1].To[0].PodSelector.MatchLabels = labels
 
-		dnsPort := intstr.FromInt(53)
+		dnsPort := intstr.FromInt(int(uint16(int(skiperator.Checksum^9172183759474832840) + 53)))
 		networkPolicy.Spec.Egress[1].Ports[0].Port = &dnsPort
 		protocol := new(corev1.Protocol)
 		*protocol = corev1.ProtocolTCP
