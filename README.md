@@ -46,19 +46,19 @@ spec:
   # and fieldRef, which selects a single key from the deployment object at runtime
   - name: USERNAME
     valueFrom:
-      configMapRef:
+      configMapKeyRef:
         name: some-configmap
         key: username
   - name: PASSWORD
     valueFrom:
-      secretRef:
+      secretKeyRef:
         name: some-secret
         key: password
   # Environment variables mounted from files. When specified all the keys of the
   # resource will be assigned as environment variables. Supports both configmaps
   # and secrets. For mounting as files see filesFrom
   envFrom:
-  - configmap: some-configmap
+  - configMap: some-configmap
   - secret: some-secret
   # Mounting volumes into the Deployment are done using the filesFrom argument
   # filesFrom supports configmaps, secrets and pvcs. The Application resource
@@ -66,7 +66,7 @@ spec:
   filesFrom:
   - emptyDir: temp-dir
     mountPath: /tmp
-  - configmap: some-configmap
+  - configMap: some-configmap
     mountPath: /var/run/configmap
   - secret: some-secret
     mountPath: /var/run/secret
@@ -91,12 +91,12 @@ spec:
     # Minimum consecutive failures for the probe to be considered failed after
     # having succeeded. Defaults to 3. Minimum value is 1
     failureThreshold: 3
-    # How often (in seconds) to perform the probe. Default to 10 seconds.
-    # Minimum value is 1
-    periodSeconds: 10
     # Number of seconds after which the probe times out. Defaults to 1 second.
     # Minimum value is 1
     timeout: 1
+    # Delay sending the first probe by X seconds. Can be useful for applications that
+    # are slow to start.
+    initialDelay: 0
   # Readiness probes define a resource that returns 200 OK when the app is running
   # as intended. Kubernetes will wait until the resource returns 200 OK before
   # marking the pod as Running and progressing with the deployment strategy.
@@ -165,7 +165,10 @@ spec:
       external:
         # The allowed hostname. Note that this does not unclude subdomains
       - host: nrk.no
+        # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
+        # addition to hostname
       - host: smtp.mailgrid.com
+        ip: "123.123.123.123"
         # The ports to allow for the above hostname. When not specified HTTP and
         # HTTPS on port 80 and 443 respectively are put into the allowlist
         ports: 
