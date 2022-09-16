@@ -35,7 +35,7 @@ var excludedNamespaces = []string{
 	"resource-group-controller-manager",
 	"vault",
 	"kasten-io",
-	"nibas"
+	"nibas",
 }
 
 type DefaultDenyNetworkPolicyReconciler struct {
