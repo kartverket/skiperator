@@ -10,6 +10,8 @@ resource called `Application`.
 Below you will find a list of all accepted input parameters to the `Application`
 custom resource.
 
+See also [the documentation directory](https://github.com/kartverket/skiperator/tree/main/doc).
+
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
