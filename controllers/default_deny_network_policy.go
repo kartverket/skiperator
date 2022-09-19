@@ -19,6 +19,7 @@ import (
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 
 var excludedNamespaces = []string{
+	// System namespaces
 	"istio-system",
 	"kube-node-lease",
 	"kube-public",
@@ -34,9 +35,15 @@ var excludedNamespaces = []string{
 	"gke-connect",
 	"gke-system",
 	"resource-group-controller-manager",
-	"vault",
+	// Bundles NetworkPolicies already
 	"kasten-io",
+	// TODO needs NetworkPolicies/Skiperator
+	"vault",
+	// TODO needs NetworkPolicies/Skiperator
 	"nibas",
+	// TODO needs NetworkPolicies/Skiperator
+	"aut",
+	// TODO PoC, add NetworkPolicies after
 	"sysdig-agent",
 }
 
