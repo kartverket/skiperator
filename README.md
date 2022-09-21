@@ -165,12 +165,13 @@ spec:
       # on port 80 and HTTPS on port 443. If other ports or protocols are
       # required then port must be specified as well
       external:
-        # The allowed hostname. Note that this does not unclude subdomains
+        # The allowed hostname. Note that this does not include subdomains
       - host: nrk.no
         # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
         # addition to hostname
       - host: smtp.mailgrid.com
         ip: "123.123.123.123"
+        # OBS: Hostname must always be defined even if IP is set statically
         # The ports to allow for the above hostname. When not specified HTTP and
         # HTTPS on port 80 and 443 respectively are put into the allowlist
         ports: 
