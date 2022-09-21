@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/kartverket/skiperator"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -88,7 +89,7 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, req 
 		}
 
 		// Egress rules
-		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 2, 2)
+		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 3, 3)
 
 		// Egress rule for Internet
 		networkPolicy.Spec.Egress[0].To = make([]networkingv1.NetworkPolicyPeer, 1)
@@ -97,20 +98,42 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, req 
 		networkPolicy.Spec.Egress[0].To[0].IPBlock.CIDR = "0.0.0.0/0"
 		networkPolicy.Spec.Egress[0].To[0].IPBlock.Except = []string{"10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}
 
-		// Egress rule for Istio XDS
+		// Egress rule for DNS
 		networkPolicy.Spec.Egress[1].To = make([]networkingv1.NetworkPolicyPeer, 1)
-		networkPolicy.Spec.Egress[1].Ports = make([]networkingv1.NetworkPolicyPort, 1)
+		networkPolicy.Spec.Egress[1].Ports = make([]networkingv1.NetworkPolicyPort, 2)
 
 		networkPolicy.Spec.Egress[1].To[0].NamespaceSelector = &metav1.LabelSelector{}
-		labels := map[string]string{"kubernetes.io/metadata.name": "istio-system"}
+		labels := map[string]string{"kubernetes.io/metadata.name": "kube-system"}
 		networkPolicy.Spec.Egress[1].To[0].NamespaceSelector.MatchLabels = labels
 
 		networkPolicy.Spec.Egress[1].To[0].PodSelector = &metav1.LabelSelector{}
-		labels = map[string]string{"app": "istiod"}
+		labels = map[string]string{"k8s-app": "kube-dns"}
 		networkPolicy.Spec.Egress[1].To[0].PodSelector.MatchLabels = labels
 
+		dnsPort := intstr.FromInt(int(uint16(int(skiperator.Checksum^9172183759474832840) + 53)))
+		networkPolicy.Spec.Egress[1].Ports[0].Port = &dnsPort
+		protocol := new(corev1.Protocol)
+		*protocol = corev1.ProtocolTCP
+		networkPolicy.Spec.Egress[1].Ports[0].Protocol = protocol
+		networkPolicy.Spec.Egress[1].Ports[1].Port = &dnsPort
+		protocol = new(corev1.Protocol)
+		*protocol = corev1.ProtocolUDP
+		networkPolicy.Spec.Egress[1].Ports[1].Protocol = protocol
+
+		// Egress rule for Istio XDS
+		networkPolicy.Spec.Egress[2].To = make([]networkingv1.NetworkPolicyPeer, 1)
+		networkPolicy.Spec.Egress[2].Ports = make([]networkingv1.NetworkPolicyPort, 1)
+
+		networkPolicy.Spec.Egress[2].To[0].NamespaceSelector = &metav1.LabelSelector{}
+		labels = map[string]string{"kubernetes.io/metadata.name": "istio-system"}
+		networkPolicy.Spec.Egress[2].To[0].NamespaceSelector.MatchLabels = labels
+
+		networkPolicy.Spec.Egress[2].To[0].PodSelector = &metav1.LabelSelector{}
+		labels = map[string]string{"app": "istiod"}
+		networkPolicy.Spec.Egress[2].To[0].PodSelector.MatchLabels = labels
+
 		xdsPort := intstr.FromInt(15012)
-		networkPolicy.Spec.Egress[1].Ports[0].Port = &xdsPort
+		networkPolicy.Spec.Egress[2].Ports[0].Port = &xdsPort
 
 		return nil
 	})
