@@ -33,7 +33,7 @@ var excludedNamespaces = []string{
 	"gatekeeper-system",
 	"gke-connect",
 	"gke-system",
-	"resource-group-controller-manager",
+	"resource-group-system",
 	// Bundles NetworkPolicies already
 	"kasten-io",
 	// TODO needs NetworkPolicies/Skiperator
