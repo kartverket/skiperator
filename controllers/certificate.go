@@ -80,7 +80,7 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
 		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &certificate, func() error {
 			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
-			certificate.Spec.IssuerRef.Name = "lets-encrypt"
+			certificate.Spec.IssuerRef.Name = "cluster-issuer" // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			certificate.Spec.DNSNames = []string{hostname}
 			certificate.Spec.SecretName = name
 
