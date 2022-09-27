@@ -7,6 +7,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -142,13 +143,34 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 		}
 
 		if application.Spec.Readiness != nil {
-			container.ReadinessProbe = application.Spec.Readiness
+			container.ReadinessProbe = &corev1.Probe{}
+			container.ReadinessProbe.InitialDelaySeconds = int32(application.Spec.Readiness.InitialDelay)
+			container.ReadinessProbe.TimeoutSeconds = int32(application.Spec.Readiness.Timeout)
+			container.ReadinessProbe.FailureThreshold = int32(application.Spec.Readiness.FailureThreshold)
+
+			container.ReadinessProbe.HTTPGet = &corev1.HTTPGetAction{}
+			container.ReadinessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Readiness.Port))
+			container.ReadinessProbe.HTTPGet.Path = application.Spec.Readiness.Path
 		}
 		if application.Spec.Liveness != nil {
-			container.LivenessProbe = application.Spec.Liveness
+			container.LivenessProbe = &corev1.Probe{}
+			container.LivenessProbe.InitialDelaySeconds = int32(application.Spec.Liveness.InitialDelay)
+			container.LivenessProbe.TimeoutSeconds = int32(application.Spec.Liveness.Timeout)
+			container.LivenessProbe.FailureThreshold = int32(application.Spec.Liveness.FailureThreshold)
+
+			container.LivenessProbe.HTTPGet = &corev1.HTTPGetAction{}
+			container.LivenessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Liveness.Port))
+			container.LivenessProbe.HTTPGet.Path = application.Spec.Liveness.Path
 		}
 		if application.Spec.Startup != nil {
-			container.StartupProbe = application.Spec.Startup
+			container.StartupProbe = &corev1.Probe{}
+			container.StartupProbe.InitialDelaySeconds = int32(application.Spec.Startup.InitialDelay)
+			container.StartupProbe.TimeoutSeconds = int32(application.Spec.Startup.Timeout)
+			container.StartupProbe.FailureThreshold = int32(application.Spec.Startup.FailureThreshold)
+
+			container.StartupProbe.HTTPGet = &corev1.HTTPGetAction{}
+			container.StartupProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Startup.Port))
+			container.StartupProbe.HTTPGet.Path = application.Spec.Startup.Path
 		}
 
 		return nil
