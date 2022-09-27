@@ -103,10 +103,10 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 		internal := false
 		external := false
 		for _, hostname := range application.Spec.Ingresses {
-			if isExternal(hostname) {
-				external = true
-			} else {
+			if isInternal(hostname) {
 				internal = true
+			} else {
+				external = true
 			}
 		}
 

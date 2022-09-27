@@ -66,10 +66,10 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 				return err
 			}
 
-			if isExternal(hostname) {
-				gateway.Spec.Selector = map[string]string{"ingress": "external"}
-			} else {
+			if isInternal(hostname) {
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
+			} else {
+				gateway.Spec.Selector = map[string]string{"ingress": "external"}
 			}
 
 			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)

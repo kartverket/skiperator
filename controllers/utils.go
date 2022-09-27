@@ -4,8 +4,8 @@ import (
 	"regexp"
 )
 
-var externalPattern = regexp.MustCompile(`[^.]\.kartverket\.no`)
+var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
-func isExternal(hostname string) bool {
-	return externalPattern.MatchString(hostname)
+func isInternal(hostname string) bool {
+	return internalPattern.MatchString(hostname)
 }
