@@ -44,6 +44,7 @@ var excludedNamespaces = []string{
 	"aut",
 	// TODO PoC, add NetworkPolicies after
 	"sysdig-agent",
+	"sysdig-admission-controller",
 }
 
 type DefaultDenyNetworkPolicyReconciler struct {
