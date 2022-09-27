@@ -6,6 +6,10 @@ export PATH := $(PATH):$(GOBIN)
 
 IMAGE ?= skiperator
 
+.PHONY: run
+run: generate ## Run a controller from your host.
+	go run ./cmd/skiperator/main.go
+
 .PHONY: tools
 tools:
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen

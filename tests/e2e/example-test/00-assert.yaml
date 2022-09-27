@@ -2,28 +2,21 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: application-sample-egress
+  name: default-deny
 spec:
   egress:
   - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kuttl-test-skiperator
-      podSelector:
-        matchLabels:
-          application: other-app
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: istio-system
-      podSelector:
-        matchLabels:
-          egress: external
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
   - ports:
     - port: 53
-      protocol: UDP
-    - port: 53
       protocol: TCP
+    - port: 53
+      protocol: UDP
     to:
     - namespaceSelector:
         matchLabels:
@@ -31,44 +24,77 @@ spec:
       podSelector:
         matchLabels:
           k8s-app: kube-dns
-  podSelector:
-    matchLabels:
-      application: application-sample
+  - ports:
+    - port: 15012
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-system
+      podSelector:
+        matchLabels:
+          app: istiod
+  podSelector: {}
   policyTypes:
+  - Ingress
   - Egress
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: application-sample-ingress
+  name: application-sample
 spec:
   ingress:
   - from:
-    - podSelector:
-        matchLabels:
-          application: other-app
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kuttl-test-skiperator
-  - from:
-    - podSelector:
-        matchLabels:
-          application: third-app
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: other-namespace
-  - from:
-    - podSelector:
-        matchLabels:
-          ingress: external
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: istio-system
+      podSelector:
+        matchLabels:
+          ingress: internal
     ports:
     - port: 8080
       protocol: TCP
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kuttl-test-skiperator
+      podSelector:
+        matchLabels:
+          app: other-app
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: other-namespace
+      podSelector:
+        matchLabels:
+          app: third-app
+    ports:
+      - port: 8080
+        protocol: TCP
+
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kuttl-test-skiperator
+      podSelector:
+        matchLabels:
+          app: other-app
+  - ports:
+    - port: 587
+      protocol: TCP
+    to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-system
+      podSelector:
+        matchLabels:
+          egress: external
   podSelector:
     matchLabels:
-      application: application-sample
+      app: application-sample
   policyTypes:
   - Ingress
+  - Egress
+
