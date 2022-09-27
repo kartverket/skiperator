@@ -45,6 +45,7 @@ func init() {
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	flag.Parse()
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
@@ -58,6 +59,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	err = (&controllers.ServiceAccountReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ServiceAccount")
+		os.Exit(1)
+	}
+
 	err = (&controllers.DeploymentReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
@@ -67,6 +74,12 @@ func main() {
 	err = (&controllers.HorizontalPodAutoscalerReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "HorizontalPodAutoscaler")
+		os.Exit(1)
+	}
+
+	err = (&controllers.DefaultDenyNetworkPolicyReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DefaultDenyNetworkPolicy")
 		os.Exit(1)
 	}
 
