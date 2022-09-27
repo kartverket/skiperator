@@ -95,10 +95,10 @@ spec:
     failureThreshold: 3
     # Number of seconds after which the probe times out. Defaults to 1 second.
     # Minimum value is 1
-    timeout: 1
+    timeoutSeconds: 1
     # Delay sending the first probe by X seconds. Can be useful for applications that
     # are slow to start.
-    initialDelay: 0
+    initialDelaySeconds: 0
   # Readiness probes define a resource that returns 200 OK when the app is running
   # as intended. Kubernetes will wait until the resource returns 200 OK before
   # marking the pod as Running and progressing with the deployment strategy.
