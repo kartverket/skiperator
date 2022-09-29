@@ -189,9 +189,6 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 
 		// Egress rules
 		count = len(application.Spec.AccessPolicy.Outbound.Rules)
-		if len(application.Spec.AccessPolicy.Outbound.External) > 0 {
-			count += 1
-		}
 		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 0, count)
 
 		// Egress rules for internal peers
@@ -229,40 +226,6 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 
 			for i := range svc.Spec.Ports {
 				port := intstr.FromInt(int(svc.Spec.Ports[i].Port))
-				egress.Ports[i].Port = &port
-			}
-		}
-
-		// Egress rule for egress gateways
-		if len(application.Spec.AccessPolicy.Outbound.External) > 0 {
-			// Generate list of all unique external ports
-			portSet := make(map[int]struct{})
-			for _, rule := range application.Spec.AccessPolicy.Outbound.External {
-				for _, port := range rule.Ports {
-					portSet[port.Port] = struct{}{}
-				}
-			}
-			ports := make([]int, 0, len(portSet))
-			for port := range portSet {
-				ports = append(ports, port)
-			}
-
-			networkPolicy.Spec.Egress = append(networkPolicy.Spec.Egress, networkingv1.NetworkPolicyEgressRule{})
-			egress := &networkPolicy.Spec.Egress[len(networkPolicy.Spec.Egress)-1]
-
-			egress.To = make([]networkingv1.NetworkPolicyPeer, 1)
-			egress.Ports = make([]networkingv1.NetworkPolicyPort, len(ports))
-
-			egress.To[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": "istio-system"}
-			egress.To[0].NamespaceSelector.MatchLabels = labels
-
-			egress.To[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"egress": "external"}
-			egress.To[0].PodSelector.MatchLabels = labels
-
-			for i, port := range ports {
-				port := intstr.FromInt(port)
 				egress.Ports[i].Port = &port
 			}
 		}
