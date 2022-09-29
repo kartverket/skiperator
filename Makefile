@@ -14,7 +14,7 @@ tools: bin/etcd bin/kube-apiserver
 
 ETCD_URL = https://github.com/etcd-io/etcd/releases/download/v3.5.5/etcd-v3.5.5-linux-amd64.tar.gz
 ETCD_PATH = etcd-v3.5.5-linux-amd64
-ETCD_PATH_DEPTH = $(shell awk --field-separator / '{ print NF }' <<< "$(ETCD_PATH)")
+ETCD_PATH_DEPTH = $(shell awk -F / '{ print NF }' <<< "$(ETCD_PATH)")
 bin/etcd:
 	wget --output-document - $(ETCD_URL) | \
 	tar --gzip --extract --strip-components $(ETCD_PATH_DEPTH) --directory bin $(ETCD_PATH)/etcd
