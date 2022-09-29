@@ -1,0 +1,53 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-system
+  name: test-test-ingress-56cd7aa901014e78
+spec:
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: test-test-ingress-56cd7aa901014e78
+  dnsNames:
+  - example.com
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: test-ingress-56cd7aa901014e78
+spec:
+  selector:
+    ingress: internal
+  servers:
+  - hosts:
+    - example.com
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+  - hosts:
+    - example.com
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: test-test-ingress-56cd7aa901014e78
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: test-ingress
+spec:
+  exportTo:
+  - .
+  - istio-system
+  gateways:
+  - test-ingress-56cd7aa901014e78
+  hosts:
+  - example.com
+  http:
+  - route:
+    - destination:
+        host: test

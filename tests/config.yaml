@@ -1,11 +1,17 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
 startControlPlane: true
-testDirs:
-- tests
 commands:
+- command: kubectl create namespace istio-system
 - command: kubectl apply --filename https://raw.githubusercontent.com/istio/istio/1.15.1/manifests/charts/base/crds/crd-all.gen.yaml
 - command: kubectl apply --filename https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
+- command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
+- command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
 - command: kubectl apply --filename deployment/skiperator.kartverket.no_applications.yaml
+- command: kubectl create namespace test
 - command: skiperator
   background: true
+parallel: 1
+namespace: test
+testDirs:
+- tests
