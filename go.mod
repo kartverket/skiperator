@@ -9,9 +9,9 @@ require (
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20220531010908-64602ec8d647
 	istio.io/client-go v1.13.4
-	k8s.io/api v0.25.0
+	k8s.io/api v0.25.2
 	k8s.io/apimachinery v0.25.2
-	k8s.io/client-go v0.25.0
+	k8s.io/client-go v0.25.2
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/controller-tools v0.9.2
 )
