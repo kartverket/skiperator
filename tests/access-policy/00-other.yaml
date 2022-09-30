@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: other
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: other
+  name: other
+spec:
+  selector:
+    app: other
+  ports:
+  - port: 8080
