@@ -26,26 +26,18 @@ func (r *PeerAuthenticationReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Complete(r)
 }
 
-func (r *PeerAuthenticationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *PeerAuthenticationReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &peerAuthentication, func() error {
+	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &peerAuthentication, func() error {
 		// Set application as owner of the peer authentication
-		err = ctrlutil.SetControllerReference(&application, &peerAuthentication, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &peerAuthentication, r.scheme)
 		if err != nil {
 			return err
 		}

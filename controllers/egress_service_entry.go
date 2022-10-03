@@ -29,21 +29,14 @@ func (r *EgressServiceEntryReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).
 		Complete(r)
 }
 
-func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
 	// Keep track of active service entries
@@ -53,13 +46,13 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 		// Generate service entry name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(rule.Host))
-		name := fmt.Sprintf("%s-egress-%x", req.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-egress-%x", application.Name, hash.Sum64())
 		active[name] = struct{}{}
 
-		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: name}}
-		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &serviceEntry, func() error {
+		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &serviceEntry, func() error {
 			// Set application as owner of the service entry
-			err = ctrlutil.SetControllerReference(&application, &serviceEntry, r.scheme)
+			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.scheme)
 			if err != nil {
 				return err
 			}
@@ -93,7 +86,7 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 
 	// Clear out unused service entries
 	serviceEntries := networkingv1beta1.ServiceEntryList{}
-	err = r.client.List(ctx, &serviceEntries, client.InNamespace(req.Namespace))
+	err := r.client.List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

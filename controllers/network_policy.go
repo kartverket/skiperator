@@ -35,8 +35,7 @@ func (r *NetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.scheme = mgr.GetScheme()
 	r.recorder = mgr.GetEventRecorderFor("networkpolicy-controller")
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Watches(
 			&source.Kind{Type: &corev1.Service{}},
@@ -73,20 +72,13 @@ func (r *NetworkPolicyReconciler) networkPoliciesFromService(obj client.Object) 
 	return requests
 }
 
-func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
+	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
 		// Set application as owner of the network policy
-		err = ctrlutil.SetControllerReference(&application, &networkPolicy, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &networkPolicy, r.scheme)
 		if err != nil {
 			return err
 		}
@@ -201,7 +193,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.R
 			err = r.client.Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &svc)
 			if errors.IsNotFound(err) {
 				r.recorder.Eventf(
-					&application,
+					application,
 					corev1.EventTypeWarning, "Missing",
 					"Cannot find application named %s in namespace %s",
 					rule.Application, rule.Namespace,

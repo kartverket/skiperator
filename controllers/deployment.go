@@ -26,26 +26,18 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }
 
-func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
+	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
 		// Set application as owner of the deployment
-		err = ctrlutil.SetControllerReference(&application, &deployment, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &deployment, r.scheme)
 		if err != nil {
 			return err
 		}
@@ -78,7 +70,7 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, req reconcile.Requ
 		container.Command = application.Spec.Command
 
 		var uid int64 = 150 // TODO: 65534? Evnt. hashed? Random?
-		deployment.Spec.Template.Spec.ServiceAccountName = req.Name
+		deployment.Spec.Template.Spec.ServiceAccountName = application.Name
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 		deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
 		deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid

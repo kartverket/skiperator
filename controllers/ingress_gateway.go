@@ -29,22 +29,14 @@ func (r *IngressGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
 		Complete(r)
 }
 
-func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
 	// Keep track of active gateways
@@ -55,13 +47,13 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 		// Generate gateway name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-ingress-%x", req.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
 		active[name] = struct{}{}
 
-		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: name}}
-		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &gateway, func() error {
+		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &gateway, func() error {
 			// Set application as owner of the gateway
-			err = ctrlutil.SetControllerReference(&application, &gateway, r.scheme)
+			err := ctrlutil.SetControllerReference(application, &gateway, r.scheme)
 			if err != nil {
 				return err
 			}
@@ -89,15 +81,18 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, req reconcile.
 			gateway.Spec.Servers[1].Port.Protocol = "HTTPS"
 			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{}
 			gateway.Spec.Servers[1].Tls.Mode = networkingv1beta1api.ServerTLSSettings_SIMPLE
-			gateway.Spec.Servers[1].Tls.CredentialName = req.Namespace + "-" + name
+			gateway.Spec.Servers[1].Tls.CredentialName = application.Namespace + "-" + name
 
 			return nil
 		})
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Clear out unused gateways
 	gateways := networkingv1beta1.GatewayList{}
-	err = r.client.List(ctx, &gateways, client.InNamespace(req.Namespace))
+	err := r.client.List(ctx, &gateways, client.InNamespace(application.Namespace))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

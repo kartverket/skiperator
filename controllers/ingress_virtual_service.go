@@ -29,29 +29,22 @@ func (r *IngressVirtualServiceReconciler) SetupWithManager(mgr ctrl.Manager) err
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
 		)).
 		Complete(r)
 }
 
-func (r *IngressVirtualServiceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *IngressVirtualServiceReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	virtualService := networkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name + "-ingress"}}
+	var err error
+	virtualService := networkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name + "-ingress"}}
 	if len(application.Spec.Ingresses) > 0 {
 		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &virtualService, func() error {
 			// Set application as owner of the virtual service
-			err = ctrlutil.SetControllerReference(&application, &virtualService, r.scheme)
+			err = ctrlutil.SetControllerReference(application, &virtualService, r.scheme)
 			if err != nil {
 				return err
 			}
@@ -61,7 +54,7 @@ func (r *IngressVirtualServiceReconciler) Reconcile(ctx context.Context, req rec
 				// Generate gateway name
 				hash := fnv.New64()
 				_, _ = hash.Write([]byte(hostname))
-				name := fmt.Sprintf("%s-ingress-%x", req.Name, hash.Sum64())
+				name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
 				gateways = append(gateways, name)
 			}
 
