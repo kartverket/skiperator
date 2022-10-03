@@ -17,7 +17,7 @@ metadata:
   name: test-ingress-56cd7aa901014e78
 spec:
   selector:
-    ingress: internal
+    ingress: external
   servers:
   - hosts:
     - example.com
