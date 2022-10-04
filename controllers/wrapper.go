@@ -56,8 +56,8 @@ func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Reque
 	obj := reflect.New(typ).Interface().(T)
 
 	err := r.client.Get(ctx, req.NamespacedName, obj)
-	err = client.IgnoreNotFound(err)
 	if err != nil {
+		err = client.IgnoreNotFound(err)
 		return reconcile.Result{}, err
 	}
 
