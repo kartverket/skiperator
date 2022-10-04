@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="Run" type="GoApplicationRunConfiguration" factoryName="Go Application">
-    <module name="skiperator-poc" />
+    <module name="skiperator" />
     <working_directory value="$PROJECT_DIR$" />
     <kind value="DIRECTORY" />
     <package value="/cmd/agent" />

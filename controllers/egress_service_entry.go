@@ -7,8 +7,10 @@ import (
 	"hash/fnv"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,13 +23,15 @@ import (
 //+kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries,verbs=get;list;watch;create;update;patch;delete
 
 type EgressServiceEntryReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *EgressServiceEntryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("egress-serviceentry-controller")
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
@@ -71,6 +75,16 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 
 			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(rule.Ports))
 			for i, port := range rule.Ports {
+				if rule.Ip == "" && port.Protocol == "TCP" {
+					r.recorder.Eventf(
+						application,
+						corev1.EventTypeWarning, "Invalid",
+						"A static IP must be set for TCP port %d",
+						port.Port,
+					)
+					continue
+				}
+
 				serviceEntry.Spec.Ports[i] = &networkingv1beta1api.Port{}
 				serviceEntry.Spec.Ports[i].Name = port.Name
 				serviceEntry.Spec.Ports[i].Number = uint32(port.Port)
