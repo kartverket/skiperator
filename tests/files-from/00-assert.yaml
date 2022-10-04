@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  template:
+    spec:
+      containers:
+      - volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: config-map
+          mountPath: /config-map
+        - name: secret
+          mountPath: /secret
+        - name: empty-dir
+          mountPath: /empty-dir
+        - name: persistent-volume-claim
+          mountPath: /persistent-volume-claim
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: config-map
+        configMap:
+          name: config-map
+      - name: secret
+        secret:
+          secretName: secret
+      - name: empty-dir
+        emptyDir: {}
+      - name: persistent-volume-claim
+        persistentVolumeClaim:
+          claimName: persistent-volume-claim

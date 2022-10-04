@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  replicas: 3
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      containers:
+      - image: image
+        command: [command]
+        env:
+        - name: name
+          value: value
+        ports:
+        - containerPort: 8080
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test
+spec:
+  minReplicas: 3
+  maxReplicas: 6
