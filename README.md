@@ -18,6 +18,8 @@ kind: Application
 metadata:
   # *Required*: The name of the Application and the created resources
   name: application-frontend
+  # *Required*: The namespace the Application and the created resources will be in
+  namespace: application-namespace
 spec:
   # *Required*: A deployment will be created and this image will be run
   image: "kartverket/example"
