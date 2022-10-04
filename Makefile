@@ -16,12 +16,12 @@ ETCD_URL = https://github.com/etcd-io/etcd/releases/download/v3.5.5/etcd-v3.5.5-
 ETCD_PATH = etcd-v3.5.5-linux-amd64
 ETCD_PATH_DEPTH = $(shell awk -F / '{ print NF }' <<< "$(ETCD_PATH)")
 bin/etcd:
-	wget --output-document - $(ETCD_URL) | \
+	wget --no-verbose --output-document - $(ETCD_URL) | \
 	tar --gzip --extract --strip-components $(ETCD_PATH_DEPTH) --directory bin $(ETCD_PATH)/etcd
 
 KUBE_APISERVER_URL = dl.k8s.io/v1.25.2/bin/linux/amd64/kube-apiserver
 bin/kube-apiserver:
-	wget --directory-prefix bin dl.k8s.io/v1.25.2/bin/linux/amd64/kube-apiserver
+	wget --no-verbose --directory-prefix bin dl.k8s.io/v1.25.2/bin/linux/amd64/kube-apiserver
 	chmod +x bin/kube-apiserver
 
 .PHONY: generate
