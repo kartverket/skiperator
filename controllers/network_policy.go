@@ -36,6 +36,7 @@ func (r *NetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.recorder = mgr.GetEventRecorderFor("networkpolicy-controller")
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Watches(
 			&source.Kind{Type: &corev1.Service{}},

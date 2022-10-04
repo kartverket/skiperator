@@ -30,6 +30,7 @@ func (r *IngressVirtualServiceReconciler) SetupWithManager(mgr ctrl.Manager) err
 	r.scheme = mgr.GetScheme()
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
 		)).
