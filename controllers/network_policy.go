@@ -21,8 +21,8 @@ import (
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=service,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=service,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 type NetworkPolicyReconciler struct {
 	client   client.Client
