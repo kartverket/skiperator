@@ -24,26 +24,18 @@ func (r *HorizontalPodAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) e
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&autoscalingv2beta2.HorizontalPodAutoscaler{}).
 		Complete(r)
 }
 
-func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	horizontalPodAutoscaler := autoscalingv2beta2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &horizontalPodAutoscaler, func() error {
+	horizontalPodAutoscaler := autoscalingv2beta2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
-		err = ctrlutil.SetControllerReference(&application, &horizontalPodAutoscaler, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.scheme)
 		if err != nil {
 			return err
 		}

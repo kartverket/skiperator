@@ -25,26 +25,18 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&corev1.Service{}).
 		Complete(r)
 }
 
-func (r *ServiceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *ServiceReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &service, func() error {
+	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &service, func() error {
 		// Set application as owner of the service
-		err = ctrlutil.SetControllerReference(&application, &service, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &service, r.scheme)
 		if err != nil {
 			return err
 		}

@@ -7,8 +7,10 @@ import (
 	"hash/fnv"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,29 +23,24 @@ import (
 //+kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries,verbs=get;list;watch;create;update;patch;delete
 
 type EgressServiceEntryReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *EgressServiceEntryReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("egress-serviceentry-controller")
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).
 		Complete(r)
 }
 
-func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
 	// Keep track of active service entries
@@ -53,13 +50,13 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 		// Generate service entry name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(rule.Host))
-		name := fmt.Sprintf("%s-egress-%x", req.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-egress-%x", application.Name, hash.Sum64())
 		active[name] = struct{}{}
 
-		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: name}}
-		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &serviceEntry, func() error {
+		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &serviceEntry, func() error {
 			// Set application as owner of the service entry
-			err = ctrlutil.SetControllerReference(&application, &serviceEntry, r.scheme)
+			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.scheme)
 			if err != nil {
 				return err
 			}
@@ -78,6 +75,16 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 
 			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(rule.Ports))
 			for i, port := range rule.Ports {
+				if rule.Ip == "" && port.Protocol == "TCP" {
+					r.recorder.Eventf(
+						application,
+						corev1.EventTypeWarning, "Invalid",
+						"A static IP must be set for TCP port %d",
+						port.Port,
+					)
+					continue
+				}
+
 				serviceEntry.Spec.Ports[i] = &networkingv1beta1api.Port{}
 				serviceEntry.Spec.Ports[i].Name = port.Name
 				serviceEntry.Spec.Ports[i].Number = uint32(port.Port)
@@ -93,7 +100,7 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 
 	// Clear out unused service entries
 	serviceEntries := networkingv1beta1.ServiceEntryList{}
-	err = r.client.List(ctx, &serviceEntries, client.InNamespace(req.Namespace))
+	err := r.client.List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

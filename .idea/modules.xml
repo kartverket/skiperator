@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/skiperator-poc.iml" filepath="$PROJECT_DIR$/.idea/skiperator-poc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/skiperator.iml" filepath="$PROJECT_DIR$/.idea/skiperator.iml" />
     </modules>
   </component>
 </project>

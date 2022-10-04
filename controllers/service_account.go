@@ -24,26 +24,18 @@ func (r *ServiceAccountReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Owns(&corev1.ServiceAccount{}).
 		Complete(r)
 }
 
-func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
-	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: req.Namespace, Name: req.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &serviceAccount, func() error {
+	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &serviceAccount, func() error {
 		// Set application as owner of the sidecar
-		err = ctrlutil.SetControllerReference(&application, &serviceAccount, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &serviceAccount, r.scheme)
 		if err != nil {
 			return err
 		}

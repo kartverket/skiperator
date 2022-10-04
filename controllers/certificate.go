@@ -30,8 +30,7 @@ func (r *CertificateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		Watches(
 			&source.Kind{Type: &certmanagerv1.Certificate{}},
 			handler.EnqueueRequestsFromMapFunc(r.applicationFromCertificate),
@@ -56,14 +55,7 @@ func (r *CertificateReconciler) applicationFromCertificate(obj client.Object) []
 	}
 }
 
-func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	// Fetch application and fill defaults
-	application := skiperatorv1alpha1.Application{}
-	err := r.client.Get(ctx, req.NamespacedName, &application)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
+func (r *CertificateReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
 	// Keep track of active certificates
@@ -74,11 +66,11 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		// Generate certificate name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-%s-ingress-%x", req.Namespace, req.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, hash.Sum64())
 		active[name] = struct{}{}
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
-		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &certificate, func() error {
+		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &certificate, func() error {
 			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
 			certificate.Spec.IssuerRef.Name = "cluster-issuer" // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			certificate.Spec.DNSNames = []string{hostname}
@@ -93,7 +85,7 @@ func (r *CertificateReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	// Clear out unused certificates
 	certificates := certmanagerv1.CertificateList{}
-	err = r.client.List(ctx, &certificates, client.InNamespace("istio-system"))
+	err := r.client.List(ctx, &certificates, client.InNamespace("istio-system"))
 	if err != nil {
 		return reconcile.Result{}, err
 	}

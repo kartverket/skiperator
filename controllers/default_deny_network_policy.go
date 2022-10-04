@@ -56,29 +56,20 @@ func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) 
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
 
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&corev1.Namespace{}).
+	return newControllerManagedBy[*corev1.Namespace](mgr).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Complete(r)
 }
 
-func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	if slices.Contains(excludedNamespaces, req.Name) {
+func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
+	if slices.Contains(excludedNamespaces, namespace.Name) {
 		return reconcile.Result{}, nil
 	}
 
-	// Fetch namespace
-	namespace := corev1.Namespace{}
-	err := r.client.Get(ctx, req.NamespacedName, &namespace)
-	if err != nil {
-		err = client.IgnoreNotFound(err)
-		return reconcile.Result{}, err
-	}
-
-	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: req.Name, Name: "default-deny"}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
+	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
 		// Set namespace as owner of the network policy
-		err = ctrlutil.SetControllerReference(&namespace, &networkPolicy, r.scheme)
+		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.scheme)
 		if err != nil {
 			return err
 		}
