@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"context"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -16,36 +16,6 @@ import (
 
 //+kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-
-var excludedNamespaces = []string{
-	// System namespaces
-	"istio-system",
-	"kube-node-lease",
-	"kube-public",
-	"kube-system",
-	"skiperator-system",
-	"config-management-system",
-	"config-management-monitoring",
-	"asm-system",
-	"anthos-identity-service",
-	"binauthz-system",
-	"cert-manager",
-	"gatekeeper-system",
-	"gke-connect",
-	"gke-system",
-	"resource-group-system",
-	// Bundles NetworkPolicies already
-	"kasten-io",
-	// TODO needs NetworkPolicies/Skiperator
-	"vault",
-	// TODO needs NetworkPolicies/Skiperator
-	"nibas",
-	// TODO needs NetworkPolicies/Skiperator
-	"aut",
-	// TODO PoC, add NetworkPolicies after
-	"sysdig-agent",
-	"sysdig-admission-controller",
-}
 
 type DefaultDenyNetworkPolicyReconciler struct {
 	client client.Client
@@ -57,15 +27,14 @@ func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) 
 	r.scheme = mgr.GetScheme()
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
+		For(&corev1.Namespace{}, builder.WithPredicates(
+			matchesPredicate[*corev1.Namespace](isNotExcludedNamespace),
+		)).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Complete(r)
 }
 
 func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
-	if slices.Contains(excludedNamespaces, namespace.Name) {
-		return reconcile.Result{}, nil
-	}
-
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
 		// Set namespace as owner of the network policy

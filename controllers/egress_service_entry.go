@@ -34,6 +34,7 @@ func (r *EgressServiceEntryReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	r.recorder = mgr.GetEventRecorderFor("egress-serviceentry-controller")
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).

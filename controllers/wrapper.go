@@ -14,15 +14,16 @@ import (
 )
 
 func newControllerManagedBy[T client.Object](mgr manager.Manager) wrappedBuilder[T] {
-	typ := reflect.ValueOf(*new(T)).Type().Elem()
-	obj := reflect.New(typ).Interface().(T)
-
-	return wrappedBuilder[T]{mgr, builder.ControllerManagedBy(mgr).For(obj)}
+	return wrappedBuilder[T]{mgr, builder.ControllerManagedBy(mgr)}
 }
 
 type wrappedBuilder[T client.Object] struct {
 	mgr  manager.Manager
 	next *builder.Builder
+}
+
+func (b wrappedBuilder[T]) For(obj T, opts ...builder.ForOption) wrappedBuilder[T] {
+	return wrappedBuilder[T]{b.mgr, b.next.For(obj, opts...)}
 }
 
 func (b wrappedBuilder[T]) Owns(obj client.Object, opts ...builder.OwnsOption) wrappedBuilder[T] {

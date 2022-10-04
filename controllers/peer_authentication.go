@@ -27,6 +27,7 @@ func (r *PeerAuthenticationReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	r.scheme = mgr.GetScheme()
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Complete(r)
 }

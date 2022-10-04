@@ -25,6 +25,7 @@ func (r *HorizontalPodAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) e
 	r.scheme = mgr.GetScheme()
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&autoscalingv2beta2.HorizontalPodAutoscaler{}).
 		Complete(r)
 }

@@ -30,6 +30,7 @@ func (r *IngressGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.scheme = mgr.GetScheme()
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			matchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
