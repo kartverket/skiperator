@@ -30,8 +30,8 @@ resource "kubernetes_deployment_v1" "deployment" {
             name = "IMAGE_PULL_TOKEN"
             value_from {
               secret_key_ref {
-                name = "github-auth"
-                key = "token"
+                name = kubernetes_secret_v1.github_auth.metadata[0].name
+                key  = "token"
               }
             }
           }
