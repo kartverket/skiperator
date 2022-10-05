@@ -21,11 +21,10 @@ import (
 	"github.com/kartverket/skiperator/controllers"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
-	//+kubebuilder:scaffold:imports
 )
 
-//+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 
 var (
 	scheme   = runtime.NewScheme()
@@ -39,7 +38,6 @@ func init() {
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -131,7 +129,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	//+kubebuilder:scaffold:builder
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
