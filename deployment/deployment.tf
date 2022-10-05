@@ -25,7 +25,16 @@ resource "kubernetes_deployment_v1" "deployment" {
         container {
           name  = "skiperator"
           image = var.image
-          args  = ["-l"]
+          args  = ["-l", "-t", "$(IMAGE_PULL_TOKEN)"]
+          env {
+            name = "IMAGE_PULL_TOKEN"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret_v1.github_auth.metadata[0].name
+                key  = "token"
+              }
+            }
+          }
           security_context {
             read_only_root_filesystem  = true
             allow_privilege_escalation = false
