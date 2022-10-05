@@ -1,5 +1,5 @@
 data "google_secret_manager_secret_version" "github_auth" {
-  project = "bootstrap-349108"
+  project = "994831889648"
   secret  = "github-auth"
 }
 
