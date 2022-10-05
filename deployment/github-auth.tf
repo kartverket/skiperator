@@ -1,12 +1,12 @@
 data "google_secret_manager_secret_version" "github_auth" {
-  project = "bootstrap-349108"
+  project = "994831889648"
   secret  = "github-auth"
 }
 
 resource "kubernetes_secret_v1" "github_auth" {
   metadata {
     namespace = "skiperator-system"
-    name      = "skiperator"
+    name      = "github-auth"
   }
 
   data = {
