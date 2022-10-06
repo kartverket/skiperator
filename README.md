@@ -5,6 +5,11 @@ the users' point of view. When using the operator an application developer can
 set up all associated resources for an optimal deployment using a simple custom
 resource called `Application`.
 
+## Prerequisites
+
+- The Dockerfile must build an image where the user ID is set to `150` as this UID
+  is hard coded in Skiperator
+
 ## Application reference
 
 Below you will find a list of all accepted input parameters to the `Application`
