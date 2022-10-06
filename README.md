@@ -17,9 +17,9 @@ apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
   # *Required*: The name of the Application and the created resources
-  name: application-frontend
+  name: teamname-frontend
   # *Required*: The namespace the Application and the created resources will be in
-  namespace: application-namespace
+  namespace: yournamespace
 spec:
   # *Required*: A deployment will be created and this image will be run
   image: "kartverket/example"
@@ -30,7 +30,12 @@ spec:
   command:
     - node
     - ./server.js
-  # Any external hostnames that route to this application
+  # Any external hostnames that route to this application. Using a skip.statkart.no-address
+  # will make the application reachable for kartverket-clients (internal), other adresses
+  # make the app reachable on the internet. Note that other adresses than skip.statkart.no
+  # (also known as pretty hostnames) requires additional DNS setup.
+  # The below hostnames will also have TLS certificates issued and be reachable on both
+  # HTTP and HTTPS.
   ingresses:
   - testapp.dev.skip.statkart.no
   # Configuration used to automatically scale the deployment based on load
@@ -172,8 +177,9 @@ spec:
         # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
         # addition to hostname
       - host: smtp.mailgrid.com
+        # IP address. Only required for TCP requests.
+        # Note: Hostname must always be defined even if IP is set statically
         ip: "123.123.123.123"
-        # OBS: Hostname must always be defined even if IP is set statically
         # The ports to allow for the above hostname. When not specified HTTP and
         # HTTPS on port 80 and 443 respectively are put into the allowlist
         ports: 
