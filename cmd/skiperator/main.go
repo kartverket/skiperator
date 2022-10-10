@@ -24,7 +24,7 @@ import (
 )
 
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=core,resources=events,verbs=create
 
 var (
 	scheme   = runtime.NewScheme()
@@ -42,16 +42,18 @@ func init() {
 
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
+	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		HealthProbeBindAddress: ":8081",
-		LeaderElection:         *leaderElection,
-		LeaderElectionID:       "skiperator",
+		Scheme:                  scheme,
+		HealthProbeBindAddress:  ":8081",
+		LeaderElection:          *leaderElection,
+		LeaderElectionNamespace: *leaderElectionNamespace,
+		LeaderElectionID:        "skiperator",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
