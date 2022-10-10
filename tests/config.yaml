@@ -7,9 +7,17 @@ commands:
 - command: kubectl apply --filename https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
 - command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
-- command: kubectl apply --filename deployment/skiperator.kartverket.no_applications.yaml
+
+- command: kubectl apply --filename deployment
 - command: kubectl create namespace test
-- command: skiperator
+
+- command: kubectl create serviceaccount --namespace test skiperator
+- command: kubectl create clusterrolebinding skiperator --clusterrole skiperator --serviceaccount test:skiperator
+- script: kubectl config set-credentials skiperator --token "$(kubectl create token --namespace test skiperator)"
+- command: kubectl config set-context skiperator --cluster cluster --user skiperator
+- command: kubectl config use-context skiperator
+
+- command: skiperator -l -ln test
   background: true
 parallel: 1
 namespace: test

@@ -61,29 +61,13 @@ rules:
   resources:
   - namespaces
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - ""
   resources:
   - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - service
   verbs:
   - create
   - delete
@@ -193,10 +177,6 @@ rules:
   resources:
   - applications
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
