@@ -99,7 +99,7 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, req reconc
 	}
 
 	for i := range serviceEntries.Items {
-		serviceEntry := &serviceEntries.Items[i]
+		serviceEntry := serviceEntries.Items[i]
 
 		// Skip unrelated service entries
 		if !isEgressServiceEntry(serviceEntry) {
