@@ -7,8 +7,8 @@ require (
 	github.com/kudobuilder/kuttl v0.13.0
 	go.etcd.io/etcd/server/v3 v3.5.5
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
-	istio.io/api v0.0.0-20220531010908-64602ec8d647
-	istio.io/client-go v1.13.4
+	istio.io/api v0.0.0-20220907134937-b47284812feb
+	istio.io/client-go v1.15.1
 	k8s.io/api v0.25.2
 	k8s.io/apimachinery v0.25.2
 	k8s.io/client-go v0.25.2
@@ -125,7 +125,7 @@ require (
 	golang.org/x/tools v0.1.12 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220502173005-c8bf987b8c21 // indirect
+	google.golang.org/genproto v0.0.0-20220628213854-d9e0b6570c03 // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

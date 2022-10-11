@@ -99,7 +99,7 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *s
 	}
 
 	for i := range gateways.Items {
-		gateway := &gateways.Items[i]
+		gateway := gateways.Items[i]
 
 		// Skip unrelated gateways
 		if !isIngressGateway(gateway) {
