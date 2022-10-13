@@ -57,6 +57,9 @@ type ApplicationSpec struct {
 	Ingresses []string `json:"ingresses,omitempty"`
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	GCP GCP `json:"gcp,omitempty"`
 }
 
 type Replicas struct {
@@ -158,6 +161,18 @@ type Port struct {
 	//+kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
 	Protocol string `json:"protocol"`
+}
+
+type GCP struct { 
+	//+kubebuilder:validation:Required
+	Auth Auth `json:"auth"`
+}
+
+type Auth struct {
+	//+kubebuilder:validation:Required
+	ServiceAccount string `json:"serviceAccount"`
+	//+kubebuilder:validation:Required
+	Project string `json:"project"`
 }
 
 func (a *Application) FillDefaults() {
