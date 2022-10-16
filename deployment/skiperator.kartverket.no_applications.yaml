@@ -234,6 +234,21 @@ spec:
                   - mountPath
                   type: object
                 type: array
+              gcp:
+                properties:
+                  auth:
+                    properties:
+                      project:
+                        type: string
+                      serviceAccount:
+                        type: string
+                    required:
+                    - project
+                    - serviceAccount
+                    type: object
+                required:
+                - auth
+                type: object
               image:
                 type: string
               ingresses:
