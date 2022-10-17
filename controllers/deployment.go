@@ -43,12 +43,12 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
-	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcpidentityconfig"}, &gcpIdentityConfigMap)
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
 	if errors.IsNotFound(err) {
 		r.recorder.Eventf(
 			application,
 			corev1.EventTypeWarning, "Missing",
-			"Cannot find configmap named gcpidentityconfig in namespace skiperator-system",
+			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 		)
 	} else if err != nil {
 		return reconcile.Result{}, err
@@ -147,8 +147,6 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 		volumes[0] = corev1.Volume{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
 		volumeMounts[0] = corev1.VolumeMount{Name: "tmp", MountPath: "/tmp"}
 
-		var VolNumber int
-
 		for i, file := range application.Spec.FilesFrom {
 			if len(file.ConfigMap) > 0 {
 				volumes[i+1].Name = file.ConfigMap
@@ -168,37 +166,35 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 			}
 
 			volumeMounts[i+1] = corev1.VolumeMount{Name: volumes[i+1].Name, MountPath: file.MountPath}
-			VolNumber = i
 		}
 
 		if application.Spec.GCP != nil {
+			volumeMounts[numberOfVolumes-1].Name = "gcp-ksa"
+			volumeMounts[numberOfVolumes-1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
+			volumeMounts[numberOfVolumes-1].ReadOnly = true
 
-			volumeMounts[VolNumber+1].Name = "gcp-ksa"
-			volumeMounts[VolNumber+1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
-			volumeMounts[VolNumber+1].ReadOnly = true
+			twoDaysSec := int64(172800)
+			optionalBool := false
+			defaultModeValue := int32(420)
 
-			Expiration := int64(172800)
-			OptionalBool := false
-			DefaultModeValue := int32(420)
-
-			volumes[VolNumber+1].Name = "gcp-ksa"
-			volumes[VolNumber+1].Projected = &corev1.ProjectedVolumeSource{}
-			volumes[VolNumber+1].Projected.DefaultMode = &DefaultModeValue
-			volumes[VolNumber+1].Projected.Sources = make([]corev1.VolumeProjection, 2)
-			volumes[VolNumber+1].Projected.Sources[0].ServiceAccountToken = &corev1.ServiceAccountTokenProjection{
+			volumes[numberOfVolumes-1].Name = "gcp-ksa"
+			volumes[numberOfVolumes-1].Projected = &corev1.ProjectedVolumeSource{}
+			volumes[numberOfVolumes-1].Projected.DefaultMode = &defaultModeValue
+			volumes[numberOfVolumes-1].Projected.Sources = make([]corev1.VolumeProjection, 2)
+			volumes[numberOfVolumes-1].Projected.Sources[0].ServiceAccountToken = &corev1.ServiceAccountTokenProjection{
 				Path:              "token",
 				Audience:          gcpIdentityConfigMap.Data["workloadIdentityPool"],
-				ExpirationSeconds: &Expiration,
+				ExpirationSeconds: &twoDaysSec,
 			}
-			volumes[VolNumber+1].Projected.Sources[1].ConfigMap = &corev1.ConfigMapProjection{
+			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap = &corev1.ConfigMapProjection{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: application.Name + "-gcp-auth",
 				},
-				Optional: &OptionalBool,
+				Optional: &optionalBool,
 				Items:    make([]corev1.KeyToPath, 1),
 			}
-			volumes[VolNumber+1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
-			volumes[VolNumber+1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
+			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
+			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
 		}
 
 		if application.Spec.Readiness != nil {

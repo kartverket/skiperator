@@ -13,12 +13,31 @@ spec:
         volumeMounts:
         - mountPath: /tmp                                                                                                                                                                                                                                                        
           name: tmp                                 
+        - name: config-map
+          mountPath: /config-map
+        - name: secret
+          mountPath: /secret
+        - name: empty-dir
+          mountPath: /empty-dir
+        - name: persistent-volume-claim
+          mountPath: /persistent-volume-claim                
         - mountPath: /var/run/secrets/tokens/gcp-ksa       
           name: gcp-ksa                                                                                                                                                                                                                                                               
           readOnly: true
       volumes:
       - emptyDir: {}                   
         name: tmp
+      - name: config-map
+        configMap:
+          name: config-map
+      - name: secret
+        secret:
+          secretName: secret
+      - name: empty-dir
+        emptyDir: {}
+      - name: persistent-volume-claim
+        persistentVolumeClaim:
+          claimName: persistent-volume-claim          
       - name: gcp-ksa               
         projected:                
           defaultMode: 420                       

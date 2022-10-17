@@ -5,6 +5,15 @@ metadata:
 spec:
   image: image
   port: 8080
+  filesFrom:
+  - mountPath: /config-map
+    configMap: config-map
+  - mountPath: /secret
+    secret: secret
+  - mountPath: /empty-dir
+    emptyDir: empty-dir
+  - mountPath: /persistent-volume-claim
+    persistentVolumeClaim: persistent-volume-claim    
   gcp:
     auth:
       serviceAccount: something@verdier.com

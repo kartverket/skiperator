@@ -51,6 +51,15 @@ spec:
     max: 5
     # When the average CPU utilization crosses this threshold another replica is started
     targetCpuUtilization: 80
+  # To interact with GCP.
+  gcp:
+    # For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need 
+    # to set the GCP serviceaccount to identify as. To allow this, we need a iam-rolebinding in
+    # GCP Adding the role Workload Identity User for the kubernetes SA on the GCP SA. 
+    #Documentation on how this is done can be found here: 
+    #https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+    auth:
+      serviceAccount: some-serviceaccount@some-project-id.iam.gserviceaccount.com
   # Environment variables that will be set inside the Deployment's pod
   env:
   # Alternative 1: Keys and values provided directly
