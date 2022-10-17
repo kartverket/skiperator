@@ -48,6 +48,25 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
 
+  sandbox:
+    name: Deploy to sandbox
+    permissions:
+      id-token: write
+      pull-requests: write
+      contents: read
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
+    needs: build
+    with:
+      runner: ubuntu-latest
+      environment: sandbox
+      kubernetes_cluster: atkv1-sandbox
+      terraform_workspace: sandbox
+      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      working_directory: deployment
+      workload_identity_provider: projects/256430705282/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      service_account: skiperator-deploy@skip-sandbox-37c2.iam.gserviceaccount.com 
+      project_id: kubernetes-sandbox-6e24
+
   dev:
     name: Deploy to dev
     permissions:
@@ -55,7 +74,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: dev
@@ -74,7 +93,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: test
@@ -93,7 +112,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: prod
