@@ -9,6 +9,8 @@ commands:
 - command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
 
 - command: kubectl apply --filename deployment
+- command: kubectl create namespace skiperator-system
+- command: kubectl create configmap gcpidentityconfig --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system
 - command: kubectl create namespace test
 
 - command: kubectl create serviceaccount --namespace test skiperator

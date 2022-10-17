@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,13 +22,15 @@ import (
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
 type DeploymentReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("deployment-controller")
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -35,8 +41,21 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
+	gcpIdentityConfigMap := corev1.ConfigMap{}
+
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcpidentityconfig"}, &gcpIdentityConfigMap)
+	if errors.IsNotFound(err) {
+		r.recorder.Eventf(
+			application,
+			corev1.EventTypeWarning, "Missing",
+			"Cannot find configmap named gcpidentityconfig in namespace skiperator-system",
+		)
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.scheme)
 		if err != nil {
@@ -90,7 +109,17 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 		container.Ports = make([]corev1.ContainerPort, 1)
 		container.Ports[0].ContainerPort = int32(application.Spec.Port)
 
-		container.Env = application.Spec.Env
+		//Adding env for GCP authentication
+		if application.Spec.GCP != nil {
+			envVar := corev1.EnvVar{
+				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+				Value: "/var/run/secrets/tokens/gcp-ksa/google-application-credentials.json",
+			}
+			container.Env = append(application.Spec.Env, envVar)
+		} else {
+			container.Env = application.Spec.Env
+		}
+
 		container.EnvFrom = make([]corev1.EnvFromSource, len(application.Spec.EnvFrom))
 		envFrom := container.EnvFrom
 
@@ -105,14 +134,20 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 		}
 
 		container.Resources = application.Spec.Resources
+		numberOfVolumes := len(application.Spec.FilesFrom) + 1
+		if application.Spec.GCP != nil {
+			numberOfVolumes = numberOfVolumes + 1
+		}
 
-		deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, len(application.Spec.FilesFrom)+1)
-		container.VolumeMounts = make([]corev1.VolumeMount, len(application.Spec.FilesFrom)+1)
+		deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, numberOfVolumes)
+		container.VolumeMounts = make([]corev1.VolumeMount, numberOfVolumes)
 		volumes := deployment.Spec.Template.Spec.Volumes
 		volumeMounts := container.VolumeMounts
 
 		volumes[0] = corev1.Volume{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
 		volumeMounts[0] = corev1.VolumeMount{Name: "tmp", MountPath: "/tmp"}
+
+		var VolNumber int
 
 		for i, file := range application.Spec.FilesFrom {
 			if len(file.ConfigMap) > 0 {
@@ -133,6 +168,37 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 			}
 
 			volumeMounts[i+1] = corev1.VolumeMount{Name: volumes[i+1].Name, MountPath: file.MountPath}
+			VolNumber = i
+		}
+
+		if application.Spec.GCP != nil {
+
+			volumeMounts[VolNumber+1].Name = "gcp-ksa"
+			volumeMounts[VolNumber+1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
+			volumeMounts[VolNumber+1].ReadOnly = true
+
+			Expiration := int64(172800)
+			OptionalBool := false
+			DefaultModeValue := int32(420)
+
+			volumes[VolNumber+1].Name = "gcp-ksa"
+			volumes[VolNumber+1].Projected = &corev1.ProjectedVolumeSource{}
+			volumes[VolNumber+1].Projected.DefaultMode = &DefaultModeValue
+			volumes[VolNumber+1].Projected.Sources = make([]corev1.VolumeProjection, 2)
+			volumes[VolNumber+1].Projected.Sources[0].ServiceAccountToken = &corev1.ServiceAccountTokenProjection{
+				Path:              "token",
+				Audience:          gcpIdentityConfigMap.Data["workloadIdentityPool"],
+				ExpirationSeconds: &Expiration,
+			}
+			volumes[VolNumber+1].Projected.Sources[1].ConfigMap = &corev1.ConfigMapProjection{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: application.Name + "-gcp-auth",
+				},
+				Optional: &OptionalBool,
+				Items:    make([]corev1.KeyToPath, 1),
+			}
+			volumes[VolNumber+1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
+			volumes[VolNumber+1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
 		}
 
 		if application.Spec.Readiness != nil {

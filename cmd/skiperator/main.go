@@ -137,6 +137,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "EgressServiceEntry")
 		os.Exit(1)
 	}
+	err = (&controllers.ConfigMapReconciler{}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ConfigmapGCP")
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

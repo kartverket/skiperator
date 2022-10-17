@@ -59,7 +59,7 @@ type ApplicationSpec struct {
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	GCP GCP `json:"gcp,omitempty"`
+	GCP *GCP `json:"gcp,omitempty"`
 }
 
 type Replicas struct {
@@ -171,8 +171,6 @@ type GCP struct {
 type Auth struct {
 	//+kubebuilder:validation:Required
 	ServiceAccount string `json:"serviceAccount"`
-	//+kubebuilder:validation:Required
-	Project string `json:"project"`
 }
 
 func (a *Application) FillDefaults() {

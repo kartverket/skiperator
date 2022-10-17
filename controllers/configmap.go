@@ -11,10 +11,14 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"encoding/json"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 )
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+
 
 type Config struct {
 	Type string `json:"type"`
@@ -31,11 +35,13 @@ type CredentialSource struct {
 type ConfigMapReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *ConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("configmap-controller")
 
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -47,43 +53,56 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, application *skiper
 	application.FillDefaults()
 
 	gcpAuthConfigMapName := application.Name + "-gcp-auth"
-
+	gcpIdentityConfigMap := corev1.ConfigMap{}
 	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
-	gcpIdentityConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: "skiperator-system", Name: "gcpidentityconfig"}}
 	
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcpidentityconfig"}, &gcpIdentityConfigMap)
+	if errors.IsNotFound(err) {
+		r.recorder.Eventf(
+			application,
+			corev1.EventTypeWarning, "Missing",
+			"Cannot find configmap named gcpidentityconfig in namespace skiperator-system",
+		)
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
 	
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &gcpAuthConfigMap, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &gcpAuthConfigMap, func() error {
 		// Set application as owner of the configmap
 		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.scheme)
 		if err != nil {
 			return err
 		}
 
-		ConfStruct := Config {
-			Type: "external_account",
-			Audience: "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
-			ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + "@" + application.Spec.GCP.Auth.Project + ".iam.gserviceaccount.com:generateAccessToken",
-			SubjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
-			TokenUrl: "https://sts.googleapis.com/v1/token",
-			CredentialSource: CredentialSource{
-				File: "/var/run/secrets/tokens/gcp-ksa/token",
-			} ,
-		}
+		
+		if application.Spec.GCP != nil{
 
-		ConfByte, err := json.Marshal(ConfStruct)
-		if err != nil {
-			return err
+			ConfStruct := Config {
+				Type: "external_account",
+				Audience: "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
+				ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + ":generateAccessToken",
+				SubjectTokenType: "urn:ietf:params:oauth:token-type:jwt",
+				TokenUrl: "https://sts.googleapis.com/v1/token",
+				CredentialSource: CredentialSource{
+					File: "/var/run/secrets/tokens/gcp-ksa/token",
+				} ,
+			}
+
+			ConfByte, err := json.Marshal(ConfStruct)
+			if err != nil {
+				return err
+			} 
+			
+			gcpAuthConfigMap.Data= map[string]string{
+				"config" : string(ConfByte),
+			}
 		}
-		ConMap := map[string]string{}
-		json.Unmarshal(ConfByte, &ConMap) 
-		
-		
-		gcpAuthConfigMap.Data = ConMap
 		
 		return nil
 	})
 
 	return reconcile.Result{}, err
+
 }
 
 //ConfStruct := Config {
