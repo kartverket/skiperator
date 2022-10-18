@@ -118,7 +118,7 @@ jobs:
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=dev.tfvars"
+      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=prod.tfvars"
       working_directory: deployment
       workload_identity_provider: projects/421909719843/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-prod-bda1.iam.gserviceaccount.com
