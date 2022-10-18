@@ -74,7 +74,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: dev
@@ -93,7 +93,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: test
@@ -112,7 +112,7 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
-    needs: build
+    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: prod
