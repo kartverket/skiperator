@@ -48,6 +48,25 @@ jobs:
     outputs:
       version: ${{ steps.meta.outputs.version }}
 
+  sandbox:
+    name: Deploy to sandbox
+    permissions:
+      id-token: write
+      pull-requests: write
+      contents: read
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.3
+    needs: build
+    with:
+      runner: ubuntu-latest
+      environment: sandbox
+      kubernetes_cluster: atkv1-sandbox
+      terraform_workspace: sandbox
+      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=sandbox.tfvars"
+      working_directory: deployment
+      workload_identity_provider: projects/256430705282/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      service_account: skiperator-deploy@skip-sandbox-37c2.iam.gserviceaccount.com
+      project_id: kubernetes-sandbox-6e24
+
   dev:
     name: Deploy to dev
     permissions:
@@ -61,7 +80,7 @@ jobs:
       environment: dev
       kubernetes_cluster: atkv1-dev
       terraform_workspace: dev
-      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=dev.tfvars"
       working_directory: deployment
       workload_identity_provider: projects/214581028419/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-dev-7d22.iam.gserviceaccount.com
@@ -80,7 +99,7 @@ jobs:
       environment: test
       kubernetes_cluster: atkv1-test
       terraform_workspace: test
-      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=test.tfvars"
       working_directory: deployment
       workload_identity_provider: projects/704673195983/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-test-b6e5.iam.gserviceaccount.com
@@ -99,7 +118,7 @@ jobs:
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_options: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=dev.tfvars"
       working_directory: deployment
       workload_identity_provider: projects/421909719843/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
       service_account: skiperator-deploy@skip-prod-bda1.iam.gserviceaccount.com
