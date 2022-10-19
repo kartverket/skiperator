@@ -135,6 +135,8 @@ spec:
     # make kubernetes kill the app and restart it.
     limits:
       # A value in millicpus (m)
+      # NOTE: This is not recommended to set.
+      # See: https://home.robusta.dev/blog/stop-using-cpu-limits
       cpu: 1000m
       # Number of bytes of RAM
       memory: 1G
@@ -143,9 +145,9 @@ spec:
     # until the limit is reached
     requests:
       # A value in millicpus (m)
-      cpu: 500m
+      cpu: 25m
       # Number of bytes of RAM
-      memory: 500M
+      memory: 250M
   # Zero trust dictates that only applications with a reason for being able
   # to access another resource should be able to reach it. This is set up by
   # default by denying all ingress and egress traffic from the pods in the
