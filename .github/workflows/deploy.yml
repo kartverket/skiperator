@@ -54,7 +54,7 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@sanitize-output
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
     needs: build
     with:
       runner: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@sanitize-output
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
@@ -92,7 +92,7 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@sanitize-output
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
@@ -111,7 +111,7 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@sanitize-output
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
