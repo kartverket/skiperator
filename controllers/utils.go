@@ -28,6 +28,7 @@ var excludedNamespaces = []string{
 	"gatekeeper-system",
 	"gke-connect",
 	"gke-system",
+	"gke-managed-metrics-server",
 	"resource-group-system",
 	// Bundles NetworkPolicies already
 	"kasten-io",
