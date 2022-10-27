@@ -34,8 +34,6 @@ var excludedNamespaces = []string{
 	// TODO needs NetworkPolicies/Skiperator
 	"vault",
 	// TODO needs NetworkPolicies/Skiperator
-	"nibas",
-	// TODO needs NetworkPolicies/Skiperator
 	"aut",
 	// TODO PoC, add NetworkPolicies after
 	"sysdig-agent",
