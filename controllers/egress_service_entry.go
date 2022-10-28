@@ -75,8 +75,23 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 				serviceEntry.Spec.Endpoints = []*networkingv1beta1api.WorkloadEntry{{Address: rule.Ip}}
 			}
 
-			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(rule.Ports))
-			for i, port := range rule.Ports {
+			ports := rule.Ports
+
+			// When not specified default to opening HTTP and HTTPS
+			if len(ports) == 0 {
+				ports = make([]*networkingv1beta1api.Port, 2)
+
+				ports[0].Name = "http"
+				ports[0].Number = 80
+				ports[0].Protocol = "HTTPS"
+
+				ports[1].Name = "https"
+				ports[1].Number = 443
+				ports[1].Protocol = "HTTPS"
+			}
+
+			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(ports))
+			for i, port := range ports {
 				if rule.Ip == "" && port.Protocol == "TCP" {
 					r.recorder.Eventf(
 						application,
