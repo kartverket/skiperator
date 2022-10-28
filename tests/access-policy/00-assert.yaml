@@ -43,13 +43,13 @@ spec:
   - example.com
   ports:
   - name: http
-    number: 802
+    number: 80
     protocol: HTTP
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: test-egress-03a90cb5d70dc06a
+  name: test-egress-3a90cb5d70dc06a
 spec:
   exportTo:
   - .
@@ -58,6 +58,6 @@ spec:
   hosts:
   - foo.com
   ports:
-  - name: http
-    number: 80
-    protocol: HTTP
+  - name: https
+    number: 443
+    protocol: HTTPS
