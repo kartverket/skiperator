@@ -3,8 +3,10 @@ package controllers
 import (
 	"context"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"hash/fnv"
+	"strings"
+
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,7 +18,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
@@ -77,17 +78,13 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 
 			ports := rule.Ports
 
-			// When not specified default to opening HTTP and HTTPS
+			// When not specified default to opening HTTPS
 			if len(ports) == 0 {
-				ports = make([]*networkingv1beta1api.Port, 2)
+				ports = make([]skiperatorv1alpha1.Port, 1)
 
-				ports[0].Name = "http"
-				ports[0].Number = 80
+				ports[0].Name = "https"
+				ports[0].Port = 443
 				ports[0].Protocol = "HTTPS"
-
-				ports[1].Name = "https"
-				ports[1].Number = 443
-				ports[1].Protocol = "HTTPS"
 			}
 
 			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(ports))

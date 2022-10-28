@@ -20,3 +20,4 @@ spec:
         - name: http
           port: 80
           protocol: HTTP
+      - host: foo.com
