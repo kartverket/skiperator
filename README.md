@@ -184,9 +184,9 @@ spec:
       rules:
       - application: other-app
       # external specifies which applications on the internet the application
-      # can reach. Only host is required unless it is on another port than HTTP
-      # on port 80 and HTTPS on port 443. If other ports or protocols are
-      # required then port must be specified as well
+      # can reach. Only host is required unless it is on another port than HTTPS
+      # on port 443. If other ports or protocols are required then `ports` must
+      # be specified as well
       external:
         # The allowed hostname. Note that this does not include subdomains
       - host: nrk.no

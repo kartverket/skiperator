@@ -45,3 +45,19 @@ spec:
   - name: http
     number: 80
     protocol: HTTP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: test-egress-3a90cb5d70dc06a
+spec:
+  exportTo:
+  - .
+  - istio-system
+  resolution: DNS
+  hosts:
+  - foo.com
+  ports:
+  - name: https
+    number: 443
+    protocol: HTTPS
