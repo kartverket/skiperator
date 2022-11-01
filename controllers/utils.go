@@ -39,6 +39,7 @@ var excludedNamespaces = []string{
 	// TODO PoC, add NetworkPolicies after
 	"sysdig-agent",
 	"sysdig-admission-controller",
+	"instana-agent",
 }
 
 func isNotExcludedNamespace(namespace *corev1.Namespace) bool {
