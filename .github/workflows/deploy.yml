@@ -2,11 +2,11 @@ name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: ["v*.*.*"]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -54,16 +54,17 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.0.1
     needs: build
     with:
       runner: ubuntu-latest
       environment: sandbox
       kubernetes_cluster: atkv1-sandbox
       terraform_workspace: sandbox
-      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=sandbox.tfvars"
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_2: -var-file=sandbox.tfvars
       working_directory: deployment
-      workload_identity_provider: projects/256430705282/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      auth_project_number: 256430705282
       service_account: skiperator-deploy@skip-sandbox-37c2.iam.gserviceaccount.com
       project_id: kubernetes-sandbox-6e24
 
@@ -73,16 +74,17 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.0.1
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: dev
       kubernetes_cluster: atkv1-dev
       terraform_workspace: dev
-      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=dev.tfvars"
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_2: -var-file=dev.tfvars
       working_directory: deployment
-      workload_identity_provider: projects/214581028419/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      auth_project_number: 214581028419
       service_account: skiperator-deploy@skip-dev-7d22.iam.gserviceaccount.com
       project_id: kubernetes-dev-94b9
 
@@ -92,16 +94,17 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.0.1
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: test
       kubernetes_cluster: atkv1-test
       terraform_workspace: test
-      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=test.tfvars"
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_2: -var-file=test.tfvars
       working_directory: deployment
-      workload_identity_provider: projects/704673195983/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      auth_project_number: 704673195983
       service_account: skiperator-deploy@skip-test-b6e5.iam.gserviceaccount.com
       project_id: kubernetes-test-94f6
 
@@ -111,15 +114,16 @@ jobs:
       id-token: write
       pull-requests: write
       contents: read
-    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v2.7.5
+    uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.0.1
     needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_options: "-var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }} -var-file=prod.tfvars"
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_2: -var-file=prod.tfvars
       working_directory: deployment
-      workload_identity_provider: projects/421909719843/locations/global/workloadIdentityPools/skiperator-deploy-pool/providers/github-provider
+      auth_project_number: 421909719843
       service_account: skiperator-deploy@skip-prod-bda1.iam.gserviceaccount.com
       project_id: kubernetes-prod-e4a2
