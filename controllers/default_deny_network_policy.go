@@ -2,11 +2,15 @@ package controllers
 
 import (
 	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,13 +22,15 @@ import (
 //+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 
 type DefaultDenyNetworkPolicyReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
 }
 
 func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.client = mgr.GetClient()
 	r.scheme = mgr.GetScheme()
+	r.recorder = mgr.GetEventRecorderFor("default-deny-networkpolicy-controller")
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
@@ -35,8 +41,22 @@ func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) 
 }
 
 func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
+
+	instanaConfigMap := corev1.ConfigMap{}
+
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}, &instanaConfigMap)
+	if errors.IsNotFound(err) {
+		r.recorder.Eventf(
+			namespace,
+			corev1.EventTypeWarning, "Missing",
+			"Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system",
+		)
+	} else if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
 		// Set namespace as owner of the network policy
 		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.scheme)
 		if err != nil {
@@ -49,7 +69,7 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, name
 		}
 
 		// Egress rules
-		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 3, 3)
+		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 4, 4)
 
 		// Egress rule for Internet
 		networkPolicy.Spec.Egress[0].To = make([]networkingv1.NetworkPolicyPeer, 1)
@@ -94,6 +114,27 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, name
 
 		xdsPort := intstr.FromInt(15012)
 		networkPolicy.Spec.Egress[2].Ports[0].Port = &xdsPort
+
+		// Egress rule for instana-agents - TODO: find way to specify CIDR block from ConfigMap
+		networkPolicy.Spec.Egress[3].To = make([]networkingv1.NetworkPolicyPeer, 1)
+		networkPolicy.Spec.Egress[3].To[0].IPBlock = &networkingv1.IPBlock{}
+		networkPolicy.Spec.Egress[3].To[0].IPBlock.CIDR = instanaConfigMap.Data["cidrBlock"]
+
+		startPort := 32768
+		endPort := 60999
+		amountOfPorts := (endPort - startPort) + 1
+
+		networkPolicy.Spec.Egress[3].Ports = make([]networkingv1.NetworkPolicyPort, amountOfPorts)
+		instanaProtocol := corev1.ProtocolTCP
+		// specify ephemeral ports that may or may not be used by the JVMs to communicate with instana-agent
+		// - yes, this will result in a horribly long list, but NetworkPolicy doesn't support portRange
+		// until Kubernetes v1.25, while Anthos is currently on 1.24
+
+		for i := 0; i < amountOfPorts; i++ {
+			jvmPort := intstr.FromInt(startPort + i)
+			networkPolicy.Spec.Egress[3].Ports[i].Protocol = &instanaProtocol
+			networkPolicy.Spec.Egress[3].Ports[i].Port = &jvmPort
+		}
 
 		return nil
 	})
