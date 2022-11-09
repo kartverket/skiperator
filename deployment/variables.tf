@@ -9,3 +9,9 @@ variable "identityProvider" {
   default     = "empty"
   description = "The name of the identity provider associated with your Kubernetes cluster"
 }
+
+variable "instanaCidrBlock" {
+  type        = string
+  default     = "empty"
+  description = "CIDR block for the worker nodes in your Kubernetes cluster"
+}
