@@ -43,9 +43,12 @@ resource "kubernetes_deployment_v1" "deployment" {
             seccomp_profile { type = "RuntimeDefault" }
           }
           resources {
+            requests = {
+              cpu = "10m"
+              memory = "32Mi"
+            }
             limits = {
-              cpu    = "0.2"
-              memory = "64Mi"
+              memory = "256Mi"
             }
           }
           port {
