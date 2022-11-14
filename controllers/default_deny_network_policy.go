@@ -120,22 +120,6 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, name
 		networkPolicy.Spec.Egress[3].To[0].IPBlock = &networkingv1.IPBlock{}
 		networkPolicy.Spec.Egress[3].To[0].IPBlock.CIDR = instanaConfigMap.Data["cidrBlock"]
 
-		startPort := 32768
-		endPort := 60999
-		amountOfPorts := (endPort - startPort) + 1
-
-		networkPolicy.Spec.Egress[3].Ports = make([]networkingv1.NetworkPolicyPort, amountOfPorts)
-		instanaProtocol := corev1.ProtocolTCP
-		// specify ephemeral ports that may or may not be used by the JVMs to communicate with instana-agent
-		// - yes, this will result in a horribly long list, but NetworkPolicy doesn't support portRange
-		// until Kubernetes v1.25, while Anthos is currently on 1.24
-
-		for i := 0; i < amountOfPorts; i++ {
-			jvmPort := intstr.FromInt(startPort + i)
-			networkPolicy.Spec.Egress[3].Ports[i].Protocol = &instanaProtocol
-			networkPolicy.Spec.Egress[3].Ports[i].Port = &jvmPort
-		}
-
 		return nil
 	})
 	return reconcile.Result{}, err
