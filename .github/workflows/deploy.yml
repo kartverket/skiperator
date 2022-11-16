@@ -17,7 +17,6 @@ on:
       - samples/**
       - README.md
       - CONTRIBUTING.md
-      - .github/**
   workflow_dispatch:
 
 env:
