@@ -57,7 +57,7 @@ kubectl apply -f deployment
 A minimal application resource is provided in the debug folder and can be applied with
 
 ```
-kubectl apply -f debug/application.yaml
+kubectl apply -f samples/application.yaml
 ```
 
 For now it also requires that the `github-auth` secret is placed in the
