@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: debug
+  name: skiperator-system
 spec:
   image: nginx
   port: 80
