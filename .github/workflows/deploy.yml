@@ -5,8 +5,18 @@ on:
     branches: [main]
     # Publish semver tags as releases.
     tags: ["v*.*.*"]
+    paths-ignore:
+      - doc/**
+      - samples/**
+      - README.md
+      - CONTRIBUTING.md
   pull_request:
     branches: [main]
+    paths-ignore:
+      - doc/**
+      - samples/**
+      - README.md
+      - CONTRIBUTING.md
   workflow_dispatch:
 
 env:
