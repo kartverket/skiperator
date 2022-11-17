@@ -87,10 +87,10 @@ You may then start the application with
 $ ./bin/skiperator
 ```
 
+// TODO Explain github-auth token?
+
 For now it also requires that the `github-auth` secret is placed in the
 namespace manually, so create that if it complains about a missing secret.
-
-^ FORKLARE DENNE BEDRE
 
 Now you should have a running app in your namespace. Run the following command
 to see all the created resources.
@@ -99,8 +99,14 @@ to see all the created resources.
 $ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,VirtualService,Sidecar
 ```
 
-Now keep developing the app, change source code and restart the operator for
-every time you want to recompile.
+Should you make changes to the application controllers, you will have to rebuild and restart the Skiperator application. First, exit the application process, then run
+
+```
+$ make build
+$ ./bin/skiperator
+```
+
+Your changes should then be applied.
 
 ## Writing code
 
