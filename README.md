@@ -42,7 +42,7 @@ spec:
   # The below hostnames will also have TLS certificates issued and be reachable on both
   # HTTP and HTTPS.
   ingresses:
-  - testapp.dev.skip.statkart.no
+    - testapp.dev.skip.statkart.no
   # Configuration used to automatically scale the deployment based on load
   replicas:
     # Minimum number of replicas when load is low
@@ -53,48 +53,48 @@ spec:
     targetCpuUtilization: 80
   # To interact with GCP.
   gcp:
-    # For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need 
+    # For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
     # to set the GCP serviceaccount to identify as. To allow this, we need a iam-rolebinding in
-    # GCP Adding the role Workload Identity User for the kubernetes SA on the GCP SA. 
-    # Documentation on how this is done can be found here: 
+    # GCP Adding the role Workload Identity User for the kubernetes SA on the GCP SA.
+    # Documentation on how this is done can be found here:
     # https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
     auth:
       serviceAccount: some-serviceaccount@some-project-id.iam.gserviceaccount.com
   # Environment variables that will be set inside the Deployment's pod
   env:
-  # Alternative 1: Keys and values provided directly
-  - name: ENV
-    value: PRODUCTION
-  # Alternative 2: Keys with dynamic values. valueFrom supports configMaps, secrets
-  # and fieldRef, which selects a single key from the deployment object at runtime
-  - name: USERNAME
-    valueFrom:
-      configMapKeyRef:
-        name: some-configmap
-        key: username
-  - name: PASSWORD
-    valueFrom:
-      secretKeyRef:
-        name: some-secret
-        key: password
+    # Alternative 1: Keys and values provided directly
+    - name: ENV
+      value: PRODUCTION
+    # Alternative 2: Keys with dynamic values. valueFrom supports configMaps, secrets
+    # and fieldRef, which selects a single key from the deployment object at runtime
+    - name: USERNAME
+      valueFrom:
+        configMapKeyRef:
+          name: some-configmap
+          key: username
+    - name: PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: some-secret
+          key: password
   # Environment variables mounted from files. When specified all the keys of the
   # resource will be assigned as environment variables. Supports both configmaps
   # and secrets. For mounting as files see filesFrom
   envFrom:
-  - configMap: some-configmap
-  - secret: some-secret
+    - configMap: some-configmap
+    - secret: some-secret
   # Mounting volumes into the Deployment are done using the filesFrom argument
   # filesFrom supports configmaps, secrets and pvcs. The Application resource
   # assumes these have already been created by you
   filesFrom:
-  - emptyDir: temp-dir
-    mountPath: /tmp
-  - configMap: some-configmap
-    mountPath: /var/run/configmap
-  - secret: some-secret
-    mountPath: /var/run/secret
-  - persistentVolumeClaim: some-pvc
-    mountPath: /var/run/volume
+    - emptyDir: temp-dir
+      mountPath: /tmp
+    - configMap: some-configmap
+      mountPath: /var/run/configmap
+    - secret: some-secret
+      mountPath: /var/run/secret
+    - persistentVolumeClaim: some-pvc
+      mountPath: /var/run/volume
   # Defines an alternative strategy for the Kubernetes deployment is useful for when
   # the deafult which is rolling deployments are not usable. Setting type to
   # Recreate will take down all the pods before starting new pods, whereas the
@@ -171,9 +171,9 @@ spec:
       # specified it refers to an app in the current namespace. For apps in
       # other namespaces namespace is required
       rules:
-      - application: other-app
-      - application: third-app
-        namespace: other-namespace
+        - application: other-app
+        - application: third-app
+          namespace: other-namespace
     # outbound specifies egress rules. Which apps on the cluster and the
     # internet is the Application allowed to send requests to?
     outbound:
@@ -182,29 +182,33 @@ spec:
       # you're trying to reach also must specify that they accept communication
       # from this app in their ingress rules
       rules:
-      - application: other-app
+        - application: other-app
       # external specifies which applications on the internet the application
       # can reach. Only host is required unless it is on another port than HTTPS
       # on port 443. If other ports or protocols are required then `ports` must
       # be specified as well
       external:
         # The allowed hostname. Note that this does not include subdomains
-      - host: nrk.no
-        # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
-        # addition to hostname
-      - host: smtp.mailgrid.com
-        # IP address. Only required for TCP requests.
-        # Note: Hostname must always be defined even if IP is set statically
-        ip: "123.123.123.123"
-        # The ports to allow for the above hostname. When not specified HTTP and
-        # HTTPS on port 80 and 443 respectively are put into the allowlist
-        ports: 
-          # Name is required and is an arbitrary name. Must be unique within
-          # this array
-        - name: smtp
-          # Supported protocols are: TCP, HTTP, HTTPS
-          protocol: TCP
-          port: 587
+        - host: nrk.no
+          # Non-HTTP requests (i.e. using the TCP protocol) need to use IP in
+          # addition to hostname
+        - host: smtp.mailgrid.com
+          # IP address. Only required for TCP requests.
+          # Note: Hostname must always be defined even if IP is set statically
+          ip: "123.123.123.123"
+          # The ports to allow for the above hostname. When not specified HTTP and
+          # HTTPS on port 80 and 443 respectively are put into the allowlist
+          ports:
+        ports:
+          ports:
+        ports:
+          ports:
+            # Name is required and is an arbitrary name. Must be unique within
+            # this array
+            - name: smtp
+              # Supported protocols are: TCP, HTTP, HTTPS
+              protocol: TCP
+              port: 587
 ```
 
 ## Developing
