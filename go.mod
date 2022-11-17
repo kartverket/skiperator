@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cert-manager/cert-manager v1.9.1
-	github.com/kudobuilder/kuttl v0.13.0
+	github.com/kudobuilder/kuttl v0.14.0
 	go.etcd.io/etcd/server/v3 v3.5.5
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20221013011440-bc935762d2b9
