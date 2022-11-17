@@ -87,11 +87,6 @@ You may then start the application with
 $ ./bin/skiperator
 ```
 
-// TODO Explain github-auth token?
-
-For now it also requires that the `github-auth` secret is placed in the
-namespace manually, so create that if it complains about a missing secret.
-
 Now you should have a running app in your namespace. Run the following command
 to see all the created resources.
 
