@@ -134,6 +134,17 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 		}
 
 		container.Resources = application.Spec.Resources
+		limits := container.Resources.Limits
+		if limits.Cpu() != nil {
+			r.recorder.Eventf(
+				application,
+				corev1.EventTypeWarning,
+				"Deprecated field",
+				`Field (resources.limits.cpu) is deprecated, and will not be set. Please unset this field to remove this warning.`,
+			)
+			delete(limits, "cpu")
+		}
+
 		numberOfVolumes := len(application.Spec.FilesFrom) + 1
 		if application.Spec.GCP != nil {
 			numberOfVolumes = numberOfVolumes + 1
