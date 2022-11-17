@@ -43,19 +43,21 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
-	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
-	if errors.IsNotFound(err) {
-		r.recorder.Eventf(
-			application,
-			corev1.EventTypeWarning, "Missing",
-			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
-		)
-	} else if err != nil {
-		return reconcile.Result{}, err
+	if application.Spec.GCP != nil {
+		err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
+		if errors.IsNotFound(err) {
+			r.recorder.Eventf(
+				application,
+				corev1.EventTypeWarning, "Missing",
+				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
+			)
+		} else if err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.scheme)
 		if err != nil {
