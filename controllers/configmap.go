@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -51,6 +52,10 @@ func (r *ConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ConfigMapReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
+	// Is this an error?
+	if application.Spec.GCP == nil {
+		return reconcile.Result{}, nil
+	}
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
