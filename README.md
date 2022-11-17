@@ -199,10 +199,6 @@ spec:
           # The ports to allow for the above hostname. When not specified HTTP and
           # HTTPS on port 80 and 443 respectively are put into the allowlist
           ports:
-        ports:
-          ports:
-        ports:
-          ports:
             # Name is required and is an arbitrary name. Must be unique within
             # this array
             - name: smtp
