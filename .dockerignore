@@ -12,6 +12,5 @@ doc/
 **/*.md
 
 bin/
-deployment/
 
 api/**/zz_generated.deepcopy.go

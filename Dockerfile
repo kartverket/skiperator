@@ -6,8 +6,11 @@ RUN go mod download
 COPY Makefile ./
 RUN make tools
 
-COPY ./ ./
+COPY . .
 RUN make
+
+FROM builder as test
+CMD ["make", "test"]
 
 FROM scratch
 
