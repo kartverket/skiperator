@@ -25,6 +25,6 @@ jobs:
       - name: Setup Docker buildx
         uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
       - name: Build test-image
-        run: docker build -t "${IMAGE_NAME}-test" --target test .
+        run: docker build -t skiperator-test --target test .
       - name: Run tests in container
-        run: docker run -it --rm --name test "${IMAGE_NAME}-test"
+        run: docker run -it --rm --name test skiperator-test
