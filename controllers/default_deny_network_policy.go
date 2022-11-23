@@ -114,11 +114,12 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, name
 
 		xdsPort := intstr.FromInt(15012)
 		networkPolicy.Spec.Egress[2].Ports[0].Port = &xdsPort
-
 		// Egress rule for instana-agents
-		networkPolicy.Spec.Egress[3].To = make([]networkingv1.NetworkPolicyPeer, 1)
-		networkPolicy.Spec.Egress[3].To[0].IPBlock = &networkingv1.IPBlock{}
-		networkPolicy.Spec.Egress[3].To[0].IPBlock.CIDR = instanaConfigMap.Data["cidrBlock"]
+		if instanaConfigMap.Data != nil {
+			networkPolicy.Spec.Egress[3].To = make([]networkingv1.NetworkPolicyPeer, 1)
+			networkPolicy.Spec.Egress[3].To[0].IPBlock = &networkingv1.IPBlock{}
+			networkPolicy.Spec.Egress[3].To[0].IPBlock.CIDR = instanaConfigMap.Data["cidrBlock"]
+		}
 
 		return nil
 	})
