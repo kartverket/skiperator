@@ -17,14 +17,15 @@ on:
       - CONTRIBUTING.md
 
 jobs:
-  build:
+  test:
+    name: Build and run tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
-        with:
-          go-version-file: "go.mod"
-          cache: true
-      - name: Run tests
-        run: make test
+      - name: Setup Docker buildx
+        uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
+      - name: Build test-image
+        run: docker build -t skiperator-test --target test .
+      - name: Run tests in container
+        run: docker run --rm --name test skiperator-test
