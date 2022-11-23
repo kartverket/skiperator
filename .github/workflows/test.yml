@@ -27,4 +27,4 @@ jobs:
       - name: Build test-image
         run: docker build -t skiperator-test --target test .
       - name: Run tests in container
-        run: docker run -it --rm --name test skiperator-test
+        run: docker run --rm --name test skiperator-test
