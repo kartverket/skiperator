@@ -139,12 +139,12 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 		container.Resources.Requests = application.RequestToCoreResourceList(application.Spec.Resources.Requests)
 
 		limits := container.Resources.Limits
-		if limits.Cpu() != nil {
+		if !application.Spec.Resources.Limits.CpuLimit.IsZero() {
 			r.recorder.Eventf(
 				application,
 				corev1.EventTypeWarning,
 				"Deprecated field",
-				`Field (resources.limits.cpu) is deprecated, and will not be set. Please unset this field to remove this warning.`,
+				`Field (resources.limits.cpu) is deprecated, and will not be set on the pod. Please unset this field to remove this warning.`,
 			)
 			delete(limits, "cpu")
 		}
