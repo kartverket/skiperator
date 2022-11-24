@@ -14,38 +14,44 @@ spec:
   template:
     metadata:
       annotations:
-        prometheus.io/scrape: 'true'
+        prometheus.io/scrape: "true"
       labels:
         app: test
     spec:
       containers:
-      - name: test
-        image: image
-        imagePullPolicy: Always
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        securityContext:
-          allowPrivilegeEscalation: false
-          privileged: false
-          readOnlyRootFilesystem: true
-          runAsGroup: 150
-          runAsUser: 150
-          seccompProfile:
-            type: RuntimeDefault
-        volumeMounts:
-        - mountPath: /tmp
-          name: tmp
+        - name: test
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          resources:
+            limits:
+              memory: 100M
+            requests:
+              cpu: 5m
+              memory: 50M
       imagePullSecrets:
-      - name: github-auth
+        - name: github-auth
       securityContext:
         fsGroup: 150
         supplementalGroups:
-        - 150
+          - 150
       serviceAccountName: test
       volumes:
-      - emptyDir: {}
-        name: tmp
+        - emptyDir: {}
+          name: tmp
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -55,12 +61,12 @@ spec:
   minReplicas: 1
   maxReplicas: 1
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
@@ -74,11 +80,11 @@ spec:
   selector:
     app: test
   ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
-    appProtocol: http
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -89,8 +95,8 @@ spec:
     matchLabels:
       app: test
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
+    - Egress
 ---
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication

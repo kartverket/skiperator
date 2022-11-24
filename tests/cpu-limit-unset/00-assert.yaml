@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test
+spec:
+  template:
+    spec:
+      containers:
+        - name: test
+          resources:
+            limits:
+              memory: 100M
+            requests:
+              cpu: 5m
+              memory: 50M

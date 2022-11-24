@@ -3,19 +3,11 @@ kind: Application
 metadata:
   name: test
 spec:
-  replicas:
-    min: 3
-    max: 6
-  strategy:
-    type: Recreate
   image: image
-  command: [command]
-  env:
-    - name: name
-      value: value
   port: 8080
   resources:
     limits:
+      cpu: 10m
       memory: 100M
     requests:
       cpu: 5m
