@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -14,16 +14,19 @@ type ApplicationList struct {
 	Items []Application `json:"items"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:resource:shortName="app"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName="app"
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ApplicationSpec `json:"spec,omitempty"`
+
+	Status ApplicationStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
@@ -114,7 +117,7 @@ type Probe struct {
 	Path string `json:"path"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
 	Inbound InboundPolicy `json:"inbound,omitempty"`
@@ -122,13 +125,13 @@ type AccessPolicy struct {
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type InboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type OutboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules,omitempty"`
@@ -143,7 +146,7 @@ type InternalRule struct {
 	Application string `json:"application"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
@@ -163,7 +166,7 @@ type Port struct {
 	Protocol string `json:"protocol"`
 }
 
-type GCP struct { 
+type GCP struct {
 	//+kubebuilder:validation:Required
 	Auth Auth `json:"auth"`
 }
@@ -172,6 +175,28 @@ type Auth struct {
 	//+kubebuilder:validation:Required
 	ServiceAccount string `json:"serviceAccount"`
 }
+
+// +kubebuilder:object:generate=true
+type ApplicationStatus struct {
+	TotalApplicationStatus       Status            `json:"application,omitempty"`
+	ControllersApplicationStatus map[string]Status `json:"controllers,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type Status struct {
+	Status    StatusNames `json:"status"`
+	Message   string      `json:"message"`
+	TimeStamp string      `json:"timestamp"`
+}
+
+type StatusNames string
+
+const (
+	SYNCED      StatusNames = "Synced"
+	PROGRESSING StatusNames = "Progressing"
+	ERROR       StatusNames = "Error"
+	PENDING     StatusNames = "Pending"
+)
 
 func (a *Application) FillDefaults() {
 	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
