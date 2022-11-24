@@ -133,7 +133,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 			}
 		}
 
-		container.Resources = application.Spec.Resources
+		container.Resources.Limits = application.LimitToCoreResourceList(application.Spec.Resources.Limits)
+		container.Resources.Requests = application.RequestToCoreResourceList(application.Spec.Resources.Requests)
+
 		limits := container.Resources.Limits
 		if limits.Cpu() != nil {
 			r.recorder.Eventf(
