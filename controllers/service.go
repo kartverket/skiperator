@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +35,9 @@ func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ServiceReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
+	application.UpdateControllerStatus("service", "Starting service reconciliation", skiperatorv1alpha1.PROGRESSING)
+	r.client.Status().Update(ctx, application)
+
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &service, func() error {
 		// Set application as owner of the service
@@ -62,5 +66,9 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, application *skiperat
 
 		return nil
 	})
+
+	application.UpdateControllerStatus("service", "Service synced", skiperatorv1alpha1.SYNCED)
+	r.client.Status().Update(ctx, application)
+
 	return reconcile.Result{}, err
 }

@@ -41,6 +41,9 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
 
+	application.UpdateControllerStatus("deployment", "Starting deployment reconciliation", skiperatorv1alpha1.PROGRESSING)
+	r.client.Status().Update(ctx, application)
+
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
 	if application.Spec.GCP != nil {
@@ -232,5 +235,9 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 
 		return nil
 	})
+
+	application.UpdateControllerStatus("deployment", "Deployment synced", skiperatorv1alpha1.SYNCED)
+	r.client.Status().Update(ctx, application)
+
 	return reconcile.Result{}, err
 }

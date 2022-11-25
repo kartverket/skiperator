@@ -61,12 +61,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.ApplicationReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Application")
-		os.Exit(1)
-	}
-
 	err = (&controllers.ServiceAccountReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ServiceAccount")

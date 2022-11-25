@@ -361,10 +361,13 @@ spec:
               application:
                 properties:
                   message:
+                    default: hello
                     type: string
                   status:
+                    default: Synced
                     type: string
                   timestamp:
+                    default: hello
                     type: string
                 required:
                 - message
@@ -375,10 +378,13 @@ spec:
                 additionalProperties:
                   properties:
                     message:
+                      default: hello
                       type: string
                     status:
+                      default: Synced
                       type: string
                     timestamp:
+                      default: hello
                       type: string
                   required:
                   - message
@@ -386,6 +392,9 @@ spec:
                   - timestamp
                   type: object
                 type: object
+            required:
+            - application
+            - controllers
             type: object
         type: object
     served: true
