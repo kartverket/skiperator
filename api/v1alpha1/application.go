@@ -17,6 +17,7 @@ type ApplicationList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.application.status`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
