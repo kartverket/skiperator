@@ -285,19 +285,17 @@ func allSameStatus(a []string) bool {
 }
 
 func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
-	if appStatus, present := a.Status.ControllersStatus[controllerName]; present {
-		if appStatus.Status != status {
-			a.Status.ControllersStatus[controllerName] = Status{
-				Status:    status,
-				Message:   message,
-				TimeStamp: time.Now().String(),
-			}
-
-			a.UpdateApplicationStatus()
-		} else {
-			println("Won't update Controller Status due to no change in status.")
-			return
+	if a.Status.ControllersStatus[controllerName].Status != status {
+		a.Status.ControllersStatus[controllerName] = Status{
+			Status:    status,
+			Message:   message,
+			TimeStamp: time.Now().String(),
 		}
+
+		a.UpdateApplicationStatus()
+	} else {
+		println("Won't update Controller Status due to no change in status.")
+		return
 	}
 
 }
