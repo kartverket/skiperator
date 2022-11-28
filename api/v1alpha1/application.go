@@ -233,6 +233,23 @@ func (a *Application) UpdateApplicationStatus() {
 	a.Status.ApplicationStatus = newApplicationStatus
 }
 
+func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
+	if a.Status.ControllersStatus[controllerName].Status == status {
+		println("Won't update Controller Status due to no change in status.")
+		return
+
+	}
+
+	a.Status.ControllersStatus[controllerName] = Status{
+		Status:    status,
+		Message:   message,
+		TimeStamp: time.Now().String(),
+	}
+
+	a.UpdateApplicationStatus()
+
+}
+
 func (a *Application) ShouldUpdateApplicationStatus(newStatus Status) bool {
 	shouldUpdate := newStatus.Status != a.Status.ApplicationStatus.Status
 
@@ -282,22 +299,6 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
-}
-
-func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
-	if a.Status.ControllersStatus[controllerName].Status != status {
-		a.Status.ControllersStatus[controllerName] = Status{
-			Status:    status,
-			Message:   message,
-			TimeStamp: time.Now().String(),
-		}
-
-		a.UpdateApplicationStatus()
-	} else {
-		println("Won't update Controller Status due to no change in status.")
-		return
-	}
-
 }
 
 func max[T constraints.Ordered](a, b T) T {
