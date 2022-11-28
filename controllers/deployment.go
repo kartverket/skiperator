@@ -135,18 +135,45 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 			}
 		}
 
-		container.Resources.Limits = application.LimitToCoreResourceList(application.Spec.Resources.Limits)
-		container.Resources.Requests = application.RequestToCoreResourceList(application.Spec.Resources.Requests)
+		if application.Spec.Resources != nil {
+			if application.Spec.Resources.Limits != nil {
+				container.Resources.Limits = application.LimitToCoreResourceList(application.Spec.Resources.Limits)
 
-		limits := container.Resources.Limits
-		if !application.Spec.Resources.Limits.CpuLimit.IsZero() {
+				if !application.Spec.Resources.Limits.CpuLimit.IsZero() {
+					r.recorder.Eventf(
+						application,
+						corev1.EventTypeWarning,
+						"Deprecated field",
+						`Field (application.spec.resources.limits.cpu) is deprecated, and will not be set on the Deployment resource. Please unset this field to remove this warning.`,
+					)
+					delete(container.Resources.Limits, "cpu")
+				}
+			} else {
+				r.recorder.Eventf(
+					application,
+					corev1.EventTypeWarning,
+					"Missing required field",
+					`Field (application.spec.resources.limits) is required, but unset. Please set this field in your application specification.`,
+				)
+			}
+
+			if application.Spec.Resources.Requests != nil {
+				container.Resources.Requests = application.RequestToCoreResourceList(application.Spec.Resources.Requests)
+			} else {
+				r.recorder.Eventf(
+					application,
+					corev1.EventTypeWarning,
+					"Missing required field",
+					`Field (application.spec.resources.requests) is required, but unset. Please set this field in your application specification.`,
+				)
+			}
+		} else {
 			r.recorder.Eventf(
 				application,
 				corev1.EventTypeWarning,
-				"Deprecated field",
-				`Field (resources.limits.cpu) is deprecated, and will not be set on the pod. Please unset this field to remove this warning.`,
+				"Missing required field",
+				`Field (application.spec.resources) is required, but unset. Please set this field in your application specification.`,
 			)
-			delete(limits, "cpu")
 		}
 
 		numberOfVolumes := len(application.Spec.FilesFrom) + 1

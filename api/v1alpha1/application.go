@@ -27,9 +27,9 @@ type Application struct {
 // +kubebuilder:object:generate=true
 type ResourceRequirements struct {
 	//+kubebuilder:validation:Required
-	Limits LimitResourceList `json:"limits"`
+	Limits *LimitResourceList `json:"limits"`
 	//+kubebuilder:validation:Required
-	Requests RequestsResourceList `json:"requests"`
+	Requests *RequestsResourceList `json:"requests"`
 }
 
 // +kubebuilder:object:generate=true
@@ -223,7 +223,7 @@ func max[T constraints.Ordered](a, b T) T {
 	}
 }
 
-func (a *Application) LimitToCoreResourceList(resList LimitResourceList) corev1.ResourceList {
+func (a *Application) LimitToCoreResourceList(resList *LimitResourceList) corev1.ResourceList {
 	resourceList := make(corev1.ResourceList)
 
 	if !resList.CpuLimit.IsZero() {
@@ -243,7 +243,7 @@ func (a *Application) LimitToCoreResourceList(resList LimitResourceList) corev1.
 	return resourceList
 }
 
-func (a *Application) RequestToCoreResourceList(resList RequestsResourceList) corev1.ResourceList {
+func (a *Application) RequestToCoreResourceList(resList *RequestsResourceList) corev1.ResourceList {
 	resourceList := make(corev1.ResourceList)
 
 	resourceList["cpu"] = resList.CpuRequest
