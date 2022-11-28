@@ -2,13 +2,15 @@ package controllers
 
 import (
 	"context"
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -32,6 +34,10 @@ func (b wrappedBuilder[T]) Owns(obj client.Object, opts ...builder.OwnsOption) w
 
 func (b wrappedBuilder[T]) Watches(src source.Source, handler handler.EventHandler, opts ...builder.WatchesOption) wrappedBuilder[T] {
 	return wrappedBuilder[T]{b.mgr, b.next.Watches(src, handler, opts...)}
+}
+
+func (b wrappedBuilder[T]) WithEventFilter(p predicate.Predicate) wrappedBuilder[T] {
+	return wrappedBuilder[T]{b.mgr, b.next.WithEventFilter(p)}
 }
 
 func (b wrappedBuilder[T]) Complete(r objectReconciler[T]) error {

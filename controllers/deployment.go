@@ -15,6 +15,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -35,6 +36,7 @@ func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
 
