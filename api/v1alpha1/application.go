@@ -225,10 +225,11 @@ func (a *Application) FillDefaults() {
 
 func (a *Application) UpdateApplicationStatus() {
 	newApplicationStatus := a.CalculateApplicationStatus()
-	if !a.ShouldUpdateApplicationStatus(newApplicationStatus) {
-		println("shouldnt update status")
+	if newApplicationStatus.Status == a.Status.ApplicationStatus.Status {
+		println("Won't update Application Status due to no change in status.")
 		return
 	}
+
 	a.Status.ApplicationStatus = newApplicationStatus
 }
 
@@ -284,13 +285,21 @@ func allSameStatus(a []string) bool {
 }
 
 func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
-	a.Status.ControllersStatus[controllerName] = Status{
-		Status:    status,
-		Message:   message,
-		TimeStamp: time.Now().String(),
+	if appStatus, present := a.Status.ControllersStatus[controllerName]; present {
+		if appStatus.Status != status {
+			a.Status.ControllersStatus[controllerName] = Status{
+				Status:    status,
+				Message:   message,
+				TimeStamp: time.Now().String(),
+			}
+
+			a.UpdateApplicationStatus()
+		} else {
+			println("Won't update Controller Status due to no change in status.")
+			return
+		}
 	}
 
-	a.UpdateApplicationStatus()
 }
 
 func max[T constraints.Ordered](a, b T) T {
