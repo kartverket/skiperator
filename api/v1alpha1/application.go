@@ -3,10 +3,11 @@ package v1alpha1
 import (
 	"golang.org/x/exp/constraints"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -14,8 +15,8 @@ type ApplicationList struct {
 	Items []Application `json:"items"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:resource:shortName="app"
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName="app"
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -23,7 +24,39 @@ type Application struct {
 	Spec ApplicationSpec `json:"spec,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
+type ResourceRequirements struct {
+	//+kubebuilder:validation:Required
+	Limits *LimitResourceList `json:"limits"`
+	//+kubebuilder:validation:Required
+	Requests *RequestsResourceList `json:"requests"`
+}
+
+// +kubebuilder:object:generate=true
+type LimitResourceList struct {
+	//+kubebuilder:validation:Optional
+	CpuLimit resource.Quantity `json:"cpu,omitempty"`
+	//+kubebuilder:validation:Required
+	MemoryLimit resource.Quantity `json:"memory"`
+	//+kubebuilder:validation:Optional
+	StorageLimit resource.Quantity `json:"storage,omitempty"`
+	//+kubebuilder:validation:Optional
+	EphemeralStorageLimit resource.Quantity `json:"ephemeralStorage,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type RequestsResourceList struct {
+	//+kubebuilder:validation:Required
+	CpuRequest resource.Quantity `json:"cpu"`
+	//+kubebuilder:validation:Required
+	MemoryRequest resource.Quantity `json:"memory"`
+	//+kubebuilder:validation:Optional
+	StorageRequest resource.Quantity `json:"storage,omitempty"`
+	//+kubebuilder:validation:Optional
+	EphemeralStorageRequest resource.Quantity `json:"ephemeralStorage,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
@@ -31,7 +64,7 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -114,7 +147,7 @@ type Probe struct {
 	Path string `json:"path"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
 	Inbound InboundPolicy `json:"inbound,omitempty"`
@@ -122,13 +155,13 @@ type AccessPolicy struct {
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type InboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type OutboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules,omitempty"`
@@ -143,7 +176,7 @@ type InternalRule struct {
 	Application string `json:"application"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
@@ -163,7 +196,7 @@ type Port struct {
 	Protocol string `json:"protocol"`
 }
 
-type GCP struct { 
+type GCP struct {
 	//+kubebuilder:validation:Required
 	Auth Auth `json:"auth"`
 }
@@ -188,4 +221,41 @@ func max[T constraints.Ordered](a, b T) T {
 	} else {
 		return b
 	}
+}
+
+func (a *Application) LimitToCoreResourceList(resList *LimitResourceList) corev1.ResourceList {
+	resourceList := make(corev1.ResourceList)
+
+	if !resList.CpuLimit.IsZero() {
+		resourceList["cpu"] = resList.CpuLimit
+	}
+
+	resourceList["memory"] = resList.MemoryLimit
+
+	if !resList.StorageLimit.IsZero() {
+		resourceList["storage"] = resList.StorageLimit
+	}
+
+	if !resList.EphemeralStorageLimit.IsZero() {
+		resourceList["ephemeral-storage"] = resList.EphemeralStorageLimit
+	}
+
+	return resourceList
+}
+
+func (a *Application) RequestToCoreResourceList(resList *RequestsResourceList) corev1.ResourceList {
+	resourceList := make(corev1.ResourceList)
+
+	resourceList["cpu"] = resList.CpuRequest
+	resourceList["memory"] = resList.MemoryRequest
+
+	if !resList.StorageRequest.IsZero() {
+		resourceList["storage"] = resList.StorageRequest
+	}
+
+	if !resList.EphemeralStorageRequest.IsZero() {
+		resourceList["ephemeral-storage"] = resList.EphemeralStorageRequest
+	}
+
+	return resourceList
 }
