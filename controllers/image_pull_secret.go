@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+
+	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -30,7 +32,7 @@ func (r *ImagePullSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](isNotExcludedNamespace),
+			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
 		)).
 		Owns(&corev1.Secret{}, builder.WithPredicates(
 			matchesPredicate[*corev1.Secret](isImagePullSecret),

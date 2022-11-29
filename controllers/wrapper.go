@@ -36,8 +36,8 @@ func (b wrappedBuilder[T]) Watches(src source.Source, handler handler.EventHandl
 	return wrappedBuilder[T]{b.mgr, b.next.Watches(src, handler, opts...)}
 }
 
-func (b wrappedBuilder[T]) WithEventFilter(p predicate.Predicate) wrappedBuilder[T] {
-	return wrappedBuilder[T]{b.mgr, b.next.WithEventFilter(p)}
+func (b wrappedBuilder[T]) WithEventFilter(predicates ...predicate.Predicate) wrappedBuilder[T] {
+	return wrappedBuilder[T]{b.mgr, b.next.WithEventFilter(predicate.Or(predicates...))}
 }
 
 func (b wrappedBuilder[T]) Complete(r objectReconciler[T]) error {

@@ -3,9 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
+	"strings"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"hash/fnv"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	"strings"
 )
 
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch

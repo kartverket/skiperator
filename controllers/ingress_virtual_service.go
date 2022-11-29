@@ -3,50 +3,32 @@ package controllers
 import (
 	"context"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"hash/fnv"
+	"strings"
+
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=networking.istio.io,resources=virtualservices,verbs=get;list;watch;create;update;patch;delete
-
-type IngressVirtualServiceReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-}
-
-func (r *IngressVirtualServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
-		)).
-		Complete(r)
-}
-
-func (r *IngressVirtualServiceReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
+	controllerName := "ingressvirtualservice"
+	controllerMessageName := "IngressVirtualService"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting reconciliation", Status: skiperatorv1alpha1.PROGRESSING})
 
 	var err error
 	virtualService := networkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name + "-ingress"}}
 	if len(application.Spec.Ingresses) > 0 {
-		_, err = ctrlutil.CreateOrPatch(ctx, r.client, &virtualService, func() error {
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
 			// Set application as owner of the virtual service
-			err = ctrlutil.SetControllerReference(application, &virtualService, r.scheme)
+			err = ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
 			if err != nil {
+				r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
 				return err
 			}
 
@@ -74,9 +56,20 @@ func (r *IngressVirtualServiceReconciler) Reconcile(ctx context.Context, applica
 			return nil
 		})
 	} else {
-		err = r.client.Delete(ctx, &virtualService)
+		err = r.GetClient().Delete(ctx, &virtualService)
 		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			return reconcile.Result{}, err
+		}
 	}
+
+	if err != nil {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+	} else {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
+	}
+
 	return reconcile.Result{}, err
 }
 

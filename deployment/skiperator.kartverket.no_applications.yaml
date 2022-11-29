@@ -293,10 +293,13 @@ spec:
               replicas:
                 properties:
                   max:
+                    default: 1
                     type: integer
                   min:
+                    default: 1
                     type: integer
                   targetCpuUtilization:
+                    default: 1
                     type: integer
                 required:
                 - min

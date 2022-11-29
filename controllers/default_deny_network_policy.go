@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +35,7 @@ func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) 
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](isNotExcludedNamespace),
+			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
 		)).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Complete(r)

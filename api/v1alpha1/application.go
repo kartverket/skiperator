@@ -71,11 +71,14 @@ type ApplicationSpec struct {
 
 type Replicas struct {
 	//+kubebuilder:validation:Required
+	//+kubebuilder:default=1
 	Min uint `json:"min"`
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=1
 	Max uint `json:"max,omitempty"`
 
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=1
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
@@ -226,7 +229,6 @@ func (a *Application) FillDefaults() {
 func (a *Application) UpdateApplicationStatus() {
 	newApplicationStatus := a.CalculateApplicationStatus()
 	if newApplicationStatus.Status == a.Status.ApplicationStatus.Status {
-		println("Won't update Application Status due to no change in status.")
 		return
 	}
 
@@ -235,16 +237,15 @@ func (a *Application) UpdateApplicationStatus() {
 
 func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
 	if a.Status.ControllersStatus[controllerName].Status == status {
-		println("Won't update Controller Status due to no change in status.")
 		return
-
 	}
 
-	a.Status.ControllersStatus[controllerName] = Status{
+	newStatus := Status{
 		Status:    status,
 		Message:   message,
 		TimeStamp: time.Now().String(),
 	}
+	a.Status.ControllersStatus[controllerName] = newStatus
 
 	a.UpdateApplicationStatus()
 

@@ -6,10 +6,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -17,32 +14,18 @@ import (
 //+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
-type ServiceReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-}
-
-func (r *ServiceReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&corev1.Service{}).
-		Complete(r)
-}
-
-func (r *ServiceReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
-
-	application.UpdateControllerStatus("service", "Starting service reconciliation", skiperatorv1alpha1.PROGRESSING)
-	r.client.Status().Update(ctx, application)
+	controllerName := "service"
+	controllerMessageName := "Service"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting reconciliation", Status: skiperatorv1alpha1.PROGRESSING})
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &service, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
 		// Set application as owner of the service
-		err := ctrlutil.SetControllerReference(application, &service, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &service, r.GetScheme())
 		if err != nil {
+			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
 			return err
 		}
 
@@ -67,8 +50,11 @@ func (r *ServiceReconciler) Reconcile(ctx context.Context, application *skiperat
 		return nil
 	})
 
-	application.UpdateControllerStatus("service", "Service synced", skiperatorv1alpha1.SYNCED)
-	r.client.Status().Update(ctx, application)
+	if err != nil {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+	} else {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
+	}
 
 	return reconcile.Result{}, err
 }

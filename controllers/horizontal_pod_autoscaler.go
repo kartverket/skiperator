@@ -2,44 +2,30 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
-
-type HorizontalPodAutoscalerReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-}
-
-func (r *HorizontalPodAutoscalerReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		Complete(r)
-}
-
-func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "horizontalpodautoscaler"
+	controllerMessageName := "HorizontalPodAutoScaler"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting sync", Status: skiperatorv1alpha1.PROGRESSING})
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &horizontalPodAutoscaler, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
-		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.GetScheme())
 		if err != nil {
+			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
 			return err
 		}
+
+		// TODO Figure out a way of not having to call this
+		application.FillDefaults()
 
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"
@@ -60,5 +46,12 @@ func (r *HorizontalPodAutoscalerReconciler) Reconcile(ctx context.Context, appli
 
 		return nil
 	})
+
+	if err != nil {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+	} else {
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
+	}
+
 	return reconcile.Result{}, err
 }

@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -96,7 +98,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *sk
 		internal := false
 		external := false
 		for _, hostname := range application.Spec.Ingresses {
-			if isInternal(hostname) {
+			if util.IsInternal(hostname) {
 				internal = true
 			} else {
 				external = true

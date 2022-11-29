@@ -20,6 +20,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/controllers"
+	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
@@ -61,27 +62,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.ServiceAccountReconciler{}).SetupWithManager(mgr)
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ServiceAccount")
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
 
+	// These controllers may be added into application, but are not added due to currently being owned by namespaces, and not the application
 	err = (&controllers.ImagePullSecretReconciler{Registry: "ghcr.io", Token: *imagePullToken}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ImagePullSecret")
-		os.Exit(1)
-	}
-
-	err = (&controllers.DeploymentReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Deployment")
-		os.Exit(1)
-	}
-
-	err = (&controllers.HorizontalPodAutoscalerReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "HorizontalPodAutoscaler")
 		os.Exit(1)
 	}
 
@@ -97,21 +89,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.ServiceReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Service")
-		os.Exit(1)
-	}
-
 	err = (&controllers.SidecarReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Sidecar")
-		os.Exit(1)
-	}
-
-	err = (&controllers.PeerAuthenticationReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "PeerAuthentication")
 		os.Exit(1)
 	}
 
@@ -119,28 +99,6 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Certificate")
 		os.Exit(1)
-	}
-
-	err = (&controllers.IngressGatewayReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "IngressGateway")
-		os.Exit(1)
-	}
-
-	err = (&controllers.IngressVirtualServiceReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "IngressVirtualService")
-		os.Exit(1)
-	}
-
-	err = (&controllers.EgressServiceEntryReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "EgressServiceEntry")
-		os.Exit(1)
-	}
-	err = (&controllers.ConfigMapReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ConfigmapGCP")
 	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
