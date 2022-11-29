@@ -4,9 +4,8 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,21 +43,6 @@ func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) Reconcil
 	return NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader())
 }
 
-// IsValid determines if a CR instance is valid. this implementation returns always true, should be overridden
-func (r *ReconcilerBase) IsValid(obj metav1.Object) (bool, error) {
-	return true, nil
-}
-
-// IsInitialized determines if a CR instance is initialized. this implementation returns always true, should be overridden
-func (r *ReconcilerBase) IsInitialized(obj metav1.Object) bool {
-	return true
-}
-
-// Reconcile is a stub function to have ReconsicerBase match the Reconciler interface. You must redefine this function
-func (r *ReconcilerBase) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	return reconcile.Result{}, nil
-}
-
 // GetClient returns the underlying client
 func (r *ReconcilerBase) GetClient() client.Client {
 	return r.client
@@ -79,14 +63,44 @@ func (r *ReconcilerBase) GetScheme() *runtime.Scheme {
 	return r.scheme
 }
 
-// GetDiscoveryClient returns a discovery client for the current reconciler
-func (r *ReconcilerBase) GetDiscoveryClient() (*discovery.DiscoveryClient, error) {
-	return discovery.NewDiscoveryClientForConfig(r.GetRestConfig())
+func (r *ReconcilerBase) ManageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames) (reconcile.Result, error) {
+	message := ""
+	switch statusName {
+	case skiperatorv1alpha1.PROGRESSING:
+		message = controller + " has started sync"
+	case skiperatorv1alpha1.SYNCED:
+		message = controller + " has finished synchronizing"
+	case skiperatorv1alpha1.PENDING:
+		message = controller + " has been initialized and is pending Skiperator startup"
+	default:
+		message = "Unknown StatusName in Controller status, not sure how to respond"
+	}
+	app.UpdateControllerStatus(controller, message, statusName)
+	err := r.GetClient().Status().Update(context, app)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	return reconcile.Result{}, nil
 }
 
-// TODO Seperate status for different types OR make one single function which catches errors some way
-func (r *ReconcilerBase) ManageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, status skiperatorv1alpha1.Status) (reconcile.Result, error) {
-	app.UpdateControllerStatus(controller, status.Message, status.Status)
-	r.GetClient().Status().Update(context, app)
-	return reconcile.Result{}, nil
+func (r *ReconcilerBase) ManageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
+	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
+	err := r.GetClient().Status().Update(context, app)
+	r.GetRecorder().Eventf(
+		app,
+		corev1.EventTypeWarning, "Controller Fault",
+		controller+" controller experienced an error",
+	)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	return reconcile.Result{}, issue
+}
+
+func (r *ReconcilerBase) ManageControllerOutcome(context context.Context, app *skiperatorv1alpha1.Application, controllerName string, statusName skiperatorv1alpha1.StatusNames, issue error) (reconcile.Result, error) {
+	if issue != nil {
+		return r.ManageControllerStatusError(context, app, controllerName, issue)
+	}
+
+	return r.ManageControllerStatus(context, app, controllerName, statusName)
 }

@@ -17,10 +17,8 @@ import (
 )
 
 func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-	controllerName := "ingressgateway"
-	controllerMessageName := "IngressGateway"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting sync", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "IngressGateway"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	// Keep track of active gateways
 	active := make(map[string]struct{}, len(application.Spec.Ingresses))
@@ -38,7 +36,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			// Set application as owner of the gateway
 			err := ctrlutil.SetControllerReference(application, &gateway, r.GetScheme())
 			if err != nil {
-				r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+				r.ManageControllerStatusError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -70,7 +68,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			return nil
 		})
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -79,7 +77,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	gateways := networkingv1beta1.GatewayList{}
 	err := r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
 	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+		r.ManageControllerStatusError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
@@ -101,16 +99,12 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		err = r.GetClient().Delete(ctx, gateway)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, err
 }

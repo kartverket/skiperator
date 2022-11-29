@@ -16,10 +16,8 @@ import (
 )
 
 func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-	controllerName := "ingressvirtualservice"
-	controllerMessageName := "IngressVirtualService"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting reconciliation", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "IngressVirtualService"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	var err error
 	virtualService := networkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name + "-ingress"}}
@@ -28,7 +26,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			// Set application as owner of the virtual service
 			err = ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
 			if err != nil {
-				r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+				r.ManageControllerStatusError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -59,16 +57,12 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		err = r.GetClient().Delete(ctx, &virtualService)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, err
 }

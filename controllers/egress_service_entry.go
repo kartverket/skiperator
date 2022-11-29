@@ -18,9 +18,8 @@ import (
 
 func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	application.FillDefaults()
-	controllerName := "egresserviceentry"
-	controllerMessageName := "EgressServiceEntry"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting sync", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "EgressServiceEntry"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	// Keep track of active service entries
 	active := make(map[string]struct{}, len(application.Spec.AccessPolicy.Outbound.External))
@@ -37,7 +36,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			// Set application as owner of the service entry
 			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.GetScheme())
 			if err != nil {
-				r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+				r.ManageControllerStatusError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -85,7 +84,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			return nil
 		})
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -94,7 +93,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	serviceEntries := networkingv1beta1.ServiceEntryList{}
 	err := r.GetClient().List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
 	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+		r.ManageControllerStatusError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
@@ -116,16 +115,12 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		err = r.GetClient().Delete(ctx, serviceEntry)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, nil
 }

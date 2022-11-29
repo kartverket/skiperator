@@ -11,16 +11,15 @@ import (
 )
 
 func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "horizontalpodautoscaler"
-	controllerMessageName := "HorizontalPodAutoScaler"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting sync", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "HorizontalPodAutoScaler"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
 		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -47,11 +46,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		return nil
 	})
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, err
 }

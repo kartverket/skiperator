@@ -15,17 +15,15 @@ import (
 //+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-	controllerName := "service"
-	controllerMessageName := "Service"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting reconciliation", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "Service"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &service, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -50,11 +48,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		return nil
 	})
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, err
 }

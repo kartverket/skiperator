@@ -29,14 +29,12 @@ type CredentialSource struct {
 }
 
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-	controllerName := "configmap"
-	controllerMessageName := "ConfigMap"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " starting sync", Status: skiperatorv1alpha1.PROGRESSING})
+	controllerName := "ConfigMap"
+	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
 	// Is this an error?
 	if application.Spec.GCP == nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced, no GCP ConfigMap", Status: skiperatorv1alpha1.SYNCED})
+		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.SYNCED)
 		return reconcile.Result{}, nil
 	}
 
@@ -50,7 +48,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 		)
 	} else if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+		r.ManageControllerStatusError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 	gcpAuthConfigMapName := application.Name + "-gcp-auth"
@@ -59,7 +57,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		// Set application as owner of the configmap
 		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+			r.ManageControllerStatusError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -77,7 +75,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 			ConfByte, err := json.Marshal(ConfStruct)
 			if err != nil {
-				r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
+				r.ManageControllerStatusError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -89,11 +87,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		return nil
 	})
 
-	if err != nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " encountered error: " + err.Error(), Status: skiperatorv1alpha1.ERROR})
-	} else {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.Status{Message: controllerMessageName + " synced", Status: skiperatorv1alpha1.SYNCED})
-	}
+	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
 
 	return reconcile.Result{}, err
 
