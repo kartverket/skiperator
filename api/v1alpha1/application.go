@@ -71,14 +71,11 @@ type ApplicationSpec struct {
 
 type Replicas struct {
 	//+kubebuilder:validation:Required
-	//+kubebuilder:default=1
 	Min uint `json:"min"`
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=1
 	Max uint `json:"max,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=1
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
