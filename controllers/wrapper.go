@@ -58,6 +58,7 @@ type objectReconciler[T client.Object] interface {
 	Reconcile(ctx context.Context, obj T) (reconcile.Result, error)
 }
 
+// Not sure if this is a good thing to do. I feel like you remove yourself somewhat from being able to properly add error handling when doing reconciliations
 func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	typ := reflect.ValueOf(*new(T)).Type().Elem()
 	obj := reflect.New(typ).Interface().(T)
@@ -70,7 +71,7 @@ func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Reque
 
 	res, err := r.next.Reconcile(ctx, obj)
 	if err != nil {
-		r.recorder.Event(obj, corev1.EventTypeWarning, "Error", "Skiperator has encountered a problem")
+		r.recorder.Event(obj, corev1.EventTypeWarning, "SkiperatorProblem", err.Error())
 	}
 
 	return res, err

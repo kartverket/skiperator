@@ -23,9 +23,6 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 			return err
 		}
 
-		// TODO Figure out a way of not having to call this
-		application.FillDefaults()
-
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Name = application.Name

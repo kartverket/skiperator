@@ -76,8 +76,6 @@ func (r *NetworkPolicyReconciler) networkPoliciesFromService(obj client.Object) 
 }
 
 func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
 		// Set application as owner of the network policy

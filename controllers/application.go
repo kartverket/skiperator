@@ -16,8 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
 	util.ReconcilerBase
@@ -46,9 +45,12 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+	_, err := r.initializeApplication(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
-	_, err := r.reconcileDeployment(ctx, application)
+	_, err = r.reconcileDeployment(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -90,6 +92,35 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, application *skip
 
 	_, err = r.reconcileServiceAccount(ctx, application)
 	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) initializeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+
+	application.FillDefaults()
+	err := r.GetClient().Update(ctx, application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "Error",
+			"Application could not initialize: "+err.Error(),
+		)
+		return reconcile.Result{}, err
+	}
+
+	// This FillDefaults should not have to be called, but the previous application update removes the default statuses.
+	// TODO Figure out a way to avoid this second FillDefaults
+	application.FillDefaults()
+	err = r.GetClient().Status().Update(ctx, application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "Error",
+			"Application could not update status: "+err.Error(),
+		)
 		return reconcile.Result{}, err
 	}
 

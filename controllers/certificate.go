@@ -58,8 +58,6 @@ func (r *CertificateReconciler) applicationFromCertificate(obj client.Object) []
 }
 
 func (r *CertificateReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
-
 	// Keep track of active certificates
 	active := make(map[string]struct{}, len(application.Spec.Ingresses))
 

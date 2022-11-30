@@ -216,11 +216,18 @@ func (a *Application) FillDefaults() {
 		a.Spec.Replicas.TargetCpuUtilization = 80
 	}
 
-	a.Status.ApplicationStatus = Status{
-		Status:    PENDING,
-		Message:   "DEFAULT",
-		TimeStamp: time.Now().String(),
+	if a.Spec.Strategy.Type == "" {
+		a.Spec.Strategy.Type = "RollingUpdate"
 	}
+
+	if a.Status.ApplicationStatus.Status == "" {
+		a.Status.ApplicationStatus = Status{
+			Status:    PENDING,
+			Message:   "Default application status, application has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
+	}
+
 	if a.Status.ControllersStatus == nil {
 		a.Status.ControllersStatus = make(map[string]Status)
 	}
@@ -259,8 +266,8 @@ func (a *Application) ShouldUpdateApplicationStatus(newStatus Status) bool {
 
 func (a *Application) CalculateApplicationStatus() Status {
 	returnStatus := Status{
-		Status:    PENDING,
-		Message:   "CALCULATION DEFAULT",
+		Status:    ERROR,
+		Message:   "CALCULATION DEFAULT, YOU SHOULD NOT SEE THIS MESSAGE. PLEASE LET SKIP KNOW IF THIS MESSAGE IS VISIBLE",
 		TimeStamp: time.Now().String(),
 	}
 	statusList := []string{}

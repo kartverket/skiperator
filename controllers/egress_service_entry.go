@@ -17,7 +17,6 @@ import (
 )
 
 func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
 	controllerName := "EgressServiceEntry"
 	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
 
