@@ -14,6 +14,9 @@ provider "google" {}
 
 resource "kubernetes_manifest" "custom_resource_definition" {
   manifest = yamldecode(file("${path.module}/skiperator.kartverket.no_applications.yaml"))
+  field_manager {
+    force_conflicts = true
+  }
 }
 
 resource "kubernetes_manifest" "cluster_role" {
