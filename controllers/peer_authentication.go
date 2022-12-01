@@ -14,14 +14,14 @@ import (
 
 func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "PeerAuthentication"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &peerAuthentication, func() error {
 		// Set application as owner of the peer authentication
 		err := ctrlutil.SetControllerReference(application, &peerAuthentication, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -35,7 +35,7 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 		return nil
 	})
 
-	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }

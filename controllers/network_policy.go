@@ -9,46 +9,20 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-type NetworkPolicyReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
-}
-
-func (r *NetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor("networkpolicy-controller")
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&networkingv1.NetworkPolicy{}).
-		Watches(
-			&source.Kind{Type: &corev1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.networkPoliciesFromService),
-		).
-		Complete(r)
-}
-
 // This is a bit hacky, but seems like best solution
-func (r *NetworkPolicyReconciler) networkPoliciesFromService(obj client.Object) []reconcile.Request {
+func (r *ApplicationReconciler) NetworkPoliciesFromService(obj client.Object) []reconcile.Request {
 	ctx := context.TODO()
 	svc := obj.(*corev1.Service)
 
 	applications := &skiperatorv1alpha1.ApplicationList{}
-	err := r.client.List(ctx, applications)
+	err := r.GetClient().List(ctx, applications)
 	if err != nil {
 		return nil
 	}
@@ -70,12 +44,16 @@ func (r *NetworkPolicyReconciler) networkPoliciesFromService(obj client.Object) 
 	return requests
 }
 
-func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "NetworkPolicy"
+	r.SetControllerProgressing(ctx, application, controllerName)
+
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set application as owner of the network policy
-		err := ctrlutil.SetControllerReference(application, &networkPolicy, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &networkPolicy, r.GetScheme())
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -186,9 +164,9 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *sk
 			}
 
 			svc := corev1.Service{}
-			err = r.client.Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &svc)
+			err = r.GetClient().Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &svc)
 			if errors.IsNotFound(err) {
-				r.recorder.Eventf(
+				r.GetRecorder().Eventf(
 					application,
 					corev1.EventTypeWarning, "Missing",
 					"Cannot find application named %s in namespace %s",
@@ -196,6 +174,7 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *sk
 				)
 				continue
 			} else if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -220,5 +199,8 @@ func (r *NetworkPolicyReconciler) Reconcile(ctx context.Context, application *sk
 
 		return nil
 	})
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
 	return reconcile.Result{}, err
 }

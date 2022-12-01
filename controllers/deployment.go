@@ -16,7 +16,7 @@ import (
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Deployment"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
@@ -29,7 +29,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 			)
 		} else if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
@@ -39,7 +39,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -212,7 +212,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		return nil
 	})
 
-	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }

@@ -12,14 +12,14 @@ import (
 
 func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "HorizontalPodAutoScaler"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
 		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -43,7 +43,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		return nil
 	})
 
-	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }

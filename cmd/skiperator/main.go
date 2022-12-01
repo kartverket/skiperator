@@ -70,12 +70,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.CertificateReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Certificate")
-		os.Exit(1)
-	}
-
 	// These controllers may be added into application, but are not added due to currently being owned by namespaces, and not the application
 	err = (&controllers.ImagePullSecretReconciler{Registry: "ghcr.io", Token: *imagePullToken}).SetupWithManager(mgr)
 	if err != nil {
@@ -86,12 +80,6 @@ func main() {
 	err = (&controllers.DefaultDenyNetworkPolicyReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DefaultDenyNetworkPolicy")
-		os.Exit(1)
-	}
-
-	err = (&controllers.NetworkPolicyReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NetworkPolicy")
 		os.Exit(1)
 	}
 

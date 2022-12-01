@@ -71,7 +71,7 @@ func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Reque
 
 	res, err := r.next.Reconcile(ctx, obj)
 	if err != nil {
-		r.recorder.Event(obj, corev1.EventTypeWarning, "SkiperatorProblem", err.Error())
+		r.recorder.Event(obj, corev1.EventTypeWarning, "SkiperatorError", err.Error())
 	}
 
 	return res, err

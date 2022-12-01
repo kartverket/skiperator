@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -10,27 +11,31 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
-//+kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
 	util.ReconcilerBase
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
@@ -47,15 +52,48 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		)).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
+		Watches(
+			&source.Kind{Type: &certmanagerv1.Certificate{}},
+			handler.EnqueueRequestsFromMapFunc(r.ApplicationFromCertificate),
+		).
+		Owns(&networkingv1.NetworkPolicy{}).
+		Watches(
+			&source.Kind{Type: &corev1.Service{}},
+			handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService),
+		).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
 
-func (r *ApplicationReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	application := &skiperatorv1alpha1.Application{}
+	r.GetClient().Get(ctx, req.NamespacedName, application)
+
+	r.GetRecorder().Eventf(
+		application,
+		corev1.EventTypeNormal, "ReconcileStart",
+		"Application "+application.Name+" has started reconciliation loop",
+	)
+
 	_, err := r.initializeApplication(ctx, application)
 	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "InitializeApp",
+			"Application could not initialize: "+err.Error(),
+		)
 		return reconcile.Result{}, err
 	}
+
+	// _, err = r.initializeApplicationStatus(ctx, application)
+	// if err != nil {
+	// 	r.GetRecorder().Eventf(
+	// 		application,
+	// 		corev1.EventTypeWarning, "InitializeAppStatus",
+	// 		"Application could not initialize status: "+err.Error(),
+	// 	)
+	// 	return reconcile.Result{}, err
+	// }
 
 	_, err = r.reconcileDeployment(ctx, application)
 	if err != nil {
@@ -102,34 +140,40 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, application *skip
 		return reconcile.Result{}, err
 	}
 
+	_, err = r.reconcileCertificate(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	_, err = r.reconcileNetworkPolicy(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	r.GetRecorder().Eventf(
+		application,
+		corev1.EventTypeNormal, "ReconcileEnd",
+		"Application "+application.Name+" has finished reconciliation loop",
+	)
+
 	return reconcile.Result{}, err
 }
 
 func (r *ApplicationReconciler) initializeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-
 	application.FillDefaults()
-	err := r.GetClient().Update(ctx, application)
-	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "Error",
-			"Application could not initialize: "+err.Error(),
-		)
-		return reconcile.Result{}, err
-	}
 
-	// This FillDefaults should not have to be called, but the previous application update removes the default statuses.
-	// TODO Figure out a way to avoid this second FillDefaults
+	err := r.GetClient().Update(ctx, application)
+
 	application.FillDefaults()
 	err = r.GetClient().Status().Update(ctx, application)
-	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "Error",
-			"Application could not update status: "+err.Error(),
-		)
-		return reconcile.Result{}, err
-	}
 
 	return reconcile.Result{}, err
 }
+
+/*func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+application.FillDefaults()
+
+
+return reconcile.Result{}, err
+}
+*/

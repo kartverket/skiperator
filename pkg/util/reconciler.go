@@ -63,18 +63,7 @@ func (r *ReconcilerBase) GetScheme() *runtime.Scheme {
 	return r.scheme
 }
 
-func (r *ReconcilerBase) ManageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames) (reconcile.Result, error) {
-	message := ""
-	switch statusName {
-	case skiperatorv1alpha1.PROGRESSING:
-		message = controller + " has started sync"
-	case skiperatorv1alpha1.SYNCED:
-		message = controller + " has finished synchronizing"
-	case skiperatorv1alpha1.PENDING:
-		message = controller + " has been initialized and is pending Skiperator startup"
-	default:
-		message = "Unknown StatusName in Controller status, not sure how to respond"
-	}
+func (r *ReconcilerBase) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
 	err := r.GetClient().Status().Update(context, app)
 	if err != nil {
@@ -83,7 +72,7 @@ func (r *ReconcilerBase) ManageControllerStatus(context context.Context, app *sk
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcilerBase) ManageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
+func (r *ReconcilerBase) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
 	err := r.GetClient().Status().Update(context, app)
 	r.GetRecorder().Eventf(
@@ -97,10 +86,32 @@ func (r *ReconcilerBase) ManageControllerStatusError(context context.Context, ap
 	return reconcile.Result{}, issue
 }
 
-func (r *ReconcilerBase) ManageControllerOutcome(context context.Context, app *skiperatorv1alpha1.Application, controllerName string, statusName skiperatorv1alpha1.StatusNames, issue error) (reconcile.Result, error) {
+func (r *ReconcilerBase) SetControllerPending(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has been initialized and is pending Skiperator startup"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PENDING, message)
+}
+
+func (r *ReconcilerBase) SetControllerProgressing(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has started sync"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PROGRESSING, message)
+}
+
+func (r *ReconcilerBase) SetControllerSynced(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has finished synchronizing"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.SYNCED, message)
+}
+
+func (r *ReconcilerBase) SetControllerError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
+	return r.manageControllerStatusError(context, app, controller, issue)
+}
+
+func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, app *skiperatorv1alpha1.Application, controllerName string, issue error) (reconcile.Result, error) {
 	if issue != nil {
-		return r.ManageControllerStatusError(context, app, controllerName, issue)
+		return r.manageControllerStatusError(context, app, controllerName, issue)
 	}
 
-	return r.ManageControllerStatus(context, app, controllerName, statusName)
+	return r.SetControllerSynced(context, app, controllerName)
 }

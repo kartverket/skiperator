@@ -27,11 +27,11 @@ type CredentialSource struct {
 
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "ConfigMap"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Is this an error?
 	if application.Spec.GCP == nil {
-		r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.SYNCED)
+		r.SetControllerSynced(ctx, application, controllerName)
 		return reconcile.Result{}, nil
 	}
 
@@ -45,7 +45,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 		)
 	} else if err != nil {
-		r.ManageControllerStatusError(ctx, application, controllerName, err)
+		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 	gcpAuthConfigMapName := application.Name + "-gcp-auth"
@@ -54,7 +54,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		// Set application as owner of the configmap
 		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -72,7 +72,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 			ConfByte, err := json.Marshal(ConfStruct)
 			if err != nil {
-				r.ManageControllerStatusError(ctx, application, controllerName, err)
+				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -84,7 +84,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		return nil
 	})
 
-	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 

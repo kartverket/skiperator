@@ -13,14 +13,14 @@ import (
 
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Service"
-	r.ManageControllerStatus(ctx, application, controllerName, skiperatorv1alpha1.PROGRESSING)
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &service, r.GetScheme())
 		if err != nil {
-			r.ManageControllerStatusError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -45,7 +45,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		return nil
 	})
 
-	r.ManageControllerOutcome(ctx, application, controllerName, skiperatorv1alpha1.SYNCED, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }
