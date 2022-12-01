@@ -69,22 +69,19 @@ and installed in the cluster with
 $ kubectl apply -f deployment
 ```
 
-A minimal application resource is provided in the debug folder and can be applied with
+A minimal application resource is provided in the samples folder and can be applied with
 
 ```
 $ kubectl apply -f samples/application.yaml
 ```
 
-To start the application locally on your computer, you must first build the application using
+To start `skiperator` locally on your computer, you can use the the make target `run-local`
+which will generate CRD's, apply them in your local kind-cluster, build and run skiperator.
+The default `kubectl` context is `kind-kind`. To override, set the env-variable `SKIPERATOR_CONTEXT`
+to the name of the desired context.
 
 ```
-$ make build
-```
-
-You may then start the application with
-
-```
-$ ./bin/skiperator
+$ make run-local
 ```
 
 Now you should have a running app in your namespace. Run the following command
@@ -94,14 +91,9 @@ to see all the created resources.
 $ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,VirtualService,Sidecar
 ```
 
-Should you make changes to the application controllers, you will have to rebuild and restart the Skiperator application. First, exit the application process, then run
+Changes to the api requires the CRD to be generated and applied again, and changes to the application controllers requires skiperator to be rebuilt and startet again.
 
-```
-$ make build
-$ ./bin/skiperator
-```
-
-Your changes should then be applied.
+Use the command `make run-local` to do this in a safe way without mixing up kubectl contexts.
 
 ## Writing code
 
