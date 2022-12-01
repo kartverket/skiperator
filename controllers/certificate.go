@@ -19,7 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
 //+kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 
 type CertificateReconciler struct {

@@ -168,14 +168,6 @@ rules:
   - skiperator.kartverket.no
   resources:
   - applications
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - skiperator.kartverket.no
-  resources:
-  - applications
   - applications/status
   verbs:
   - get
