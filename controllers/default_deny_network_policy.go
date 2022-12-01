@@ -20,7 +20,6 @@ import (
 )
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 
 type DefaultDenyNetworkPolicyReconciler struct {
 	client   client.Client

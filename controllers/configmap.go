@@ -13,8 +13,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-
 type Config struct {
 	Type                           string           `json:"type"`
 	Audience                       string           `json:"audience"`
