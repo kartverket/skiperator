@@ -47,14 +47,14 @@ func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
-	isProduction := flag.Bool("p", false, "is running in a real cluster")
+	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 
-	if !*isProduction && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
+	if !*isDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
 		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
 		os.Exit(1)
 	} else {
