@@ -6,5 +6,11 @@ spec:
   image: image
   port: 8080
   envFrom:
-  - configMap: config-map
-  - secret: secret
+    - configMap: config-map
+    - secret: secret
+  resources:
+    limits:
+      memory: 100M
+    requests:
+      cpu: 5m
+      memory: 50M
