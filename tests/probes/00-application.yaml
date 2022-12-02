@@ -23,9 +23,3 @@ spec:
     failureThreshold: 3
     port: 3
     path: /readiness
-  resources:
-    limits:
-      memory: 100M
-    requests:
-      cpu: 5m
-      memory: 50M
