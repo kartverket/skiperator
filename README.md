@@ -138,7 +138,7 @@ spec:
     path: ..
   # Resource limits to apply to the deployment. It's common to set these to
   # prevent the app from swelling in resource usage and consuming all the
-  # resources of other apps on the cluster.
+  # resources of other apps on the cluster. Only some resources are required.
   resources:
     # Limits set the maximum the app is allowed to use. Exceeting this will
     # make kubernetes kill the app and restart it.
