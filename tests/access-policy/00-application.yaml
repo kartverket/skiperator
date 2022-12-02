@@ -8,22 +8,16 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - namespace: other
-          application: other
+      - namespace: other
+        application: other
     outbound:
       rules:
-        - namespace: other
-          application: other
+      - namespace: other
+        application: other
       external:
-        - host: example.com
-          ports:
-            - name: http
-              port: 80
-              protocol: HTTP
-        - host: foo.com
-  resources:
-    limits:
-      memory: 100M
-    requests:
-      cpu: 5m
-      memory: 50M
+      - host: example.com
+        ports:
+        - name: http
+          port: 80
+          protocol: HTTP
+      - host: foo.com

@@ -94,12 +94,6 @@ to see all the created resources.
 $ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,VirtualService,Sidecar
 ```
 
-If you make changes to the application specification (`api/v1alpha1/application.go`), you will have to reapply the Skiperator CRDs as follows:
-
-```
-$ kubectl apply -f deployment
-```
-
 Should you make changes to the application controllers, you will have to rebuild and restart the Skiperator application. First, exit the application process, then run
 
 ```
@@ -108,32 +102,6 @@ $ ./bin/skiperator
 ```
 
 Your changes should then be applied.
-
-### Testing locally
-
-#### Linux / MacOS (AMD64, x86)
-
-Running tests locally is simple for these operating systems, simply run
-
-```
-$ make test
-```
-
-#### MacOS (ARM64)
-
-First, build the test docker image as follows:
-
-```
-$ docker build -t skiperator-test --target=test .
-```
-
-Then you may start a container and remove it after running the test process with:
-
-```
-$ docker run --rm skiperator-test
-```
-
-You will have to rebuild the docker image each time you change your tests or controller/application code.
 
 ## Writing code
 
