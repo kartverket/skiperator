@@ -21,4 +21,8 @@ resource "kubernetes_manifest" "custom_resource_definition" {
 
 resource "kubernetes_manifest" "cluster_role" {
   manifest = yamldecode(file("${path.module}/role.yaml"))
+
+  field_manager {
+    force_conflicts = true
+  }
 }
