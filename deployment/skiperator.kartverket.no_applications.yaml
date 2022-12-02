@@ -390,6 +390,7 @@ spec:
             required:
             - image
             - port
+            - resources
             type: object
         type: object
     served: true

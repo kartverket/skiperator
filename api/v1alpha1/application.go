@@ -63,8 +63,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
-	//+kubebuilder:validation:Optional
-	Resources *ResourceRequirements `json:"resources,omitempty"`
+	//+kubebuilder:validation:Required
+	Resources *ResourceRequirements `json:"resources"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional

@@ -2,9 +2,11 @@ package main
 
 import (
 	"flag"
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 	"os"
+
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"go.uber.org/zap/zapcore"
+	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -46,7 +48,7 @@ func main() {
 	imagePullToken := flag.String("t", "", "image pull token")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true, TimeEncoder: zapcore.ISO8601TimeEncoder})))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                  scheme,

@@ -6,4 +6,10 @@ spec:
   image: image
   port: 8080
   ingresses:
-  - example.com
+    - example.com
+  resources:
+    limits:
+      memory: 100M
+    requests:
+      cpu: 5m
+      memory: 50M
