@@ -6,6 +6,7 @@ export GOBIN = $(realpath bin)
 export PATH := $(PATH):$(GOBIN)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
+SKIPERATOR_CONTEXT ?= kind-kind
 IMAGE ?= skiperator
 
 ETCD_VER = v3.5.6
@@ -15,7 +16,7 @@ ETCD_PATH_DEPTH = $(shell awk -F / '{ print NF }' <<< "$(ETCD_PATH)")
 KUBERNETES_VERSION = v1.25.4
 
 .PHONY: tools
-tools: bin/kubectl bin/etcd bin/kube-apiserver
+tools:
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen
 	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl
 
@@ -26,6 +27,7 @@ bin/kubectl:
 bin/etcd:
 	wget --no-verbose --output-document - "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-${ARCH}.tar.gz" | \
 	tar --gzip --extract --strip-components ${ETCD_PATH_DEPTH} --directory bin ${ETCD_PATH}/etcd
+	chmod +x bin/etcd
 
 bin/kube-apiserver:
 	wget --no-verbose --directory-prefix bin "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/kube-apiserver"
@@ -46,12 +48,17 @@ build: generate
 
 # --control-plane-config is a workaround for https://github.com/kudobuilder/kuttl/issues/378
 .PHONY: test
-test: build
+test: bin/kubectl bin/etcd bin/kube-apiserver build
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	kubectl kuttl test \
 	--config tests/config.yaml \
 	--control-plane-config tests/apiserver.conf
+
+.PHONY: run-local
+run-local: build
+	kubectl --context ${SKIPERATOR_CONTEXT} apply -f deployment/
+	./bin/skiperator
 
 .PHONY: image
 image:
