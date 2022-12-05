@@ -25,7 +25,7 @@ resource "kubernetes_deployment_v1" "deployment" {
         container {
           name  = "skiperator"
           image = var.image
-          args  = ["-l", "-t", "-d", "$(IMAGE_PULL_TOKEN)"]
+          args  = ["-l", "-d", "-t", "$(IMAGE_PULL_TOKEN)"]
           env {
             name = "IMAGE_PULL_TOKEN"
             value_from {
