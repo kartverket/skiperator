@@ -95,32 +95,6 @@ Changes to the api requires the CRD to be generated and applied again, and chang
 
 Use the command `make run-local` to do this in a safe way without mixing up kubectl contexts.
 
-### Testing locally
-
-#### Linux / MacOS (AMD64, x86)
-
-Running tests locally is simple for these operating systems, simply run
-
-```
-$ make test
-```
-
-#### MacOS (ARM64)
-
-First, build the test docker image as follows:
-
-```
-$ docker build -t skiperator-test --target=test .
-```
-
-Then you may start a container and remove it after running the test process with:
-
-```
-$ docker run --rm skiperator-test
-```
-
-You will have to rebuild the docker image each time you change your tests or controller/application code.
-
 ## Writing code
 
 Have a look at the following files:

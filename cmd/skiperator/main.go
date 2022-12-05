@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	"go.uber.org/zap/zapcore"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -51,7 +50,7 @@ func main() {
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true, TimeEncoder: zapcore.ISO8601TimeEncoder})))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 

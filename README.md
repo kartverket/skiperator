@@ -144,18 +144,18 @@ spec:
     # make kubernetes kill the app and restart it.
     limits:
       # A value in millicpus (m)
-      # *Deprecated*: This value can be set, but will have no effect. It is not recommended to set CPU limits, so this will be removed. Your application will experience warnings if you set this value, so please remove the CPU limit to remove the warning.
+      # NOTE: This is not recommended to set.
       # See: https://home.robusta.dev/blog/stop-using-cpu-limits
       cpu: 1000m
-      # *Required*: Number of bytes of RAM
+      # Number of bytes of RAM
       memory: 1G
     # Requests set the initial allocation that is done for the app and will
     # thus be available to the app on startup. More is allocated on demand
     # until the limit is reached
     requests:
-      # *Required*: A value in millicpus (m)
+      # A value in millicpus (m)
       cpu: 25m
-      # *Required*: Number of bytes of RAM
+      # Number of bytes of RAM
       memory: 250M
   # Zero trust dictates that only applications with a reason for being able
   # to access another resource should be able to reach it. This is set up by
