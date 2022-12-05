@@ -205,7 +205,7 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
-func (a *Application) FillDefaults() {
+func (a *Application) FillDefaultsSpec() {
 	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
 	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 
@@ -216,7 +216,9 @@ func (a *Application) FillDefaults() {
 	if a.Spec.Strategy.Type == "" {
 		a.Spec.Strategy.Type = "RollingUpdate"
 	}
+}
 
+func (a *Application) FillDefaultsStatus() {
 	if a.Status.ApplicationStatus.Status == "" {
 		a.Status.ApplicationStatus = Status{
 			Status:    PENDING,

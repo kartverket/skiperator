@@ -12,6 +12,8 @@ import (
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -67,33 +69,39 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	application := &skiperatorv1alpha1.Application{}
-	r.GetClient().Get(ctx, req.NamespacedName, application)
+	err := r.GetClient().Get(ctx, req.NamespacedName, application)
 
-	r.GetRecorder().Eventf(
-		application,
-		corev1.EventTypeNormal, "ReconcileStart",
-		"Application "+application.Name+" has started reconciliation loop",
-	)
-
-	_, err := r.initializeApplication(ctx, application)
-	if err != nil {
+	if errors.IsNotFound(err) {
+		return reconcile.Result{}, nil
+	} else if err != nil {
 		r.GetRecorder().Eventf(
 			application,
-			corev1.EventTypeWarning, "InitializeApp",
-			"Application could not initialize: "+err.Error(),
+			corev1.EventTypeNormal, "ReconcileStart",
+			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" something went wrong fetching the application. It might have been deleted",
 		)
 		return reconcile.Result{}, err
 	}
 
-	// _, err = r.initializeApplicationStatus(ctx, application)
-	// if err != nil {
-	// 	r.GetRecorder().Eventf(
-	// 		application,
-	// 		corev1.EventTypeWarning, "InitializeAppStatus",
-	// 		"Application could not initialize status: "+err.Error(),
-	// 	)
-	// 	return reconcile.Result{}, err
-	// }
+	r.GetRecorder().Eventf(
+		application,
+		corev1.EventTypeNormal, "ReconcileStart",
+		"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" has started reconciliation loop",
+	)
+
+	_, err = r.initializeApplicationStatus(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	_, err = r.initializeApplication(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	_, err = r.reconcileCertificate(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	_, err = r.reconcileDeployment(ctx, application)
 	if err != nil {
@@ -140,11 +148,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	_, err = r.reconcileCertificate(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
 	_, err = r.reconcileNetworkPolicy(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
@@ -153,27 +156,41 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileEnd",
-		"Application "+application.Name+" has finished reconciliation loop",
+		"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" has finished reconciliation loop",
 	)
 
 	return reconcile.Result{}, err
 }
 
 func (r *ApplicationReconciler) initializeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
+
+	application.FillDefaultsSpec()
 
 	err := r.GetClient().Update(ctx, application)
-
-	application.FillDefaults()
-	err = r.GetClient().Status().Update(ctx, application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeNormal, "InitializeAppFunc",
+			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" could not init: "+err.Error(),
+		)
+	}
 
 	return reconcile.Result{}, err
 }
 
-/*func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-application.FillDefaults()
+func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
 
+	application.FillDefaultsStatus()
+	err := r.GetClient().Status().Update(ctx, application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeNormal, "InitializeAppStatusFunc",
+			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" could not init status: "+err.Error(),
+		)
+	}
 
-return reconcile.Result{}, err
+	return reconcile.Result{}, err
 }
-*/
