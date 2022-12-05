@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
@@ -46,11 +48,21 @@ func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
+	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	kubeconfig := ctrl.GetConfigOrDie()
+
+	if !*isDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
+		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
+		os.Exit(1)
+	} else {
+		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
+	}
+
+	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          *leaderElection,
