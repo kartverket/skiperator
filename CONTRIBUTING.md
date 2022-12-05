@@ -88,7 +88,7 @@ Now you should have a running app in your namespace. Run the following command
 to see all the created resources.
 
 ```
-$ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,VirtualService,Sidecar
+$ kubectl get Application,all,networkpolicies,PeerAuthentication,Gateway,VirtualService
 ```
 
 Changes to the api requires the CRD to be generated and applied again, and changes to the application controllers requires skiperator to be rebuilt and startet again.

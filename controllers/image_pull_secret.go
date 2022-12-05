@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,7 +42,7 @@ func (r *ImagePullSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ImagePullSecretReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "github-auth"}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &secret, func() error {
-		// Set namespace as owner of the sidecar
+		// Set namespace as owner of the secret
 		err := ctrlutil.SetControllerReference(namespace, &secret, r.scheme)
 		if err != nil {
 			return err

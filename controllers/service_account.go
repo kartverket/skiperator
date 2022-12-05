@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +36,7 @@ func (r *ServiceAccountReconciler) Reconcile(ctx context.Context, application *s
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &serviceAccount, func() error {
-		// Set application as owner of the sidecar
+		// Set application as owner of the service account
 		err := ctrlutil.SetControllerReference(application, &serviceAccount, r.scheme)
 		if err != nil {
 			return err

@@ -115,12 +115,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.SidecarReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Sidecar")
-		os.Exit(1)
-	}
-
 	err = (&controllers.PeerAuthenticationReconciler{}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "PeerAuthentication")

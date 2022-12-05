@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -14,8 +14,8 @@ type ApplicationList struct {
 	Items []Application `json:"items"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:resource:shortName="app"
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:shortName="app"
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -23,7 +23,7 @@ type Application struct {
 	Spec ApplicationSpec `json:"spec,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
@@ -114,7 +114,7 @@ type Probe struct {
 	Path string `json:"path"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
 	Inbound InboundPolicy `json:"inbound,omitempty"`
@@ -122,13 +122,13 @@ type AccessPolicy struct {
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type InboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type OutboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules,omitempty"`
@@ -143,7 +143,7 @@ type InternalRule struct {
 	Application string `json:"application"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
@@ -163,7 +163,7 @@ type Port struct {
 	Protocol string `json:"protocol"`
 }
 
-type GCP struct { 
+type GCP struct {
 	//+kubebuilder:validation:Required
 	Auth Auth `json:"auth"`
 }
