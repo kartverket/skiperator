@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +20,6 @@ import (
 )
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 
 type DefaultDenyNetworkPolicyReconciler struct {
 	client   client.Client
@@ -34,7 +34,7 @@ func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) 
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](isNotExcludedNamespace),
+			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
 		)).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Complete(r)

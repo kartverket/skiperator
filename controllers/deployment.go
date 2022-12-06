@@ -8,59 +8,38 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
-
-type DeploymentReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
-}
-
-func (r *DeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor("deployment-controller")
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&appsv1.Deployment{}).
-		Complete(r)
-}
-
-func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "Deployment"
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
 	if application.Spec.GCP != nil {
-		err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
+		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
 		if errors.IsNotFound(err) {
-			r.recorder.Eventf(
+			r.GetRecorder().Eventf(
 				application,
 				corev1.EventTypeWarning, "Missing",
 				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 			)
 		} else if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &deployment, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
 		// Set application as owner of the deployment
-		err := ctrlutil.SetControllerReference(application, &deployment, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -232,5 +211,8 @@ func (r *DeploymentReconciler) Reconcile(ctx context.Context, application *skipe
 
 		return nil
 	})
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
 	return reconcile.Result{}, err
 }

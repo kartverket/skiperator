@@ -3,42 +3,22 @@ package controllers
 import (
 	"context"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"hash/fnv"
+	"strings"
+
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=networking.istio.io,resources=gateways,verbs=get;list;watch;create;update;patch;delete
-
-type IngressGatewayReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-}
-
-func (r *IngressGatewayReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
-		)).
-		Complete(r)
-}
-
-func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "IngressGateway"
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Keep track of active gateways
 	active := make(map[string]struct{}, len(application.Spec.Ingresses))
@@ -52,14 +32,15 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *s
 		active[name] = struct{}{}
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
-		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &gateway, func() error {
+		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
 			// Set application as owner of the gateway
-			err := ctrlutil.SetControllerReference(application, &gateway, r.scheme)
+			err := ctrlutil.SetControllerReference(application, &gateway, r.GetScheme())
 			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
-			if isInternal(hostname) {
+			if util.IsInternal(hostname) {
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
 			} else {
 				gateway.Spec.Selector = map[string]string{"ingress": "external"}
@@ -87,14 +68,16 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *s
 			return nil
 		})
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Clear out unused gateways
 	gateways := networkingv1beta1.GatewayList{}
-	err := r.client.List(ctx, &gateways, client.InNamespace(application.Namespace))
+	err := r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
 	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
@@ -113,12 +96,15 @@ func (r *IngressGatewayReconciler) Reconcile(ctx context.Context, application *s
 		}
 
 		// Delete the rest
-		err = r.client.Delete(ctx, gateway)
+		err = r.GetClient().Delete(ctx, gateway)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }

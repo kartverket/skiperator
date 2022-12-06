@@ -1,14 +1,15 @@
-package controllers
+package util
 
 import (
+	"regexp"
+
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
-	"regexp"
 )
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
-func isInternal(hostname string) bool {
+func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
 
@@ -41,6 +42,6 @@ var excludedNamespaces = []string{
 	"kubecost",
 }
 
-func isNotExcludedNamespace(namespace *corev1.Namespace) bool {
+func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
 	return !slices.Contains(excludedNamespaces, namespace.Name)
 }

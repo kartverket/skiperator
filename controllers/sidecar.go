@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+
+	util "github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,7 +30,7 @@ func (r *SidecarReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return newControllerManagedBy[*corev1.Namespace](mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](isNotExcludedNamespace),
+			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
 		)).
 		Owns(&networkingv1beta1.Sidecar{}).
 		Complete(r)

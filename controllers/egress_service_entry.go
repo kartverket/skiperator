@@ -11,40 +11,14 @@ import (
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=networking.istio.io,resources=serviceentries,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
-
-type EgressServiceEntryReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
-}
-
-func (r *EgressServiceEntryReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor("egress-serviceentry-controller")
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
-		)).
-		Complete(r)
-}
-
-func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "EgressServiceEntry"
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Keep track of active service entries
 	active := make(map[string]struct{}, len(application.Spec.AccessPolicy.Outbound.External))
@@ -57,10 +31,11 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 		active[name] = struct{}{}
 
 		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
-		_, err := ctrlutil.CreateOrPatch(ctx, r.client, &serviceEntry, func() error {
+		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
 			// Set application as owner of the service entry
-			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.scheme)
+			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.GetScheme())
 			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -90,7 +65,7 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(ports))
 			for i, port := range ports {
 				if rule.Ip == "" && port.Protocol == "TCP" {
-					r.recorder.Eventf(
+					r.GetRecorder().Eventf(
 						application,
 						corev1.EventTypeWarning, "Invalid",
 						"A static IP must be set for TCP port %d",
@@ -108,14 +83,16 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 			return nil
 		})
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
 
 	// Clear out unused service entries
 	serviceEntries := networkingv1beta1.ServiceEntryList{}
-	err := r.client.List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
+	err := r.GetClient().List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
 	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
@@ -134,12 +111,15 @@ func (r *EgressServiceEntryReconciler) Reconcile(ctx context.Context, applicatio
 		}
 
 		// Delete the rest
-		err = r.client.Delete(ctx, serviceEntry)
+		err = r.GetClient().Delete(ctx, serviceEntry)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	}
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, nil
 }

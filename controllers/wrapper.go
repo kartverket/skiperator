@@ -2,13 +2,15 @@ package controllers
 
 import (
 	"context"
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -34,6 +36,10 @@ func (b wrappedBuilder[T]) Watches(src source.Source, handler handler.EventHandl
 	return wrappedBuilder[T]{b.mgr, b.next.Watches(src, handler, opts...)}
 }
 
+func (b wrappedBuilder[T]) WithEventFilter(predicates ...predicate.Predicate) wrappedBuilder[T] {
+	return wrappedBuilder[T]{b.mgr, b.next.WithEventFilter(predicate.Or(predicates...))}
+}
+
 func (b wrappedBuilder[T]) Complete(r objectReconciler[T]) error {
 	return b.next.Complete(wrappedReconciler[T]{
 		client:   b.mgr.GetClient(),
@@ -52,6 +58,7 @@ type objectReconciler[T client.Object] interface {
 	Reconcile(ctx context.Context, obj T) (reconcile.Result, error)
 }
 
+// Not sure if this is a good thing to do. I feel like you remove yourself somewhat from being able to properly add error handling when doing reconciliations
 func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	typ := reflect.ValueOf(*new(T)).Type().Elem()
 	obj := reflect.New(typ).Interface().(T)
@@ -64,7 +71,7 @@ func (r wrappedReconciler[T]) Reconcile(ctx context.Context, req reconcile.Reque
 
 	res, err := r.next.Reconcile(ctx, obj)
 	if err != nil {
-		r.recorder.Event(obj, corev1.EventTypeWarning, "Error", "Skiperator has encountered a problem")
+		r.recorder.Event(obj, corev1.EventTypeWarning, "SkiperatorError", err.Error())
 	}
 
 	return res, err

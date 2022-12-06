@@ -8,17 +8,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-//+kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 
 type Config struct {
 	Type                           string           `json:"type"`
@@ -32,49 +25,36 @@ type CredentialSource struct {
 	File string `json:"file"`
 }
 
-type ConfigMapReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
-}
-
-func (r *ConfigMapReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor("configmap-controller")
-
-	return newControllerManagedBy[*skiperatorv1alpha1.Application](mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&corev1.ConfigMap{}).
-		Complete(r)
-}
-
-func (r *ConfigMapReconciler) Reconcile(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	application.FillDefaults()
+func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "ConfigMap"
+	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Is this an error?
 	if application.Spec.GCP == nil {
+		r.SetControllerSynced(ctx, application, controllerName)
 		return reconcile.Result{}, nil
 	}
 
 	gcpIdentityConfigMap := corev1.ConfigMap{}
 
-	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
 	if errors.IsNotFound(err) {
-		r.recorder.Eventf(
+		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeWarning, "Missing",
 			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
 		)
 	} else if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 	gcpAuthConfigMapName := application.Name + "-gcp-auth"
 	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &gcpAuthConfigMap, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
 		// Set application as owner of the configmap
-		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.scheme)
+		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.GetScheme())
 		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
@@ -92,6 +72,7 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, application *skiper
 
 			ConfByte, err := json.Marshal(ConfStruct)
 			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
@@ -102,6 +83,8 @@ func (r *ConfigMapReconciler) Reconcile(ctx context.Context, application *skiper
 
 		return nil
 	})
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 

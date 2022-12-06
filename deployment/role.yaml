@@ -53,6 +53,8 @@ rules:
   - ""
   resources:
   - configmaps
+  - serviceaccounts
+  - services
   verbs:
   - create
   - delete
@@ -89,45 +91,11 @@ rules:
   - update
   - watch
 - apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - services
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - networking.istio.io
   resources:
   - gateways
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - networking.istio.io
-  resources:
   - serviceentries
+  - virtualservices
   verbs:
   - create
   - delete
@@ -140,18 +108,6 @@ rules:
   - networking.istio.io
   resources:
   - sidecars
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - networking.istio.io
-  resources:
-  - virtualservices
   verbs:
   - create
   - delete
@@ -188,7 +144,9 @@ rules:
   - skiperator.kartverket.no
   resources:
   - applications
+  - applications/status
   verbs:
   - get
   - list
+  - update
   - watch
