@@ -1,4 +1,4 @@
-name: Deploy Skiperator Unsafe, Quick
+name: Deploy Skiperator Parallell With Dispatch, Quick/Unsafe
 
 on:
   workflow_dispatch:
