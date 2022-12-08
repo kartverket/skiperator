@@ -3,8 +3,8 @@ name: Deploy Skiperator Parallell With Dispatch, Quick/Unsafe
 on:
   workflow_dispatch:
     inputs:
-      image:
-        description: "Image to deploy. This image should be a well-known working version of Skiperator. Image digest found under skiperator-controller"
+      image_tag:
+        description: "Tag/Digest of image to deploy. This image should be a well-known working version of Skiperator. Potential image digests are found under skiperator-controller packages."
         required: true
         type: string
 
@@ -21,7 +21,7 @@ jobs:
       environment: sandbox
       kubernetes_cluster: atkv1-sandbox
       terraform_workspace: sandbox
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=sandbox.tfvars
       working_directory: deployment
       auth_project_number: 256430705282
@@ -40,7 +40,7 @@ jobs:
       environment: dev
       kubernetes_cluster: atkv1-dev
       terraform_workspace: dev
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=dev.tfvars
       working_directory: deployment
       auth_project_number: 214581028419
@@ -59,7 +59,7 @@ jobs:
       environment: test
       kubernetes_cluster: atkv1-test
       terraform_workspace: test
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=test.tfvars
       working_directory: deployment
       auth_project_number: 704673195983
@@ -78,7 +78,7 @@ jobs:
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=prod.tfvars
       working_directory: deployment
       auth_project_number: 421909719843
