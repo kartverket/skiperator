@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Tag/Digest of image to deploy. This image should be a well-known working version of Skiperator. Potential image digests are found under skiperator-controller packages."
+        description: "Tag of image to deploy. This image should be a well-known working version of Skiperator. Potential image tags are found under skiperator-controller packages."
         required: true
         type: string
 
