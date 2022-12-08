@@ -77,7 +77,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeNormal, "ReconcileStart",
-			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" something went wrong fetching the application. It might have been deleted",
+			"Something went wrong fetching the application. It might have been deleted",
 		)
 		return reconcile.Result{}, err
 	}
@@ -85,7 +85,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileStart",
-		"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" has started reconciliation loop",
+		"Application "+application.Name+" has started reconciliation loop",
 	)
 
 	_, err = r.initializeApplicationStatus(ctx, application)
@@ -156,7 +156,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileEnd",
-		"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" has finished reconciliation loop",
+		"Application "+application.Name+" has finished reconciliation loop",
 	)
 
 	return reconcile.Result{}, err
@@ -172,7 +172,7 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeNormal, "InitializeAppFunc",
-			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" could not init: "+err.Error(),
+			"Application "+application.Name+" could not init: "+err.Error(),
 		)
 	}
 
@@ -188,7 +188,7 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeNormal, "InitializeAppStatusFunc",
-			"Application "+string(application.UID)+":"+string(application.ResourceVersion)+" could not init status: "+err.Error(),
+			"Application "+application.Name+" could not init status: "+err.Error(),
 		)
 	}
 
