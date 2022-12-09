@@ -27,7 +27,7 @@ func (r *NamespaceReconciler) reconcileImagePullSecret(ctx context.Context, name
 		cfg := dockerConfigJson{}
 		cfg.Auths = make(map[string]dockerConfigAuth, 1)
 		auth := dockerConfigAuth{}
-		auth.Auth = r.Registry
+		auth.Auth = r.Token
 		cfg.Auths[r.Registry] = auth
 
 		var buf bytes.Buffer
