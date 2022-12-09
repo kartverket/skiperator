@@ -1,9 +1,9 @@
-package controllers
+package namespacecontroller
 
 import (
 	"context"
 
-	"github.com/kartverket/skiperator/pkg/util"
+	util "github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -26,12 +26,12 @@ type NamespaceReconciler struct {
 func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
+			util.MatchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
 		)).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1beta1.Sidecar{}).
 		Owns(&corev1.Secret{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Secret](isImagePullSecret),
+			util.MatchesPredicate[*corev1.Secret](isImagePullSecret),
 		)).
 		Complete(r)
 }

@@ -1,11 +1,12 @@
-package controllers
+package applicationcontroller
 
 import (
 	"context"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/util"
+
+	util "github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -43,14 +44,14 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
+			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
+			util.MatchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
 		)).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
