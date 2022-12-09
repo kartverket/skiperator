@@ -1,64 +1,14 @@
-name: Deploy Skiperator Sequentially
+name: Deploy Skiperator Parallell With Dispatch, Quick/Unsafe
 
 on:
-  push:
-    branches: [main]
-    # Publish semver tags as releases.
-    tags: ["v*.*.*"]
-    paths-ignore:
-      - doc/**
-      - samples/**
-      - README.md
-      - CONTRIBUTING.md
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - doc/**
-      - samples/**
-      - README.md
-      - CONTRIBUTING.md
   workflow_dispatch:
-
-env:
-  # Use docker.io for Docker Hub if empty
-  REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
+    inputs:
+      image_tag:
+        description: "Tag of image to deploy. This image should be a well-known working version of Skiperator. Potential image tags are found under skiperator-controller packages."
+        required: true
+        type: string
 
 jobs:
-  build:
-    name: Build container image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-      # Workaround: https://github.com/docker/build-push-action/issues/461
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@8c0edbc76e98fa90f69d9a2c020dcb50019dc325
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/skiperator-controller
-          tags: type=sha,format=long
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
-      - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker image
-        env:
-          IMAGE: ghcr.io/kartverket/skiperator-controller:${{ steps.meta.outputs.version }}
-        run: make push
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-
   sandbox:
     name: Deploy to sandbox
     permissions:
@@ -66,13 +16,12 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.1.0
-    needs: build
     with:
       runner: ubuntu-latest
       environment: sandbox
       kubernetes_cluster: atkv1-sandbox
       terraform_workspace: sandbox
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=sandbox.tfvars
       working_directory: deployment
       auth_project_number: 256430705282
@@ -86,13 +35,12 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.1.0
-    needs: [sandbox, build]
     with:
       runner: ubuntu-latest
       environment: dev
       kubernetes_cluster: atkv1-dev
       terraform_workspace: dev
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=dev.tfvars
       working_directory: deployment
       auth_project_number: 214581028419
@@ -106,13 +54,12 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.1.0
-    needs: [dev, sandbox, build]
     with:
       runner: ubuntu-latest
       environment: test
       kubernetes_cluster: atkv1-test
       terraform_workspace: test
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=test.tfvars
       working_directory: deployment
       auth_project_number: 704673195983
@@ -126,13 +73,12 @@ jobs:
       pull-requests: write
       contents: read
     uses: kartverket/github-workflows/.github/workflows/run-terraform.yml@v3.1.0
-    needs: [test, dev, sandbox, build]
     with:
       runner: ubuntu-latest
       environment: prod
       kubernetes_cluster: atkv1-prod
       terraform_workspace: prod
-      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ needs.build.outputs.version }}
+      terraform_option_1: -var=image=ghcr.io/kartverket/skiperator-controller:${{ inputs.image_tag }}
       terraform_option_2: -var-file=prod.tfvars
       working_directory: deployment
       auth_project_number: 421909719843
