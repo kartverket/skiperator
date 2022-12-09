@@ -82,22 +82,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// These controllers may be added into application, but are not added due to currently being owned by namespaces, and not the application
-	err = (&controllers.ImagePullSecretReconciler{Registry: "ghcr.io", Token: *imagePullToken}).SetupWithManager(mgr)
+	err = (&controllers.NamespaceReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
+		Registry:       "ghcr.io",
+		Token:          *imagePullToken,
+	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ImagePullSecret")
-		os.Exit(1)
-	}
-
-	err = (&controllers.DefaultDenyNetworkPolicyReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DefaultDenyNetworkPolicy")
-		os.Exit(1)
-	}
-
-	err = (&controllers.SidecarReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Sidecar")
+		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)
 	}
 

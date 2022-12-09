@@ -5,46 +5,19 @@ import (
 	"context"
 	"encoding/json"
 
-	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-//+kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// TODO Handle controller status when general status handler exists
 
-type ImagePullSecretReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	Registry string
-	Token    string
-}
-
-func (r *ImagePullSecretReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-
-	return newControllerManagedBy[*corev1.Namespace](mgr).
-		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
-		)).
-		Owns(&corev1.Secret{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Secret](isImagePullSecret),
-		)).
-		Complete(r)
-}
-
-func (r *ImagePullSecretReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
+func (r *NamespaceReconciler) reconcileImagePullSecret(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "github-auth"}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.client, &secret, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &secret, func() error {
 		// Set namespace as owner of the sidecar
-		err := ctrlutil.SetControllerReference(namespace, &secret, r.scheme)
+		err := ctrlutil.SetControllerReference(namespace, &secret, r.GetScheme())
 		if err != nil {
 			return err
 		}
@@ -54,7 +27,7 @@ func (r *ImagePullSecretReconciler) Reconcile(ctx context.Context, namespace *co
 		cfg := dockerConfigJson{}
 		cfg.Auths = make(map[string]dockerConfigAuth, 1)
 		auth := dockerConfigAuth{}
-		auth.Auth = r.Token
+		auth.Auth = r.Registry
 		cfg.Auths[r.Registry] = auth
 
 		var buf bytes.Buffer

@@ -76,7 +76,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	} else if err != nil {
 		r.GetRecorder().Eventf(
 			application,
-			corev1.EventTypeNormal, "ReconcileStart",
+			corev1.EventTypeNormal, "ReconcileStartFail",
 			"Something went wrong fetching the application. It might have been deleted",
 		)
 		return reconcile.Result{}, err
