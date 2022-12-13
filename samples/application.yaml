@@ -5,4 +5,34 @@ metadata:
   name: sample-app
 spec:
   image: nginx
-  port: 80
+  port: 8080
+  ingresses:
+    - "sample-app.local"
+  replicas:
+    targetCpuUtilization: 80
+    max: 2
+    min: 1
+  env:
+    - name: SAMPLE_VARIABLE
+      value: sample_value
+  liveness:
+    path: "/"
+    port: 8080
+  readiness:
+    path: "/"
+    port: 8080
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "100M"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: "sample-app"
+  filesFrom:
+    - configMap: nginx-conf
+      mountPath: /etc/nginx
+    - emptyDir: temp-nginx
+      mountPath: /tmp/nginx
+    - emptyDir: temp-cache
+      mountPath: /var/cache/nginx
