@@ -1,52 +1,25 @@
-package controllers
+package namespacecontroller
 
 import (
 	"context"
 
-	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-//+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
-
-type DefaultDenyNetworkPolicyReconciler struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
-}
-
-func (r *DefaultDenyNetworkPolicyReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.client = mgr.GetClient()
-	r.scheme = mgr.GetScheme()
-	r.recorder = mgr.GetEventRecorderFor("default-deny-networkpolicy-controller")
-
-	return newControllerManagedBy[*corev1.Namespace](mgr).
-		For(&corev1.Namespace{}, builder.WithPredicates(
-			matchesPredicate[*corev1.Namespace](util.IsNotExcludedNamespace),
-		)).
-		Owns(&networkingv1.NetworkPolicy{}).
-		Complete(r)
-}
-
-func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
+func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
 
 	instanaConfigMap := corev1.ConfigMap{}
 
-	err := r.client.Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}, &instanaConfigMap)
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}, &instanaConfigMap)
 	if errors.IsNotFound(err) {
-		r.recorder.Eventf(
+		r.GetRecorder().Eventf(
 			namespace,
 			corev1.EventTypeWarning, "Missing",
 			"Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system",
@@ -56,9 +29,9 @@ func (r *DefaultDenyNetworkPolicyReconciler) Reconcile(ctx context.Context, name
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.client, &networkPolicy, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set namespace as owner of the network policy
-		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.scheme)
+		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.GetScheme())
 		if err != nil {
 			return err
 		}
