@@ -19,10 +19,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/controllers"
+	skipmetrics "github.com/kartverket/skiperator/pkg/metrics"
 	"github.com/kartverket/skiperator/pkg/util"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
@@ -42,6 +45,7 @@ func init() {
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 }
 
 func main() {
@@ -49,6 +53,8 @@ func main() {
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
+	probeAddr := flag.String("health-probe-bind-address", ":8081", "The address the probe endpoint binds to")
+	metricsAddr := flag.String("metrics-bind-address", ":8080", "The address the metric endpoint binds to")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
@@ -62,9 +68,11 @@ func main() {
 		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 	}
 
+	skipmetrics.Register(metrics.Registry)
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
-		HealthProbeBindAddress:  ":8081",
+		HealthProbeBindAddress:  *probeAddr,
+		MetricsBindAddress:      *metricsAddr,
 		LeaderElection:          *leaderElection,
 		LeaderElectionNamespace: *leaderElectionNamespace,
 		LeaderElectionID:        "skiperator",

@@ -2,9 +2,9 @@ package controllers
 
 import (
 	"context"
-
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/metrics"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -79,6 +79,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			corev1.EventTypeNormal, "ReconcileStart",
 			"Something went wrong fetching the application. It might have been deleted",
 		)
+		metrics.ReconcileFailed.WithLabelValues(application.GetName(), application.GetNamespace(), "application").Inc()
 		return reconcile.Result{}, err
 	}
 
@@ -159,6 +160,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"Application "+application.Name+" has finished reconciliation loop",
 	)
 
+	metrics.ReconcileFinished.WithLabelValues(application.GetName(), application.GetNamespace(), "application").Inc()
+
 	return reconcile.Result{}, err
 }
 
@@ -185,6 +188,7 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 	application.FillDefaultsStatus()
 	err := r.GetClient().Status().Update(ctx, application)
 	if err != nil {
+		metrics.ReconcileFailed.WithLabelValues(application.GetName(), application.GetNamespace(), "initializeApplicationStatus").Inc()
 		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeNormal, "InitializeAppStatusFunc",

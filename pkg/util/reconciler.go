@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/pkg/metrics"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -75,6 +76,7 @@ func (r *ReconcilerBase) manageControllerStatus(context context.Context, app *sk
 func (r *ReconcilerBase) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
 	err := r.GetClient().Status().Update(context, app)
+	metrics.ReconcileFailed.WithLabelValues(app.GetName(), app.GetNamespace(), controller).Inc()
 	r.GetRecorder().Eventf(
 		app,
 		corev1.EventTypeWarning, "Controller Fault",
