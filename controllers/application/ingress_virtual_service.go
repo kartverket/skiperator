@@ -30,6 +30,8 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 				return err
 			}
 
+			r.SetLabelsFromApplication(ctx, &virtualService, *application)
+
 			gateways := make([]string, 0, len(application.Spec.Ingresses))
 			for _, hostname := range application.Spec.Ingresses {
 				// Generate gateway name

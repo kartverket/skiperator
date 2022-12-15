@@ -6,3 +6,11 @@ metadata:
 spec:
   image: nginx
   port: 80
+  cascadingLabels:
+    cascadeLabel: some-label
+  resourceLabels:
+    - resourceKind:
+        group: "apps"
+        kind: Deployment
+      labels:
+        deploymentLabel: sample-label

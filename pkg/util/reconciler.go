@@ -4,6 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -114,4 +115,30 @@ func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, a
 	}
 
 	return r.SetControllerSynced(context, app, controllerName)
+}
+
+// Does this make sense as a reconciler function?
+func (r *ReconcilerBase) setResourceLabelsIfAppplies(context context.Context, obj client.Object, resourceLabels []skiperatorv1alpha1.ResourceLabel) {
+	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
+
+	for _, resourceLabel := range resourceLabels {
+		resourceLabelGroupKind := resourceLabel.ResourceGroupKind
+		if objectGroupVersionKind.Group == resourceLabelGroupKind.Group && objectGroupVersionKind.Kind == resourceLabelGroupKind.Kind {
+			objectLabels := obj.GetLabels()
+			maps.Copy(objectLabels, resourceLabel.Labels)
+			obj.SetLabels(objectLabels)
+		}
+
+	}
+}
+
+func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, object client.Object, app skiperatorv1alpha1.Application) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, app.Spec.CascadingLabels)
+	object.SetLabels(labels)
+
+	r.setResourceLabelsIfAppplies(context, object, app.Spec.ResourceLabels)
 }

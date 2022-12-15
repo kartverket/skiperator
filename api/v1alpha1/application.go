@@ -67,6 +67,18 @@ type ApplicationSpec struct {
 
 	//+kubebuilder:validation:Optional
 	GCP *GCP `json:"gcp,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	CascadingLabels map[string]string `json:"cascadingLabels,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	ResourceLabels []ResourceLabel `json:"resourceLabels,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ResourceLabel struct {
+	ResourceGroupKind metav1.GroupKind  `json:"resourceKind"`
+	Labels            map[string]string `json:"labels"`
 }
 
 type Replicas struct {
