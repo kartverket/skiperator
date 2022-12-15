@@ -136,6 +136,23 @@ spec:
   startup:
     # Startup has the same options as liveness
     path: ..
+  # Cascading Labels can be used if you want every resource created by your application to
+  # have the same labels, including your application. This could for example be useful for
+  # metrics, where a certain label and the corresponding resources liveliness can be combined.
+  # Any amount of labels can be added as wanted.
+  cascadingsLabels:
+    someLabel: some-label
+  # Resource Labels can be used if you want to add a label to a specific resources created by
+  # the application. One such label could for example be set on a Deployment, such that
+  # the deployment avoids certain rules from Gatekeeper, or similar. Both the Group and Kind
+  # of the resource must be specified to properly interpret which resource you want to target,
+  # group and kind are also case insensitive. Any amount of labels may be added per resourceLabel item
+  resourceLabels:
+    - resourceKind:
+        group: "apps"
+        kind: "Deployment"
+      labels:
+        someLabel: some-label
   # Resource limits to apply to the deployment. It's common to set these to
   # prevent the app from swelling in resource usage and consuming all the
   # resources of other apps on the cluster.
