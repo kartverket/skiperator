@@ -95,6 +95,20 @@ Changes to the api requires the CRD to be generated and applied again, and chang
 
 Use the command `make run-local` to do this in a safe way without mixing up kubectl contexts.
 
+## Adding/debugging metrics
+The operator exposes prometheus metrics by default on `:8080/metrics`.
+
+You can view the metrics by simply visiting `http://localhost:8080/metrics` in your browser.
+
+Or you can download `prometheus` to your computer, either as a binary or docker-image,
+and use the sample configuration `samples/prometheus.yml` to scrape skiperator.
+
+```
+prometheus --config.file=samples/prometheus.yml
+```
+
+Then visit `http://localhost:9090` to use the prometheus expression tool to view different metrics in table- or graph-view.
+
 ## Writing code
 
 Have a look at the following files:
