@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"golang.org/x/exp/maps"
@@ -123,7 +124,7 @@ func (r *ReconcilerBase) setResourceLabelsIfAppplies(context context.Context, ob
 
 	for _, resourceLabel := range resourceLabels {
 		resourceLabelGroupKind := resourceLabel.ResourceGroupKind
-		if objectGroupVersionKind.Group == resourceLabelGroupKind.Group && objectGroupVersionKind.Kind == resourceLabelGroupKind.Kind {
+		if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
 			objectLabels := obj.GetLabels()
 			maps.Copy(objectLabels, resourceLabel.Labels)
 			obj.SetLabels(objectLabels)

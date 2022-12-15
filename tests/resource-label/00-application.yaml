@@ -13,6 +13,7 @@ spec:
         deploymentLabel: test
     - resourceKind:
         group: ""
-        kind: Service
+        # also tests case insensitivity
+        kind: service
       labels:
         serviceLabel: test
