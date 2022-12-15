@@ -22,7 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/controllers"
+	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
+	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
 	skipmetrics "github.com/kartverket/skiperator/pkg/metrics"
 	"github.com/kartverket/skiperator/pkg/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -82,7 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.ApplicationReconciler{
+	err = (&applicationcontroller.ApplicationReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
@@ -90,22 +91,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	// These controllers may be added into application, but are not added due to currently being owned by namespaces, and not the application
-	err = (&controllers.ImagePullSecretReconciler{Registry: "ghcr.io", Token: *imagePullToken}).SetupWithManager(mgr)
+	err = (&namespacecontroller.NamespaceReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
+		Registry:       "ghcr.io",
+		Token:          *imagePullToken,
+	}).SetupWithManager(mgr)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ImagePullSecret")
-		os.Exit(1)
-	}
-
-	err = (&controllers.DefaultDenyNetworkPolicyReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "DefaultDenyNetworkPolicy")
-		os.Exit(1)
-	}
-
-	err = (&controllers.SidecarReconciler{}).SetupWithManager(mgr)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Sidecar")
+		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
 		os.Exit(1)
 	}
 

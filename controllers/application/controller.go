@@ -1,4 +1,4 @@
-package controllers
+package applicationcontroller
 
 import (
 	"context"
@@ -43,14 +43,14 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
+			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
-			matchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
+			util.MatchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
 		)).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
@@ -76,7 +76,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	} else if err != nil {
 		r.GetRecorder().Eventf(
 			application,
-			corev1.EventTypeNormal, "ReconcileStart",
+			corev1.EventTypeNormal, "ReconcileStartFail",
 			"Something went wrong fetching the application. It might have been deleted",
 		)
 		metrics.ReconcileFailed.WithLabelValues(application.GetName(), application.GetNamespace(), "application").Inc()
