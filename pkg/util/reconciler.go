@@ -119,15 +119,19 @@ func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, a
 }
 
 // Does this make sense as a reconciler function?
-func (r *ReconcilerBase) setResourceLabelsIfAppplies(context context.Context, obj client.Object, resourceLabels []skiperatorv1alpha1.ResourceLabel) {
+func (r *ReconcilerBase) setResourceLabelsIfAppplies(context context.Context, obj client.Object, app skiperatorv1alpha1.Application) {
 	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
 
-	for _, resourceLabel := range resourceLabels {
-		resourceLabelGroupKind := resourceLabel.ResourceGroupKind
-		if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
-			objectLabels := obj.GetLabels()
-			maps.Copy(objectLabels, resourceLabel.Labels)
-			obj.SetLabels(objectLabels)
+	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
+		resourceLabelGroupKind, present := app.GroupKindFromControllerResource(controllerResource)
+		if present {
+			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
+				objectLabels := obj.GetLabels()
+				maps.Copy(objectLabels, resourceLabels)
+				obj.SetLabels(objectLabels)
+			}
+		} else {
+			// TODO Do some error handling
 		}
 
 	}
@@ -138,8 +142,8 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	maps.Copy(labels, app.Spec.CascadingLabels)
+	maps.Copy(labels, app.Spec.Labels)
 	object.SetLabels(labels)
 
-	r.setResourceLabelsIfAppplies(context, object, app.Spec.ResourceLabels)
+	r.setResourceLabelsIfAppplies(context, object, app)
 }

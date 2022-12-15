@@ -69,17 +69,25 @@ type ApplicationSpec struct {
 	GCP *GCP `json:"gcp,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	CascadingLabels map[string]string `json:"cascadingLabels,omitempty"`
+	Labels map[string]string `json:"labels,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	ResourceLabels []ResourceLabel `json:"resourceLabels,omitempty"`
+	ResourceLabels map[ControllerResources]map[string]string `json:"resourceLabels,omitempty"`
 }
 
-// +kubebuilder:object:generate=true
-type ResourceLabel struct {
-	ResourceGroupKind metav1.GroupKind  `json:"resourceKind"`
-	Labels            map[string]string `json:"labels"`
-}
+type ControllerResources string
+
+const (
+	DEPLOYMENT     ControllerResources = "Deployment"
+	SERVICE        ControllerResources = "Service"
+	SERVICEACCOUNT ControllerResources = "ServiceAccount"
+)
+
+// // +kubebuilder:object:generate=true
+// type ResourceLabel struct {
+// 	ResourceGroupKind metav1.GroupKind  `json:"resourceKind"`
+// 	Labels            map[string]string `json:"labels"`
+// }
 
 type Replicas struct {
 	//+kubebuilder:validation:Required
@@ -326,4 +334,25 @@ func max[T constraints.Ordered](a, b T) T {
 	} else {
 		return b
 	}
+}
+
+func (a *Application) GroupKindFromControllerResource(controllerResource ControllerResources) (metav1.GroupKind, bool) {
+	controllerResourceToGroupKind := map[ControllerResources]metav1.GroupKind{
+		DEPLOYMENT: {
+			Group: "apps",
+			Kind:  "Deployment",
+		},
+		SERVICE: {
+			Group: "core",
+			Kind:  "Service",
+		},
+		SERVICEACCOUNT: {
+			Group: "core",
+			Kind:  "ServiceAccount",
+		},
+	}
+
+	groupKind, present := controllerResourceToGroupKind[controllerResource]
+
+	return groupKind, present
 }

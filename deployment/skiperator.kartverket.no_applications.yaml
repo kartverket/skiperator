@@ -100,10 +100,6 @@ spec:
                         type: array
                     type: object
                 type: object
-              cascadingLabels:
-                additionalProperties:
-                  type: string
-                type: object
               command:
                 items:
                   type: string
@@ -260,6 +256,10 @@ spec:
                 items:
                   type: string
                 type: array
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               liveness:
                 properties:
                   failureThreshold:
@@ -306,30 +306,11 @@ spec:
                 - min
                 type: object
               resourceLabels:
-                items:
-                  properties:
-                    labels:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    resourceKind:
-                      description: GroupKind specifies a Group and a Kind, but does
-                        not force a version.  This is useful for identifying concepts
-                        during lookup stages without having partially valid types
-                      properties:
-                        group:
-                          type: string
-                        kind:
-                          type: string
-                      required:
-                      - group
-                      - kind
-                      type: object
-                  required:
-                  - labels
-                  - resourceKind
+                additionalProperties:
+                  additionalProperties:
+                    type: string
                   type: object
-                type: array
+                type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.
                 properties:
