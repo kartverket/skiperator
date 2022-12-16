@@ -20,8 +20,8 @@ resource "kubernetes_deployment_v1" "deployment" {
           app = "skiperator"
         }
         annotations = {
-          prometheus.io/scrape = true
-          prometheus.io/port   = "8080"
+          "prometheus.io/scrape" = true
+          "prometheus.io/port"   = "8080"
         }
       }
       spec {
