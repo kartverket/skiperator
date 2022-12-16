@@ -6,14 +6,9 @@ spec:
   image: image
   port: 8080
   resourceLabels:
-    - resourceKind:
-        group: apps
-        kind: Deployment
+    Deployment:
       labels:
         deploymentLabel: test
-    - resourceKind:
-        group: ""
-        # also tests case insensitivity
-        kind: service
+    Service:
       labels:
         serviceLabel: test
