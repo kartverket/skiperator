@@ -83,12 +83,6 @@ const (
 	SERVICEACCOUNT ControllerResources = "ServiceAccount"
 )
 
-// // +kubebuilder:object:generate=true
-// type ResourceLabel struct {
-// 	ResourceGroupKind metav1.GroupKind  `json:"resourceKind"`
-// 	Labels            map[string]string `json:"labels"`
-// }
-
 type Replicas struct {
 	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
@@ -343,11 +337,11 @@ func (a *Application) GroupKindFromControllerResource(controllerResource Control
 			Kind:  "Deployment",
 		},
 		SERVICE: {
-			Group: "core",
+			Group: "",
 			Kind:  "Service",
 		},
 		SERVICEACCOUNT: {
-			Group: "core",
+			Group: "",
 			Kind:  "ServiceAccount",
 		},
 	}
