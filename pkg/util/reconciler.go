@@ -119,7 +119,7 @@ func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, a
 }
 
 // Does this make sense as a reconciler function?
-func (r *ReconcilerBase) setResourceLabelsIfAppplies(context context.Context, obj client.Object, app skiperatorv1alpha1.Application) {
+func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj client.Object, app skiperatorv1alpha1.Application) {
 	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
 
 	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
@@ -145,5 +145,5 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 	maps.Copy(labels, app.Spec.Labels)
 	object.SetLabels(labels)
 
-	r.setResourceLabelsIfAppplies(context, object, app)
+	r.setResourceLabelsIfApplies(context, object, app)
 }
