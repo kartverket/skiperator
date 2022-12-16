@@ -10,3 +10,7 @@ spec:
       deploymentLabel: test
     Service:
       serviceLabel: test
+    horizontalpodautoscaler:
+      hpaLabel: test
+    thisisnotaresource:
+      testLabel: test

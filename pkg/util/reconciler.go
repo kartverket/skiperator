@@ -118,7 +118,6 @@ func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, a
 	return r.SetControllerSynced(context, app, controllerName)
 }
 
-// Does this make sense as a reconciler function?
 func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj client.Object, app skiperatorv1alpha1.Application) {
 	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
 
@@ -131,7 +130,11 @@ func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj
 				obj.SetLabels(objectLabels)
 			}
 		} else {
-			// TODO Do some error handling
+			r.GetRecorder().Eventf(
+				&app,
+				corev1.EventTypeWarning, "MistypedLabel",
+				"Could not find according Kind for Resource "+controllerResource+". Make sure your resource is spelled correctly",
+			)
 		}
 
 	}

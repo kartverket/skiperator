@@ -11,5 +11,7 @@ spec:
   resourceLabels:
     Deployment:
       deploymentLabel: another-label
-    Service:
+    service:
       serviceLabel: yet-more-label
+    siersiurhg:
+      label: test

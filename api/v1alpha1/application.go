@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"strings"
 	"time"
 
 	"golang.org/x/exp/constraints"
@@ -72,16 +73,8 @@ type ApplicationSpec struct {
 	Labels map[string]string `json:"labels,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	ResourceLabels map[ControllerResources]map[string]string `json:"resourceLabels,omitempty"`
+	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 }
-
-type ControllerResources string
-
-const (
-	DEPLOYMENT     ControllerResources = "Deployment"
-	SERVICE        ControllerResources = "Service"
-	SERVICEACCOUNT ControllerResources = "ServiceAccount"
-)
 
 type Replicas struct {
 	//+kubebuilder:validation:Required
@@ -330,23 +323,80 @@ func max[T constraints.Ordered](a, b T) T {
 	}
 }
 
-func (a *Application) GroupKindFromControllerResource(controllerResource ControllerResources) (metav1.GroupKind, bool) {
-	controllerResourceToGroupKind := map[ControllerResources]metav1.GroupKind{
-		DEPLOYMENT: {
+type ControllerResources string
+
+const (
+	DEPLOYMENT              ControllerResources = "Deployment"
+	SERVICE                 ControllerResources = "Service"
+	SERVICEACCOUNT          ControllerResources = "ServiceAccount"
+	CONFIGMAP               ControllerResources = "ConfigMap"
+	NETWORKPOLICY           ControllerResources = "NetworkPolicy"
+	GATEWAY                 ControllerResources = "Gateway"
+	SERVICEENTRY            ControllerResources = "ServiceEntry"
+	VIRTUALSERVICE          ControllerResources = "VirtualService"
+	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
+	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
+	CERTIFICATE             ControllerResources = "Certificate"
+)
+
+func (a *Application) GroupKindFromControllerResource(controllerResource string) (metav1.GroupKind, bool) {
+	switch strings.ToLower(controllerResource) {
+	case "deployment":
+		return metav1.GroupKind{
 			Group: "apps",
 			Kind:  string(DEPLOYMENT),
-		},
-		SERVICE: {
+		}, true
+	case "service":
+		return metav1.GroupKind{
 			Group: "",
 			Kind:  string(SERVICE),
-		},
-		SERVICEACCOUNT: {
+		}, true
+	case "serviceaccount":
+		return metav1.GroupKind{
 			Group: "",
 			Kind:  string(SERVICEACCOUNT),
-		},
+		}, true
+	case "configmaps":
+		return metav1.GroupKind{
+			Group: "",
+			Kind:  string(CONFIGMAP),
+		}, true
+	case "networkpolicy":
+		return metav1.GroupKind{
+			Group: "networking.k8s.io",
+			Kind:  string(NETWORKPOLICY),
+		}, true
+	case "gateway":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(GATEWAY),
+		}, true
+	case "serviceentry":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(SERVICEENTRY),
+		}, true
+	case "virtualservice":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(VIRTUALSERVICE),
+		}, true
+	case "peerauthentication":
+		return metav1.GroupKind{
+			Group: "security.istio.io",
+			Kind:  string(PEERAUTHENTICATION),
+		}, true
+	case "horizontalpodautoscaler":
+		return metav1.GroupKind{
+			Group: "autoscaling",
+			Kind:  string(HORIZONTALPODAUTOSCALER),
+		}, true
+	case "certificate":
+		return metav1.GroupKind{
+			Group: "cert-manager.io",
+			Kind:  string(CERTIFICATE),
+		}, true
+	default:
+		return metav1.GroupKind{}, false
 	}
-
-	groupKind, present := controllerResourceToGroupKind[controllerResource]
-
-	return groupKind, present
 }
