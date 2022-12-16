@@ -334,15 +334,15 @@ func (a *Application) GroupKindFromControllerResource(controllerResource Control
 	controllerResourceToGroupKind := map[ControllerResources]metav1.GroupKind{
 		DEPLOYMENT: {
 			Group: "apps",
-			Kind:  "Deployment",
+			Kind:  string(DEPLOYMENT),
 		},
 		SERVICE: {
 			Group: "",
-			Kind:  "Service",
+			Kind:  string(SERVICE),
 		},
 		SERVICEACCOUNT: {
 			Group: "",
-			Kind:  "ServiceAccount",
+			Kind:  string(SERVICEACCOUNT),
 		},
 	}
 

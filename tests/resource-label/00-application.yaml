@@ -7,8 +7,6 @@ spec:
   port: 8080
   resourceLabels:
     Deployment:
-      labels:
-        deploymentLabel: test
+      deploymentLabel: test
     Service:
-      labels:
-        serviceLabel: test
+      serviceLabel: test
