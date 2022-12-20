@@ -99,10 +99,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	// _, err = r.reconcileCertificate(ctx, application)
-	// if err != nil {
-	// 	return reconcile.Result{}, err
-	// }
+	_, err = r.reconcileCertificate(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
 
 	_, err = r.reconcileDeployment(ctx, application)
 	if err != nil {

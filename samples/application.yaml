@@ -2,9 +2,20 @@ apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
   namespace: sample-app
-  name: sample-test-app
+  name: sample-test-test-app
 spec:
   image: nginx
   port: 80
   ingresses:
-    - some-ingress.com
+    - skip.statkart.no
+  accessPolicy:
+    inbound:
+      rules:
+        - namespace: default
+          application: random-app
+    outbound:
+      rules:
+        - namespace: default
+          application: random-app
+      external:
+        - host: skip.statkart.no
