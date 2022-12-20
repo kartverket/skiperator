@@ -4,40 +4,23 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"regexp"
-	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) ApplicationFromCertificate(obj client.Object) []reconcile.Request {
-	cert := obj.(*certmanagerv1.Certificate)
-
-	if cert.Namespace != "istio-system" {
-		return nil
-	}
-
-	segments := strings.SplitN(cert.Name, "-", 4)
-	if len(segments) != 4 {
-		return nil
-	}
-
-	return []reconcile.Request{
-		{NamespacedName: types.NamespacedName{Namespace: segments[0], Name: segments[1]}},
-	}
+func IsSkiperatorOwnedCertificate(certificate *certmanagerv1.Certificate) bool {
+	match := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
+	println(match)
+	return match
 }
 
 func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Certificate"
 	r.SetControllerProgressing(ctx, application, controllerName)
-	// Keep track of active certificates
-	active := make(map[string]struct{}, len(application.Spec.Ingresses))
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
@@ -45,14 +28,27 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))
 		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, hash.Sum64())
-		active[name] = struct{}{}
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
+			err := ctrlutil.SetControllerReference(application, &certificate, r.GetScheme())
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
 			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
 			certificate.Spec.IssuerRef.Name = "cluster-issuer" // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			certificate.Spec.DNSNames = []string{hostname}
 			certificate.Spec.SecretName = name
+
+			certLabels := certificate.Labels
+			if len(certLabels) == 0 {
+				certLabels = make(map[string]string)
+			}
+			certLabels["app.kubernetes.io/managed-by"] = "skiperator"
+
+			certificate.Labels = certLabels
 
 			return nil
 		})
@@ -62,41 +58,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		}
 	}
 
-	// Clear out unused certificates
-	certificates := certmanagerv1.CertificateList{}
-	err := r.GetClient().List(ctx, &certificates, client.InNamespace("istio-system"))
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 
-	for i := range certificates.Items {
-		certificate := &certificates.Items[i]
-
-		// Skip unrelated certificates matching string namespace-name-*
-		match, _ := regexp.MatchString("^"+application.Namespace+"-"+application.Name+"-.*$", certificate.Name)
-		// println(certificate.Name + ", matches pattern: " + strconv.FormatBool(match))
-
-		if match {
-			continue
-		}
-
-		// Skip active certificates
-		_, ok := active[certificate.Name]
-		if ok {
-			continue
-		}
-
-		// Delete the rest
-		err = r.GetClient().Delete(ctx, certificate)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	}
-
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
+	return reconcile.Result{}, nil
 }
