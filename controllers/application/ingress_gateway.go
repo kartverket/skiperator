@@ -84,18 +84,20 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		}
 
 		// Skip gateways in which the reconciled application is not the owner
-		applicationOwnerExists := slices.IndexFunc(gateway.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+		applicationOwnerIndex := slices.IndexFunc(gateway.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
 			return ownerReference.Name == application.Name
 		})
-		if applicationOwnerExists == -1 {
+		gatewayOwnedByThisApplication := applicationOwnerIndex != -1
+		if !gatewayOwnedByThisApplication {
 			continue
 		}
 
-		ingressGatewayInSpec := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
+		ingressGatewayInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
 			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, generateHostnameHash(hostname))
 			return gateway.Name == ingressName
 		})
-		if ingressGatewayInSpec != -1 {
+		ingressGatewayInApplicationSpec := ingressGatewayInApplicationSpecIndex != -1
+		if ingressGatewayInApplicationSpec {
 			continue
 		}
 
