@@ -11,7 +11,6 @@ import (
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -20,15 +19,11 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	controllerName := "EgressServiceEntry"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	// Keep track of active service entries
-	active := make(map[string]struct{}, len(application.Spec.AccessPolicy.Outbound.External))
-
 	for _, rule := range application.Spec.AccessPolicy.Outbound.External {
 		// Generate service entry name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(rule.Host))
 		name := fmt.Sprintf("%s-egress-%x", application.Name, hash.Sum64())
-		active[name] = struct{}{}
 
 		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
@@ -88,38 +83,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		}
 	}
 
-	// Clear out unused service entries
-	serviceEntries := networkingv1beta1.ServiceEntryList{}
-	err := r.GetClient().List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
-
-	for i := range serviceEntries.Items {
-		serviceEntry := serviceEntries.Items[i]
-
-		// Skip unrelated service entries
-		if !isEgressServiceEntry(serviceEntry) {
-			continue
-		}
-
-		// Skip active service entries
-		_, ok := active[serviceEntry.Name]
-		if ok {
-			continue
-		}
-
-		// Delete the rest
-		err = r.GetClient().Delete(ctx, serviceEntry)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	}
-
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 
 	return reconcile.Result{}, nil
 }

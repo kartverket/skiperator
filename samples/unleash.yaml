@@ -1,0 +1,57 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: unleash
+  namespace: sample-app
+spec:
+  accessPolicy:
+    inbound:
+      rules:
+        - application: persontjeneste
+          namespace: matrikkel
+    outbound:
+      external:
+        - host: rin-db1436.statkart.no
+          ip: 159.162.25.121
+          ports:
+            - name: postgres-port
+              port: 5432
+              protocol: TCP
+  env:
+    - name: UNLEASH_URL
+      value: unleash.dev.skip.statkart.no
+    - name: DATABASE_HOST
+      value: rin-db1436.statkart.no
+    - name: DATABASE_SSL
+      value: "false"
+    - name: DATABASE_NAME
+      value: unleash
+    - name: DATABASE_SCHEMA
+      value: unleash_dev
+    - name: DATABASE_USERNAME
+      value: unleash
+    - name: DATABASE_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          key: password
+          name: unleash-credentials
+          optional: false
+  image: unleashorg/unleash-server:4
+  ingresses:
+    - unleash.dev.skip.statkart.no
+  liveness:
+    path: /health
+    port: 4242
+  port: 4242
+  replicas:
+    max: 3
+    min: 2
+    targetCpuUtilization: 90
+  resources:
+    limits:
+      memory: 768Mi
+    requests:
+      cpu: 25m
+      memory: 256Mi
+  strategy:
+    type: RollingUpdate

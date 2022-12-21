@@ -11,7 +11,6 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -20,16 +19,12 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	controllerName := "IngressGateway"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	// Keep track of active gateways
-	active := make(map[string]struct{}, len(application.Spec.Ingresses))
-
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
 		// Generate gateway name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
-		active[name] = struct{}{}
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
@@ -73,40 +68,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		}
 	}
 
-	// Clear out unused gateways
-	gateways := networkingv1beta1.GatewayList{}
-	err := r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 
-	for i := range gateways.Items {
-		gateway := gateways.Items[i]
-
-		// Skip unrelated gateways
-		if !isIngressGateway(gateway) {
-			continue
-		}
-
-		// Skip active gateways
-		_, ok := active[gateway.Name]
-		if ok {
-			continue
-		}
-
-		// Delete the rest
-		err = r.GetClient().Delete(ctx, gateway)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	}
-
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
+	return reconcile.Result{}, nil
 }
 
 // Filter for gateways named like *-ingress
