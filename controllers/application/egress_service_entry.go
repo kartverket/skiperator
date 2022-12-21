@@ -3,14 +3,16 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/slices"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -20,10 +22,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	for _, rule := range application.Spec.AccessPolicy.Outbound.External {
-		// Generate service entry name
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(rule.Host))
-		name := fmt.Sprintf("%s-egress-%x", application.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
 
 		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
@@ -83,9 +82,49 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		}
 	}
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+	// Clear out unused service entries
+	serviceEntries := networkingv1beta1.ServiceEntryList{}
+	err := r.GetClient().List(ctx, &serviceEntries, client.InNamespace(application.Namespace))
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
 
-	return reconcile.Result{}, nil
+	for _, serviceEntry := range serviceEntries.Items {
+		// Skip unrelated service entries
+		if !isEgressServiceEntry(serviceEntry) {
+			continue
+		}
+
+		applicationOwnerIndex := slices.IndexFunc(serviceEntry.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+			return ownerReference.Name == application.Name
+		})
+		serviceEntryOwnedByThisApplication := applicationOwnerIndex != -1
+		if !serviceEntryOwnedByThisApplication {
+			continue
+		}
+
+		serviceEntryInApplicationSpecIndex := slices.IndexFunc(application.Spec.AccessPolicy.Outbound.External, func(rule skiperatorv1alpha1.ExternalRule) bool {
+			egressName := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
+			return serviceEntry.Name == egressName
+		})
+		ingressGatewayInApplicationSpec := serviceEntryInApplicationSpecIndex != -1
+		if ingressGatewayInApplicationSpec {
+			continue
+		}
+
+		// Delete the rest
+		err = r.GetClient().Delete(ctx, serviceEntry)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
+	return reconcile.Result{}, err
 }
 
 // Filter for service entries named like *-egress-*

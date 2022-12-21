@@ -3,7 +3,6 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -24,7 +23,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
 
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, generateHostnameHash(hostname))
+		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
@@ -83,7 +82,6 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			continue
 		}
 
-		// Skip gateways in which the reconciled application is not the owner
 		applicationOwnerIndex := slices.IndexFunc(gateway.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
 			return ownerReference.Name == application.Name
 		})
@@ -93,7 +91,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		}
 
 		ingressGatewayInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
-			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, generateHostnameHash(hostname))
+			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
 			return gateway.Name == ingressName
 		})
 		ingressGatewayInApplicationSpec := ingressGatewayInApplicationSpecIndex != -1
@@ -124,10 +122,4 @@ func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
 	}
 
 	return segments[1] == "ingress"
-}
-
-func generateHostnameHash(hostname string) uint64 {
-	hash := fnv.New64()
-	_, _ = hash.Write([]byte(hostname))
-	return hash.Sum64()
 }
