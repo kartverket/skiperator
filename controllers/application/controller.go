@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -17,6 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -36,6 +39,8 @@ import (
 type ApplicationReconciler struct {
 	util.ReconcilerBase
 }
+
+const applicationFinalizer = "skip.statkart.no/finalizer"
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -153,6 +158,21 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+			if err := r.finalizeApplication(ctx, application); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
+			err := r.GetClient().Update(ctx, application)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileEnd",
@@ -166,6 +186,9 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
 
 	application.FillDefaultsSpec()
+	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+		ctrlutil.AddFinalizer(application, applicationFinalizer)
+	}
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {
@@ -193,4 +216,29 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 	}
 
 	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
+	// TODO Delete all non-directly-owned resources
+	certificates := certmanagerv1.CertificateList{}
+	err := r.GetClient().List(ctx, &certificates, client.InNamespace("istio-system"))
+
+	for _, certificate := range certificates.Items {
+		println("want to delete cert: " + certificate.Name)
+		println("for app: " + application.Name)
+
+		applicationNameInCertificateName := strings.Contains(certificate.Name, application.Name)
+		applicationNamespaceInCertificateName := strings.Contains(certificate.Name, application.Namespace)
+		if applicationNameInCertificateName && applicationNamespaceInCertificateName {
+			err = r.GetClient().Delete(ctx, &certificate)
+			err = client.IgnoreNotFound(err)
+			if err != nil {
+				return err
+			}
+		} else {
+			println("certname did not contain app name")
+		}
+
+	}
+	return err
 }

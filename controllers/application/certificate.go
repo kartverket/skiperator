@@ -14,7 +14,6 @@ import (
 
 func IsSkiperatorOwnedCertificate(certificate *certmanagerv1.Certificate) bool {
 	match := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
-	println(match)
 	return match
 }
 
@@ -31,12 +30,6 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
-			err := ctrlutil.SetControllerReference(application, &certificate, r.GetScheme())
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return err
-			}
-
 			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
 			certificate.Spec.IssuerRef.Name = "cluster-issuer" // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			certificate.Spec.DNSNames = []string{hostname}
