@@ -3,11 +3,12 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,10 +39,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
-		// Generate certificate name
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, hash.Sum64())
+		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
@@ -58,7 +56,42 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		}
 	}
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+	// Clear out unused certs
+	certificates := certmanagerv1.CertificateList{}
+	err := r.GetClient().List(ctx, &certificates, client.InNamespace("istio-system"))
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
 
-	return reconcile.Result{}, nil
+	for _, certificate := range certificates.Items {
+
+		certificateInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
+			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
+			return certificate.Name == certificateName
+		})
+		certificateInApplicationSpec := certificateInApplicationSpecIndex != -1
+		if certificateInApplicationSpec {
+			continue
+		}
+
+		// We want to delete certificate which are not in the spec, but still "owned" by the application.
+		applicationNameInCertificate := strings.Contains(certificate.Name, application.Name)
+		applicationNamespaceInCertificate := strings.Contains(certificate.Name, application.Namespace)
+		if !(applicationNameInCertificate && applicationNamespaceInCertificate) {
+			continue
+		}
+
+		// Delete the rest
+		err = r.GetClient().Delete(ctx, &certificate)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
+	return reconcile.Result{}, err
 }
