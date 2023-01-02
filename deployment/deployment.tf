@@ -19,6 +19,10 @@ resource "kubernetes_deployment_v1" "deployment" {
         labels = {
           app = "skiperator"
         }
+        annotations = {
+          "prometheus.io/scrape" = true
+          "prometheus.io/port"   = "8080"
+        }
       }
       spec {
         service_account_name = "skiperator"
