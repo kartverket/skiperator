@@ -3,6 +3,8 @@ resource "kubernetes_service_account_v1" "service_account" {
     namespace = "skiperator-system"
     name      = "skiperator"
   }
+
+  automount_service_account_token = false
 }
 
 resource "kubernetes_cluster_role_binding_v1" "cluster_role_binding" {
