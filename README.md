@@ -144,17 +144,13 @@ spec:
     someLabel: some-label
   # Resource Labels can be used if you want to add a label to a specific resources created by
   # the application. One such label could for example be set on a Deployment, such that
-  # the deployment avoids certain rules from Gatekeeper, or similar. Both the Group and Kind
-  # of the resource must be specified to properly interpret which resource you want to target,
-  # group and kind are also case insensitive. Any amount of labels may be added per resourceLabel item
-
-  # TODO Update if thumbs up on new resourceLabel with Map
+  # the deployment avoids certain rules from Gatekeeper, or similar. Any amount of labels may be added per resourceLabel item.
   resourceLabels:
-    - resourceKind:
-        group: "apps"
-        kind: "Deployment"
-      labels:
-        someLabel: some-label
+    Deployment:
+      labelKey: A value for the label
+    Service:
+      labelKeyOne: A value for the one label
+      labelKeyTwo: A value for the two label
   # Resource limits to apply to the deployment. It's common to set these to
   # prevent the app from swelling in resource usage and consuming all the
   # resources of other apps on the cluster.
