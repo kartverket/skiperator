@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"regexp"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -72,9 +73,11 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	for i := range certificates.Items {
 		certificate := &certificates.Items[i]
 
-		// Skip unrelated certificates
-		segments := strings.SplitN(certificate.Name, "-", 4)
-		if len(segments) != 4 || segments[0] != application.Namespace || segments[1] != application.Name {
+		// Skip unrelated certificates matching string namespace-name-*
+		match, _ := regexp.MatchString("^"+application.Namespace+"-"+application.Name+"-.*$", certificate.Name)
+		// println(certificate.Name + ", matches pattern: " + strconv.FormatBool(match))
+
+		if match {
 			continue
 		}
 
