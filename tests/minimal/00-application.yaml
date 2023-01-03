@@ -3,5 +3,5 @@ kind: Application
 metadata:
   name: test
 spec:
-  image: image
+  image: httpd
   port: 8080

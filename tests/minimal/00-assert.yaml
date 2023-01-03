@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: test
-        image: image
+        image: httpd
         imagePullPolicy: Always
         ports:
         - containerPort: 8080

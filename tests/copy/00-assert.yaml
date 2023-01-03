@@ -9,7 +9,7 @@ spec:
   template:
     spec:
       containers:
-      - image: image
+      - image: httpd
         command: [command]
         env:
         - name: name

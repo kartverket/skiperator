@@ -8,7 +8,7 @@ spec:
     max: 6
   strategy:
     type: Recreate
-  image: image
+  image: httpd
   command: [command]
   env:
   - name: name
