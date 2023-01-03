@@ -3,7 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	util "github.com/kartverket/skiperator/pkg/util"
@@ -129,11 +129,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 
 // Filter for service entries named like *-egress-*
 func isEgressServiceEntry(serviceEntry *networkingv1beta1.ServiceEntry) bool {
-	segments := strings.Split(serviceEntry.Name, "-")
+	match, _ := regexp.MatchString("^.*-egress-.*$", serviceEntry.Name)
 
-	if len(segments) != 3 {
-		return false
-	}
-
-	return segments[1] == "egress"
+	return match
 }

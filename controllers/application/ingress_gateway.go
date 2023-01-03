@@ -3,7 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	util "github.com/kartverket/skiperator/pkg/util"
@@ -113,13 +113,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	return reconcile.Result{}, err
 }
 
-// Filter for gateways named like *-ingress
+// Filter for gateways named like *-ingress-*
 func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
-	segments := strings.Split(gateway.Name, "-")
+	match, _ := regexp.MatchString("^.*-ingress-.*$", gateway.Name)
 
-	if len(segments) != 3 {
-		return false
-	}
-
-	return segments[1] == "ingress"
+	return match
 }

@@ -4,13 +4,23 @@ terraform {
     namespace     = "skiperator-system"
     config_path   = "~/.kube/config"
   }
+
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "4.47.0"
+    }
+
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "2.16.1"
+    }
+  }
 }
 
 provider "kubernetes" {
   config_path = "~/.kube/config"
 }
-
-provider "google" {}
 
 resource "kubernetes_manifest" "custom_resource_definition" {
   manifest = yamldecode(file("${path.module}/skiperator.kartverket.no_applications.yaml"))
