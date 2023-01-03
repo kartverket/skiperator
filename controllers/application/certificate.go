@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -76,9 +77,10 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		}
 
 		// We want to delete certificate which are not in the spec, but still "owned" by the application.
-		applicationNameInCertificate := strings.Contains(certificate.Name, application.Name)
-		applicationNamespaceInCertificate := strings.Contains(certificate.Name, application.Namespace)
-		if !(applicationNameInCertificate && applicationNamespaceInCertificate) {
+		// This should be the case for any certificate not in spec from the earlier continue, if the name still matches <namespace>-<application-name>-ingress-*
+		applicationNamespacedName := application.Namespace + "-" + application.Name
+		certNameMatchesApplicationNamespacedName, _ := regexp.MatchString("^"+applicationNamespacedName+"-ingress-.+$", certificate.Name)
+		if !certNameMatchesApplicationNamespacedName {
 			continue
 		}
 

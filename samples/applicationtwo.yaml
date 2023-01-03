@@ -1,8 +1,8 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  namespace: sample-app
-  name: sampletwo
+  namespace: sample
+  name: sampleapptwo
 spec:
   image: nginx
   port: 80
