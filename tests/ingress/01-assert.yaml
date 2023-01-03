@@ -9,7 +9,7 @@ spec:
     name: cluster-issuer
   secretName: test-test-ingress-56cd7aa901014e78
   dnsNames:
-  - example.com
+    - example.com
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
@@ -19,21 +19,21 @@ spec:
   selector:
     ingress: external
   servers:
-  - hosts:
-    - example.com
-    port:
-      name: http
-      number: 80
-      protocol: HTTP
-  - hosts:
-    - example.com
-    port:
-      name: https
-      number: 443
-      protocol: HTTPS
-    tls:
-      mode: SIMPLE
-      credentialName: test-test-ingress-56cd7aa901014e78
+    - hosts:
+        - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: test-test-ingress-56cd7aa901014e78
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -41,13 +41,13 @@ metadata:
   name: test-ingress
 spec:
   exportTo:
-  - .
-  - istio-system
+    - .
+    - istio-system
   gateways:
-  - test-ingress-56cd7aa901014e78
+    - test-ingress-56cd7aa901014e78
   hosts:
-  - example.com
+    - example.com
   http:
-  - route:
-    - destination:
-        host: test
+    - route:
+        - destination:
+            host: test

@@ -1,0 +1,16 @@
+#apiVersion: cert-manager.io/v1
+#kind: Certificate
+#metadata:
+#  namespace: istio-system
+#  name: test-cert
+
+#---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: test-gateway
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: test-vs
