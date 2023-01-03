@@ -1,8 +1,9 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestSuite
-startControlPlane: true
+#startControlPlane: true
 commands:
 - command: kubectl create namespace istio-system
+  ignoreFailure: true
 - command: kubectl apply --filename https://raw.githubusercontent.com/istio/istio/1.15.1/manifests/charts/base/crds/crd-all.gen.yaml
 - command: kubectl apply --filename https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
 - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
@@ -10,18 +11,28 @@ commands:
 
 - command: kubectl apply --filename deployment
 - command: kubectl create namespace skiperator-system
+  ignoreFailure: true
 - command: kubectl create configmap gcp-identity-config --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system
+  ignoreFailure: true
 - command: kubectl create configmap instana-networkpolicy-config --from-literal=cidrBlock=192.168.1.0/26 -n skiperator-system
+  ignoreFailure: true
 - command: kubectl create namespace test
+  ignoreFailure: true
 
 - command: kubectl create serviceaccount --namespace test skiperator
+  ignoreFailure: true
+- command: kubectl create clusterrole application-deleter --verb=delete --resource=application.skiperator.kartverket.no
+  ignoreFailure: true
+- command: kubectl create clusterrolebinding skiperator-application-deleter --clusterrole application-deleter --serviceaccount test:skiperator
+  ignoreFailure: true
 - command: kubectl create clusterrolebinding skiperator --clusterrole skiperator --serviceaccount test:skiperator
+  ignoreFailure: true
 - script: kubectl config set-credentials skiperator --token "$(kubectl create token --namespace test skiperator)"
 - command: kubectl config set-context skiperator --cluster cluster --user skiperator
 - command: kubectl config use-context skiperator
 
-- command: skiperator -l -ln test
-  background: true
+#- command: ./skiperator -l -ln test
+#  background: true
 parallel: 1
 namespace: test
 testDirs:
