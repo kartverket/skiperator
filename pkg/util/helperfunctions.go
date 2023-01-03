@@ -1,6 +1,7 @@
 package util
 
 import (
+	"hash/fnv"
 	"regexp"
 
 	"golang.org/x/exp/slices"
@@ -44,4 +45,10 @@ var excludedNamespaces = []string{
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
 	return !slices.Contains(excludedNamespaces, namespace.Name)
+}
+
+func GenerateHashFromName(name string) uint64 {
+	hash := fnv.New64()
+	_, _ = hash.Write([]byte(name))
+	return hash.Sum64()
 }
