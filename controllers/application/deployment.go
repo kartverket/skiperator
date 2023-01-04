@@ -114,7 +114,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			}
 		}
 
-		container.Resources = application.Spec.Resources
+		container.Resources = corev1.ResourceRequirements{
+			Limits:   application.Spec.Resources.Limits,
+			Requests: application.Spec.Resources.Requests,
+		}
+
 		numberOfVolumes := len(application.Spec.FilesFrom) + 1
 		if application.Spec.GCP != nil {
 			numberOfVolumes = numberOfVolumes + 1

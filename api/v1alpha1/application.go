@@ -38,7 +38,7 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -67,6 +67,15 @@ type ApplicationSpec struct {
 
 	//+kubebuilder:validation:Optional
 	GCP *GCP `json:"gcp,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ResourceRequirements struct {
+	//+kubebuilder:validation:Optional
+	Limits corev1.ResourceList `json:"limits,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
 type Replicas struct {

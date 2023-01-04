@@ -53,7 +53,7 @@ test: bin/kubectl bin/etcd bin/kube-apiserver build
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	kubectl kuttl test \
 	--config tests/config.yaml \
-	--control-plane-config tests/apiserver.conf
+	--start-control-plane
 
 .PHONY: run-local
 run-local: build
