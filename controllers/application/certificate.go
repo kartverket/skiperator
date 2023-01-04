@@ -10,14 +10,33 @@ import (
 	util "github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func IsSkiperatorOwnedCertificate(certificate *certmanagerv1.Certificate) bool {
-	match := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
-	return match
+func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(obj client.Object) []reconcile.Request {
+	certificate, isCert := obj.(*certmanagerv1.Certificate)
+
+	if !isCert {
+		return nil
+	}
+
+	isSkiperatorOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
+
+	requests := make([]reconcile.Request, 0)
+
+	if isSkiperatorOwned {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: certificate.Labels["application.skiperator.no/app-namespace"],
+				Name:      certificate.Labels["application.skiperator.no/app-name"],
+			},
+		})
+	}
+
+	return requests
 }
 
 func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -40,6 +59,10 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 				certLabels = make(map[string]string)
 			}
 			certLabels["app.kubernetes.io/managed-by"] = "skiperator"
+
+			// TODO Find better label names here
+			certLabels["application.skiperator.no/app-name"] = application.Name
+			certLabels["application.skiperator.no/app-namespace"] = application.Namespace
 
 			certificate.Labels = certLabels
 

@@ -48,9 +48,6 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&certmanagerv1.Certificate{}, builder.WithPredicates(
-			util.MatchesPredicate[*certmanagerv1.Certificate](IsSkiperatorOwnedCertificate),
-		)).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
 			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
 		)).
@@ -64,6 +61,10 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Watches(
+			&source.Kind{Type: &certmanagerv1.Certificate{}},
+			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),
+		).
 		Watches(
 			&source.Kind{Type: &corev1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService),
