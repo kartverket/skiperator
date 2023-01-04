@@ -2,7 +2,6 @@ package applicationcontroller
 
 import (
 	"context"
-	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -220,24 +219,18 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 }
 
 func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
-	// TODO Delete all non-directly-owned resources
-	certificates := certmanagerv1.CertificateList{}
-	err := r.GetClient().List(ctx, &certificates, client.InNamespace("istio-system"))
+	certificates, err := r.GetSkiperatorOwnedCertificates(ctx)
+	if err != nil {
+		return err
+	}
 
 	for _, certificate := range certificates.Items {
-		println("want to delete cert: " + certificate.Name)
-		println("for app: " + application.Name)
-
-		applicationNameInCertificateName := strings.Contains(certificate.Name, application.Name)
-		applicationNamespaceInCertificateName := strings.Contains(certificate.Name, application.Namespace)
-		if applicationNameInCertificateName && applicationNamespaceInCertificateName {
+		if r.IsApplicationsCertificate(ctx, *application, certificate) {
 			err = r.GetClient().Delete(ctx, &certificate)
 			err = client.IgnoreNotFound(err)
 			if err != nil {
 				return err
 			}
-		} else {
-			println("certname did not contain app name")
 		}
 
 	}
