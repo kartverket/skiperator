@@ -13,5 +13,3 @@ spec:
       deploymentLabel: another-label
     service:
       serviceLabel: yet-more-label
-    siersiurhg:
-      label: test

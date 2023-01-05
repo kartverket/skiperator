@@ -24,4 +24,4 @@ source:
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
-  name: test
+  name: resourcelabel
