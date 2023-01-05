@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"strings"
+	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
@@ -71,11 +71,6 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 
 // Filter for virtual services named like *-ingress
 func isIngressVirtualService(virtualService *networkingv1beta1.VirtualService) bool {
-	segments := strings.Split(virtualService.Name, "-")
-
-	if len(segments) != 2 {
-		return false
-	}
-
-	return segments[1] == "ingress"
+	match, _ := regexp.MatchString("^.*-ingress$", virtualService.Name)
+	return match
 }

@@ -3,11 +3,11 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
-	"strings"
+	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	util "github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/slices"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,16 +20,10 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	controllerName := "IngressGateway"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	// Keep track of active gateways
-	active := make(map[string]struct{}, len(application.Spec.Ingresses))
-
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
-		// Generate gateway name
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
-		active[name] = struct{}{}
+
+		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
@@ -78,22 +72,32 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	// Clear out unused gateways
 	gateways := networkingv1beta1.GatewayList{}
 	err := r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
+
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
-	for i := range gateways.Items {
-		gateway := gateways.Items[i]
-
+	for _, gateway := range gateways.Items {
 		// Skip unrelated gateways
 		if !isIngressGateway(gateway) {
 			continue
 		}
 
-		// Skip active gateways
-		_, ok := active[gateway.Name]
-		if ok {
+		applicationOwnerIndex := slices.IndexFunc(gateway.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+			return ownerReference.Name == application.Name
+		})
+		gatewayOwnedByThisApplication := applicationOwnerIndex != -1
+		if !gatewayOwnedByThisApplication {
+			continue
+		}
+
+		ingressGatewayInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
+			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
+			return gateway.Name == ingressName
+		})
+		ingressGatewayInApplicationSpec := ingressGatewayInApplicationSpecIndex != -1
+		if ingressGatewayInApplicationSpec {
 			continue
 		}
 
@@ -111,13 +115,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	return reconcile.Result{}, err
 }
 
-// Filter for gateways named like *-ingress
+// Filter for gateways named like *-ingress-*
 func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
-	segments := strings.Split(gateway.Name, "-")
+	match, _ := regexp.MatchString("^.*-ingress-.*$", gateway.Name)
 
-	if len(segments) != 3 {
-		return false
-	}
-
-	return segments[1] == "ingress"
+	return match
 }
