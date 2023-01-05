@@ -24,6 +24,8 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 			return err
 		}
 
+		r.SetLabelsFromApplication(ctx, &service, *application)
+
 		labels := map[string]string{"app": application.Name}
 		service.Spec.Selector = labels
 

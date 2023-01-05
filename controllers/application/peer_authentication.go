@@ -25,6 +25,8 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 			return err
 		}
 
+		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
+
 		peerAuthentication.Spec.Selector = &typev1beta1.WorkloadSelector{}
 		labels := map[string]string{"app": application.Name}
 		peerAuthentication.Spec.Selector.MatchLabels = labels

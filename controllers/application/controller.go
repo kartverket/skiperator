@@ -167,6 +167,7 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
 
 	application.FillDefaultsSpec()
+	application.Labels = application.Spec.Labels
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {

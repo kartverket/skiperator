@@ -57,6 +57,8 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			return err
 		}
 
+		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
+
 		labels := map[string]string{"app": application.Name}
 		networkPolicy.Spec.PodSelector.MatchLabels = labels
 

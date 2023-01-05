@@ -43,6 +43,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			return err
 		}
 
+		r.SetLabelsFromApplication(ctx, &deployment, *application)
+
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
 
 		labels := map[string]string{"app": application.Name}
