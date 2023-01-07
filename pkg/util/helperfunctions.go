@@ -41,6 +41,7 @@ var excludedNamespaces = []string{
 	"sysdig-admission-controller",
 	"instana-agent",
 	"kubecost",
+	"argocd"
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
