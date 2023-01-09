@@ -23,6 +23,8 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 			return err
 		}
 
+		r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
+
 		return nil
 	})
 

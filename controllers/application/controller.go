@@ -17,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -37,6 +39,8 @@ type ApplicationReconciler struct {
 	util.ReconcilerBase
 }
 
+const applicationFinalizer = "skip.statkart.no/finalizer"
+
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -55,11 +59,11 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		)).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
+		Owns(&networkingv1.NetworkPolicy{}).
 		Watches(
 			&source.Kind{Type: &certmanagerv1.Certificate{}},
-			handler.EnqueueRequestsFromMapFunc(r.ApplicationFromCertificate),
+			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),
 		).
-		Owns(&networkingv1.NetworkPolicy{}).
 		Watches(
 			&source.Kind{Type: &corev1.Service{}},
 			handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService),
@@ -154,6 +158,21 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+			if err := r.finalizeApplication(ctx, application); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
+			err := r.GetClient().Update(ctx, application)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileEnd",
@@ -167,6 +186,10 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
 
 	application.FillDefaultsSpec()
+	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+		ctrlutil.AddFinalizer(application, applicationFinalizer)
+	}
+	application.Labels = application.Spec.Labels
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {
@@ -194,4 +217,23 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 	}
 
 	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
+	certificates, err := r.GetSkiperatorOwnedCertificates(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, certificate := range certificates.Items {
+		if r.IsApplicationsCertificate(ctx, *application, certificate) {
+			err = r.GetClient().Delete(ctx, &certificate)
+			err = client.IgnoreNotFound(err)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return err
 }

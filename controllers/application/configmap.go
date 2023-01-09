@@ -57,6 +57,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
+		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
 
 		if application.Spec.GCP != nil {
 			ConfStruct := Config{
