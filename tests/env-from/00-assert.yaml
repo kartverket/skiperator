@@ -1,13 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test
+  name: env-from
 spec:
   template:
     spec:
       containers:
-      - envFrom:
-        - configMapRef:
-            name: config-map
-        - secretRef:
-            name: secret
+        - envFrom:
+            - configMapRef:
+                name: config-map
+            - secretRef:
+                name: secret

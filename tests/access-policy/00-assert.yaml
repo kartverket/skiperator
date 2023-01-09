@@ -1,63 +1,63 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test
+  name: access-policy
 spec:
   podSelector:
     matchLabels:
-      app: test
+      app: access-policy
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
+    - Egress
   ingress:
-  - from:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: other
-      podSelector:
-        matchLabels:
-          app: other
-    ports:
-    - port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: other
+          podSelector:
+            matchLabels:
+              app: other
+      ports:
+        - port: 8080
   egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: other
-      podSelector:
-        matchLabels:
-          app: other
-    ports:
-    - port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: other
+          podSelector:
+            matchLabels:
+              app: other
+      ports:
+        - port: 8080
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: test-egress-56cd7aa901014e78
+  name: access-policy-egress-56cd7aa901014e78
 spec:
   exportTo:
-  - .
-  - istio-system
+    - .
+    - istio-system
   resolution: DNS
   hosts:
-  - example.com
+    - example.com
   ports:
-  - name: http
-    number: 80
-    protocol: HTTP
+    - name: http
+      number: 80
+      protocol: HTTP
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: test-egress-3a90cb5d70dc06a
+  name: access-policy-egress-3a90cb5d70dc06a
 spec:
   exportTo:
-  - .
-  - istio-system
+    - .
+    - istio-system
   resolution: DNS
   hosts:
-  - foo.com
+    - foo.com
   ports:
-  - name: https
-    number: 443
-    protocol: HTTPS
+    - name: https
+      number: 443
+      protocol: HTTPS

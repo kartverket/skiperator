@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: test
+  name: copy
 spec:
   replicas:
     min: 3
@@ -11,6 +11,6 @@ spec:
   image: image
   command: [command]
   env:
-  - name: name
-    value: value
+    - name: name
+      value: value
   port: 8080

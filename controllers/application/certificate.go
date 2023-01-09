@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -17,21 +16,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) ApplicationFromCertificate(obj client.Object) []reconcile.Request {
-	cert := obj.(*certmanagerv1.Certificate)
+func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(obj client.Object) []reconcile.Request {
+	certificate, isCert := obj.(*certmanagerv1.Certificate)
 
-	if cert.Namespace != "istio-system" {
+	if !isCert {
 		return nil
 	}
 
-	segments := strings.SplitN(cert.Name, "-", 4)
-	if len(segments) != 4 {
-		return nil
+	isSkiperatorOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
+
+	requests := make([]reconcile.Request, 0)
+
+	if isSkiperatorOwned {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: certificate.Labels["application.skiperator.no/app-namespace"],
+				Name:      certificate.Labels["application.skiperator.no/app-name"],
+			},
+		})
 	}
 
-	return []reconcile.Request{
-		{NamespacedName: types.NamespacedName{Namespace: segments[0], Name: segments[1]}},
-	}
+	return requests
 }
 
 func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -51,6 +56,18 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 			certificate.Spec.DNSNames = []string{hostname}
 			certificate.Spec.SecretName = name
 
+			certLabels := certificate.Labels
+			if len(certLabels) == 0 {
+				certLabels = make(map[string]string)
+			}
+			certLabels["app.kubernetes.io/managed-by"] = "skiperator"
+
+			// TODO Find better label names here
+			certLabels["application.skiperator.no/app-name"] = application.Name
+			certLabels["application.skiperator.no/app-namespace"] = application.Namespace
+
+			certificate.Labels = certLabels
+
 			return nil
 		})
 		if err != nil {
@@ -60,8 +77,8 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	}
 
 	// Clear out unused certs
-	certificates := certmanagerv1.CertificateList{}
-	err := r.GetClient().List(ctx, &certificates, client.InNamespace("istio-system"))
+	certificates, err := r.GetSkiperatorOwnedCertificates(ctx)
+
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
@@ -80,9 +97,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 		// We want to delete certificate which are not in the spec, but still "owned" by the application.
 		// This should be the case for any certificate not in spec from the earlier continue, if the name still matches <namespace>-<application-name>-ingress-*
-		applicationNamespacedName := application.Namespace + "-" + application.Name
-		certNameMatchesApplicationNamespacedName, _ := regexp.MatchString("^"+applicationNamespacedName+"-ingress-.+$", certificate.Name)
-		if !certNameMatchesApplicationNamespacedName {
+		if !r.IsApplicationsCertificate(ctx, *application, certificate) {
 			continue
 		}
 
@@ -98,4 +113,20 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) GetSkiperatorOwnedCertificates(context context.Context) (certmanagerv1.CertificateList, error) {
+	certificates := certmanagerv1.CertificateList{}
+	err := r.GetClient().List(context, &certificates, client.MatchingLabels{
+		"app.kubernetes.io/managed-by": "skiperator",
+	})
+
+	return certificates, err
+}
+
+func (r *ApplicationReconciler) IsApplicationsCertificate(context context.Context, application skiperatorv1alpha1.Application, certificate certmanagerv1.Certificate) bool {
+	applicationNamespacedName := application.Namespace + "-" + application.Name
+	certNameMatchesApplicationNamespacedName, _ := regexp.MatchString("^"+applicationNamespacedName+"-ingress-.+$", certificate.Name)
+
+	return certNameMatchesApplicationNamespacedName
 }

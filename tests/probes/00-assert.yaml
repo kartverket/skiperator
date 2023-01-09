@@ -1,29 +1,29 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test
+  name: probes
 spec:
   template:
     spec:
       containers:
-      - startupProbe:
-          initialDelaySeconds: 1
-          timeoutSeconds: 1
-          failureThreshold: 1
-          httpGet:
-            port: 1
-            path: /startup
-        livenessProbe:
-          initialDelaySeconds: 2
-          timeoutSeconds: 2
-          failureThreshold: 2
-          httpGet:
-            port: 2
-            path: /liveness
-        readinessProbe:
-          initialDelaySeconds: 3
-          timeoutSeconds: 3
-          failureThreshold: 3
-          httpGet:
-            port: 3
-            path: /readiness
+        - startupProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 1
+            httpGet:
+              port: 1
+              path: /startup
+          livenessProbe:
+            initialDelaySeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 2
+            httpGet:
+              port: 2
+              path: /liveness
+          readinessProbe:
+            initialDelaySeconds: 3
+            timeoutSeconds: 3
+            failureThreshold: 3
+            httpGet:
+              port: 3
+              path: /readiness
