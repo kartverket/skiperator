@@ -2,8 +2,10 @@ package util
 
 import (
 	"context"
+	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
@@ -114,4 +116,37 @@ func (r *ReconcilerBase) SetControllerFinishedOutcome(context context.Context, a
 	}
 
 	return r.SetControllerSynced(context, app, controllerName)
+}
+
+func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj client.Object, app skiperatorv1alpha1.Application) {
+	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
+
+	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
+		resourceLabelGroupKind, present := app.GroupKindFromControllerResource(controllerResource)
+		if present {
+			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
+				objectLabels := obj.GetLabels()
+				maps.Copy(objectLabels, resourceLabels)
+				obj.SetLabels(objectLabels)
+			}
+		} else {
+			r.GetRecorder().Eventf(
+				&app,
+				corev1.EventTypeWarning, "MistypedLabel",
+				"Could not find according Kind for Resource "+controllerResource+". Make sure your resource is spelled correctly",
+			)
+		}
+
+	}
+}
+
+func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, object client.Object, app skiperatorv1alpha1.Application) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, app.Spec.Labels)
+	object.SetLabels(labels)
+
+	r.setResourceLabelsIfApplies(context, object, app)
 }

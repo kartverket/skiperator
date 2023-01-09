@@ -256,6 +256,10 @@ spec:
                 items:
                   type: string
                 type: array
+              labels:
+                additionalProperties:
+                  type: string
+                type: object
               liveness:
                 properties:
                   failureThreshold:
@@ -300,6 +304,12 @@ spec:
                     type: integer
                 required:
                 - min
+                type: object
+              resourceLabels:
+                additionalProperties:
+                  additionalProperties:
+                    type: string
+                  type: object
                 type: object
               resources:
                 description: ResourceRequirements describes the compute resource requirements.

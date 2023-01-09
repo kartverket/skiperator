@@ -34,6 +34,8 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				return err
 			}
 
+			r.SetLabelsFromApplication(ctx, &gateway, *application)
+
 			if util.IsInternal(hostname) {
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
 			} else {

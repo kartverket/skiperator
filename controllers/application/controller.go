@@ -189,6 +189,7 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
+	application.Labels = application.Spec.Labels
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {

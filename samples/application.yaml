@@ -6,6 +6,13 @@ metadata:
 spec:
   image: nginx
   port: 80
+  labels:
+    cascadeLabel: some-label
+  resourceLabels:
+    Deployment:
+      deploymentLabel: another-label
+    service:
+      serviceLabel: yet-more-label
   ingresses:
     - test.com
   accessPolicy:
