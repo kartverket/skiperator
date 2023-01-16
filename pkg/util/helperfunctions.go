@@ -42,7 +42,7 @@ var excludedNamespaces = []string{
 	"instana-agent",
 	"kubecost",
 	"argocd",
-	"crossplane",
+	"crossplane-system",
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
