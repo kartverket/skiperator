@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	secretsStorev1 "sigs.k8s.io/secrets-store-csi-driver/apis/v1"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -60,6 +61,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&secretsStorev1.SecretProviderClass{}).
 		Watches(
 			&source.Kind{Type: &certmanagerv1.Certificate{}},
 			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),

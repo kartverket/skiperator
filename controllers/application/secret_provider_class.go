@@ -43,6 +43,14 @@ func (r *ApplicationReconciler) reconcileSecretProviderClass(ctx context.Context
 
 		secretProviderClass := secretsStorev1.SecretProviderClass{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &secretProviderClass, func() error {
+			err := ctrlutil.SetControllerReference(application, &secretProviderClass, r.GetScheme())
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			r.SetLabelsFromApplication(ctx, &secretProviderClass, *application)
+
 			secretProviderClass.Spec.Provider = "gcp"
 			// Create mapping for secret in GCP to path in kubernetes
 			secretProviderClass.Spec.Parameters = map[string]string{
