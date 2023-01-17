@@ -1,0 +1,20 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcp
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - mountPath: /secretmanager
+              name: gcp-secret-provider-dfigjklasdkfjl
+      volumes:
+        - name: gcp-secret-provider-dfigjklasdkfjl
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            secretProviderClass:
+              name: gcp-secret-provider-dfigjklasdkfjl
+---

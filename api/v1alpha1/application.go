@@ -110,6 +110,8 @@ type EnvFrom struct {
 	ConfigMap string `json:"configMap,omitempty"`
 	//+kubebuilder:validation:Optional
 	Secret string `json:"secret,omitempty"`
+	//+kubebuilder:validation:Optional
+	GcpSecretManager string `json:"gcpSecretManager,omitempty"`
 }
 
 type FilesFrom struct {
@@ -124,6 +126,8 @@ type FilesFrom struct {
 	EmptyDir string `json:"emptyDir,omitempty"`
 	//+kubebuilder:validation:Optional
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
+	//+kubebuilder:validation:Optional
+	GcpSecretManager string `json:"gcpSecretManager,omitempty"`
 }
 
 type Probe struct {

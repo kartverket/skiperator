@@ -14,6 +14,7 @@ require (
 	k8s.io/client-go v0.26.0
 	sigs.k8s.io/controller-runtime v0.14.1
 	sigs.k8s.io/controller-tools v0.11.1
+	sigs.k8s.io/secrets-store-csi-driver v1.3.0
 )
 
 require (

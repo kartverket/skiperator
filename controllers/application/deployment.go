@@ -2,6 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
+	"fmt"
+	"hash/fnv"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -150,6 +152,16 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				volumes[i+1].Name = file.PersistentVolumeClaim
 				volumes[i+1].PersistentVolumeClaim = &corev1.PersistentVolumeClaimVolumeSource{}
 				volumes[i+1].PersistentVolumeClaim.ClaimName = file.PersistentVolumeClaim
+			} else if len(file.GcpSecretManager) > 0 {
+				hash := fnv.New64()
+				_, _ = hash.Write([]byte(file.GcpSecretManager))
+				name := fmt.Sprintf("%x", hash.Sum64())
+				volumes[i+1].Name = file.GcpSecretManager
+				volumes[i+1].CSI = &corev1.CSIVolumeSource{}
+				volumes[i+1].CSI.Driver = "secrets-store.csi.k8s.io"
+				volumes[i+1].CSI.ReadOnly = &yes
+				volumes[i+1].CSI.VolumeAttributes = make(map[string]string)
+				volumes[i+1].CSI.VolumeAttributes["secretProviderClass"] = name
 			}
 
 			volumeMounts[i+1] = corev1.VolumeMount{Name: volumes[i+1].Name, MountPath: file.MountPath}

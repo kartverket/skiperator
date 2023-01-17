@@ -158,6 +158,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
+	_, err = r.reconcileSecretProviderClass(ctx, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
 		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
