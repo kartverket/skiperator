@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	secretsStore "sigs.k8s.io/secrets-store-csi-driver/apis/v1alpha1"
+	secretsStorev1 "sigs.k8s.io/secrets-store-csi-driver/apis/v1"
 )
 
 func (r *ApplicationReconciler) reconcileSecretProviderClass(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -41,11 +41,31 @@ func (r *ApplicationReconciler) reconcileSecretProviderClass(ctx context.Context
 		// projects/$PROJECT_ID/secrets/testsecret/versions/latest
 		secretName := strings.Split(secretManagerReference, "/")[3]
 
-		secretProviderClass := secretsStore.SecretProviderClass{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+		secretProviderClass := secretsStorev1.SecretProviderClass{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &secretProviderClass, func() error {
+			secretProviderClass.Spec.Provider = "gcp"
+			// Create mapping for secret in GCP to path in kubernetes
 			secretProviderClass.Spec.Parameters = map[string]string{
-				"secrets": fmt.Sprintf("|\n  - resourceName: \"%s\"\n    path: \"%s.txt\"", secretManagerReference, secretName),
+				"secrets": fmt.Sprintf(
+					"- resourceName: \"%s\"\n"+
+						"  path: \"%s\"\n"+
+						"  objectAlias: \"secretalias\"",
+					secretManagerReference,
+					secretName,
+				),
 			}
+			// Create kubernetes secret as well
+			secretProviderClass.Spec.SecretObjects = []*secretsStorev1.SecretObject{{
+				SecretName: fmt.Sprintf("gcp-sm-%s", secretName),
+				Type:       "Opaque",
+				Labels: map[string]string{
+					"app.kubernetes.io/managed-by": "skiperator",
+				},
+				Data: []*secretsStorev1.SecretObjectData{{
+					Key:        secretName,
+					ObjectName: "secretalias",
+				}},
+			}}
 			return nil
 		})
 	}

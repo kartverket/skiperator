@@ -26,6 +26,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	secretsStorev1 "sigs.k8s.io/secrets-store-csi-driver/apis/v1"
 )
 
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
@@ -43,6 +44,7 @@ func init() {
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(secretsStorev1.AddToScheme(scheme))
 }
 
 func main() {

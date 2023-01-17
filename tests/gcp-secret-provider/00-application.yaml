@@ -6,7 +6,7 @@ spec:
   image: image
   port: 8080
   envFrom:
-    - gcpSecretProvider: projects/foobar-dev-123/secrets/testsecret/versions/latest
+    - gcpSecretManager: projects/foobar-dev-123/secrets/testsecret/versions/latest
   filesFrom:
     - mountPath: /secretmanager
-      gcpSecretProvider: projects/foobar-dev-123/secrets/testsecret/versions/latest
+      gcpSecretManager: projects/foobar-dev-123/secrets/testsecret/versions/latest

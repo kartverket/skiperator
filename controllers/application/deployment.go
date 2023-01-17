@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -115,6 +116,10 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			} else if len(env.Secret) > 0 {
 				envFrom[i].SecretRef = &corev1.SecretEnvSource{}
 				envFrom[i].SecretRef.LocalObjectReference.Name = env.Secret
+			} else if len(env.GcpSecretManager) > 0 {
+				secretName := strings.Split(env.GcpSecretManager, "/")[3]
+				envFrom[i].SecretRef = &corev1.SecretEnvSource{}
+				envFrom[i].SecretRef.LocalObjectReference.Name = fmt.Sprintf("gcp-sm-%s", secretName)
 			}
 		}
 
@@ -156,12 +161,12 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				hash := fnv.New64()
 				_, _ = hash.Write([]byte(file.GcpSecretManager))
 				name := fmt.Sprintf("%x", hash.Sum64())
-				volumes[i+1].Name = file.GcpSecretManager
+				volumes[i+1].Name = fmt.Sprintf("gcp-sm-%s", name)
 				volumes[i+1].CSI = &corev1.CSIVolumeSource{}
 				volumes[i+1].CSI.Driver = "secrets-store.csi.k8s.io"
 				volumes[i+1].CSI.ReadOnly = &yes
 				volumes[i+1].CSI.VolumeAttributes = make(map[string]string)
-				volumes[i+1].CSI.VolumeAttributes["secretProviderClass"] = name
+				volumes[i+1].CSI.VolumeAttributes["secretProviderClass"] = fmt.Sprintf("%s-%s", application.Name, name)
 			}
 
 			volumeMounts[i+1] = corev1.VolumeMount{Name: volumes[i+1].Name, MountPath: file.MountPath}

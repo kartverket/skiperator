@@ -8,6 +8,11 @@ commands:
   - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
   - command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
 
+  - command: kubectl apply --filename https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/main/deploy/secrets-store.csi.x-k8s.io_secretproviderclasses.yaml
+  - command: kubectl apply --filename https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/main/deploy/secrets-store.csi.x-k8s.io_secretproviderclasspodstatuses.yaml
+  - command: kubectl apply --filename https://raw.githubusercontent.com/kubernetes-sigs/secrets-store-csi-driver/main/deploy/role-secretproviderclasses-admin.yaml
+  - command: kubectl create clusterrolebinding skiperator-secret-store-admin --clusterrole secretproviderclasses-admin-role --serviceaccount test:skiperator
+
   - command: kubectl apply --filename deployment
   - command: kubectl create namespace skiperator-system
   - command: kubectl create configmap gcp-identity-config --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system
