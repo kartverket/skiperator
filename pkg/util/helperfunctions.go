@@ -43,6 +43,7 @@ var excludedNamespaces = []string{
 	"kubecost",
 	"argocd",
 	"crossplane-system",
+	"upbound-system",
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
