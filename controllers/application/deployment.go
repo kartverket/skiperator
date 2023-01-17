@@ -201,6 +201,23 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
 		}
 
+		// EnvFrom Secret Manager requires a volume to trigger CSI plugin
+		for _, envFrom := range application.Spec.EnvFrom {
+			if len(envFrom.GcpSecretManager) > 0 {
+				volume := corev1.Volume{}
+				hash := fnv.New64()
+				_, _ = hash.Write([]byte(envFrom.GcpSecretManager))
+				name := fmt.Sprintf("%x", hash.Sum64())
+				volume.Name = fmt.Sprintf("gcp-sm-%s", name)
+				volume.CSI = &corev1.CSIVolumeSource{}
+				volume.CSI.Driver = "secrets-store.csi.k8s.io"
+				volume.CSI.ReadOnly = &yes
+				volume.CSI.VolumeAttributes = make(map[string]string)
+				volume.CSI.VolumeAttributes["secretProviderClass"] = fmt.Sprintf("%s-%s", application.Name, name)
+				volumes = append(volumes, volume)
+			}
+		}
+
 		if application.Spec.Readiness != nil {
 			container.ReadinessProbe = &corev1.Probe{}
 			container.ReadinessProbe.InitialDelaySeconds = int32(application.Spec.Readiness.InitialDelay)
