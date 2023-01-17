@@ -1,0 +1,44 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcp-secret-provider-only-env
+spec:
+  template:
+    spec:
+      containers:
+        - envFrom:
+          - secretRef:
+              name: gcp-sm-testsecret
+          volumeMounts:
+          - mountPath: /tmp
+            name: tmp
+      volumes:
+        - emptyDir: {}
+          name: tmp
+        - name: gcp-sm-6e5548c4eb2bb81f
+          csi:
+            driver: "secrets-store.csi.k8s.io"
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: gcp-secret-provider-only-env-6e5548c4eb2bb81f
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: gcp-secret-provider-only-env-6e5548c4eb2bb81f
+spec:
+  provider: gcp
+  parameters:
+    secrets: |-
+      - resourceName: "projects/foobar-dev-123/secrets/testsecret/versions/latest"
+        path: "testsecret"
+        objectAlias: "secretalias"
+  secretObjects:
+  - data:
+    - key: testsecret
+      objectName: secretalias
+    secretName: gcp-sm-testsecret
+    type: Opaque
+    labels:
+      app.kubernetes.io/managed-by: skiperator

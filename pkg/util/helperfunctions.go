@@ -55,3 +55,12 @@ func GenerateHashFromName(name string) uint64 {
 	_, _ = hash.Write([]byte(name))
 	return hash.Sum64()
 }
+
+func Contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}

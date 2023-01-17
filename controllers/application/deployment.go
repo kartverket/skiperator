@@ -3,10 +3,10 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -128,94 +128,96 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			Requests: application.Spec.Resources.Requests,
 		}
 
-		numberOfVolumes := len(application.Spec.FilesFrom) + 1
-		if application.Spec.GCP != nil {
-			numberOfVolumes = numberOfVolumes + 1
-		}
+		csiVolumes := getCsiVolumes(application)
 
-		deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, numberOfVolumes)
-		container.VolumeMounts = make([]corev1.VolumeMount, numberOfVolumes)
-		volumes := deployment.Spec.Template.Spec.Volumes
-		volumeMounts := container.VolumeMounts
+		volumes := make([]corev1.Volume, 1)
+		volumeMounts := make([]corev1.VolumeMount, 1)
 
 		volumes[0] = corev1.Volume{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
 		volumeMounts[0] = corev1.VolumeMount{Name: "tmp", MountPath: "/tmp"}
 
-		for i, file := range application.Spec.FilesFrom {
+		for _, file := range application.Spec.FilesFrom {
+			volume := corev1.Volume{}
 			if len(file.ConfigMap) > 0 {
-				volumes[i+1].Name = file.ConfigMap
-				volumes[i+1].ConfigMap = &corev1.ConfigMapVolumeSource{}
-				volumes[i+1].ConfigMap.Name = file.ConfigMap
+				volume.Name = file.ConfigMap
+				volume.ConfigMap = &corev1.ConfigMapVolumeSource{}
+				volume.ConfigMap.Name = file.ConfigMap
 			} else if len(file.Secret) > 0 {
-				volumes[i+1].Name = file.Secret
-				volumes[i+1].Secret = &corev1.SecretVolumeSource{}
-				volumes[i+1].Secret.SecretName = file.Secret
+				volume.Name = file.Secret
+				volume.Secret = &corev1.SecretVolumeSource{}
+				volume.Secret.SecretName = file.Secret
 			} else if len(file.EmptyDir) > 0 {
-				volumes[i+1].Name = file.EmptyDir
-				volumes[i+1].EmptyDir = &corev1.EmptyDirVolumeSource{}
+				volume.Name = file.EmptyDir
+				volume.EmptyDir = &corev1.EmptyDirVolumeSource{}
 			} else if len(file.PersistentVolumeClaim) > 0 {
-				volumes[i+1].Name = file.PersistentVolumeClaim
-				volumes[i+1].PersistentVolumeClaim = &corev1.PersistentVolumeClaimVolumeSource{}
-				volumes[i+1].PersistentVolumeClaim.ClaimName = file.PersistentVolumeClaim
-			} else if len(file.GcpSecretManager) > 0 {
-				hash := fnv.New64()
-				_, _ = hash.Write([]byte(file.GcpSecretManager))
-				name := fmt.Sprintf("%x", hash.Sum64())
-				volumes[i+1].Name = fmt.Sprintf("gcp-sm-%s", name)
-				volumes[i+1].CSI = &corev1.CSIVolumeSource{}
-				volumes[i+1].CSI.Driver = "secrets-store.csi.k8s.io"
-				volumes[i+1].CSI.ReadOnly = &yes
-				volumes[i+1].CSI.VolumeAttributes = make(map[string]string)
-				volumes[i+1].CSI.VolumeAttributes["secretProviderClass"] = fmt.Sprintf("%s-%s", application.Name, name)
+				volume.Name = file.PersistentVolumeClaim
+				volume.PersistentVolumeClaim = &corev1.PersistentVolumeClaimVolumeSource{}
+				volume.PersistentVolumeClaim.ClaimName = file.PersistentVolumeClaim
 			}
 
-			volumeMounts[i+1] = corev1.VolumeMount{Name: volumes[i+1].Name, MountPath: file.MountPath}
+			if len(file.GcpSecretManager) == 0 {
+				volumes = append(volumes, volume)
+				volumeMount := corev1.VolumeMount{Name: volume.Name, MountPath: file.MountPath}
+				volumeMounts = append(volumeMounts, volumeMount)
+			} else {
+				hash := util.GenerateHashFromName(file.GcpSecretManager)
+				name := fmt.Sprintf("%x", hash)
+				name = fmt.Sprintf("gcp-sm-%s", name)
+				volumeMount := corev1.VolumeMount{Name: name, MountPath: file.MountPath}
+				volumeMounts = append(volumeMounts, volumeMount)
+			}
+		}
+
+		// EnvFrom Secret Manager requires a volume to trigger CSI plugin so this must be separate
+		// from the logic above which only handles FilesFrom
+		for _, secretManagerReference := range csiVolumes {
+			volume := corev1.Volume{}
+			hash := util.GenerateHashFromName(secretManagerReference)
+			name := fmt.Sprintf("%x", hash)
+
+			volume.Name = fmt.Sprintf("gcp-sm-%s", name)
+			volume.CSI = &corev1.CSIVolumeSource{}
+			volume.CSI.Driver = "secrets-store.csi.k8s.io"
+			volume.CSI.ReadOnly = &yes
+			volume.CSI.VolumeAttributes = make(map[string]string)
+			volume.CSI.VolumeAttributes["secretProviderClass"] = fmt.Sprintf("%s-%s", application.Name, name)
+
+			volumes = append(volumes, volume)
 		}
 
 		if application.Spec.GCP != nil {
-			volumeMounts[numberOfVolumes-1].Name = "gcp-ksa"
-			volumeMounts[numberOfVolumes-1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
-			volumeMounts[numberOfVolumes-1].ReadOnly = true
+			volume := corev1.Volume{}
+			volumeMount := corev1.VolumeMount{}
+
+			volumeMount.Name = "gcp-ksa"
+			volumeMount.MountPath = "/var/run/secrets/tokens/gcp-ksa"
+			volumeMount.ReadOnly = true
 
 			twoDaysSec := int64(172800)
 			optionalBool := false
 			defaultModeValue := int32(420)
 
-			volumes[numberOfVolumes-1].Name = "gcp-ksa"
-			volumes[numberOfVolumes-1].Projected = &corev1.ProjectedVolumeSource{}
-			volumes[numberOfVolumes-1].Projected.DefaultMode = &defaultModeValue
-			volumes[numberOfVolumes-1].Projected.Sources = make([]corev1.VolumeProjection, 2)
-			volumes[numberOfVolumes-1].Projected.Sources[0].ServiceAccountToken = &corev1.ServiceAccountTokenProjection{
+			volume.Name = "gcp-ksa"
+			volume.Projected = &corev1.ProjectedVolumeSource{}
+			volume.Projected.DefaultMode = &defaultModeValue
+			volume.Projected.Sources = make([]corev1.VolumeProjection, 2)
+			volume.Projected.Sources[0].ServiceAccountToken = &corev1.ServiceAccountTokenProjection{
 				Path:              "token",
 				Audience:          gcpIdentityConfigMap.Data["workloadIdentityPool"],
 				ExpirationSeconds: &twoDaysSec,
 			}
-			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap = &corev1.ConfigMapProjection{
+			volume.Projected.Sources[1].ConfigMap = &corev1.ConfigMapProjection{
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: application.Name + "-gcp-auth",
 				},
 				Optional: &optionalBool,
 				Items:    make([]corev1.KeyToPath, 1),
 			}
-			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
-			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
-		}
+			volume.Projected.Sources[1].ConfigMap.Items[0].Key = "config"
+			volume.Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
 
-		// EnvFrom Secret Manager requires a volume to trigger CSI plugin
-		for _, envFrom := range application.Spec.EnvFrom {
-			if len(envFrom.GcpSecretManager) > 0 {
-				volume := corev1.Volume{}
-				hash := fnv.New64()
-				_, _ = hash.Write([]byte(envFrom.GcpSecretManager))
-				name := fmt.Sprintf("%x", hash.Sum64())
-				volume.Name = fmt.Sprintf("gcp-sm-%s", name)
-				volume.CSI = &corev1.CSIVolumeSource{}
-				volume.CSI.Driver = "secrets-store.csi.k8s.io"
-				volume.CSI.ReadOnly = &yes
-				volume.CSI.VolumeAttributes = make(map[string]string)
-				volume.CSI.VolumeAttributes["secretProviderClass"] = fmt.Sprintf("%s-%s", application.Name, name)
-				volumes = append(volumes, volume)
-			}
+			volumes = append(volumes, volume)
+			volumeMounts = append(volumeMounts, volumeMount)
 		}
 
 		if application.Spec.Readiness != nil {
@@ -249,10 +251,32 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			container.StartupProbe.HTTPGet.Path = application.Spec.Startup.Path
 		}
 
+		deployment.Spec.Template.Spec.Volumes = volumes
+		container.VolumeMounts = volumeMounts
+
 		return nil
 	})
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func getCsiVolumes(application *skiperatorv1alpha1.Application) []string {
+	result := []string{}
+
+	for _, envFrom := range application.Spec.EnvFrom {
+		value := envFrom.GcpSecretManager
+		if len(value) > 0 && !util.Contains(result, value) {
+			result = append(result, envFrom.GcpSecretManager)
+		}
+	}
+	for _, fileFrom := range application.Spec.FilesFrom {
+		value := fileFrom.GcpSecretManager
+		if len(value) > 0 && !util.Contains(result, value) {
+			result = append(result, fileFrom.GcpSecretManager)
+		}
+	}
+
+	return result
 }

@@ -3,10 +3,10 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"hash/fnv"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -22,21 +22,20 @@ func (r *ApplicationReconciler) reconcileSecretProviderClass(ctx context.Context
 	var secretManagerReferences []string
 	for _, file := range application.Spec.FilesFrom {
 		value := file.GcpSecretManager
-		if len(value) > 0 && !contains(secretManagerReferences, value) {
+		if len(value) > 0 && !util.Contains(secretManagerReferences, value) {
 			secretManagerReferences = append(secretManagerReferences, value)
 		}
 	}
 	for _, env := range application.Spec.EnvFrom {
 		value := env.GcpSecretManager
-		if len(value) > 0 && !contains(secretManagerReferences, value) {
+		if len(value) > 0 && !util.Contains(secretManagerReferences, value) {
 			secretManagerReferences = append(secretManagerReferences, value)
 		}
 	}
 
 	for _, secretManagerReference := range secretManagerReferences {
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(secretManagerReference))
-		name := fmt.Sprintf("%s-%x", application.Name, hash.Sum64())
+		hash := util.GenerateHashFromName(secretManagerReference)
+		name := fmt.Sprintf("%s-%x", application.Name, hash)
 
 		// projects/$PROJECT_ID/secrets/testsecret/versions/latest
 		secretName := strings.Split(secretManagerReference, "/")[3]
@@ -81,13 +80,4 @@ func (r *ApplicationReconciler) reconcileSecretProviderClass(ctx context.Context
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
-}
-
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }

@@ -8,7 +8,7 @@ resource "kubernetes_deployment_v1" "deployment" {
     name      = "skiperator"
   }
   spec {
-    replicas = 3
+    replicas = 2
     selector {
       match_labels = {
         app = "skiperator"
