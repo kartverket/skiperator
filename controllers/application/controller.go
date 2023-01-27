@@ -5,6 +5,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"golang.org/x/exp/maps"
 
 	util "github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -189,7 +190,15 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
-	application.Labels = application.Spec.Labels
+
+	currentLabels := application.Labels
+	if len(currentLabels) == 0 {
+		application.Labels = application.Spec.Labels
+	} else {
+		aggregateLabels := currentLabels
+		maps.Copy(aggregateLabels, application.Spec.Labels)
+		application.Labels = aggregateLabels
+	}
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {
