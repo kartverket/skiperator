@@ -191,11 +191,10 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
 
-	currentLabels := application.Labels
-	if len(currentLabels) == 0 {
+	if len(application.Labels) == 0 {
 		application.Labels = application.Spec.Labels
 	} else {
-		aggregateLabels := currentLabels
+		aggregateLabels := application.Labels
 		maps.Copy(aggregateLabels, application.Spec.Labels)
 		application.Labels = aggregateLabels
 	}
