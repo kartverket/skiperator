@@ -164,7 +164,7 @@ type OutboundPolicy struct {
 
 type InternalRule struct {
 	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 }
@@ -174,7 +174,7 @@ type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
 	//+kubebuilder:validation:Optional
-	Ip string `json:"ip"`
+	Ip string `json:"ip,omitempty"`
 	//+kubebuilder:validation:Optional
 	Ports []Port `json:"ports,omitempty"`
 }
