@@ -18,8 +18,7 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - namespace: sample
-          application: sample-two
+        - application: sample-two
     outbound:
       rules:
         - namespace: sample
