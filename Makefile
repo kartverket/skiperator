@@ -4,34 +4,23 @@ SHELL = bash
 $(shell mkdir -p bin)
 export GOBIN = $(realpath bin)
 export PATH := $(PATH):$(GOBIN)
+export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
 SKIPERATOR_CONTEXT ?= kind-kind
 IMAGE ?= skiperator
 
-ETCD_VER = v3.5.6
-ETCD_PATH = "etcd-${ETCD_VER}-linux-${ARCH}"
-ETCD_PATH_DEPTH = $(shell awk -F / '{ print NF }' <<< "$(ETCD_PATH)")
-
-KUBERNETES_VERSION = v1.25.4
+KUBERNETES_VERSION = 1.25
 
 .PHONY: tools
 tools:
 	go install sigs.k8s.io/controller-tools/cmd/controller-gen
 	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl
 
-bin/kubectl:
-	wget --no-verbose --directory-prefix bin "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/kubectl"
-	chmod +x bin/kubectl
+bin/kubebuilder-tools:
+	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}.0-${OS}-${ARCH}.tar.gz" | \
+    tar --gzip --extract --strip-components 2 --directory bin
 
-bin/etcd:
-	wget --no-verbose --output-document - "https://github.com/etcd-io/etcd/releases/download/${ETCD_VER}/etcd-${ETCD_VER}-linux-${ARCH}.tar.gz" | \
-	tar --gzip --extract --strip-components ${ETCD_PATH_DEPTH} --directory bin ${ETCD_PATH}/etcd
-	chmod +x bin/etcd
-
-bin/kube-apiserver:
-	wget --no-verbose --directory-prefix bin "https://dl.k8s.io/release/${KUBERNETES_VERSION}/bin/linux/${ARCH}/kube-apiserver"
-	chmod +x bin/kube-apiserver
 
 .PHONY: generate
 generate: tools
@@ -48,7 +37,7 @@ build: generate
 
 # --control-plane-config is a workaround for https://github.com/kudobuilder/kuttl/issues/378
 .PHONY: test
-test: bin/kubectl bin/etcd bin/kube-apiserver build
+test: bin/kubebuilder-tools build
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	kubectl kuttl test \
