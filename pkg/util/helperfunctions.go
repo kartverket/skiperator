@@ -44,6 +44,7 @@ var excludedNamespaces = []string{
 	"argocd",
 	"crossplane-system",
 	"upbound-system",
+	"instana-autotrace-webhook",
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
