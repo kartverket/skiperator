@@ -26,6 +26,7 @@ type CredentialSource struct {
 }
 
 var controllerName = "ConfigMap"
+var istioSidecarAnnotation = "istioProxyCPU"
 
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -119,16 +120,22 @@ func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, ap
 		}
 	}
 
+	err = ctrlutil.SetControllerReference(application, &skiperatorConfigMap, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return err
+	}
+	r.SetLabelsFromApplication(ctx, &skiperatorConfigMap, *application)
+
 	mapData := skiperatorConfigMap.Data
-	istioSidecarLabelName := "istioSidecarCPURequest"
 
 	// We only want to set the istio CPU Request if it is not already set
-	_, present := mapData[istioSidecarLabelName]
+	_, present := mapData[istioSidecarAnnotation]
 	if !present {
 		if len(mapData) == 0 {
 			mapData = make(map[string]string)
 		}
-		mapData[istioSidecarLabelName] = getDefaultIstioCPURequestFromEnv(r.Environment)
+		mapData[istioSidecarAnnotation] = getDefaultIstioCPURequestFromEnv(r.Environment)
 	}
 
 	skiperatorConfigMap.Data = mapData
@@ -166,4 +173,8 @@ func getDefaultIstioCPURequestFromEnv(env string) string {
 		return "100m"
 	}
 
+}
+
+func (r *ApplicationReconciler) GetIstioSidecarAnnotation() string {
+	return istioSidecarAnnotation
 }

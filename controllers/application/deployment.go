@@ -45,11 +45,20 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 
-		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
-
 		labels := map[string]string{"app": application.Name}
 		deployment.Spec.Template.ObjectMeta.Labels = labels
 		deployment.Spec.Selector = &metav1.LabelSelector{MatchLabels: labels}
+
+		skiperatorConfig, err := r.GetSkiperatorConfigMap(ctx, application)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return err
+		}
+		istioSidecarAnnotation = r.GetIstioSidecarAnnotation()
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"sidecar.istio.io/proxyCPU": skiperatorConfig.Data[istioSidecarAnnotation],
+			"prometheus.io/scrape":      "true",
+		}
 
 		var replicas = int32(application.Spec.Replicas.Min)
 		if replicas == 0 {
