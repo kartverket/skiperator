@@ -25,32 +25,46 @@ type CredentialSource struct {
 	File string `json:"file"`
 }
 
+var controllerName = "ConfigMap"
+
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "ConfigMap"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Is this an error?
-	if application.Spec.GCP == nil {
-		r.SetControllerSynced(ctx, application, controllerName)
-		return reconcile.Result{}, nil
+	if application.Spec.GCP != nil {
+		gcpIdentityConfigMap := corev1.ConfigMap{}
+
+		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				application,
+				corev1.EventTypeWarning, "Missing",
+				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
+			)
+		} else if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		err = r.setupGCPAuthConfigMap(ctx, gcpIdentityConfigMap, application)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
 	}
 
-	gcpIdentityConfigMap := corev1.ConfigMap{}
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 
-	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
-	if errors.IsNotFound(err) {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "Missing",
-			"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
-		)
-	} else if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
+	return reconcile.Result{}, nil
+
+}
+
+func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpIdentityConfigMap corev1.ConfigMap, application *skiperatorv1alpha1.Application) error {
+
 	gcpAuthConfigMapName := application.Name + "-gcp-auth"
 	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
-	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
+
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
 		// Set application as owner of the configmap
 		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.GetScheme())
 		if err != nil {
@@ -59,34 +73,29 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		}
 		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
 
-		if application.Spec.GCP != nil {
-			ConfStruct := Config{
-				Type:                           "external_account",
-				Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
-				ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + ":generateAccessToken",
-				SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
-				TokenUrl:                       "https://sts.googleapis.com/v1/token",
-				CredentialSource: CredentialSource{
-					File: "/var/run/secrets/tokens/gcp-ksa/token",
-				},
-			}
+		ConfStruct := Config{
+			Type:                           "external_account",
+			Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
+			ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + ":generateAccessToken",
+			SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
+			TokenUrl:                       "https://sts.googleapis.com/v1/token",
+			CredentialSource: CredentialSource{
+				File: "/var/run/secrets/tokens/gcp-ksa/token",
+			},
+		}
 
-			ConfByte, err := json.Marshal(ConfStruct)
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return err
-			}
+		ConfByte, err := json.Marshal(ConfStruct)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return err
+		}
 
-			gcpAuthConfigMap.Data = map[string]string{
-				"config": string(ConfByte),
-			}
+		gcpAuthConfigMap.Data = map[string]string{
+			"config": string(ConfByte),
 		}
 
 		return nil
 	})
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
-
+	return err
 }
