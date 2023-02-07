@@ -16,6 +16,7 @@ import (
 // argocd external link constant
 const ( AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link" )
 
+
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -46,10 +47,10 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
-		
+
 		// add an external link to argocd
 		deployment.ObjectMeta.Annotations.AnnotationKeyLinkPrefix =  "http://my-grafana.com/pre-generated-link"
-
+		
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
 
 		labels := map[string]string{"app": application.Name}
@@ -61,6 +62,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			replicas = 1
 		}
 		deployment.Spec.Replicas = &replicas
+
+
 
 		deployment.Spec.Strategy.Type = appsv1.DeploymentStrategyType(application.Spec.Strategy.Type)
 		if application.Spec.Strategy.Type == "Recreate" {
