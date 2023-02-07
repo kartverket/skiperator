@@ -53,9 +53,11 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		}
 	}
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+	err := r.setupSkiperatorConfigMap(ctx, application)
 
-	return reconcile.Result{}, nil
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
+	return reconcile.Result{}, err
 
 }
 
@@ -98,4 +100,70 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 	})
 
 	return err
+}
+
+func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) error {
+	skiperatorConfigMap, err := r.GetSkiperatorConfigMap(ctx, application)
+
+	if errors.IsNotFound(err) {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "Missing",
+			"Cannot find Skiperator ConfigMap, creating",
+		)
+
+		err := r.GetClient().Create(ctx, &skiperatorConfigMap)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	mapData := skiperatorConfigMap.Data
+	istioSidecarLabelName := "istioSidecarCPURequest"
+
+	// We only want to set the istio CPU Request if it is not already set
+	_, present := mapData[istioSidecarLabelName]
+	if !present {
+		if len(mapData) == 0 {
+			mapData = make(map[string]string)
+		}
+		mapData[istioSidecarLabelName] = getDefaultIstioCPURequestFromEnv(r.Environment)
+	}
+
+	skiperatorConfigMap.Data = mapData
+	err = r.GetClient().Update(ctx, &skiperatorConfigMap)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "Error",
+			"Something went wrong when updating Skiperator ConfigMap: "+err.Error(),
+		)
+		return err
+	}
+
+	return err
+}
+
+func (r *ApplicationReconciler) GetSkiperatorConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (corev1.ConfigMap, error) {
+
+	skiperatorConfigMapName := application.Name + "-skiperator-config"
+	skiperatorConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: skiperatorConfigMapName}}
+
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: skiperatorConfigMapName}, &skiperatorConfigMap)
+
+	return skiperatorConfigMap, err
+}
+
+func getDefaultIstioCPURequestFromEnv(env string) string {
+	switch env {
+	case "prod":
+		return "100m"
+	case "sandbox", "dev", "test":
+		return "10m"
+	default:
+		// Better to safeguard a high request in case of poor config
+		return "100m"
+	}
+
 }

@@ -15,3 +15,8 @@ variable "instanaCidrBlock" {
   default     = "empty"
   description = "CIDR block for the worker nodes in your Kubernetes cluster"
 }
+
+variable "environment" {
+  type        = string
+  description = "The environment in which Skiperator is deployed"
+}

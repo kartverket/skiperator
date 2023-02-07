@@ -49,6 +49,7 @@ func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
+	environment := flag.String("e", "", "environment for deployment")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	flag.Parse()
 
@@ -77,6 +78,7 @@ func main() {
 
 	err = (&applicationcontroller.ApplicationReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+		Environment:    *environment,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")

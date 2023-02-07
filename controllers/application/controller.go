@@ -38,6 +38,7 @@ import (
 
 type ApplicationReconciler struct {
 	util.ReconcilerBase
+	Environment string
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
@@ -109,12 +110,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	_, err = r.reconcileDeployment(ctx, application)
+	_, err = r.reconcileService(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	_, err = r.reconcileService(ctx, application)
+	_, err = r.reconcileServiceAccount(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -149,12 +150,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	_, err = r.reconcileServiceAccount(ctx, application)
+	_, err = r.reconcileNetworkPolicy(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
-	_, err = r.reconcileNetworkPolicy(ctx, application)
+	_, err = r.reconcileDeployment(ctx, application)
 	if err != nil {
 		return reconcile.Result{}, err
 	}

@@ -29,7 +29,7 @@ resource "kubernetes_deployment_v1" "deployment" {
         container {
           name  = "skiperator"
           image = var.image
-          args  = ["-l", "-d", "-t=$(IMAGE_PULL_TOKEN)"]
+          args  = ["-l", "-d", "-t=$(IMAGE_PULL_TOKEN)", "-e=$(ENVIRONMENT)"]
           env {
             name = "IMAGE_PULL_TOKEN"
             value_from {
@@ -38,6 +38,10 @@ resource "kubernetes_deployment_v1" "deployment" {
                 key  = "token"
               }
             }
+          }
+          env {
+            name  = "ENVIRONMENT"
+            value = var.environment
           }
           security_context {
             read_only_root_filesystem  = true
