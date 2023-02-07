@@ -128,16 +128,18 @@ func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, ap
 	r.SetLabelsFromApplication(ctx, &skiperatorConfigMap, *application)
 
 	mapData := skiperatorConfigMap.Data
-
-	// We only want to set the istio CPU Request if it is not already set
-	_, present := mapData[istioSidecarAnnotation]
-	if !present {
-		if len(mapData) == 0 {
-			mapData = make(map[string]string)
-		}
-		mapData[istioSidecarAnnotation] = getDefaultIstioCPURequestFromEnv(r.Environment)
+	if len(mapData) == 0 {
+		mapData = make(map[string]string)
 	}
 
+	// // We only want to set the istio CPU Request if it is not already set
+	// _, present := mapData[istioSidecarAnnotation]
+	// if !present {
+	// mapData[istioSidecarAnnotation] = getDefaultIstioCPURequestFromEnv(r.Environment)
+	// }
+	// ^ Do we only want to do this if its not already set? Should we allow overriding the default request per application?
+
+	mapData[istioSidecarAnnotation] = getDefaultIstioCPURequestFromEnv(r.Environment)
 	skiperatorConfigMap.Data = mapData
 	err = r.GetClient().Update(ctx, &skiperatorConfigMap)
 	if err != nil {
