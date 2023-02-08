@@ -70,13 +70,12 @@ func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace
 	if errors.IsNotFound(err) {
 		err = r.GetClient().Create(ctx, &namespaceExclusionCMap)
 		if err != nil {
-			fmt.Printf("Something went wrong creating namespace-exclusion config map: %v", err.Error())
-			return true
+			errorMessage := fmt.Sprintf("Something went wrong creating namespace-exclusion config map: %v", err.Error())
+			panic(errorMessage)
 		}
-	}
-	if err != nil {
-		fmt.Printf("Something went wrong getting namespace-exclusion config map: %v", err.Error())
-		return true
+	} else if err != nil {
+		errorMessage := fmt.Sprintf("Something went wrong getting namespace-exclusion config map: %v", err.Error())
+		panic(errorMessage)
 	}
 
 	nameSpacesToExclude := namespaceExclusionCMap.Data
