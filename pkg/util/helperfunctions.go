@@ -46,6 +46,7 @@ var excludedNamespaces = []string{
 	"upbound-system",
 	"instana-autotrace-webhook",
 	"fluentd", //POC
+	"external-secrets", //POC
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
