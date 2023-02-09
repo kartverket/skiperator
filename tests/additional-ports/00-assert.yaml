@@ -1,31 +1,33 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: metrics-port
+  name: additional-ports
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: metrics-port
+  name: additional-ports
 spec:
   selector:
     matchLabels:
-      app: metrics-port
+      app: additional-ports
   template:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
       labels:
-        app: metrics-port
+        app: additional-ports
     spec:
       containers:
-        - name: metrics-port
+        - name: additional-ports
           image: image
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
               protocol: TCP
             - containerPort: 8181
+              protocol: TCP
+            - containerPort: 8282
               protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
@@ -44,7 +46,7 @@ spec:
         fsGroup: 150
         supplementalGroups:
           - 150
-      serviceAccountName: metrics-port
+      serviceAccountName: additional-ports
       volumes:
         - emptyDir: {}
           name: tmp
@@ -52,7 +54,7 @@ spec:
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: metrics-port
+  name: additional-ports
 spec:
   minReplicas: 1
   maxReplicas: 1
@@ -66,15 +68,15 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: metrics-port
+    name: additional-ports
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: metrics-port
+  name: additional-ports
 spec:
   selector:
-    app: metrics-port
+    app: additional-ports
   ports:
     - name: http
       port: 8080
@@ -85,11 +87,11 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: metrics-port
+  name: additional-ports
 spec:
   podSelector:
     matchLabels:
-      app: metrics-port
+      app: additional-ports
   policyTypes:
     - Ingress
     - Egress
@@ -97,10 +99,10 @@ spec:
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
-  name: metrics-port
+  name: additional-ports
 spec:
   selector:
     matchLabels:
-      app: metrics-port
+      app: additional-ports
   mtls:
     mode: STRICT

@@ -114,6 +114,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]FilesFrom, len(*in))
 		copy(*out, *in)
 	}
+	if in.AdditionalPorts != nil {
+		in, out := &in.AdditionalPorts, &out.AdditionalPorts
+		*out = make([]Port, len(*in))
+		copy(*out, *in)
+	}
 	if in.Liveness != nil {
 		in, out := &in.Liveness, &out.Liveness
 		*out = new(Probe)
