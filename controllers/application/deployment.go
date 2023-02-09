@@ -89,7 +89,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		container.SecurityContext.RunAsGroup = &uid
 
 		container.Ports = make([]corev1.ContainerPort, 1)
-		//container.Ports[0].Name = "main"
 		container.Ports[0].ContainerPort = int32(application.Spec.Port)
 
 		for _, port := range application.Spec.AdditionalPorts {
