@@ -50,7 +50,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 
 			// When not specified default to opening HTTPS
 			if len(ports) == 0 {
-				ports = make([]skiperatorv1alpha1.Port, 1)
+				ports = make([]skiperatorv1alpha1.ExternalPort, 1)
 
 				ports[0].Name = "https"
 				ports[0].Port = 443

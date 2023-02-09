@@ -24,11 +24,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
+              name: main
               protocol: TCP
             - containerPort: 8181
+              name: metrics
               protocol: TCP
             - containerPort: 8282
-              protocol: TCP
+              name: some-udp-port
+              protocol: UDP
           securityContext:
             allowPrivilegeEscalation: false
             privileged: false

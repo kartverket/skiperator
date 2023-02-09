@@ -6,9 +6,9 @@ spec:
   image: image
   port: 8080
   additionalPorts:
-    - name: testport1
+    - name: metrics
       port: 8181
       protocol: TCP
-    - name: testport2
+    - name: some-udp-port
       port: 8282
-      protocol: TCP
+      protocol: UDP

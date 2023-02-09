@@ -116,7 +116,7 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	}
 	if in.AdditionalPorts != nil {
 		in, out := &in.AdditionalPorts, &out.AdditionalPorts
-		*out = make([]Port, len(*in))
+		*out = make([]InternalPort, len(*in))
 		copy(*out, *in)
 	}
 	if in.Liveness != nil {
@@ -209,7 +209,7 @@ func (in *ExternalRule) DeepCopyInto(out *ExternalRule) {
 	*out = *in
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
-		*out = make([]Port, len(*in))
+		*out = make([]ExternalPort, len(*in))
 		copy(*out, *in)
 	}
 }
