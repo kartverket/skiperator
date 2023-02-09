@@ -30,6 +30,9 @@ spec:
   image: "kartverket/example"
   # The port the deployment exposes
   port: 8080
+  # An optional extra port to expose a metrics endpoint through
+  # so the APM toolstack can reach it
+  metricsPort: 8181
   # Override the command set in the Dockerfile. Usually only used when debugging
   # or running third-party containers where you don't have control over the Dockerfile
   command:

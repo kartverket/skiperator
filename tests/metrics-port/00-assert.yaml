@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metrics-port
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-port
+spec:
+  selector:
+    matchLabels:
+      app: metrics-port
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+      labels:
+        app: metrics-port
+    spec:
+      containers:
+        - name: metrics-port
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 8181
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+      serviceAccountName: metrics-port
+      volumes:
+        - emptyDir: {}
+          name: tmp
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: metrics-port
+spec:
+  minReplicas: 1
+  maxReplicas: 1
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: metrics-port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: metrics-port
+spec:
+  selector:
+    app: metrics-port
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: metrics-port
+spec:
+  podSelector:
+    matchLabels:
+      app: metrics-port
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: metrics-port
+spec:
+  selector:
+    matchLabels:
+      app: metrics-port
+  mtls:
+    mode: STRICT

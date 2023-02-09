@@ -55,6 +55,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
+	MetricsPort int `json:"metricsPort,omitempty"`
+	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
 	Readiness *Probe `json:"readiness,omitempty"`

@@ -91,6 +91,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		container.Ports = make([]corev1.ContainerPort, 1)
 		container.Ports[0].ContainerPort = int32(application.Spec.Port)
+		if application.Spec.MetricsPort != 0 {
+			var metrics = int32(application.Spec.MetricsPort)
+			container.Ports = append(container.Ports, corev1.ContainerPort{ContainerPort: metrics})
+
+		}
 
 		//Adding env for GCP authentication
 		if application.Spec.GCP != nil {
