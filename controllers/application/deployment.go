@@ -2,7 +2,6 @@ package applicationcontroller
 
 import (
 	"context"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -91,6 +90,15 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		container.Ports = make([]corev1.ContainerPort, 1)
 		container.Ports[0].ContainerPort = int32(application.Spec.Port)
+		container.Ports[0].Name = "main"
+
+		for _, port := range application.Spec.AdditionalPorts {
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				ContainerPort: port.Port,
+				Name:          port.Name,
+				Protocol:      port.Protocol,
+			})
+		}
 
 		//Adding env for GCP authentication
 		if application.Spec.GCP != nil {
