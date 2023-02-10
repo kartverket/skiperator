@@ -13,7 +13,6 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-// Adding an argocd external link constant
 const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
