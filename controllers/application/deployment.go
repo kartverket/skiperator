@@ -14,7 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 // Adding an argocd external link constant
-const ( AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link" )
+const (
+	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
+)
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Deployment"
