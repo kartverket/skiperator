@@ -13,7 +13,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-// argocd external link constant
+// Adding an argocd external link constant
 const ( AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link" )
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -48,7 +48,10 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 		
 		// add an external link to argocd
-		deployment.ObjectMeta.Annotations.AnnotationKeyLinkPrefix =  "http://my-grafana.com/pre-generated-link"
+		ingresses := application.Spec.Ingresses
+		if len(ingresses) > 0 {
+			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] =  ingresses[0]
+		}
 
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
 
