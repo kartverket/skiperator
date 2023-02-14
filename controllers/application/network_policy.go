@@ -58,9 +58,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		}
 
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
-		networkPolicy.ObjectMeta.Annotations = map[string]string{
-			"argocd.argoproj.io/sync-options": "Prune=false",
-		}
+		networkPolicy.ObjectMeta.Annotations = util.CommonAnnotations
 
 		labels := map[string]string{"app": application.Name}
 		networkPolicy.Spec.PodSelector.MatchLabels = labels

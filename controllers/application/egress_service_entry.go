@@ -33,9 +33,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 				return err
 			}
 			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
-			serviceEntry.ObjectMeta.Annotations = map[string]string{
-				"argocd.argoproj.io/sync-options": "Prune=false",
-			}
+			serviceEntry.ObjectMeta.Annotations = util.CommonAnnotations
 
 			// Avoid leaking service entry to other namespaces
 			serviceEntry.Spec.ExportTo = []string{".", "istio-system"}

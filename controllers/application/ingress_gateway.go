@@ -35,9 +35,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 
 			r.SetLabelsFromApplication(ctx, &gateway, *application)
-			gateway.ObjectMeta.Annotations = map[string]string{
-				"argocd.argoproj.io/sync-options": "Prune=false",
-			}
+			gateway.ObjectMeta.Annotations = util.CommonAnnotations
 
 			if util.IsInternal(hostname) {
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}

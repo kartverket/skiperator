@@ -4,6 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -24,9 +25,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		}
 
 		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
-		horizontalPodAutoscaler.ObjectMeta.Annotations = map[string]string{
-			"argocd.argoproj.io/sync-options": "Prune=false",
-		}
+		horizontalPodAutoscaler.ObjectMeta.Annotations = util.CommonAnnotations
 
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"
