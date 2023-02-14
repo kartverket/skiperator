@@ -24,6 +24,9 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		}
 
 		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
+		horizontalPodAutoscaler.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+		}
 
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"

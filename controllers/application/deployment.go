@@ -44,7 +44,13 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 
-		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
+		deployment.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+		}
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+			"prometheus.io/scrape": "true",
+		}
 
 		labels := map[string]string{"app": application.Name}
 		deployment.Spec.Template.ObjectMeta.Labels = labels

@@ -31,6 +31,9 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			}
 
 			r.SetLabelsFromApplication(ctx, &virtualService, *application)
+			virtualService.ObjectMeta.Annotations = map[string]string{
+				"argocd.argoproj.io/sync-options": "Prune=false",
+			}
 
 			gateways := make([]string, 0, len(application.Spec.Ingresses))
 			for _, hostname := range application.Spec.Ingresses {

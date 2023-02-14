@@ -26,6 +26,9 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 		}
 
 		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
+		peerAuthentication.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+		}
 
 		peerAuthentication.Spec.Selector = &typev1beta1.WorkloadSelector{}
 		labels := map[string]string{"app": application.Name}

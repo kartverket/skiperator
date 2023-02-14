@@ -24,6 +24,9 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 		}
 
 		r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
+		serviceAccount.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+		}
 
 		return nil
 	})

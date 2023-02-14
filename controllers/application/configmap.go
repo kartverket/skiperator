@@ -58,6 +58,9 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			return err
 		}
 		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
+		gcpAuthConfigMap.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+		}
 
 		if application.Spec.GCP != nil {
 			ConfStruct := Config{
