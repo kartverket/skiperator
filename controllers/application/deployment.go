@@ -2,7 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
-
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +13,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+// Adding an argocd external link constant
 const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
@@ -51,7 +52,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		// add an external link to argocd
 		ingresses := application.Spec.Ingresses
 		if len(ingresses) > 0 {
-			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] =  ingresses[0]
+			deployment.ObjectMeta.Annotations = make(map[string]string, 1)
+			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 		}
 
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{"prometheus.io/scrape": "true"}
