@@ -94,69 +94,26 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"Application "+application.Name+" has started reconciliation loop",
 	)
 
-	_, err = r.initializeApplicationStatus(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
+	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
+		r.initializeApplicationStatus,
+		r.initializeApplication,
+		r.reconcileCertificate,
+		r.reconcileDeployment,
+		r.reconcileService,
+		r.reconcileConfigMap,
+		r.reconcileEgressServiceEntry,
+		r.reconcileIngressGateway,
+		r.reconcileIngressVirtualService,
+		r.reconcileHorizontalPodAutoscaler,
+		r.reconcilePeerAuthentication,
+		r.reconcileServiceAccount,
+		r.reconcileNetworkPolicy,
 	}
 
-	_, err = r.initializeApplication(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileCertificate(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileDeployment(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileService(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileConfigMap(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileEgressServiceEntry(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileIngressGateway(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileIngressVirtualService(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileHorizontalPodAutoscaler(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcilePeerAuthentication(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileServiceAccount(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileNetworkPolicy(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
+	for _, fn := range controllerDuties {
+		if _, err := fn(ctx, application); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil

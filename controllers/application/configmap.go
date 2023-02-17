@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,6 +59,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			return err
 		}
 		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
+		gcpAuthConfigMap.ObjectMeta.Annotations = util.CommonAnnotations
 
 		if application.Spec.GCP != nil {
 			ConfStruct := Config{

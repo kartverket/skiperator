@@ -114,6 +114,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]FilesFrom, len(*in))
 		copy(*out, *in)
 	}
+	if in.AdditionalPorts != nil {
+		in, out := &in.AdditionalPorts, &out.AdditionalPorts
+		*out = make([]InternalPort, len(*in))
+		copy(*out, *in)
+	}
 	if in.Liveness != nil {
 		in, out := &in.Liveness, &out.Liveness
 		*out = new(Probe)
@@ -204,7 +209,7 @@ func (in *ExternalRule) DeepCopyInto(out *ExternalRule) {
 	*out = *in
 	if in.Ports != nil {
 		in, out := &in.Ports, &out.Ports
-		*out = make([]Port, len(*in))
+		*out = make([]ExternalPort, len(*in))
 		copy(*out, *in)
 	}
 }
