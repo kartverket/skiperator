@@ -2,9 +2,9 @@ package applicationcontroller
 
 import (
 	"context"
+	"encoding/json"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -36,6 +36,16 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+
+	deploymentTest := appsv1.Deployment{}
+	errr := r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, &deploymentTest)
+	if errr != nil {
+		println(errr.Error())
+	}
+	j, _ := json.MarshalIndent(deploymentTest, "", "\t")
+	println("BEFORE")
+	println(string(j))
+
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
@@ -45,8 +55,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
+		r.SetCommonAnnotations(ctx, &deployment, *application)
 
-		deployment.ObjectMeta.Annotations = util.CommonAnnotations
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
 			"argocd.argoproj.io/sync-options": "Prune=false",
 			"prometheus.io/scrape":            "true",
@@ -231,6 +241,10 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		return nil
 	})
+
+	j, _ = json.MarshalIndent(deployment, "", "\t")
+	println("AFTER")
+	println(string(j))
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 

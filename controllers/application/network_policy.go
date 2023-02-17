@@ -58,7 +58,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		}
 
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
-		networkPolicy.ObjectMeta.Annotations = util.CommonAnnotations
+		r.SetCommonAnnotations(ctx, &networkPolicy, *application)
 
 		labels := map[string]string{"app": application.Name}
 		networkPolicy.Spec.PodSelector.MatchLabels = labels

@@ -150,3 +150,14 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 
 	r.setResourceLabelsIfApplies(context, object, app)
 }
+
+func (r *ReconcilerBase) SetCommonAnnotations(context context.Context, object client.Object, app skiperatorv1alpha1.Application) {
+	annotations := object.GetAnnotations()
+	if len(annotations) == 0 {
+		annotations = make(map[string]string)
+	}
+	maps.Copy(annotations, CommonAnnotations)
+	object.SetAnnotations(annotations)
+
+	r.setResourceLabelsIfApplies(context, object, app)
+}

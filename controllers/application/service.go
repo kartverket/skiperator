@@ -4,7 +4,6 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -26,7 +25,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		}
 
 		r.SetLabelsFromApplication(ctx, &service, *application)
-		service.ObjectMeta.Annotations = util.CommonAnnotations
+		r.SetCommonAnnotations(ctx, &service, *application)
 
 		labels := map[string]string{"app": application.Name}
 		service.Spec.Selector = labels
