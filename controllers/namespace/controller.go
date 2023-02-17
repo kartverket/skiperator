@@ -10,7 +10,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -59,30 +58,17 @@ var excludedNamespaceList = []string{
 
 func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace string) bool {
 	configMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "namespace-exclusions"}
-	namespaceExclusionCMap := corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      configMapNamespacedName.Name,
-			Namespace: configMapNamespacedName.Namespace,
-		},
-	}
 
-	err := r.GetClient().Get(context.Background(), configMapNamespacedName, &namespaceExclusionCMap)
-	if errors.IsNotFound(err) {
-		err = r.GetClient().Create(ctx, &namespaceExclusionCMap)
-		if err != nil {
-			errorMessage := fmt.Sprintf("Something went wrong creating namespace-exclusion config map: %v", err.Error())
-			panic(errorMessage)
-		}
-	} else if err != nil {
-		errorMessage := fmt.Sprintf("Something went wrong getting namespace-exclusion config map: %v", err.Error())
-		panic(errorMessage)
+	namespaceExclusionCMap, err := util.GetConfigMap(r.GetClient(), ctx, configMapNamespacedName)
+	if err != nil {
+		util.ErrDoPanic(err, "Something went wrong getting namespace-exclusion config map: %v")
 	}
 
 	nameSpacesToExclude := namespaceExclusionCMap.Data
 
 	exclusion, keyExists := nameSpacesToExclude[namespace]
 
-	return (keyExists && exclusion == "exclude") || slices.Contains(excludedNamespaceList, namespace)
+	return (keyExists && exclusion == "true") || slices.Contains(excludedNamespaceList, namespace)
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch

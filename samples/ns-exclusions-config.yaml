@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "namespace-exclusions"
+  namespace: "skiperator-system"
+data:
+  istio-system: "true"
+  cert-manager: "true"
+  kube-node-lease: "true"
+  kube-public: "true"
+  kube-system: "true"

@@ -12,6 +12,7 @@ commands:
   - command: kubectl create namespace skiperator-system
   - command: kubectl create configmap gcp-identity-config --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system
   - command: kubectl create configmap instana-networkpolicy-config --from-literal=cidrBlock=192.168.1.0/26 -n skiperator-system
+  - command: kubectl create configmap namespace-exclusions --from-literal=kube-system=true -n skiperator-system
   - command: kubectl create namespace test
 
   - command: kubectl create serviceaccount --namespace test skiperator
