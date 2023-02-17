@@ -5,17 +5,3 @@ metadata:
   name: argocd-external-link
   annotations:
     "link.argocd.argoproj.io/external-link": "https://example.com"
-spec:
-  selector:
-    matchLabels:
-      app: argocd-external-link
-  template:
-    metadata:
-      annotations:
-        prometheus.io/scrape: "true"
-      labels:
-        app: argocd-external-link
-    spec:
-      containers:
-        - name: argocd-external-link
-          image: image
