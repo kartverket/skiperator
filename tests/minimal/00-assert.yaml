@@ -7,6 +7,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: minimal
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
 spec:
   selector:
     matchLabels:
@@ -15,6 +17,7 @@ spec:
     metadata:
       annotations:
         prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
       labels:
         app: minimal
     spec:

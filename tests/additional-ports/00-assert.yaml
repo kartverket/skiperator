@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: additional-ports
+spec:
+  selector:
+    matchLabels:
+      app: additional-ports
+  template:
+    spec:
+      containers:
+        - name: additional-ports
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: main # verify default naming
+              protocol: TCP # verify default protocol
+            - containerPort: 8181
+              name: metrics # custom name
+              protocol: TCP
+            - containerPort: 8282
+              name: some-udp-port # custom name
+              protocol: UDP # custom protocol
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: additional-ports
+spec:
+  selector:
+    app: additional-ports
+  ports:
+    - name: http
+      port: 8080
+      # Verify that the target port hasn't been changed to a named port
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
