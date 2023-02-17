@@ -36,6 +36,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
@@ -45,8 +46,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
+		util.SetCommonAnnotations(ctx, &deployment)
 
-		deployment.ObjectMeta.Annotations = util.CommonAnnotations
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
 			"argocd.argoproj.io/sync-options": "Prune=false",
 			"prometheus.io/scrape":            "true",

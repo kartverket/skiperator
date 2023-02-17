@@ -4,7 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/util"
+	util "github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -25,7 +25,7 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 		}
 
 		r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
-		serviceAccount.ObjectMeta.Annotations = util.CommonAnnotations
+		util.SetCommonAnnotations(ctx, &serviceAccount)
 
 		return nil
 	})
