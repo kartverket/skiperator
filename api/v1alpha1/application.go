@@ -55,6 +55,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
 	Readiness *Probe `json:"readiness,omitempty"`
@@ -176,10 +178,10 @@ type ExternalRule struct {
 	//+kubebuilder:validation:Optional
 	Ip string `json:"ip,omitempty"`
 	//+kubebuilder:validation:Optional
-	Ports []Port `json:"ports,omitempty"`
+	Ports []ExternalPort `json:"ports,omitempty"`
 }
 
-type Port struct {
+type ExternalPort struct {
 	//+kubebuilder:validation:Required
 	Name string `json:"name"`
 	//+kubebuilder:validation:Required
@@ -187,6 +189,17 @@ type Port struct {
 	//+kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
 	Protocol string `json:"protocol"`
+}
+
+type InternalPort struct {
+	//+kubebuilder:validation:Required
+	Name string `json:"name"`
+	//+kubebuilder:validation:Required
+	Port int32 `json:"port"`
+	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
+	// +kubebuilder:default:TCP
+	Protocol corev1.Protocol `json:"protocol"`
 }
 
 type GCP struct {
