@@ -14,6 +14,7 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     kube-node-lease = "true"
     kube-public     = "true"
     kube-system     = "true"
+    default         = "true"
 
     # Anthos Systems
     anthos-identity-service      = "true"

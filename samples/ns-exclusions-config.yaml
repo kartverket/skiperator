@@ -4,6 +4,7 @@ metadata:
   name: "namespace-exclusions"
   namespace: "skiperator-system"
 data:
+  default: "true"
   istio-system: "true"
   cert-manager: "true"
   kube-node-lease: "true"
