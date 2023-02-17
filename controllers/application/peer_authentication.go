@@ -4,6 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	util "github.com/kartverket/skiperator/pkg/util"
 	securityv1beta1api "istio.io/api/security/v1beta1"
 	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -26,7 +27,7 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 		}
 
 		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
-		r.SetCommonAnnotations(ctx, &peerAuthentication, *application)
+		util.SetCommonAnnotations(ctx, &peerAuthentication)
 
 		peerAuthentication.Spec.Selector = &typev1beta1.WorkloadSelector{}
 		labels := map[string]string{"app": application.Name}

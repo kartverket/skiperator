@@ -33,7 +33,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 				return err
 			}
 			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
-			r.SetCommonAnnotations(ctx, &serviceEntry, *application)
+			util.SetCommonAnnotations(ctx, &serviceEntry)
 
 			// Avoid leaking service entry to other namespaces
 			serviceEntry.Spec.ExportTo = []string{".", "istio-system"}
