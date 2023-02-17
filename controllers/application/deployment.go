@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	util "github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,6 +15,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
 // Adding an argocd external link constant
 const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
@@ -49,18 +51,17 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
-		
-		// add an external link to argocd
-		ingresses := application.Spec.Ingresses
-		if len(ingresses) > 0 {
-			deployment.ObjectMeta.Annotations = make(map[string]string, 1)
-			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
-		}
 
 		deployment.ObjectMeta.Annotations = util.CommonAnnotations
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
 			"argocd.argoproj.io/sync-options": "Prune=false",
 			"prometheus.io/scrape":            "true",
+		}
+
+		// add an external link to argocd
+		ingresses := application.Spec.Ingresses
+		if len(ingresses) > 0 {
+			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 		}
 
 		labels := map[string]string{"app": application.Name}
