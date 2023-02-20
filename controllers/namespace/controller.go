@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/kartverket/skiperator/pkg/util"
-	"golang.org/x/exp/slices"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -22,40 +21,6 @@ type NamespaceReconciler struct {
 	Registry string
 }
 
-var excludedNamespaceList = []string{
-	// System namespaces
-	"istio-system",
-	"kube-node-lease",
-	"kube-public",
-	"kube-system",
-	"skiperator-system",
-	"config-management-system",
-	"config-management-monitoring",
-	"asm-system",
-	"anthos-identity-service",
-	"binauthz-system",
-	"cert-manager",
-	"gatekeeper-system",
-	"gke-connect",
-	"gke-system",
-	"gke-managed-metrics-server",
-	"resource-group-system",
-	// Bundles NetworkPolicies already
-	"kasten-io",
-	// TODO needs NetworkPolicies/Skiperator
-	"vault",
-	// TODO PoC, add NetworkPolicies after
-	"sysdig-agent",
-	"sysdig-admission-controller",
-	"instana-agent",
-	"kubecost",
-	"argocd",
-	"crossplane-system",
-	"upbound-system",
-	"instana-autotrace-webhook",
-	"fluentd", //POC
-}
-
 func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace string) bool {
 	configMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "namespace-exclusions"}
 
@@ -68,7 +33,7 @@ func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace
 
 	exclusion, keyExists := nameSpacesToExclude[namespace]
 
-	return (keyExists && exclusion == "true") || slices.Contains(excludedNamespaceList, namespace)
+	return (keyExists && exclusion == "true")
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
@@ -111,19 +76,16 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		"Namespace "+namespace.Name+" has started reconciliation loop",
 	)
 
-	_, err = r.reconcileDefaultDenyNetworkPolicy(ctx, namespace)
-	if err != nil {
-		return reconcile.Result{}, err
+	controllerDuties := []func(context.Context, *corev1.Namespace) (reconcile.Result, error){
+		r.reconcileDefaultDenyNetworkPolicy,
+		r.reconcileImagePullSecret,
+		r.reconcileSidecar,
 	}
 
-	_, err = r.reconcileImagePullSecret(ctx, namespace)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileSidecar(ctx, namespace)
-	if err != nil {
-		return reconcile.Result{}, err
+	for _, fn := range controllerDuties {
+		if _, err := fn(ctx, namespace); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	r.GetRecorder().Eventf(
