@@ -1,7 +1,6 @@
 package util
 
 import (
-	"context"
 	"hash/fnv"
 	"regexp"
 
@@ -62,7 +61,7 @@ func GenerateHashFromName(name string) uint64 {
 	return hash.Sum64()
 }
 
-func SetCommonAnnotations(context context.Context, object client.Object) {
+func SetCommonAnnotations(object client.Object) {
 	annotations := object.GetAnnotations()
 	if len(annotations) == 0 {
 		annotations = make(map[string]string)
