@@ -26,7 +26,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		}
 
 		r.SetLabelsFromApplication(ctx, &service, *application)
-		service.ObjectMeta.Annotations = util.CommonAnnotations
+		util.SetCommonAnnotations(&service)
 
 		labels := map[string]string{"app": application.Name}
 		service.Spec.Selector = labels

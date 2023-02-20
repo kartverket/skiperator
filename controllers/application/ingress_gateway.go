@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/slices"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -35,7 +35,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 
 			r.SetLabelsFromApplication(ctx, &gateway, *application)
-			gateway.ObjectMeta.Annotations = util.CommonAnnotations
+			util.SetCommonAnnotations(&gateway)
 
 			if util.IsInternal(hostname) {
 				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
