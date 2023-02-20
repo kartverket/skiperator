@@ -7,7 +7,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -33,16 +32,15 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 	// Is this an error?
 	if application.Spec.GCP != nil {
-		gcpIdentityConfigMap := corev1.ConfigMap{}
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
 
-		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
-		if errors.IsNotFound(err) {
-			r.GetRecorder().Eventf(
-				application,
-				corev1.EventTypeWarning, "Missing",
-				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
-			)
-		} else if err != nil {
+		if !util.ErrIsMissingOrNil(
+			r.GetRecorder(),
+			err,
+			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			application,
+		) {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}

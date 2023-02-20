@@ -17,7 +17,7 @@ func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Cont
 	cmapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}
 	instanaConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, cmapNamespacedName)
 
-	if !util.ErrIsMissing(r.GetRecorder(), err, "Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system", namespace) {
+	if !util.ErrIsMissingOrNil(r.GetRecorder(), err, "Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system", namespace) {
 		return reconcile.Result{}, err
 	}
 

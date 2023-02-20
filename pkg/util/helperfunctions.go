@@ -75,7 +75,7 @@ func GetConfigMap(client client.Client, ctx context.Context, namespacedName type
 	return configMap, err
 }
 
-func ErrIsMissing(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
+func ErrIsMissingOrNil(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
 	if errors.IsNotFound(err) {
 		recorder.Eventf(
 			object,
