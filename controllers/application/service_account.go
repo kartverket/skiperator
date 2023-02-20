@@ -25,7 +25,7 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 		}
 
 		r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
-		util.SetCommonAnnotations(ctx, &serviceAccount)
+		util.SetCommonAnnotations(&serviceAccount)
 
 		return nil
 	})

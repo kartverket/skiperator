@@ -95,7 +95,7 @@ func ErrDoPanic(err error, message string) {
 	}
 }
 
-func SetCommonAnnotations(context context.Context, object client.Object) {
+func SetCommonAnnotations(object client.Object) {
 	annotations := object.GetAnnotations()
 	if len(annotations) == 0 {
 		annotations = make(map[string]string)

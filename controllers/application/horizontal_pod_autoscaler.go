@@ -25,7 +25,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		}
 
 		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
-		util.SetCommonAnnotations(ctx, &horizontalPodAutoscaler)
+		util.SetCommonAnnotations(&horizontalPodAutoscaler)
 
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
 		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"

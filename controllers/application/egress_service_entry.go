@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/slices"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -33,7 +33,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 				return err
 			}
 			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
-			util.SetCommonAnnotations(ctx, &serviceEntry)
+			util.SetCommonAnnotations(&serviceEntry)
 
 			// Avoid leaking service entry to other namespaces
 			serviceEntry.Spec.ExportTo = []string{".", "istio-system"}
