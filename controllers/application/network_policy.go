@@ -4,7 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -58,6 +58,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		}
 
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
+		util.SetCommonAnnotations(&networkPolicy)
 
 		labels := map[string]string{"app": application.Name}
 		networkPolicy.Spec.PodSelector.MatchLabels = labels

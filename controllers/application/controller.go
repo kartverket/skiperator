@@ -7,7 +7,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"golang.org/x/exp/maps"
 
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -95,69 +95,26 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"Application "+application.Name+" has started reconciliation loop",
 	)
 
-	_, err = r.initializeApplicationStatus(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
+	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
+		r.initializeApplicationStatus,
+		r.initializeApplication,
+		r.reconcileService,
+		r.reconcileServiceAccount,
+		r.reconcileConfigMap,
+		r.reconcileCertificate,
+		r.reconcileNetworkPolicy,
+		r.reconcileIngressGateway,
+		r.reconcileEgressServiceEntry,
+		r.reconcileIngressVirtualService,
+		r.reconcilePeerAuthentication,
+		r.reconcileHorizontalPodAutoscaler,
+		r.reconcileDeployment,
 	}
 
-	_, err = r.initializeApplication(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileCertificate(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileService(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileServiceAccount(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileConfigMap(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileEgressServiceEntry(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileIngressGateway(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileIngressVirtualService(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileHorizontalPodAutoscaler(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcilePeerAuthentication(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileNetworkPolicy(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	_, err = r.reconcileDeployment(ctx, application)
-	if err != nil {
-		return reconcile.Result{}, err
+	for _, fn := range controllerDuties {
+		if _, err := fn(ctx, application); err != nil {
+			return reconcile.Result{}, err
+		}
 	}
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil

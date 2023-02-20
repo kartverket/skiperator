@@ -2,8 +2,10 @@ package applicationcontroller
 
 import (
 	"context"
+	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -12,6 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+// Adding an argocd external link constant
+const (
+	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -35,6 +42,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
 		// Set application as owner of the deployment
 		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
@@ -44,6 +52,18 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
+		util.SetCommonAnnotations(&deployment)
+
+		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
+			"argocd.argoproj.io/sync-options": "Prune=false",
+			"prometheus.io/scrape":            "true",
+		}
+
+		// add an external link to argocd
+		ingresses := application.Spec.Ingresses
+		if len(ingresses) > 0 {
+			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		}
 
 		labels := map[string]string{"app": application.Name}
 		deployment.Spec.Template.ObjectMeta.Labels = labels
@@ -100,6 +120,15 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		container.Ports = make([]corev1.ContainerPort, 1)
 		container.Ports[0].ContainerPort = int32(application.Spec.Port)
+		container.Ports[0].Name = "main"
+
+		for _, port := range application.Spec.AdditionalPorts {
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				ContainerPort: port.Port,
+				Name:          port.Name,
+				Protocol:      port.Protocol,
+			})
+		}
 
 		//Adding env for GCP authentication
 		if application.Spec.GCP != nil {

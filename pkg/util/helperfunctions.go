@@ -4,8 +4,10 @@ import (
 	"hash/fnv"
 	"regexp"
 
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
@@ -45,7 +47,8 @@ var excludedNamespaces = []string{
 	"crossplane-system",
 	"upbound-system",
 	"instana-autotrace-webhook",
-	"fluentd", //POC
+	"fluentd",          //POC
+	"external-secrets", //POC
 }
 
 func IsNotExcludedNamespace(namespace *corev1.Namespace) bool {
@@ -56,4 +59,13 @@ func GenerateHashFromName(name string) uint64 {
 	hash := fnv.New64()
 	_, _ = hash.Write([]byte(name))
 	return hash.Sum64()
+}
+
+func SetCommonAnnotations(object client.Object) {
+	annotations := object.GetAnnotations()
+	if len(annotations) == 0 {
+		annotations = make(map[string]string)
+	}
+	maps.Copy(annotations, CommonAnnotations)
+	object.SetAnnotations(annotations)
 }
