@@ -54,11 +54,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 		util.SetCommonAnnotations(&deployment)
 
-		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
-			"argocd.argoproj.io/sync-options": "Prune=false",
-			"prometheus.io/scrape":            "true",
-		}
-
 		// add an external link to argocd
 		ingresses := application.Spec.Ingresses
 		if len(ingresses) > 0 {
@@ -76,8 +71,9 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 		istioSidecarAnnotation = r.GetIstioSidecarAnnotation()
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
-			"sidecar.istio.io/proxyCPU": skiperatorConfig.Data[istioSidecarAnnotation],
-			"prometheus.io/scrape":      "true",
+			"argocd.argoproj.io/sync-options": "Prune=false",
+			"sidecar.istio.io/proxyCPU":       skiperatorConfig.Data[istioSidecarAnnotation],
+			"prometheus.io/scrape":            "true",
 		}
 
 		var replicas = int32(application.Spec.Replicas.Min)
