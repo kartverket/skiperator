@@ -4,7 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -46,7 +46,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
-		util.SetCommonAnnotations(ctx, &deployment)
+		util.SetCommonAnnotations(&deployment)
 
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
 			"argocd.argoproj.io/sync-options": "Prune=false",

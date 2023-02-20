@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	util "github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			}
 
 			r.SetLabelsFromApplication(ctx, &virtualService, *application)
-			util.SetCommonAnnotations(ctx, &virtualService)
+			util.SetCommonAnnotations(&virtualService)
 
 			gateways := make([]string, 0, len(application.Spec.Ingresses))
 			for _, hostname := range application.Spec.Ingresses {
