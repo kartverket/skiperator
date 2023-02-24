@@ -28,7 +28,7 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     # SKIP Systems
     binauthz-system             = "true"
     gatekeeper-system           = "true"
-    kasten-io                   = "true"
+    skiperator-system           = "true"
     sysdig-agent                = "true"
     sysdig-admission-controller = "true"
     instana-agent               = "true"
@@ -41,6 +41,7 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     external-secrets  = "true"
 
     # PoC, to be removed?
+    kasten-io                 = "true"
     fluentd                   = "true"
     kubecost                  = "true"
     instana-autotrace-webhook = "true"
