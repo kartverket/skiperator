@@ -3,9 +3,9 @@ package namespacecontroller
 import (
 	"context"
 
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -14,17 +14,10 @@ import (
 )
 
 func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
+	cmapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}
+	instanaConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, cmapNamespacedName)
 
-	instanaConfigMap := corev1.ConfigMap{}
-
-	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}, &instanaConfigMap)
-	if errors.IsNotFound(err) {
-		r.GetRecorder().Eventf(
-			namespace,
-			corev1.EventTypeWarning, "Missing",
-			"Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system",
-		)
-	} else if err != nil {
+	if !util.ErrIsMissingOrNil(r.GetRecorder(), err, "Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system", namespace) {
 		return reconcile.Result{}, err
 	}
 
