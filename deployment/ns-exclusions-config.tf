@@ -24,6 +24,9 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     gke-system                   = "true"
     gke-managed-metrics-server   = "true"
     resource-group-system        = "true"
+    gmp-public                   = "true"
+    gmp-system                   = "true"
+    gmp-test                     = "true"
 
     # SKIP Systems
     binauthz-system             = "true"
