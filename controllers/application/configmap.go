@@ -34,16 +34,15 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 	// Is this an error?
 	if application.Spec.GCP != nil {
-		gcpIdentityConfigMap := corev1.ConfigMap{}
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
 
-		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
-		if errors.IsNotFound(err) {
-			r.GetRecorder().Eventf(
-				application,
-				corev1.EventTypeWarning, "Missing",
-				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
-			)
-		} else if err != nil {
+		if !util.ErrIsMissingOrNil(
+			r.GetRecorder(),
+			err,
+			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			application,
+		) {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
@@ -53,13 +52,37 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
+
 	}
 
-	err := r.setupSkiperatorConfigMap(ctx, application)
+	skiperatorConfigMapName := types.NamespacedName{Namespace: application.Namespace, Name: application.Name + "-skiperator-config"}
+	skiperatorConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, skiperatorConfigMapName)
+	if errors.IsNotFound(err) {
+		skiperatorConfigMap.Name = skiperatorConfigMapName.Name
+		skiperatorConfigMap.Namespace = skiperatorConfigMapName.Namespace
+		err = r.GetClient().Create(ctx, &skiperatorConfigMap)
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "Missing",
+			"Cannot find Skiperator ConfigMap, creating",
+		)
 
-	return reconcile.Result{}, err
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	err = r.setupSkiperatorConfigMap(ctx, skiperatorConfigMap, application)
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+
+	return reconcile.Result{}, nil
 
 }
 
@@ -105,24 +128,8 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 	return err
 }
 
-func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) error {
-	skiperatorConfigMap, err := r.GetSkiperatorConfigMap(ctx, application)
-
-	if errors.IsNotFound(err) {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "Missing",
-			"Cannot find Skiperator ConfigMap, creating",
-		)
-
-		err := r.GetClient().Create(ctx, &skiperatorConfigMap)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	err = ctrlutil.SetControllerReference(application, &skiperatorConfigMap, r.GetScheme())
+func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, skiperatorConfigMap corev1.ConfigMap, application *skiperatorv1alpha1.Application) error {
+	err := ctrlutil.SetControllerReference(application, &skiperatorConfigMap, r.GetScheme())
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
 		return err
@@ -154,16 +161,6 @@ func (r *ApplicationReconciler) setupSkiperatorConfigMap(ctx context.Context, ap
 	}
 
 	return err
-}
-
-func (r *ApplicationReconciler) GetSkiperatorConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (corev1.ConfigMap, error) {
-
-	skiperatorConfigMapName := application.Name + "-skiperator-config"
-	skiperatorConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: skiperatorConfigMapName}}
-
-	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: skiperatorConfigMapName}, &skiperatorConfigMap)
-
-	return skiperatorConfigMap, err
 }
 
 func getDefaultIstioCPURequestFromEnv(env string) string {

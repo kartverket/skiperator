@@ -8,7 +8,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -24,22 +23,6 @@ const (
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
-
-	gcpIdentityConfigMap := corev1.ConfigMap{}
-
-	if application.Spec.GCP != nil {
-		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}, &gcpIdentityConfigMap)
-		if errors.IsNotFound(err) {
-			r.GetRecorder().Eventf(
-				application,
-				corev1.EventTypeWarning, "Missing",
-				"Cannot find configmap named gcp-identity-config in namespace skiperator-system",
-			)
-		} else if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	}
 
 	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
@@ -64,7 +47,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		deployment.Spec.Template.ObjectMeta.Labels = labels
 		deployment.Spec.Selector = &metav1.LabelSelector{MatchLabels: labels}
 
-		skiperatorConfig, err := r.GetSkiperatorConfigMap(ctx, application)
+		skiperatorConfig, err := util.GetConfigMap(r.GetClient(), ctx, types.NamespacedName{
+			Namespace: application.Namespace,
+			Name:      application.Name + "-skiperator-config",
+		})
+
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
@@ -126,17 +113,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			})
 		}
 
-		//Adding env for GCP authentication
-		if application.Spec.GCP != nil {
-			envVar := corev1.EnvVar{
-				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-				Value: "/var/run/secrets/tokens/gcp-ksa/google-application-credentials.json",
-			}
-			container.Env = append(application.Spec.Env, envVar)
-		} else {
-			container.Env = application.Spec.Env
-		}
-
 		container.EnvFrom = make([]corev1.EnvFromSource, len(application.Spec.EnvFrom))
 		envFrom := container.EnvFrom
 
@@ -190,6 +166,27 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		if application.Spec.GCP != nil {
+			gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+			gcpIdentityConfigMap := corev1.ConfigMap{}
+
+			gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+
+			if !util.ErrIsMissingOrNil(
+				r.GetRecorder(),
+				err,
+				"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+				application,
+			) {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			envVar := corev1.EnvVar{
+				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
+				Value: "/var/run/secrets/tokens/gcp-ksa/google-application-credentials.json",
+			}
+			container.Env = append(application.Spec.Env, envVar)
+
 			volumeMounts[numberOfVolumes-1].Name = "gcp-ksa"
 			volumeMounts[numberOfVolumes-1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
 			volumeMounts[numberOfVolumes-1].ReadOnly = true
@@ -216,6 +213,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			}
 			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
 			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
+		} else {
+			container.Env = application.Spec.Env
 		}
 
 		if application.Spec.Readiness != nil {
