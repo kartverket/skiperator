@@ -171,7 +171,8 @@ func getDefaultIstioCPURequestFromEnv(env string) string {
 		return "10m"
 	default:
 		// Better to safeguard a high request in case of poor config
-		return "100m"
+		// Set to something other than production just to tell difference
+		return "99m"
 	}
 
 }

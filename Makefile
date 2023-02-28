@@ -47,7 +47,7 @@ test: bin/kubebuilder-tools build
 .PHONY: run-local
 run-local: build
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f deployment/
-	./bin/skiperator
+	./bin/skiperator -e local
 
 .PHONY: image
 image:

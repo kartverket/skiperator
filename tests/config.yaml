@@ -23,7 +23,7 @@ commands:
   - command: kubectl config set-context skiperator --cluster cluster --user skiperator
   - command: kubectl config use-context skiperator
 
-  - command: skiperator -l -ln test -e test
+  - command: skiperator -l -ln test -e test-plane
     background: true
 parallel: 1
 namespace: test

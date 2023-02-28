@@ -6,4 +6,5 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/proxyCPU: "10m"
+        # Should use fallback 99m due to not running in a named env
+        sidecar.istio.io/proxyCPU: "99m"
