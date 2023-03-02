@@ -3,6 +3,7 @@ kind: TestSuite
 startControlPlane: true
 commands:
   - command: kubectl create namespace istio-system
+  - command: kubectl create namespace istio-gateways
   - command: kubectl apply --filename https://raw.githubusercontent.com/istio/istio/1.15.1/manifests/charts/base/crds/crd-all.gen.yaml
   - command: kubectl apply --filename https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
   - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
