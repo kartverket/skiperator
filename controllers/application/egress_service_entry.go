@@ -36,7 +36,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			util.SetCommonAnnotations(&serviceEntry)
 
 			// Avoid leaking service entry to other namespaces
-			serviceEntry.Spec.ExportTo = []string{".", "istio-system"}
+			serviceEntry.Spec.ExportTo = []string{".", "istio-system", "istio-gateways"}
 
 			serviceEntry.Spec.Hosts = []string{rule.Host}
 			if rule.Ip == "" {
