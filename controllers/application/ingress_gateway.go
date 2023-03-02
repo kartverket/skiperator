@@ -38,9 +38,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			util.SetCommonAnnotations(&gateway)
 
 			if util.IsInternal(hostname) {
-				gateway.Spec.Selector = map[string]string{"ingress": "internal"}
+				gateway.Spec.Selector = map[string]string{"app": "istio-ingress-internal"}
 			} else {
-				gateway.Spec.Selector = map[string]string{"ingress": "external"}
+				gateway.Spec.Selector = map[string]string{"app": "istio-ingress-external"}
 			}
 
 			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)
