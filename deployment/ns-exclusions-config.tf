@@ -35,6 +35,7 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     sysdig-agent                = "true"
     sysdig-admission-controller = "true"
     instana-agent               = "true"
+    instana-autotrace-webhook   = "true"
     vault                       = "true"
 
     # Argo
@@ -44,9 +45,9 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     external-secrets  = "true"
 
     # PoC, to be removed?
-    kasten-io                 = "true"
-    fluentd                   = "true"
-    kubecost                  = "true"
-    instana-autotrace-webhook = "true"
+    istio-shipwreck = "true"
+    kasten-io       = "true"
+    fluentd         = "true"
+    kubecost        = "true"
   }
 }
