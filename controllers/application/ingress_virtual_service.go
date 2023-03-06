@@ -44,7 +44,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			}
 
 			// Avoid leaking virtual service to other namespaces
-			virtualService.Spec.ExportTo = []string{".", "istio-system"}
+			virtualService.Spec.ExportTo = []string{".", "istio-system", "istio-gateways"}
 			virtualService.Spec.Gateways = gateways
 			virtualService.Spec.Hosts = application.Spec.Ingresses
 

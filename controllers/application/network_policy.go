@@ -100,11 +100,11 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
 
 			ingress.From[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": "istio-system"}
+			labels = map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
 			ingress.From[0].NamespaceSelector.MatchLabels = labels
 
 			ingress.From[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"ingress": "internal"}
+			labels = map[string]string{"app": "istio-ingress-internal"}
 			ingress.From[0].PodSelector.MatchLabels = labels
 
 			port := intstr.FromInt(application.Spec.Port)
@@ -119,11 +119,11 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
 
 			ingress.From[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": "istio-system"}
+			labels = map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
 			ingress.From[0].NamespaceSelector.MatchLabels = labels
 
 			ingress.From[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"ingress": "external"}
+			labels = map[string]string{"app": "istio-ingress-external"}
 			ingress.From[0].PodSelector.MatchLabels = labels
 
 			port := intstr.FromInt(application.Spec.Port)

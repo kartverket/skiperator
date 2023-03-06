@@ -38,6 +38,7 @@ spec:
   exportTo:
     - .
     - istio-system
+    - istio-gateways
   resolution: DNS
   hosts:
     - example.com
@@ -54,6 +55,7 @@ spec:
   exportTo:
     - .
     - istio-system
+    - istio-gateways
   resolution: DNS
   hosts:
     - foo.com

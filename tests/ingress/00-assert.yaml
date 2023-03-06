@@ -1,7 +1,7 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  namespace: istio-system
+  namespace: istio-gateways
   name: test-ingresses-ingress-56cd7aa901014e78
 spec:
   issuerRef:
@@ -17,7 +17,7 @@ metadata:
   name: ingresses-ingress-56cd7aa901014e78
 spec:
   selector:
-    ingress: external
+    app: istio-ingress-external
   servers:
     - hosts:
         - example.com
@@ -43,6 +43,7 @@ spec:
   exportTo:
     - .
     - istio-system
+    - istio-gateways
   gateways:
     - ingresses-ingress-56cd7aa901014e78
   hosts:

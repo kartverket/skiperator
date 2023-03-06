@@ -47,7 +47,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	for _, hostname := range application.Spec.Ingresses {
 		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 
-		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-system", Name: name}}
+		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: name}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
 			r.SetLabelsFromApplication(ctx, &certificate, *application)
 
