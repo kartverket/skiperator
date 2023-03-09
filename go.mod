@@ -7,8 +7,8 @@ require (
 	github.com/kudobuilder/kuttl v0.15.0
 	go.etcd.io/etcd/server/v3 v3.5.7
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
-	istio.io/api v0.0.0-20230125212921-f04847bedb29
-	istio.io/client-go v1.16.2
+	istio.io/api v0.0.0-20230215211151-50468cdae908
+	istio.io/client-go v1.16.3
 	k8s.io/api v0.26.2
 	k8s.io/apimachinery v0.26.2
 	k8s.io/client-go v0.26.2
