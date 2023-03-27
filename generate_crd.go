@@ -1,0 +1,3 @@
+package root
+
+//go:generate controller-gen crd paths=./api/...

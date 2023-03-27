@@ -24,7 +24,8 @@ bin/kubebuilder-tools:
 
 .PHONY: generate
 generate: tools
-	go generate ./...
+	controller-gen rbac:roleName=skiperator paths=./... 
+	controller-gen crd paths=./api/...
 
 .PHONY: build
 build: generate
@@ -35,7 +36,6 @@ build: generate
 	-o ./bin/skiperator \
 	./cmd/skiperator
 
-# --control-plane-config is a workaround for https://github.com/kudobuilder/kuttl/issues/378
 .PHONY: test
 test: bin/kubebuilder-tools build
 	TEST_ASSET_ETCD=bin/etcd \
@@ -46,7 +46,7 @@ test: bin/kubebuilder-tools build
 
 .PHONY: run-local
 run-local: build
-	kubectl --context ${SKIPERATOR_CONTEXT} apply -f deployment/
+	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator
 
 .PHONY: image
