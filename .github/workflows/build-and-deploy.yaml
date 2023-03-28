@@ -1,4 +1,4 @@
-name: Deploy Skiperator Sequentially
+name: Build and Deploy Skiperator
 
 on:
   push:
@@ -10,19 +10,14 @@ on:
       - samples/**
       - README.md
       - CONTRIBUTING.md
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - doc/**
-      - samples/**
-      - README.md
-      - CONTRIBUTING.md
 
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  RBAC_FILE_PATH: config/rbac/role.yaml
+  CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
 
 jobs:
   build:
@@ -34,15 +29,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      # Workaround: https://github.com/docker/build-push-action/issues/461
-      - name: Setup Docker buildx
-        uses: docker/setup-buildx-action@4b4e9c3e2d4531116a6f8ba8e71fc6e2cb6e6c8c
-      - name: Docker meta
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/kartverket/skiperator-controller
-          tags: type=sha,format=long
 
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
@@ -50,16 +36,40 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: type=sha,format=long
+
       - name: Build and push Docker image
-        env:
-          IMAGE: ghcr.io/kartverket/skiperator-controller:${{ steps.meta.outputs.version }}
-        run: docker push ${{ env.IMAGE }}
+        id: build-docker
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: ${{ !github.event.pull_request.draft }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Upload CRD and RBAC Role
+        uses: actions/upload-artifact@v3
+        with:
+          name: config
+          path: |
+            ${{ env.RBAC_FILE_PATH }}
+            ${{ env.CRD_FILE_PATH }}
+
     outputs:
       version: ${{ steps.meta.outputs.version }}
+      image_digest: ${{ steps.build-docker.outputs.digest }}
 
   deploy-argo:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      BASE_DIR: ./bases/skiperator
     steps:
       - name: Checkout apps repo
         uses: actions/checkout@v3
@@ -67,16 +77,27 @@ jobs:
           repository: kartverket/skip-apps
           token: ${{ secrets.ARGOCD_PAT }}
 
-      - name: Deploy new Skiperator version
+      - name: Download CRD and RBAC
+        uses: actions/download-artifact@v3
+        with:
+          name: config
+
+      - name: Patch Image Digest
         run: |
-          DIRECTORY="skiperator-temp"
-          mkdir -p ./$DIRECTORY
-          cp -r bases/skiperator/kustomize.yaml ./$DIRECTORY/kustomize.yaml
           kubectl patch --local \
-            -f ./$DIRECTORY/kustomize.yaml \
-            -p '{"images":[{"name":"ghcr.io/kartverket/skiperator-controller","newTag":"${{needs.build.outputs.version}}"}]}' \
+            -f $BASE_DIR/kustomize.yaml \
+            -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{needs.build.outputs.image_digest}}"}]}' \
             -o yaml
+
+      - name: Update CRD and Role
+        run: |
+          cp -f $CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
+          rm -rf config/
+
+      - name: Commit Changes to Repo
+        run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator version ${{github.ref_name}}"
+          git commit -am "Deploy Skiperator ${{github.ref_name}}"
           git push

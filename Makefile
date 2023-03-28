@@ -8,8 +8,6 @@ export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; e
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
 SKIPERATOR_CONTEXT ?= kind-kind
-IMAGE ?= skiperator
-
 KUBERNETES_VERSION = 1.25
 
 .PHONY: tools
@@ -24,8 +22,7 @@ bin/kubebuilder-tools:
 
 .PHONY: generate
 generate: tools
-	controller-gen rbac:roleName=skiperator paths=./... 
-	controller-gen crd paths=./api/...
+	go generate ./...
 
 .PHONY: build
 build: generate
@@ -48,11 +45,3 @@ test: bin/kubebuilder-tools build
 run-local: build
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator
-
-.PHONY: image
-image:
-	docker build --tag $(IMAGE) .
-
-.PHONY: push
-push: image
-	docker push $(IMAGE)
