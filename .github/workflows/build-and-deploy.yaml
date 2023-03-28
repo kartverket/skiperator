@@ -53,7 +53,21 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Upload CRD and RBAC Role
+  generate:
+    name: CRD and ClusterRole
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Setup Golang environment
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+
+      - name: Generate CRD and ClusterRole
+        run: make generate
+
+      - name: Upload CRD and ClusterRole
         uses: actions/upload-artifact@v3
         with:
           name: config
@@ -61,12 +75,8 @@ jobs:
             ${{ env.RBAC_FILE_PATH }}
             ${{ env.CRD_FILE_PATH }}
 
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      image_digest: ${{ steps.build-docker.outputs.digest }}
-
   deploy-argo:
-    needs: build
+    needs: [build, generate]
     runs-on: ubuntu-latest
     env:
       BASE_DIR: ./bases/skiperator
