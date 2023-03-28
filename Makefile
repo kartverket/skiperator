@@ -10,18 +10,14 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.25
 
-.PHONY: tools
-tools:
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen
-	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl
-
 bin/kubebuilder-tools:
 	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}.0-${OS}-${ARCH}.tar.gz" | \
     tar --gzip --extract --strip-components 2 --directory bin
 
 
 .PHONY: generate
-generate: tools
+generate:
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen
 	go generate ./...
 
 .PHONY: build
