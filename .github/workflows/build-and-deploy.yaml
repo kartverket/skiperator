@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: kartverket/skip-apps
-          token: ${{ secrets.ARGOCD_PAT }}
+          token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
 
       - name: Download CRD and RBAC
         uses: actions/download-artifact@v3
