@@ -56,8 +56,3 @@ image:
 .PHONY: push
 push: image
 	docker push $(IMAGE)
-
-.PHONY: deploy
-deploy: generate push
-	TF_VAR_image=$(IMAGE) \
-	terraform -chdir=deployment apply -auto-approve

@@ -66,7 +66,7 @@ $ make generate
 and installed in the cluster with
 
 ```
-$ kubectl apply -f deployment
+$ kubectl apply -f config/ --rescurive
 ```
 
 A minimal application resource is provided in the samples folder and can be applied with

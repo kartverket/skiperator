@@ -41,7 +41,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/skiperator-controller
+          images: ghcr.io/kartverket/skiperator-controller
           tags: type=sha,format=long
 
       - name: Log into registry ${{ env.REGISTRY }}
