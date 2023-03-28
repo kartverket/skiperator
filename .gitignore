@@ -4,5 +4,5 @@
 # /deployment/*.yaml
 /kubeconfig
 
-.vscode
-.idea
+.vscode/
+.idea/
