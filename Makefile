@@ -10,9 +10,11 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.25
 
-bin/kubebuilder-tools:
+.PHONY: test-tools
+test-tools:
 	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}.0-${OS}-${ARCH}.tar.gz" | \
     tar --gzip --extract --strip-components 2 --directory bin
+	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl
 
 
 .PHONY: generate
@@ -30,12 +32,15 @@ build: generate
 	./cmd/skiperator
 
 .PHONY: test
-test: bin/kubebuilder-tools build
+test: test-tools
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	kubectl kuttl test \
 	--config tests/config.yaml \
 	--start-control-plane
+
+.PHONY: build-test
+build-test: build test
 
 .PHONY: run-local
 run-local: build

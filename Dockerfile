@@ -4,7 +4,6 @@ WORKDIR /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY Makefile ./
-RUN make tools
 
 COPY . .
 RUN make
