@@ -55,6 +55,10 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			virtualService.Spec.Http[0].Route[0].Destination = &networkingv1beta1api.Destination{}
 			virtualService.Spec.Http[0].Route[0].Destination.Host = application.Name
 
+			if application.Spec.RedirectIngresses {
+				virtualService.Spec.Http[0].Redirect.Scheme = "https"
+			}
+
 			return nil
 		})
 	} else {
