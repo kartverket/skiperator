@@ -57,6 +57,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 
 			if application.Spec.RedirectIngresses {
 				virtualService.Spec.Http[0].Redirect.Scheme = "https"
+				virtualService.Spec.Http[0].Redirect.RedirectCode = 307
 			}
 
 			return nil
