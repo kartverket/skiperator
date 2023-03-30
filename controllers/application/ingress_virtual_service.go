@@ -51,13 +51,17 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 			virtualService.Spec.Http = make([]*networkingv1beta1api.HTTPRoute, 1)
 			virtualService.Spec.Http[0] = &networkingv1beta1api.HTTPRoute{}
 			virtualService.Spec.Http[0].Route = make([]*networkingv1beta1api.HTTPRouteDestination, 1)
-			virtualService.Spec.Http[0].Route[0] = &networkingv1beta1api.HTTPRouteDestination{}
-			virtualService.Spec.Http[0].Route[0].Destination = &networkingv1beta1api.Destination{}
-			virtualService.Spec.Http[0].Route[0].Destination.Host = application.Name
+			virtualService.Spec.Http[0].Route[0] = &networkingv1beta1api.HTTPRouteDestination{
+				Destination: &networkingv1beta1api.Destination{
+					Host: application.Name,
+				},
+			}
 
 			if application.Spec.RedirectIngresses {
-				virtualService.Spec.Http[0].Redirect.Scheme = "https"
-				virtualService.Spec.Http[0].Redirect.RedirectCode = 307
+				virtualService.Spec.Http[0].Redirect = &networkingv1beta1api.HTTPRedirect{
+					Scheme:       "https",
+					RedirectCode: 307,
+				}
 			}
 
 			return nil
