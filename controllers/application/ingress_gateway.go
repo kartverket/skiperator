@@ -66,7 +66,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			gateway.Spec.Servers[1].Port = &networkingv1beta1api.Port{
 				Number:   443,
 				Name:     "https",
-				Protocol: "HTTPs",
+				Protocol: "HTTPS",
 			}
 			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{
 				Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
