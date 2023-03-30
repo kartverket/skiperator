@@ -37,6 +37,15 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			r.SetLabelsFromApplication(ctx, &gateway, *application)
 			util.SetCommonAnnotations(&gateway)
 
+			internalSelector := "istio-ingress-internal"
+			externalSelector := "istio-ingress-external"
+
+			if util.IsInternal(hostname) {
+				gateway.Spec.Selector = map[string]string{"app": internalSelector}
+			} else {
+				gateway.Spec.Selector = map[string]string{"app": externalSelector}
+			}
+
 			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)
 
 			gateway.Spec.Servers[0] = &networkingv1beta1api.Server{}
@@ -45,19 +54,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			gateway.Spec.Servers[0].Port.Number = 80
 			gateway.Spec.Servers[0].Port.Name = "http"
 			gateway.Spec.Servers[0].Port.Protocol = "HTTP"
-
-			internalSelector := "istio-ingress-internal"
-			externalSelector := "istio-ingress-external"
-
-			if util.IsInternal(hostname) {
-				gateway.Spec.Selector = map[string]string{"app": internalSelector}
-			} else {
-				gateway.Spec.Selector = map[string]string{"app": externalSelector}
-
-				if application.Spec.RedirectIngresses {
-					gateway.Spec.Servers[0].Tls = &networkingv1beta1api.ServerTLSSettings{}
-					gateway.Spec.Servers[0].Tls.HttpsRedirect = true
-				}
+			if application.Spec.RedirectIngresses {
+				gateway.Spec.Servers[0].Tls = &networkingv1beta1api.ServerTLSSettings{}
+				gateway.Spec.Servers[0].Tls.HttpsRedirect = true
 			}
 
 			gateway.Spec.Servers[1] = &networkingv1beta1api.Server{}
