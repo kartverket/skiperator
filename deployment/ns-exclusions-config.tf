@@ -37,6 +37,7 @@ resource "kubernetes_config_map" "namespace-exclusions-map" {
     instana-agent               = "true"
     instana-autotrace-webhook   = "true"
     vault                       = "true"
+    cosign-system               = "true"
 
     # Argo
     argocd            = "true"
