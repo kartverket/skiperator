@@ -66,6 +66,7 @@ jobs:
       image_digest: ${{ steps.build-docker.outputs.digest }}
 
   generate:
+    if: (!github.event.pull_request.draft)
     name: CRD and ClusterRole
     runs-on: ubuntu-latest
     permissions:
