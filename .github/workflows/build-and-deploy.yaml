@@ -62,6 +62,8 @@ jobs:
           push: ${{ !github.event.pull_request.draft }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+    outputs:
+      image_digest: ${{ steps.build-docker.outputs.digest }}
 
   generate:
     name: CRD and ClusterRole
