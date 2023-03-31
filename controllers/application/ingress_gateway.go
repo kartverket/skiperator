@@ -46,16 +46,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				gateway.Spec.Selector = map[string]string{"app": externalSelector}
 			}
 
-			wellKnownGatewayServer := &networkingv1beta1api.Server{
-				Hosts: []string{hostname + "/.well-known/acme-challenge"},
-				Port: &networkingv1beta1api.Port{
-					Number:   80,
-					Name:     "http",
-					Protocol: "HTTP",
-				},
-			}
+			gatewayServersToAdd := []*networkingv1beta1api.Server{}
 
-			httpsRedirectGatewayServer := &networkingv1beta1api.Server{
+			baseHttpGatewayServer := &networkingv1beta1api.Server{
 				Hosts: []string{hostname},
 				Port: &networkingv1beta1api.Port{
 					Number:   80,
@@ -65,9 +58,20 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 
 			if application.Spec.RedirectIngresses {
-				httpsRedirectGatewayServer.Tls = &networkingv1beta1api.ServerTLSSettings{
+				wellKnownGatewayServer := &networkingv1beta1api.Server{
+					Hosts: []string{hostname + "/.well-known/acme-challenge"},
+					Port: &networkingv1beta1api.Port{
+						Number:   80,
+						Name:     "http",
+						Protocol: "HTTP",
+					},
+				}
+
+				baseHttpGatewayServer.Tls = &networkingv1beta1api.ServerTLSSettings{
 					HttpsRedirect: true,
 				}
+
+				gatewayServersToAdd = append(gatewayServersToAdd, wellKnownGatewayServer)
 			}
 
 			httpsGatewayServer := &networkingv1beta1api.Server{
@@ -83,7 +87,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				},
 			}
 
-			gateway.Spec.Servers = []*networkingv1beta1api.Server{wellKnownGatewayServer, httpsRedirectGatewayServer, httpsGatewayServer}
+			gatewayServersToAdd = append(gatewayServersToAdd, baseHttpGatewayServer, httpsGatewayServer)
+
+			gateway.Spec.Servers = gatewayServersToAdd
 
 			return nil
 		})
