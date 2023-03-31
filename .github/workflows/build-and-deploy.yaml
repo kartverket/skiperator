@@ -27,7 +27,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   RBAC_FILE_PATH: config/rbac/role.yaml
   CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
-  ARTIFACT_NAME: skiperator_artifact
+  ARTIFACT_NAME: skiperatorartifact
 
 jobs:
   build:
