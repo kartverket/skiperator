@@ -46,32 +46,44 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				gateway.Spec.Selector = map[string]string{"app": externalSelector}
 			}
 
-			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)
-
-			gateway.Spec.Servers[0] = &networkingv1beta1api.Server{}
-			gateway.Spec.Servers[0].Hosts = []string{hostname}
-			gateway.Spec.Servers[0].Port = &networkingv1beta1api.Port{
-				Number:   80,
-				Name:     "http",
-				Protocol: "HTTP",
+			wellKnownGatewayServer := &networkingv1beta1api.Server{
+				Hosts: []string{hostname + "/.well-known/acme-challenge"},
+				Port: &networkingv1beta1api.Port{
+					Number:   80,
+					Name:     "http",
+					Protocol: "HTTP",
+				},
 			}
+
+			httpsRedirectGatewayServer := &networkingv1beta1api.Server{
+				Hosts: []string{hostname},
+				Port: &networkingv1beta1api.Port{
+					Number:   80,
+					Name:     "http",
+					Protocol: "HTTP",
+				},
+			}
+
 			if application.Spec.RedirectIngresses {
-				gateway.Spec.Servers[0].Tls = &networkingv1beta1api.ServerTLSSettings{
+				httpsRedirectGatewayServer.Tls = &networkingv1beta1api.ServerTLSSettings{
 					HttpsRedirect: true,
 				}
 			}
 
-			gateway.Spec.Servers[1] = &networkingv1beta1api.Server{}
-			gateway.Spec.Servers[1].Hosts = []string{hostname}
-			gateway.Spec.Servers[1].Port = &networkingv1beta1api.Port{
-				Number:   443,
-				Name:     "https",
-				Protocol: "HTTPS",
+			httpsGatewayServer := &networkingv1beta1api.Server{
+				Hosts: []string{hostname},
+				Port: &networkingv1beta1api.Port{
+					Number:   443,
+					Name:     "https",
+					Protocol: "HTTPS",
+				},
+				Tls: &networkingv1beta1api.ServerTLSSettings{
+					Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
+					CredentialName: application.Namespace + "-" + name,
+				},
 			}
-			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{
-				Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
-				CredentialName: application.Namespace + "-" + name,
-			}
+
+			gateway.Spec.Servers = []*networkingv1beta1api.Server{wellKnownGatewayServer, httpsRedirectGatewayServer, httpsGatewayServer}
 
 			return nil
 		})
