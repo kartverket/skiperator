@@ -27,6 +27,7 @@ env:
   IMAGE_NAME: ${{ github.repository }}
   RBAC_FILE_PATH: config/rbac/role.yaml
   CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  ARTIFACT_NAME: skiperator_artifact
 
 jobs:
   build:
@@ -82,7 +83,7 @@ jobs:
       - name: Upload CRD and ClusterRole
         uses: actions/upload-artifact@v3
         with:
-          name: config
+          name: ${{ env.SKIPERATOR_ARTIFACT }}
           path: |
             ${{ env.RBAC_FILE_PATH }}
             ${{ env.CRD_FILE_PATH }}
@@ -103,7 +104,7 @@ jobs:
       - name: Download CRD and RBAC
         uses: actions/download-artifact@v3
         with:
-          name: config
+          name: ${{ env.SKIPERATOR_ARTIFACT }}
 
       - name: Patch Image Digest
         run: |
@@ -114,9 +115,9 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f $CRD_FILE_PATH $BASE_DIR/crd.yaml
-          cp -f $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
-          rm -rf config/
+          cp -f -v $CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
+          rm -rf $SKIPERATOR_ARTIFACT/
 
       - name: Commit Changes to Repo
         run: |
