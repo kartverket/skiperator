@@ -86,7 +86,7 @@ jobs:
       - name: Upload CRD and ClusterRole
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.SKIPERATOR_ARTIFACT }}
+          name: ${{ env.ARTIFACT_NAME }}
           path: |
             ${{ env.RBAC_FILE_PATH }}
             ${{ env.CRD_FILE_PATH }}
@@ -107,7 +107,7 @@ jobs:
       - name: Download CRD and RBAC
         uses: actions/download-artifact@v3
         with:
-          name: ${{ env.SKIPERATOR_ARTIFACT }}
+          name: ${{ env.ARTIFACT_NAME }}
 
       - name: Patch Image Digest
         run: |
@@ -120,7 +120,7 @@ jobs:
         run: |
           cp -f -v $CRD_FILE_PATH $BASE_DIR/crd.yaml
           cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
-          rm -rf $SKIPERATOR_ARTIFACT/
+          rm -rf $ARTIFACT_NAME/
 
       - name: Commit Changes to Repo
         run: |
