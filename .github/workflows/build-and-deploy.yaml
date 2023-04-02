@@ -112,7 +112,7 @@ jobs:
 
       - name: Patch Image Digest
         run: |
-          kubectl patch --local \
+          kubectl patch --type=merge --local \
             -f $BASE_DIR/kustomization.yaml \
             -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{needs.build.outputs.image_digest}}"}]}' \
             -o yaml > $BASE_DIR/$TMP_FILE
