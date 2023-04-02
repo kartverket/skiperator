@@ -97,6 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE_DIR: ./bases/skiperator
+      TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
         uses: actions/checkout@v3
@@ -114,7 +115,10 @@ jobs:
           kubectl patch --local \
             -f $BASE_DIR/kustomization.yaml \
             -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{needs.build.outputs.image_digest}}"}]}' \
-            -o yaml
+            -o yaml > $BASE_DIR/$TMP_FILE
+
+          rm $BASE_DIR/kustomization.yaml
+          mv $BASE_DIR/$TMP_FILE $BASE_DIR/kustomization.yaml
 
       - name: Update CRD and Role
         run: |
