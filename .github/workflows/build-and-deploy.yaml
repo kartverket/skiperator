@@ -25,8 +25,8 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-  RBAC_FILE_PATH: rbac/role.yaml
-  CRD_FILE_PATH: crd/skiperator.kartverket.no_applications.yaml
+  RBAC_FILE_PATH: config/rbac/role.yaml
+  CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
   ARTIFACT_NAME: skiperator-artifact
 
 jobs:
@@ -98,7 +98,6 @@ jobs:
     env:
       BASE_DIR: ./bases/skiperator
       TMP_FILE: tmp_kustomization.yaml
-      ARTIFACT_DIR: config/
     steps:
       - name: Checkout apps repo
         uses: actions/checkout@v3
@@ -110,7 +109,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_DIR }}
+          path: ${{ env.ARTIFACT_NAME }}
 
       - name: Patch Image Digest
         run: |
@@ -125,9 +124,9 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $ARTIFACT_DIR/$CRD_FILE_PATH $BASE_DIR/crd.yaml
-          cp -f -v $ARTIFACT_DIR/$RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
-          rm -rf $ARTIFACT_DIR/
+          cp -f -v $ARTIFACT_NAME/$CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $ARTIFACT_NAME/$RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
+          rm -rf $ARTIFACT_NAME/
 
       - name: Commit Changes to Repo
         run: |
