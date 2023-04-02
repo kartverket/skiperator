@@ -109,7 +109,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_NAME }}
+          path: config/
 
       - name: Patch Image Digest
         run: |
@@ -124,9 +124,9 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $ARTIFACT_NAME/$CRD_FILE_PATH $BASE_DIR/crd.yaml
-          cp -f -v $ARTIFACT_NAME/$RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
-          rm -rf $ARTIFACT_NAME/
+          cp -f -v $CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
+          rm -rf config/
 
       - name: Commit Changes to Repo
         run: |
