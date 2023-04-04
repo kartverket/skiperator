@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
-	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -44,6 +43,13 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		if err != nil {
 			return result, err
 		}
+	} else {
+		err = r.GetClient().Delete(ctx, redirectVirtualService)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
 	}
 
 	if !(len(application.Spec.Ingresses) > 0) {
@@ -67,12 +73,6 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 	return reconcile.Result{}, err
 }
 
-// Filter for virtual services named like *-ingress
-func isIngressVirtualService(virtualService *networkingv1beta1.VirtualService) bool {
-	match, _ := regexp.MatchString("^.*-ingress$", virtualService.Name)
-	return match
-}
-
 func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (*networkingv1beta1.VirtualService, error) {
 	virtualService := networkingv1beta1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
@@ -87,16 +87,6 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 				{
 					Match: []*networkingv1beta1api.HTTPMatchRequest{
 						{
-							// Scheme: &networkingv1beta1api.StringMatch{
-							// 	MatchType: &networkingv1beta1api.StringMatch_Exact{
-							// 		Exact: "http",
-							// 	},
-							// },
-							// Uri: &networkingv1beta1api.StringMatch{
-							// 	MatchType: &networkingv1beta1api.StringMatch_Regex{
-							// 		Regex: "^/(([^\\.].*)|(\\.[^w].*)|(\\.w[^e].*)|(\\.we[^l].*)|(\\.wel[^l].*)|(\\.well[^\\-].*))",
-							// 	},
-							// },
 							WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
 								":path": {
 									MatchType: &networkingv1beta1api.StringMatch_Prefix{
