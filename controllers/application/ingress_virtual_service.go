@@ -2,7 +2,6 @@ package applicationcontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"regexp"
@@ -179,9 +178,6 @@ func (r *ApplicationReconciler) getGatewaysFromApplication(application *skiperat
 }
 
 func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, virtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
-	j, _ := json.MarshalIndent(virtualService, "", "  ")
-	println(string(j))
-
 	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: virtualService.Namespace, Name: virtualService.Name}, &virtualService)
 	if errors.IsNotFound(err) {
 		err = r.GetClient().Create(ctx, &virtualService)
