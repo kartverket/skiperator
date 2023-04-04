@@ -105,6 +105,7 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 									},
 								},
 							},
+							Port: 80,
 						},
 					},
 					Redirect: &networkingv1beta1api.HTTPRedirect{
