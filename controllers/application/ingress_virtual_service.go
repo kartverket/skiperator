@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"regexp"
@@ -10,7 +11,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -20,48 +23,39 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 	controllerName := "IngressVirtualService"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	var err error
-	virtualService := networkingv1beta1.VirtualService{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name + "-ingress"}}
-	if len(application.Spec.Ingresses) > 0 {
-		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
-			// Set application as owner of the virtual service
-			err = ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return err
-			}
+	commonVirtualService, err := r.defineCommonVirtualService(ctx, application)
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
 
-			r.SetLabelsFromApplication(ctx, &virtualService, *application)
-			util.SetCommonAnnotations(&virtualService)
+	result, err := r.createOrUpdateVirtualService(ctx, *application, *commonVirtualService)
+	if err != nil {
+		return result, err
+	}
 
-			gateways := make([]string, 0, len(application.Spec.Ingresses))
-			for _, hostname := range application.Spec.Ingresses {
-				// Generate gateway name
-				hash := fnv.New64()
-				_, _ = hash.Write([]byte(hostname))
-				name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
-				gateways = append(gateways, name)
-			}
+	redirectVirtualService, err := r.defineRedirectVirtualService(ctx, application)
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
 
-			// Avoid leaking virtual service to other namespaces
+	if application.Spec.RedirectIngresses {
+		result, err := r.createOrUpdateVirtualService(ctx, *application, *redirectVirtualService)
+		if err != nil {
+			return result, err
+		}
+	}
 
-			virtualService.Spec.ExportTo = []string{".", "istio-system", "istio-gateways"}
-			virtualService.Spec.Gateways = gateways
-			virtualService.Spec.Hosts = application.Spec.Ingresses
+	if !(len(application.Spec.Ingresses) > 0) {
+		err = r.GetClient().Delete(ctx, commonVirtualService)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
 
-			virtualService.Spec.Http = make([]*networkingv1beta1api.HTTPRoute, 1)
-			virtualService.Spec.Http[0] = &networkingv1beta1api.HTTPRoute{}
-			virtualService.Spec.Http[0].Route = make([]*networkingv1beta1api.HTTPRouteDestination, 1)
-			virtualService.Spec.Http[0].Route[0] = &networkingv1beta1api.HTTPRouteDestination{
-				Destination: &networkingv1beta1api.Destination{
-					Host: application.Name,
-				},
-			}
-
-			return nil
-		})
-	} else {
-		err = r.GetClient().Delete(ctx, &virtualService)
+		err = r.GetClient().Delete(ctx, redirectVirtualService)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
@@ -79,3 +73,133 @@ func isIngressVirtualService(virtualService *networkingv1beta1.VirtualService) b
 	match, _ := regexp.MatchString("^.*-ingress$", virtualService.Name)
 	return match
 }
+
+func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (*networkingv1beta1.VirtualService, error) {
+	virtualService := networkingv1beta1.VirtualService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      application.Name + "-http-redirect",
+			Namespace: application.Namespace,
+		},
+		Spec: networkingv1beta1api.VirtualService{
+			ExportTo: EXPORT_TO_NAMESPACES,
+			Gateways: r.getGatewaysFromApplication(application),
+			Hosts:    []string{"*"},
+			Http: []*networkingv1beta1api.HTTPRoute{
+				{
+					Match: []*networkingv1beta1api.HTTPMatchRequest{
+						{
+							// Scheme: &networkingv1beta1api.StringMatch{
+							// 	MatchType: &networkingv1beta1api.StringMatch_Exact{
+							// 		Exact: "http",
+							// 	},
+							// },
+							// Uri: &networkingv1beta1api.StringMatch{
+							// 	MatchType: &networkingv1beta1api.StringMatch_Regex{
+							// 		Regex: "^/(([^\\.].*)|(\\.[^w].*)|(\\.w[^e].*)|(\\.we[^l].*)|(\\.wel[^l].*)|(\\.well[^\\-].*))",
+							// 	},
+							// },
+							WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
+								":path": {
+									MatchType: &networkingv1beta1api.StringMatch_Prefix{
+										Prefix: "/.well-known/acme-challenge/",
+									},
+								},
+							},
+						},
+					},
+					Redirect: &networkingv1beta1api.HTTPRedirect{
+						Scheme:       "https",
+						RedirectCode: 302,
+					},
+				},
+			},
+		},
+	}
+
+	err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return &virtualService, err
+	}
+
+	r.SetLabelsFromApplication(ctx, &virtualService, *application)
+	util.SetCommonAnnotations(&virtualService)
+
+	return &virtualService, err
+}
+
+func (r *ApplicationReconciler) defineCommonVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (*networkingv1beta1.VirtualService, error) {
+	virtualService := networkingv1beta1.VirtualService{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      application.Name + "-ingress",
+			Namespace: application.Namespace,
+		},
+		Spec: networkingv1beta1api.VirtualService{
+			ExportTo: EXPORT_TO_NAMESPACES,
+			Gateways: r.getGatewaysFromApplication(application),
+			Hosts:    application.Spec.Ingresses,
+			Http: []*networkingv1beta1api.HTTPRoute{
+				{
+					Route: []*networkingv1beta1api.HTTPRouteDestination{
+						{
+							Destination: &networkingv1beta1api.Destination{
+								Host: application.Name,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return &virtualService, err
+	}
+
+	r.SetLabelsFromApplication(ctx, &virtualService, *application)
+	util.SetCommonAnnotations(&virtualService)
+
+	return &virtualService, err
+}
+
+func (r *ApplicationReconciler) getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []string {
+	gateways := make([]string, 0, len(application.Spec.Ingresses))
+	for _, hostname := range application.Spec.Ingresses {
+		// Generate gateway name
+		hash := fnv.New64()
+		_, _ = hash.Write([]byte(hostname))
+		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
+		gateways = append(gateways, name)
+	}
+
+	return gateways
+}
+
+func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, virtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
+	j, _ := json.MarshalIndent(virtualService, "", "  ")
+	println(string(j))
+
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: virtualService.Namespace, Name: virtualService.Name}, &virtualService)
+	if errors.IsNotFound(err) {
+		err = r.GetClient().Create(ctx, &virtualService)
+		if err != nil {
+			r.SetControllerError(ctx, &application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	} else if err != nil {
+		r.SetControllerError(ctx, &application, controllerName, err)
+		return reconcile.Result{}, err
+	} else {
+		err = r.GetClient().Update(ctx, &virtualService)
+		if err != nil {
+			r.SetControllerError(ctx, &application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	return reconcile.Result{}, err
+}
+
+var EXPORT_TO_NAMESPACES = []string{".", "istio-system", "istio-gateways"}

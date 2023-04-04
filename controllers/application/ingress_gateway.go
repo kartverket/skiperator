@@ -57,12 +57,6 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				},
 			}
 
-			if application.Spec.RedirectIngresses {
-				baseHttpGatewayServer.Tls = &networkingv1beta1api.ServerTLSSettings{
-					HttpsRedirect: true,
-				}
-			}
-
 			httpsGatewayServer := &networkingv1beta1api.Server{
 				Hosts: []string{hostname},
 				Port: &networkingv1beta1api.Port{
