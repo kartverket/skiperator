@@ -58,20 +58,9 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 
 			if application.Spec.RedirectIngresses {
-				wellKnownGatewayServer := &networkingv1beta1api.Server{
-					Hosts: []string{hostname + "/.well-known/acme-challenge"},
-					Port: &networkingv1beta1api.Port{
-						Number:   80,
-						Name:     "http",
-						Protocol: "HTTP",
-					},
-				}
-
 				baseHttpGatewayServer.Tls = &networkingv1beta1api.ServerTLSSettings{
 					HttpsRedirect: true,
 				}
-
-				gatewayServersToAdd = append(gatewayServersToAdd, wellKnownGatewayServer)
 			}
 
 			httpsGatewayServer := &networkingv1beta1api.Server{
