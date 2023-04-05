@@ -2,38 +2,38 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   namespace: istio-gateways
-  name: test-ingresses-ingress-34888c0b0c2a4a2c
+  name: test-ingresses-ingress-56cd7aa901014e78
 spec:
   issuerRef:
     kind: ClusterIssuer
     name: cluster-issuer
-  secretName: test-ingresses-ingress-34888c0b0c2a4a2c
+  secretName: test-ingresses-ingress-56cd7aa901014e78
   dnsNames:
-    - test.com
+    - example.com
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: ingresses-ingress-34888c0b0c2a4a2c
+  name: ingresses-ingress-56cd7aa901014e78
 spec:
   selector:
     app: istio-ingress-external
   servers:
     - hosts:
-        - test.com
+        - example.com
       port:
         name: http
         number: 80
         protocol: HTTP
     - hosts:
-        - test.com
+        - example.com
       port:
         name: https
         number: 443
         protocol: HTTPS
       tls:
         mode: SIMPLE
-        credentialName: test-ingresses-ingress-34888c0b0c2a4a2c
+        credentialName: test-ingresses-ingress-56cd7aa901014e78
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -45,33 +45,10 @@ spec:
     - istio-system
     - istio-gateways
   gateways:
-    - ingresses-ingress-34888c0b0c2a4a2c
+    - ingresses-ingress-56cd7aa901014e78
   hosts:
-    - test.com
+    - example.com
   http:
     - route:
         - destination:
             host: ingresses
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: ingresses-http-redirect
-spec:
-  exportTo:
-    - .
-    - istio-system
-    - istio-gateways
-  gateways:
-    - ingresses-ingress-34888c0b0c2a4a2c
-  hosts:
-    - "*"
-  http:
-    - match:
-        - port: 80
-          withoutHeaders:
-            :path:
-              prefix: /.well-known/acme-challenge/
-      redirect:
-        redirectCode: 308
-        scheme: https

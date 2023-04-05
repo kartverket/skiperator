@@ -169,10 +169,12 @@ func (r *ApplicationReconciler) getGatewaysFromApplication(application *skiperat
 	return gateways
 }
 
-func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, virtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
-	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: virtualService.Namespace, Name: virtualService.Name}, &virtualService)
+func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, wantedVirtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
+	currentVirtualService := networkingv1beta1.VirtualService{}
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: wantedVirtualService.Namespace, Name: wantedVirtualService.Name}, &currentVirtualService)
+
 	if errors.IsNotFound(err) {
-		err = r.GetClient().Create(ctx, &virtualService)
+		err = r.GetClient().Create(ctx, &wantedVirtualService)
 		if err != nil {
 			r.SetControllerError(ctx, &application, controllerName, err)
 			return reconcile.Result{}, err
@@ -181,7 +183,7 @@ func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context
 		r.SetControllerError(ctx, &application, controllerName, err)
 		return reconcile.Result{}, err
 	} else {
-		err = r.GetClient().Update(ctx, &virtualService)
+		err = r.GetClient().Patch(ctx, &wantedVirtualService, client.Merge)
 		if err != nil {
 			r.SetControllerError(ctx, &application, controllerName, err)
 			return reconcile.Result{}, err
