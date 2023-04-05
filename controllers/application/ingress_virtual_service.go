@@ -101,7 +101,7 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 					},
 					Redirect: &networkingv1beta1api.HTTPRedirect{
 						Scheme:       "https",
-						RedirectCode: 302,
+						RedirectCode: 308,
 					},
 				},
 			},
