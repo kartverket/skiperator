@@ -7,4 +7,4 @@ spec:
   port: 8080
   ingresses:
     - example.com
-  redirectIngresses: true
+  redirectIngresses: false
