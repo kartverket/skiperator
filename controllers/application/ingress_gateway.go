@@ -37,30 +37,42 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			r.SetLabelsFromApplication(ctx, &gateway, *application)
 			util.SetCommonAnnotations(&gateway)
 
+			internalSelector := map[string]string{"app": "istio-ingress-internal"}
+			externalSelector := map[string]string{"app": "istio-ingress-external"}
+
 			if util.IsInternal(hostname) {
-				gateway.Spec.Selector = map[string]string{"app": "istio-ingress-internal"}
+				gateway.Spec.Selector = internalSelector
 			} else {
-				gateway.Spec.Selector = map[string]string{"app": "istio-ingress-external"}
+				gateway.Spec.Selector = externalSelector
 			}
 
-			gateway.Spec.Servers = make([]*networkingv1beta1api.Server, 2)
+			gatewayServersToAdd := []*networkingv1beta1api.Server{}
 
-			gateway.Spec.Servers[0] = &networkingv1beta1api.Server{}
-			gateway.Spec.Servers[0].Hosts = []string{hostname}
-			gateway.Spec.Servers[0].Port = &networkingv1beta1api.Port{}
-			gateway.Spec.Servers[0].Port.Number = 80
-			gateway.Spec.Servers[0].Port.Name = "http"
-			gateway.Spec.Servers[0].Port.Protocol = "HTTP"
+			baseHttpGatewayServer := &networkingv1beta1api.Server{
+				Hosts: []string{hostname},
+				Port: &networkingv1beta1api.Port{
+					Number:   80,
+					Name:     "http",
+					Protocol: "HTTP",
+				},
+			}
 
-			gateway.Spec.Servers[1] = &networkingv1beta1api.Server{}
-			gateway.Spec.Servers[1].Hosts = []string{hostname}
-			gateway.Spec.Servers[1].Port = &networkingv1beta1api.Port{}
-			gateway.Spec.Servers[1].Port.Number = 443
-			gateway.Spec.Servers[1].Port.Name = "https"
-			gateway.Spec.Servers[1].Port.Protocol = "HTTPS"
-			gateway.Spec.Servers[1].Tls = &networkingv1beta1api.ServerTLSSettings{}
-			gateway.Spec.Servers[1].Tls.Mode = networkingv1beta1api.ServerTLSSettings_SIMPLE
-			gateway.Spec.Servers[1].Tls.CredentialName = application.Namespace + "-" + name
+			httpsGatewayServer := &networkingv1beta1api.Server{
+				Hosts: []string{hostname},
+				Port: &networkingv1beta1api.Port{
+					Number:   443,
+					Name:     "https",
+					Protocol: "HTTPS",
+				},
+				Tls: &networkingv1beta1api.ServerTLSSettings{
+					Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
+					CredentialName: application.Namespace + "-" + name,
+				},
+			}
+
+			gatewayServersToAdd = append(gatewayServersToAdd, baseHttpGatewayServer, httpsGatewayServer)
+
+			gateway.Spec.Servers = gatewayServersToAdd
 
 			return nil
 		})

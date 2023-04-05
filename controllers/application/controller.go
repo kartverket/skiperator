@@ -55,9 +55,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.VirtualService](isIngressVirtualService),
-		)).
+		Owns(&networkingv1beta1.VirtualService{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.NetworkPolicy{}).

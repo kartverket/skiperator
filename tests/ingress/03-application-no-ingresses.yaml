@@ -5,6 +5,4 @@ metadata:
 spec:
   image: image
   port: 8080
-  ingresses:
-    - example.com
-  redirectToHTTPS: true
+  ingresses: []

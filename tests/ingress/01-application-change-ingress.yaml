@@ -6,5 +6,5 @@ spec:
   image: image
   port: 8080
   ingresses:
-    - example.com
+    - test.com
   redirectToHTTPS: true

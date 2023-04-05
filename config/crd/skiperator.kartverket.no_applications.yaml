@@ -315,6 +315,9 @@ spec:
                 - path
                 - port
                 type: object
+              redirectToHTTPS:
+                default: false
+                type: boolean
               replicas:
                 properties:
                   max:
