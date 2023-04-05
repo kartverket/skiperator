@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var ExportToNamespaces = []string{".", "istio-system", "istio-gateways"}
+
 func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "IngressVirtualService"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -80,7 +82,7 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 			Namespace: application.Namespace,
 		},
 		Spec: networkingv1beta1api.VirtualService{
-			ExportTo: EXPORT_TO_NAMESPACES,
+			ExportTo: ExportToNamespaces,
 			Gateways: r.getGatewaysFromApplication(application),
 			Hosts:    []string{"*"},
 			Http: []*networkingv1beta1api.HTTPRoute{
@@ -125,7 +127,7 @@ func (r *ApplicationReconciler) defineCommonVirtualService(ctx context.Context, 
 			Namespace: application.Namespace,
 		},
 		Spec: networkingv1beta1api.VirtualService{
-			ExportTo: EXPORT_TO_NAMESPACES,
+			ExportTo: ExportToNamespaces,
 			Gateways: r.getGatewaysFromApplication(application),
 			Hosts:    application.Spec.Ingresses,
 			Http: []*networkingv1beta1api.HTTPRoute{
@@ -188,5 +190,3 @@ func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context
 
 	return reconcile.Result{}, err
 }
-
-var EXPORT_TO_NAMESPACES = []string{".", "istio-system", "istio-gateways"}
