@@ -43,7 +43,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			if util.IsInternal(hostname) {
 				gateway.Spec.Selector = internalSelector
 			} else {
-				gateway.Spec.Selector = map[string]string{"app": externalSelector}
+				gateway.Spec.Selector = externalSelector
 			}
 
 			gatewayServersToAdd := []*networkingv1beta1api.Server{}
