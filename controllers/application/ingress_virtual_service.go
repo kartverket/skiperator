@@ -38,7 +38,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		return reconcile.Result{}, err
 	}
 
-	if application.Spec.RedirectIngresses {
+	if application.Spec.RedirectToHTTPS {
 		result, err := r.createOrUpdateVirtualService(ctx, *application, *redirectVirtualService)
 		if err != nil {
 			return result, err
