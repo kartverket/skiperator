@@ -73,5 +73,5 @@ spec:
             :path:
               prefix: /.well-known/acme-challenge/
       redirect:
-        redirectCode: 302
+        redirectCode: 308
         scheme: https
