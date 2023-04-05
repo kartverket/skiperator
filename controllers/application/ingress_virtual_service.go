@@ -52,7 +52,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		}
 	}
 
-	if !(len(application.Spec.Ingresses) > 0) {
+	if len(application.Spec.Ingresses) == 0 {
 		err = r.GetClient().Delete(ctx, commonVirtualService)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
