@@ -1,0 +1,15 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ingresses-ingress
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: test-ingresses-ingress-56cd7aa901014e78
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingresses-ingress-56cd7aa901014e78

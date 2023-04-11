@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var ExportToNamespaces = []string{".", "istio-system", "istio-gateways"}
+
 func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "IngressVirtualService"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -38,7 +40,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		return reconcile.Result{}, err
 	}
 
-	if application.Spec.RedirectIngresses {
+	if application.Spec.RedirectToHTTPS {
 		result, err := r.createOrUpdateVirtualService(ctx, *application, *redirectVirtualService)
 		if err != nil {
 			return result, err
@@ -80,7 +82,7 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 			Namespace: application.Namespace,
 		},
 		Spec: networkingv1beta1api.VirtualService{
-			ExportTo: EXPORT_TO_NAMESPACES,
+			ExportTo: ExportToNamespaces,
 			Gateways: r.getGatewaysFromApplication(application),
 			Hosts:    []string{"*"},
 			Http: []*networkingv1beta1api.HTTPRoute{
@@ -99,7 +101,7 @@ func (r *ApplicationReconciler) defineRedirectVirtualService(ctx context.Context
 					},
 					Redirect: &networkingv1beta1api.HTTPRedirect{
 						Scheme:       "https",
-						RedirectCode: 302,
+						RedirectCode: 308,
 					},
 				},
 			},
@@ -125,7 +127,7 @@ func (r *ApplicationReconciler) defineCommonVirtualService(ctx context.Context, 
 			Namespace: application.Namespace,
 		},
 		Spec: networkingv1beta1api.VirtualService{
-			ExportTo: EXPORT_TO_NAMESPACES,
+			ExportTo: ExportToNamespaces,
 			Gateways: r.getGatewaysFromApplication(application),
 			Hosts:    application.Spec.Ingresses,
 			Http: []*networkingv1beta1api.HTTPRoute{
@@ -167,10 +169,12 @@ func (r *ApplicationReconciler) getGatewaysFromApplication(application *skiperat
 	return gateways
 }
 
-func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, virtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
-	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: virtualService.Namespace, Name: virtualService.Name}, &virtualService)
+func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context, application skiperatorv1alpha1.Application, wantedVirtualService networkingv1beta1.VirtualService) (reconcile.Result, error) {
+	currentVirtualService := networkingv1beta1.VirtualService{}
+	err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: wantedVirtualService.Namespace, Name: wantedVirtualService.Name}, &currentVirtualService)
+
 	if errors.IsNotFound(err) {
-		err = r.GetClient().Create(ctx, &virtualService)
+		err = r.GetClient().Create(ctx, &wantedVirtualService)
 		if err != nil {
 			r.SetControllerError(ctx, &application, controllerName, err)
 			return reconcile.Result{}, err
@@ -179,7 +183,7 @@ func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context
 		r.SetControllerError(ctx, &application, controllerName, err)
 		return reconcile.Result{}, err
 	} else {
-		err = r.GetClient().Update(ctx, &virtualService)
+		err = r.GetClient().Patch(ctx, &wantedVirtualService, client.Merge)
 		if err != nil {
 			r.SetControllerError(ctx, &application, controllerName, err)
 			return reconcile.Result{}, err
@@ -188,5 +192,3 @@ func (r *ApplicationReconciler) createOrUpdateVirtualService(ctx context.Context
 
 	return reconcile.Result{}, err
 }
-
-var EXPORT_TO_NAMESPACES = []string{".", "istio-system", "istio-gateways"}
