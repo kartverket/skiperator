@@ -59,6 +59,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&securityv1beta1.AuthorizationPolicy{}).
 		Watches(
 			&source.Kind{Type: &certmanagerv1.Certificate{}},
 			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),

@@ -23,16 +23,16 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 		},
 	}
 
-	err := ctrlutil.SetControllerReference(application, &authorizationPolicy, r.GetScheme())
-	r.SetLabelsFromApplication(ctx, &authorizationPolicy, *application)
-	util.SetCommonAnnotations(&authorizationPolicy)
-
-	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &authorizationPolicy, func() error {
-		if authorizationPolicy.ObjectMeta.CreationTimestamp.IsZero() {
-			authorizationPolicy.Spec.Selector = &typev1beta1.WorkloadSelector{
-				MatchLabels: map[string]string{"app": application.Name},
-			}
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &authorizationPolicy, func() error {
+		// Set application as owner of the authorizationPolicy
+		err := ctrlutil.SetControllerReference(application, &authorizationPolicy, r.GetScheme())
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return err
 		}
+
+		r.SetLabelsFromApplication(ctx, &authorizationPolicy, *application)
+		util.SetCommonAnnotations(&authorizationPolicy)
 
 		// update authorizationPolicy rules and action
 		authorizationPolicy.Spec.Action = securityv1beta1api.AuthorizationPolicy_DENY
@@ -54,14 +54,17 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 				},
 			},
 		}
+		authorizationPolicy.Spec.Selector = &typev1beta1.WorkloadSelector{}
+		labels := map[string]string{"app": application.Name}
+		authorizationPolicy.Spec.Selector.MatchLabels = labels
 
 		return nil
 	})
 
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
+	//if err != nil {
+	//	//r.SetControllerError(ctx, application, controllerName, err)
+	//	return reconcile.Result{}, err
+	//}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
