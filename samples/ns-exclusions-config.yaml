@@ -6,6 +6,7 @@ metadata:
 data:
   default: "true"
   istio-system: "true"
+  istio-gateways: "true"
   cert-manager: "true"
   kube-node-lease: "true"
   kube-public: "true"

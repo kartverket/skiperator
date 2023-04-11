@@ -4,7 +4,7 @@ metadata:
   namespace: sample
   name: sample-two
 spec:
-  image: nginx
+  image: nginxinc/nginx-unprivileged
   port: 80
   ingresses:
     - test.com
