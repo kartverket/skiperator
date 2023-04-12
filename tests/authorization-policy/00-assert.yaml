@@ -12,7 +12,7 @@ spec:
       to:
         - operation:
             paths:
-              - /actuator
+              - /actuator*
   selector:
     matchLabels:
       app: authorization-policy
