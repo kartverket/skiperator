@@ -1,3 +1,6 @@
+### example.com resources
+### Also tests contents of gateway/cert
+
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -16,8 +19,6 @@ kind: Gateway
 metadata:
   name: ingresses-ingress-56cd7aa901014e78
 spec:
-  selector:
-    app: istio-ingress-external
   servers:
     - hosts:
         - example.com
@@ -35,6 +36,22 @@ spec:
         mode: SIMPLE
         credentialName: test-ingresses-ingress-56cd7aa901014e78
 ---
+### test.com resources
+### only checks existance of name
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: test-ingresses-ingress-34888c0b0c2a4a2c
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingresses-ingress-34888c0b0c2a4a2c
+
+### VirtualService, should exist one for both
+---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
@@ -46,26 +63,10 @@ spec:
     - istio-gateways
   gateways:
     - ingresses-ingress-56cd7aa901014e78
+    - ingresses-ingress-34888c0b0c2a4a2c
   hosts:
     - example.com
-  http:
-    - route:
-        - destination:
-            host: ingresses
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: ingresses-http-redirect
-spec:
-  exportTo:
-    - .
-    - istio-system
-    - istio-gateways
-  gateways:
-    - ingresses-ingress-56cd7aa901014e78
-  hosts:
-    - "*"
+    - test.com
   http:
     - match:
         - port: 80
@@ -75,3 +76,6 @@ spec:
       redirect:
         redirectCode: 308
         scheme: https
+    - route:
+        - destination:
+            host: ingresses

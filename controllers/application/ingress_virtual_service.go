@@ -9,6 +9,7 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -24,56 +25,71 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		},
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
+	var err error
 
-		err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
-		virtualService.Spec = networkingv1beta1api.VirtualService{
-			ExportTo: []string{".", "istio-system", "istio-gateways"},
-			Gateways: r.getGatewaysFromApplication(application),
-			Hosts:    application.Spec.Ingresses,
-			Http: []*networkingv1beta1api.HTTPRoute{
-				{
-					Name: "default-app-route",
-					Route: []*networkingv1beta1api.HTTPRouteDestination{
-						{
-							Destination: &networkingv1beta1api.Destination{
-								Host: application.Name,
-							},
-						},
-					},
-				},
-			},
-		}
+	if len(application.Spec.Ingresses) > 0 {
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
 
-		if application.Spec.RedirectToHTTPS {
-			virtualService.Spec.Http = append([]*networkingv1beta1api.HTTPRoute{
-				{
-					Name: "redirect-to-https",
-					Match: []*networkingv1beta1api.HTTPMatchRequest{
-						{
-							WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
-								":path": {
-									MatchType: &networkingv1beta1api.StringMatch_Prefix{
-										Prefix: "/.well-known/acme-challenge/",
-									},
+			err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+			virtualService.Spec = networkingv1beta1api.VirtualService{
+				ExportTo: []string{".", "istio-system", "istio-gateways"},
+				Gateways: r.getGatewaysFromApplication(application),
+				Hosts:    application.Spec.Ingresses,
+				Http: []*networkingv1beta1api.HTTPRoute{
+					{
+						Name: "default-app-route",
+						Route: []*networkingv1beta1api.HTTPRouteDestination{
+							{
+								Destination: &networkingv1beta1api.Destination{
+									Host: application.Name,
 								},
 							},
-							Port: 80,
 						},
 					},
-					Redirect: &networkingv1beta1api.HTTPRedirect{
-						Scheme:       "https",
-						RedirectCode: 308,
-					},
 				},
-			}, virtualService.Spec.Http...)
+			}
+
+			if application.Spec.RedirectToHTTPS {
+				virtualService.Spec.Http = append(
+					[]*networkingv1beta1api.HTTPRoute{
+						{
+							Name: "redirect-to-https",
+							Match: []*networkingv1beta1api.HTTPMatchRequest{
+								{
+									WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
+										":path": {
+											MatchType: &networkingv1beta1api.StringMatch_Prefix{
+												Prefix: "/.well-known/acme-challenge/",
+											},
+										},
+									},
+									Port: 80,
+								},
+							},
+							Redirect: &networkingv1beta1api.HTTPRedirect{
+								Scheme:       "https",
+								RedirectCode: 308,
+							},
+						},
+					},
+					virtualService.Spec.Http...,
+				)
+			}
+			return nil
+		})
+
+	} else {
+		err = r.GetClient().Delete(ctx, &virtualService)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
 		}
-		return nil
-	})
+	}
 
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
