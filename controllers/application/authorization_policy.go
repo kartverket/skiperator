@@ -41,7 +41,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 				To: []*securityv1beta1api.Rule_To{
 					{
 						Operation: &securityv1beta1api.Operation{
-							Paths: []string{"/actuator"},
+							Paths: []string{"/actuator*"},
 						},
 					},
 				},
