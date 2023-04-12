@@ -24,7 +24,7 @@ commands:
   - command: kubectl config set-context skiperator --cluster cluster --user skiperator
   - command: kubectl config use-context skiperator
 
-  - command: skiperator -l -ln test
+  - command: skiperator -l -ln test -e warn
     background: true
 parallel: 1
 namespace: test

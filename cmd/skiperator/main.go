@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"go.uber.org/zap/zapcore"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -50,9 +51,15 @@ func main() {
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	imagePullToken := flag.String("t", "", "image pull token")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
+	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{Development: true})))
+	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Development: !*isDeployment,
+		Level:       parsedLogLevel,
+	})))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 
