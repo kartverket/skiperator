@@ -2,9 +2,10 @@ name: Deploy Skiperator Sandbox
 
 on:
   workflow_dispatch:
-    image_digest:
-      description: "Image Digest of Skiperator version to deploy (sha:abc123.....)"
-      required: true
+    inputs:
+      image_digest:
+        description: "Image Digest of Skiperator version to deploy (sha:abc123.....)"
+        required: true
 
 env:
   # Use docker.io for Docker Hub if empty
