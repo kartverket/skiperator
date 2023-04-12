@@ -43,7 +43,7 @@ jobs:
             ${{ env.CRD_FILE_PATH }}
 
   deploy-argo:
-    needs: [build, generate]
+    needs: [generate]
     runs-on: ubuntu-latest
     env:
       BASE_DIR: ./sandbox/skiperator-system
