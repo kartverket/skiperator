@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1beta1api "istio.io/api/security/v1beta1"
@@ -35,36 +36,33 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 		util.SetCommonAnnotations(&authorizationPolicy)
 
 		// update authorizationPolicy rules and action
-		authorizationPolicy.Spec.Action = securityv1beta1api.AuthorizationPolicy_DENY
-		authorizationPolicy.Spec.Rules = []*securityv1beta1api.Rule{
-			{
-				To: []*securityv1beta1api.Rule_To{
-					{
-						Operation: &securityv1beta1api.Operation{
-							Paths: []string{"/actuator*"},
+		authorizationPolicy.Spec = securityv1beta1api.AuthorizationPolicy{
+			Action: securityv1beta1api.AuthorizationPolicy_DENY,
+			Rules: []*securityv1beta1api.Rule{
+				{
+					To: []*securityv1beta1api.Rule_To{
+						{
+							Operation: &securityv1beta1api.Operation{
+								Paths: []string{"/actuator*"},
+							},
 						},
 					},
-				},
-				From: []*securityv1beta1api.Rule_From{
-					{
-						Source: &securityv1beta1api.Source{
-							Namespaces: []string{"istio-gateways"},
+					From: []*securityv1beta1api.Rule_From{
+						{
+							Source: &securityv1beta1api.Source{
+								Namespaces: []string{"istio-gateways"},
+							},
 						},
 					},
 				},
 			},
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: map[string]string{"app": application.Name},
+			},
 		}
-		authorizationPolicy.Spec.Selector = &typev1beta1.WorkloadSelector{}
-		labels := map[string]string{"app": application.Name}
-		authorizationPolicy.Spec.Selector.MatchLabels = labels
 
 		return nil
 	})
-
-	//if err != nil {
-	//	//r.SetControllerError(ctx, application, controllerName, err)
-	//	return reconcile.Result{}, err
-	//}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
