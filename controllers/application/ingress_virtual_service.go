@@ -39,46 +39,42 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 				ExportTo: []string{".", "istio-system", "istio-gateways"},
 				Gateways: r.getGatewaysFromApplication(application),
 				Hosts:    application.Spec.Ingresses,
-				Http: []*networkingv1beta1api.HTTPRoute{
-					{
-						Name: "default-app-route",
-						Route: []*networkingv1beta1api.HTTPRouteDestination{
-							{
-								Destination: &networkingv1beta1api.Destination{
-									Host: application.Name,
-								},
-							},
-						},
-					},
-				},
+				Http:     []*networkingv1beta1api.HTTPRoute{},
 			}
 
 			if application.Spec.RedirectToHTTPS {
-				virtualService.Spec.Http = append(
-					[]*networkingv1beta1api.HTTPRoute{
+				virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
+					Name: "redirect-to-https",
+					Match: []*networkingv1beta1api.HTTPMatchRequest{
 						{
-							Name: "redirect-to-https",
-							Match: []*networkingv1beta1api.HTTPMatchRequest{
-								{
-									WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
-										":path": {
-											MatchType: &networkingv1beta1api.StringMatch_Prefix{
-												Prefix: "/.well-known/acme-challenge/",
-											},
-										},
+							WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
+								":path": {
+									MatchType: &networkingv1beta1api.StringMatch_Prefix{
+										Prefix: "/.well-known/acme-challenge/",
 									},
-									Port: 80,
 								},
 							},
-							Redirect: &networkingv1beta1api.HTTPRedirect{
-								Scheme:       "https",
-								RedirectCode: 308,
-							},
+							Port: 80,
 						},
 					},
-					virtualService.Spec.Http...,
-				)
+					Redirect: &networkingv1beta1api.HTTPRedirect{
+						Scheme:       "https",
+						RedirectCode: 308,
+					},
+				})
 			}
+
+			virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
+				Name: "default-app-route",
+				Route: []*networkingv1beta1api.HTTPRouteDestination{
+					{
+						Destination: &networkingv1beta1api.Destination{
+							Host: application.Name,
+						},
+					},
+				},
+			})
+
 			return nil
 		})
 
