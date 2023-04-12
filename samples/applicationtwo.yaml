@@ -7,5 +7,5 @@ spec:
   image: nginx
   port: 80
   ingresses:
-    - test.com
     - foo.com
+    - bar.com
