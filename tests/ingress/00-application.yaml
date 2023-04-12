@@ -7,4 +7,5 @@ spec:
   port: 8080
   ingresses:
     - example.com
+    - test.com
   redirectToHTTPS: true

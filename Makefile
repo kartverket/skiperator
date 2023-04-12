@@ -35,9 +35,11 @@ build: generate
 test: test-tools
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
+	DEBUG_LEVEL=warn \
 	kubectl kuttl test \
 	--config tests/config.yaml \
-	--start-control-plane
+	--start-control-plane \
+	--suppress-log=events
 
 .PHONY: build-test
 build-test: build test

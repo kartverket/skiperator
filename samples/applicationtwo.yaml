@@ -7,19 +7,5 @@ spec:
   image: nginx
   port: 80
   ingresses:
-    - test.com
-    - example.com
-  accessPolicy:
-    inbound:
-      rules:
-        - namespace: sample
-          application: sample-one
-    outbound:
-      rules:
-        - namespace: sample
-          application: sample-one
-        - namespace: sample
-          application: iauhsiuh
-      external:
-        - host: test.com
-          ip: 12.43.31.12
+    - foo.com
+    - bar.com
