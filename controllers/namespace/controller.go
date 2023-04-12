@@ -2,7 +2,6 @@ package namespacecontroller
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -66,7 +65,6 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	}
 
 	if r.isExcludedNamespace(ctx, namespace.Name) {
-		fmt.Printf("Namespace %s is excluded, skipping further reconciliation\n", namespace.Name)
 		return reconcile.Result{}, err
 	}
 

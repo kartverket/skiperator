@@ -20,11 +20,3 @@ spec:
     - ingresses-ingress-56cd7aa901014e78
   hosts:
     - example.com
----
-apiVersion: networking.istio.io/v1beta1
-kind: VirtualService
-metadata:
-  name: ingresses-http-redirect
-spec:
-  gateways:
-    - ingresses-ingress-56cd7aa901014e78
