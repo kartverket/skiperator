@@ -1,4 +1,4 @@
-name: Build and Deploy Skiperator
+name: Deploy Skiperator Sandbox
 
 on:
   workflow_dispatch:
