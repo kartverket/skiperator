@@ -75,6 +75,11 @@ A minimal application resource is provided in the samples folder and can be appl
 $ kubectl apply -f samples/application.yaml
 ```
 
+You will also need to create a configMap with namespace-exclusions before running skiperator locally.
+```
+$ kubectl apply -f samples/ns-exclusions-config.yaml
+```
+
 To start `skiperator` locally on your computer, you can use the the make target `run-local`
 which will generate CRD's, apply them in your local kind-cluster, build and run skiperator.
 The default `kubectl` context is `kind-kind`. To override, set the env-variable `SKIPERATOR_CONTEXT`

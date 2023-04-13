@@ -367,6 +367,7 @@ const (
 	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
 	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
 	CERTIFICATE             ControllerResources = "Certificate"
+	AUTHORIZATIONPOLICY     ControllerResources = "AuthorizationPolicy"
 )
 
 func (a *Application) GroupKindFromControllerResource(controllerResource string) (metav1.GroupKind, bool) {
@@ -425,6 +426,11 @@ func (a *Application) GroupKindFromControllerResource(controllerResource string)
 		return metav1.GroupKind{
 			Group: "cert-manager.io",
 			Kind:  string(CERTIFICATE),
+		}, true
+	case "authorizationpolicy":
+		return metav1.GroupKind{
+			Group: "security.istio.io",
+			Kind:  string(AUTHORIZATIONPOLICY),
 		}, true
 	default:
 		return metav1.GroupKind{}, false

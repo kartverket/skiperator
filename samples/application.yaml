@@ -4,7 +4,7 @@ metadata:
   namespace: sample
   name: sample-one
 spec:
-  image: nginx
+  image: nginxinc/nginx-unprivileged
   port: 80
   labels:
     cascadeLabel: some-label
