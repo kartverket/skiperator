@@ -9,9 +9,8 @@ Dockerfile
 
 doc/
 **/LICENSE
-**/*.mdf
+**/*.md
 
 bin/
-deployment/
 
 api/**/zz_generated.deepcopy.go

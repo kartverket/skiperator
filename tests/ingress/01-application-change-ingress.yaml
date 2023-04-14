@@ -1,0 +1,11 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: ingresses
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - test.com
+    - foo.com
+  redirectToHTTPS: true

@@ -1,0 +1,25 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: probes
+spec:
+  image: image
+  port: 8080
+  startup:
+    initialDelay: 1
+    timeout: 1
+    failureThreshold: 1
+    port: 1
+    path: /startup
+  liveness:
+    initialDelay: 2
+    timeout: 2
+    failureThreshold: 2
+    port: 2
+    path: /liveness
+  readiness:
+    initialDelay: 3
+    timeout: 3
+    failureThreshold: 3
+    port: 3
+    path: /readiness

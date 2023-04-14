@@ -2,5 +2,7 @@
 /deployment/.terraform/
 # TODO: Ignore generated resources if GitHub actions can run make or equivalent
 # /deployment/*.yaml
+/kubeconfig
 
-/api/**/zz_generated.deepcopy.go
+.vscode/
+.idea/

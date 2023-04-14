@@ -1,12 +1,16 @@
 package v1alpha1
 
 import (
+	"strings"
+	"time"
+
 	"golang.org/x/exp/constraints"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -14,16 +18,20 @@ type ApplicationList struct {
 	Items []Application `json:"items"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:resource:shortName="app"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:shortName="app"
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.application.status`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec ApplicationSpec `json:"spec,omitempty"`
+
+	Status ApplicationStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
@@ -31,7 +39,7 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -47,6 +55,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
 	Readiness *Probe `json:"readiness,omitempty"`
@@ -55,8 +65,34 @@ type ApplicationSpec struct {
 
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	RedirectToHTTPS bool `json:"redirectToHTTPS,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	GCP *GCP `json:"gcp,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
+}
+
+// +kubebuilder:object:generate=true
+type ResourceRequirements struct {
+	// TODO
+	// Remember to reasess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
+
+	//+kubebuilder:validation:Optional
+	Limits corev1.ResourceList `json:"limits,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
 type Replicas struct {
@@ -111,7 +147,7 @@ type Probe struct {
 	Path string `json:"path"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
 	Inbound InboundPolicy `json:"inbound,omitempty"`
@@ -119,13 +155,13 @@ type AccessPolicy struct {
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type InboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type OutboundPolicy struct {
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules,omitempty"`
@@ -135,22 +171,22 @@ type OutboundPolicy struct {
 
 type InternalRule struct {
 	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 }
 
-//+kubebuilder:object:generate=true
+// +kubebuilder:object:generate=true
 type ExternalRule struct {
 	//+kubebuilder:validation:Required
 	Host string `json:"host"`
 	//+kubebuilder:validation:Optional
-	Ip string `json:"ip"`
+	Ip string `json:"ip,omitempty"`
 	//+kubebuilder:validation:Optional
-	Ports []Port `json:"ports,omitempty"`
+	Ports []ExternalPort `json:"ports,omitempty"`
 }
 
-type Port struct {
+type ExternalPort struct {
 	//+kubebuilder:validation:Required
 	Name string `json:"name"`
 	//+kubebuilder:validation:Required
@@ -160,13 +196,153 @@ type Port struct {
 	Protocol string `json:"protocol"`
 }
 
-func (a *Application) FillDefaults() {
+type InternalPort struct {
+	//+kubebuilder:validation:Required
+	Name string `json:"name"`
+	//+kubebuilder:validation:Required
+	Port int32 `json:"port"`
+	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
+	// +kubebuilder:default:TCP
+	Protocol corev1.Protocol `json:"protocol"`
+}
+
+type GCP struct {
+	//+kubebuilder:validation:Required
+	Auth Auth `json:"auth"`
+}
+
+type Auth struct {
+	//+kubebuilder:validation:Required
+	ServiceAccount string `json:"serviceAccount"`
+}
+
+// +kubebuilder:object:generate=true
+type ApplicationStatus struct {
+	ApplicationStatus Status            `json:"application"`
+	ControllersStatus map[string]Status `json:"controllers"`
+}
+
+// +kubebuilder:object:generate=true
+type Status struct {
+	// +kubebuilder:default="Synced"
+	Status StatusNames `json:"status"`
+	// +kubebuilder:default="hello"
+	Message string `json:"message"`
+	// +kubebuilder:default="hello"
+	TimeStamp string `json:"timestamp"`
+}
+
+type StatusNames string
+
+const (
+	SYNCED      StatusNames = "Synced"
+	PROGRESSING StatusNames = "Progressing"
+	ERROR       StatusNames = "Error"
+	PENDING     StatusNames = "Pending"
+)
+
+func (a *Application) FillDefaultsSpec() {
 	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
 	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 
 	if a.Spec.Replicas.TargetCpuUtilization == 0 {
 		a.Spec.Replicas.TargetCpuUtilization = 80
 	}
+
+	if a.Spec.Strategy.Type == "" {
+		a.Spec.Strategy.Type = "RollingUpdate"
+	}
+}
+
+func (a *Application) FillDefaultsStatus() {
+	if a.Status.ApplicationStatus.Status == "" {
+		a.Status.ApplicationStatus = Status{
+			Status:    PENDING,
+			Message:   "Default application status, application has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
+	}
+
+	if a.Status.ControllersStatus == nil {
+		a.Status.ControllersStatus = make(map[string]Status)
+	}
+}
+
+func (a *Application) UpdateApplicationStatus() {
+	newApplicationStatus := a.CalculateApplicationStatus()
+	if newApplicationStatus.Status == a.Status.ApplicationStatus.Status {
+		return
+	}
+
+	a.Status.ApplicationStatus = newApplicationStatus
+}
+
+func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
+	if a.Status.ControllersStatus[controllerName].Status == status {
+		return
+	}
+
+	newStatus := Status{
+		Status:    status,
+		Message:   message,
+		TimeStamp: time.Now().String(),
+	}
+	a.Status.ControllersStatus[controllerName] = newStatus
+
+	a.UpdateApplicationStatus()
+
+}
+
+func (a *Application) ShouldUpdateApplicationStatus(newStatus Status) bool {
+	shouldUpdate := newStatus.Status != a.Status.ApplicationStatus.Status
+
+	return shouldUpdate
+}
+
+func (a *Application) CalculateApplicationStatus() Status {
+	returnStatus := Status{
+		Status:    ERROR,
+		Message:   "CALCULATION DEFAULT, YOU SHOULD NOT SEE THIS MESSAGE. PLEASE LET SKIP KNOW IF THIS MESSAGE IS VISIBLE",
+		TimeStamp: time.Now().String(),
+	}
+	statusList := []string{}
+	for _, s := range a.Status.ControllersStatus {
+		statusList = append(statusList, string(s.Status))
+	}
+
+	if slices.IndexFunc(statusList, func(s string) bool { return s == string(ERROR) }) != -1 {
+		returnStatus.Status = ERROR
+		returnStatus.Message = "One of the controllers is in a failed state"
+		return returnStatus
+	}
+
+	if slices.IndexFunc(statusList, func(s string) bool { return s == string(PROGRESSING) }) != -1 {
+		returnStatus.Status = PROGRESSING
+		returnStatus.Message = "One of the controllers is progressing"
+		return returnStatus
+	}
+
+	if allSameStatus(statusList) {
+		returnStatus.Status = StatusNames(statusList[0])
+		if returnStatus.Status == SYNCED {
+			returnStatus.Message = "All controllers synced"
+		} else if returnStatus.Status == PENDING {
+			returnStatus.Message = "All controllers pending"
+		}
+		return returnStatus
+	}
+
+	return returnStatus
+}
+
+func allSameStatus(a []string) bool {
+	for _, v := range a {
+		if v != a[0] {
+			return false
+		}
+	}
+	return true
 }
 
 func max[T constraints.Ordered](a, b T) T {
@@ -174,5 +350,89 @@ func max[T constraints.Ordered](a, b T) T {
 		return a
 	} else {
 		return b
+	}
+}
+
+type ControllerResources string
+
+const (
+	DEPLOYMENT              ControllerResources = "Deployment"
+	SERVICE                 ControllerResources = "Service"
+	SERVICEACCOUNT          ControllerResources = "ServiceAccount"
+	CONFIGMAP               ControllerResources = "ConfigMap"
+	NETWORKPOLICY           ControllerResources = "NetworkPolicy"
+	GATEWAY                 ControllerResources = "Gateway"
+	SERVICEENTRY            ControllerResources = "ServiceEntry"
+	VIRTUALSERVICE          ControllerResources = "VirtualService"
+	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
+	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
+	CERTIFICATE             ControllerResources = "Certificate"
+	AUTHORIZATIONPOLICY     ControllerResources = "AuthorizationPolicy"
+)
+
+func (a *Application) GroupKindFromControllerResource(controllerResource string) (metav1.GroupKind, bool) {
+	switch strings.ToLower(controllerResource) {
+	case "deployment":
+		return metav1.GroupKind{
+			Group: "apps",
+			Kind:  string(DEPLOYMENT),
+		}, true
+	case "service":
+		return metav1.GroupKind{
+			Group: "",
+			Kind:  string(SERVICE),
+		}, true
+	case "serviceaccount":
+		return metav1.GroupKind{
+			Group: "",
+			Kind:  string(SERVICEACCOUNT),
+		}, true
+	case "configmaps":
+		return metav1.GroupKind{
+			Group: "",
+			Kind:  string(CONFIGMAP),
+		}, true
+	case "networkpolicy":
+		return metav1.GroupKind{
+			Group: "networking.k8s.io",
+			Kind:  string(NETWORKPOLICY),
+		}, true
+	case "gateway":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(GATEWAY),
+		}, true
+	case "serviceentry":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(SERVICEENTRY),
+		}, true
+	case "virtualservice":
+		return metav1.GroupKind{
+			Group: "networking.istio.io",
+			Kind:  string(VIRTUALSERVICE),
+		}, true
+	case "peerauthentication":
+		return metav1.GroupKind{
+			Group: "security.istio.io",
+			Kind:  string(PEERAUTHENTICATION),
+		}, true
+	case "horizontalpodautoscaler":
+		return metav1.GroupKind{
+			Group: "autoscaling",
+			Kind:  string(HORIZONTALPODAUTOSCALER),
+		}, true
+	case "certificate":
+		return metav1.GroupKind{
+			Group: "cert-manager.io",
+			Kind:  string(CERTIFICATE),
+		}, true
+	case "authorizationpolicy":
+		return metav1.GroupKind{
+			Group: "security.istio.io",
+			Kind:  string(AUTHORIZATIONPOLICY),
+		}, true
+	default:
+		return metav1.GroupKind{}, false
 	}
 }
