@@ -65,6 +65,21 @@ jobs:
     outputs:
       image_digest: ${{ steps.build-docker.outputs.digest }}
 
+  pharos-scan:
+    name: Run Pharos Security Scan
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      actions: read
+      security-events: write
+    steps:
+      - name: Run Pharos
+        uses: kartverket/pharos@v0.1.0
+        with:
+          image_url: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{needs.build.outputs.image_digest}}"
+
   generate:
     if: (!github.event.pull_request.draft)
     name: CRD and ClusterRole
