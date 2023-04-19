@@ -2,10 +2,14 @@ module github.com/kartverket/skiperator
 
 go 1.20
 
+// remove once https://github.com/cert-manager/cert-manager/issues/5953 is fixed
+replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.20230127103832-3aa3dfd6613d
+
 require (
 	github.com/cert-manager/cert-manager v1.11.1
 	github.com/kudobuilder/kuttl v0.15.0
 	go.etcd.io/etcd/server/v3 v3.5.7
+	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20230215211151-50468cdae908
 	istio.io/client-go v1.16.3
@@ -106,7 +110,6 @@ require (
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
 	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/net v0.7.0 // indirect
