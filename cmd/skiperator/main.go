@@ -9,6 +9,7 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"go.uber.org/zap/zapcore"
 	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	policyv1 "k8s.io/api/policy/v1"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
@@ -44,6 +45,7 @@ func init() {
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(policyv1.AddToScheme(scheme))
 }
 
 func main() {
