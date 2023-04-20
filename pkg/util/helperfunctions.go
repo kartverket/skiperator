@@ -63,3 +63,7 @@ func SetCommonAnnotations(object client.Object) {
 	maps.Copy(annotations, CommonAnnotations)
 	object.SetAnnotations(annotations)
 }
+
+func PointTo[T any](x T) *T {
+	return &x
+}

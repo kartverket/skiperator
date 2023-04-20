@@ -6,3 +6,5 @@ var CommonAnnotations = map[string]string{
 	// https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
 	"argocd.argoproj.io/sync-options": "Prune=false",
 }
+
+var SkiperatorUser = int64(150)

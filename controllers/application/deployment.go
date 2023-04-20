@@ -37,6 +37,9 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 		util.SetCommonAnnotations(&deployment)
 
+		labels := map[string]string{"app": application.Name}
+		deployment.Spec.Template.ObjectMeta.Labels = labels
+
 		deployment.Spec.Template.ObjectMeta.Annotations = map[string]string{
 			"argocd.argoproj.io/sync-options": "Prune=false",
 			"prometheus.io/scrape":            "true",
@@ -48,76 +51,27 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 		}
 
-		labels := map[string]string{"app": application.Name}
-		deployment.Spec.Template.ObjectMeta.Labels = labels
-		deployment.Spec.Selector = &metav1.LabelSelector{MatchLabels: labels}
-
-		var replicas = int32(application.Spec.Replicas.Min)
-		if replicas == 0 {
-			replicas = 1
-		}
-		deployment.Spec.Replicas = &replicas
-
-		deployment.Spec.Strategy.Type = appsv1.DeploymentStrategyType(application.Spec.Strategy.Type)
-		if application.Spec.Strategy.Type == "Recreate" {
-			deployment.Spec.Strategy.RollingUpdate = nil
-		}
-
-		deployment.Spec.Template.Spec.Containers = make([]corev1.Container, 1)
-		container := &deployment.Spec.Template.Spec.Containers[0]
-		container.Name = application.Name
-
-		// TODO: Make this as part of operator in a safe way
-		deployment.Spec.Template.Spec.ImagePullSecrets = []corev1.LocalObjectReference{{Name: "github-auth"}}
-		container.Image = application.Spec.Image
-		container.ImagePullPolicy = corev1.PullAlways
-		container.Command = application.Spec.Command
-
-		var uid int64 = 150 // TODO: 65534? Evnt. hashed? Random?
-		deployment.Spec.Template.Spec.ServiceAccountName = application.Name
-		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
-		deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
-		deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid
-
-		yes := true
-		no := false
-		container.SecurityContext = &corev1.SecurityContext{}
-		container.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
-		container.SecurityContext.SeccompProfile.Type = "RuntimeDefault"
-		container.SecurityContext.Privileged = &no
-		container.SecurityContext.AllowPrivilegeEscalation = &no
-		container.SecurityContext.ReadOnlyRootFilesystem = &yes
-		container.SecurityContext.RunAsUser = &uid
-		container.SecurityContext.RunAsGroup = &uid
-
-		container.Ports = make([]corev1.ContainerPort, 1)
-		container.Ports[0].ContainerPort = int32(application.Spec.Port)
-		container.Ports[0].Name = "main"
-
-		for _, port := range application.Spec.AdditionalPorts {
-			container.Ports = append(container.Ports, corev1.ContainerPort{
-				ContainerPort: port.Port,
-				Name:          port.Name,
-				Protocol:      port.Protocol,
-			})
-		}
-
-		container.EnvFrom = make([]corev1.EnvFromSource, len(application.Spec.EnvFrom))
-		envFrom := container.EnvFrom
-
-		for i, env := range application.Spec.EnvFrom {
-			if len(env.ConfigMap) > 0 {
-				envFrom[i].ConfigMapRef = &corev1.ConfigMapEnvSource{}
-				envFrom[i].ConfigMapRef.LocalObjectReference.Name = env.ConfigMap
-			} else if len(env.Secret) > 0 {
-				envFrom[i].SecretRef = &corev1.SecretEnvSource{}
-				envFrom[i].SecretRef.LocalObjectReference.Name = env.Secret
-			}
-		}
-
-		container.Resources = corev1.ResourceRequirements{
-			Limits:   application.Spec.Resources.Limits,
-			Requests: application.Spec.Resources.Requests,
+		skiperatorContainer := corev1.Container{
+			Name:            application.Name,
+			Image:           application.Spec.Image,
+			ImagePullPolicy: corev1.PullAlways,
+			Command:         application.Spec.Command,
+			SecurityContext: &corev1.SecurityContext{
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+				Privileged:               util.PointTo(false),
+				AllowPrivilegeEscalation: util.PointTo(false),
+				ReadOnlyRootFilesystem:   util.PointTo(true),
+				RunAsUser:                &util.SkiperatorUser,
+				RunAsGroup:               &util.SkiperatorUser,
+			},
+			Ports:   getContainerPorts(application),
+			EnvFrom: getEnvFrom(application.Spec.EnvFrom),
+			Resources: corev1.ResourceRequirements{
+				Limits:   application.Spec.Resources.Limits,
+				Requests: application.Spec.Resources.Requests,
+			},
 		}
 
 		numberOfVolumes := len(application.Spec.FilesFrom) + 1
@@ -126,9 +80,9 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 
 		deployment.Spec.Template.Spec.Volumes = make([]corev1.Volume, numberOfVolumes)
-		container.VolumeMounts = make([]corev1.VolumeMount, numberOfVolumes)
+		skiperatorContainer.VolumeMounts = make([]corev1.VolumeMount, numberOfVolumes)
 		volumes := deployment.Spec.Template.Spec.Volumes
-		volumeMounts := container.VolumeMounts
+		volumeMounts := skiperatorContainer.VolumeMounts
 
 		volumes[0] = corev1.Volume{Name: "tmp", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}}
 		volumeMounts[0] = corev1.VolumeMount{Name: "tmp", MountPath: "/tmp"}
@@ -174,7 +128,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				Name:  "GOOGLE_APPLICATION_CREDENTIALS",
 				Value: "/var/run/secrets/tokens/gcp-ksa/google-application-credentials.json",
 			}
-			container.Env = append(application.Spec.Env, envVar)
+			skiperatorContainer.Env = append(application.Spec.Env, envVar)
 
 			volumeMounts[numberOfVolumes-1].Name = "gcp-ksa"
 			volumeMounts[numberOfVolumes-1].MountPath = "/var/run/secrets/tokens/gcp-ksa"
@@ -203,38 +157,62 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Key = "config"
 			volumes[numberOfVolumes-1].Projected.Sources[1].ConfigMap.Items[0].Path = "google-application-credentials.json"
 		} else {
-			container.Env = application.Spec.Env
+			skiperatorContainer.Env = application.Spec.Env
 		}
 
 		if application.Spec.Readiness != nil {
-			container.ReadinessProbe = &corev1.Probe{}
-			container.ReadinessProbe.InitialDelaySeconds = int32(application.Spec.Readiness.InitialDelay)
-			container.ReadinessProbe.TimeoutSeconds = int32(application.Spec.Readiness.Timeout)
-			container.ReadinessProbe.FailureThreshold = int32(application.Spec.Readiness.FailureThreshold)
+			skiperatorContainer.ReadinessProbe = &corev1.Probe{}
+			skiperatorContainer.ReadinessProbe.InitialDelaySeconds = int32(application.Spec.Readiness.InitialDelay)
+			skiperatorContainer.ReadinessProbe.TimeoutSeconds = int32(application.Spec.Readiness.Timeout)
+			skiperatorContainer.ReadinessProbe.FailureThreshold = int32(application.Spec.Readiness.FailureThreshold)
 
-			container.ReadinessProbe.HTTPGet = &corev1.HTTPGetAction{}
-			container.ReadinessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Readiness.Port))
-			container.ReadinessProbe.HTTPGet.Path = application.Spec.Readiness.Path
+			skiperatorContainer.ReadinessProbe.HTTPGet = &corev1.HTTPGetAction{}
+			skiperatorContainer.ReadinessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Readiness.Port))
+			skiperatorContainer.ReadinessProbe.HTTPGet.Path = application.Spec.Readiness.Path
 		}
 		if application.Spec.Liveness != nil {
-			container.LivenessProbe = &corev1.Probe{}
-			container.LivenessProbe.InitialDelaySeconds = int32(application.Spec.Liveness.InitialDelay)
-			container.LivenessProbe.TimeoutSeconds = int32(application.Spec.Liveness.Timeout)
-			container.LivenessProbe.FailureThreshold = int32(application.Spec.Liveness.FailureThreshold)
+			skiperatorContainer.LivenessProbe = &corev1.Probe{}
+			skiperatorContainer.LivenessProbe.InitialDelaySeconds = int32(application.Spec.Liveness.InitialDelay)
+			skiperatorContainer.LivenessProbe.TimeoutSeconds = int32(application.Spec.Liveness.Timeout)
+			skiperatorContainer.LivenessProbe.FailureThreshold = int32(application.Spec.Liveness.FailureThreshold)
 
-			container.LivenessProbe.HTTPGet = &corev1.HTTPGetAction{}
-			container.LivenessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Liveness.Port))
-			container.LivenessProbe.HTTPGet.Path = application.Spec.Liveness.Path
+			skiperatorContainer.LivenessProbe.HTTPGet = &corev1.HTTPGetAction{}
+			skiperatorContainer.LivenessProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Liveness.Port))
+			skiperatorContainer.LivenessProbe.HTTPGet.Path = application.Spec.Liveness.Path
 		}
 		if application.Spec.Startup != nil {
-			container.StartupProbe = &corev1.Probe{}
-			container.StartupProbe.InitialDelaySeconds = int32(application.Spec.Startup.InitialDelay)
-			container.StartupProbe.TimeoutSeconds = int32(application.Spec.Startup.Timeout)
-			container.StartupProbe.FailureThreshold = int32(application.Spec.Startup.FailureThreshold)
+			skiperatorContainer.StartupProbe = &corev1.Probe{}
+			skiperatorContainer.StartupProbe.InitialDelaySeconds = int32(application.Spec.Startup.InitialDelay)
+			skiperatorContainer.StartupProbe.TimeoutSeconds = int32(application.Spec.Startup.Timeout)
+			skiperatorContainer.StartupProbe.FailureThreshold = int32(application.Spec.Startup.FailureThreshold)
 
-			container.StartupProbe.HTTPGet = &corev1.HTTPGetAction{}
-			container.StartupProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Startup.Port))
-			container.StartupProbe.HTTPGet.Path = application.Spec.Startup.Path
+			skiperatorContainer.StartupProbe.HTTPGet = &corev1.HTTPGetAction{}
+			skiperatorContainer.StartupProbe.HTTPGet.Port = intstr.FromInt(int(application.Spec.Startup.Port))
+			skiperatorContainer.StartupProbe.HTTPGet.Path = application.Spec.Startup.Path
+		}
+
+		deployment.Spec = appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			Replicas: getReplicasFromAppSpec(application.Spec.Replicas.Min),
+			Strategy: appsv1.DeploymentStrategy{
+				Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
+				RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
+			},
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						skiperatorContainer,
+					},
+
+					// TODO: Make this as part of operator in a safe way
+					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
+					SecurityContext: &corev1.PodSecurityContext{
+						SupplementalGroups: []int64{util.SkiperatorUser},
+						FSGroup:            &util.SkiperatorUser,
+					},
+					ServiceAccountName: application.Name,
+				},
+			},
 		}
 
 		return nil
@@ -243,4 +221,68 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func getEnvFrom(envFromApplication []skiperatorv1alpha1.EnvFrom) []corev1.EnvFromSource {
+	envFromSource := []corev1.EnvFromSource{}
+
+	for i, env := range envFromApplication {
+		if len(env.ConfigMap) > 0 {
+			envFromSource[i] = corev1.EnvFromSource{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: env.ConfigMap,
+					},
+				},
+			}
+		} else if len(env.Secret) > 0 {
+			envFromSource[i] = corev1.EnvFromSource{
+				SecretRef: &corev1.SecretEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: env.Secret,
+					},
+				},
+			}
+		}
+	}
+
+	return envFromSource
+}
+
+func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.ContainerPort {
+
+	containerPorts := []corev1.ContainerPort{
+		corev1.ContainerPort{
+			Name:          "main",
+			ContainerPort: int32(application.Spec.Port),
+		},
+	}
+
+	for _, port := range application.Spec.AdditionalPorts {
+		containerPorts = append(containerPorts, corev1.ContainerPort{
+			ContainerPort: port.Port,
+			Name:          port.Name,
+			Protocol:      port.Protocol,
+		})
+	}
+
+	return containerPorts
+}
+
+func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {
+	if updateStrategy == "Recreate" {
+		return nil
+	}
+
+	return &appsv1.RollingUpdateDeployment{}
+}
+
+func getReplicasFromAppSpec(appReplicas uint) *int32 {
+	var replicas = int32(appReplicas)
+	if replicas == 0 {
+		minReplicas := int32(1)
+		return &minReplicas
+	}
+
+	return &replicas
 }
