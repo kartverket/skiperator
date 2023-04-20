@@ -57,6 +57,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			replicas = 1
 		}
 		deployment.Spec.Replicas = &replicas
+		revisionHistoryLimit := int32(2)
+		deployment.Spec.RevisionHistoryLimit = &revisionHistoryLimit
 
 		deployment.Spec.Strategy.Type = appsv1.DeploymentStrategyType(application.Spec.Strategy.Type)
 		if application.Spec.Strategy.Type == "Recreate" {
