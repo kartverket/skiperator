@@ -78,12 +78,12 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 		deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
 		deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid
+		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
+		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile.Type = "RuntimeDefault"
 
 		yes := true
 		no := false
 		container.SecurityContext = &corev1.SecurityContext{}
-		container.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
-		container.SecurityContext.SeccompProfile.Type = "RuntimeDefault"
 		container.SecurityContext.Privileged = &no
 		container.SecurityContext.AllowPrivilegeEscalation = &no
 		container.SecurityContext.ReadOnlyRootFilesystem = &yes
