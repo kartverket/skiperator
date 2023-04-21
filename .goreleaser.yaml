@@ -22,32 +22,27 @@ builds:
     tags:
       - osusergo
       - netgo
+    main: ./cmd/skiperator/
+
 archives:
   - id: distribution
-    format: tar.gz
-    format_overrides:
-      - goos: windows
-        format: zip
-    replacements:
-      darwin: macOS
-      linux: Linux
-      windows: Windows
-      amd64: x86_64
-    files:
-      - LICENSE
-      - README.md
+    builds:
+      - cmd/skiperator
+    format: binary
 
-dockers:
-  - image_templates:
-      - "kartverket/skiperator"
-      - "kartverket/skiperator:latest"
-      - "kartverket/skiperator:{{ .Version }}"
-    goos: linux
-    goarch: amd64
-    goarm: ""
-    ids:
-      - kartverket/skiperator
-    dockerfile: Dockerfile
+# dockers:
+#   - image_templates:
+#       - "kartverket/skiperator"
+#       - "kartverket/skiperator:latest"
+#       - "kartverket/skiperator:{{ .Version }}"
+#     goos: linux
+#     goarch: amd64
+#     goarm: ""
+#     ids:
+#       - kartverket/skiperator
+#     dockerfile: Dockerfile
+#     extra_files:
+#       - Makefile
 
 checksum:
   name_template: "checksums.txt"
