@@ -63,6 +63,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			deployment.Spec.Strategy.RollingUpdate = nil
 		}
 
+		deployment.Spec.Template.Spec.PriorityClassName = fmt.Sprintf("skip-%s", application.Spec.Priority)
+
 		deployment.Spec.Template.Spec.Containers = make([]corev1.Container, 1)
 		container := &deployment.Spec.Template.Spec.Containers[0]
 		container.Name = application.Name
@@ -243,4 +245,16 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func determinePriorityClass(priority string) string {
+	if priority == "high" {
+		return "skip-high"
+	}
+
+	if priority == "low" {
+		return "skip-low"
+	}
+
+	return "skip-medium"
 }
