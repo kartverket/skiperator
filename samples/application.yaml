@@ -105,7 +105,7 @@ spec:
 
     outbound:
       rules:
-        - application: other-app
+        - application: sample-two
 
       external:
         - host: nrk.no

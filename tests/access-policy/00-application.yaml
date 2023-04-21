@@ -12,8 +12,7 @@ spec:
           application: other
     outbound:
       rules:
-        - namespace: other
-          application: other
+        - application: access-policy-two
       external:
         - host: example.com
           ports:
@@ -21,3 +20,11 @@ spec:
               port: 80
               protocol: HTTP
         - host: foo.com
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: access-policy-two
+spec:
+  image: image
+  port: 8080
