@@ -28,22 +28,12 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		r.SetLabelsFromApplication(ctx, &service, *application)
 		util.SetCommonAnnotations(&service)
 
-		labels := util.GetApplicationSelector(application.Name)
-		service.Spec.Selector = labels
-
-		service.Spec.Type = corev1.ServiceTypeClusterIP
-
-		service.Spec.Ports = make([]corev1.ServicePort, 1)
-		service.Spec.Ports[0].Port = int32(application.Spec.Port)
-		service.Spec.Ports[0].TargetPort = intstr.FromInt(application.Spec.Port)
-		if application.Spec.Port == 5432 { // TODO: Should not be hardcoded
-			tcp := "tcp"
-			service.Spec.Ports[0].Name = "tcp"
-			service.Spec.Ports[0].AppProtocol = &tcp
-		} else {
-			http := "http"
-			service.Spec.Ports[0].Name = "http"
-			service.Spec.Ports[0].AppProtocol = &http
+		service.Spec = corev1.ServiceSpec{
+			Selector: util.GetApplicationSelector(application.Name),
+			Type:     corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				getServicePort(application.Spec.Port),
+			},
 		}
 
 		return nil
@@ -52,4 +42,20 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func getServicePort(applicationPort int) corev1.ServicePort {
+	nameAndProtocol := "http"
+
+	// TODO: Should not be hardcoded
+	if applicationPort == 5432 {
+		nameAndProtocol = "tcp"
+	}
+
+	return corev1.ServicePort{
+		Name:        nameAndProtocol,
+		AppProtocol: &nameAndProtocol,
+		Port:        int32(applicationPort),
+		TargetPort:  intstr.FromInt(applicationPort),
+	}
 }
