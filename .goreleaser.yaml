@@ -1,0 +1,57 @@
+project_name: skiperator
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    binary: bin/skiperator
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+    ignore:
+      - goos: darwin
+        goarch: arm64
+      - goos: darwin
+        goarch: i386
+    tags:
+      - osusergo
+      - netgo
+archives:
+  - id: distribution
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: macOS
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+    files:
+      - LICENSE
+      - README.md
+
+dockers:
+  - image_templates:
+      - "kartverket/skiperator"
+      - "kartverket/skiperator:latest"
+      - "kartverket/skiperator:{{ .Version }}"
+    goos: linux
+    goarch: amd64
+    goarm: ""
+    ids:
+      - kartverket/skiperator
+    dockerfile: Dockerfile
+
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-dev"
+changelog:
+  sort: asc
