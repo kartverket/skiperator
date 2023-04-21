@@ -9,7 +9,6 @@ commands:
   - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
   - command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
 
-  - command: kubectl apply --filename tests/priorities.yaml
   - command: kubectl apply --filename config/ --recursive
   - command: kubectl create namespace skiperator-system
   - command: kubectl create configmap gcp-identity-config --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system
