@@ -14,9 +14,8 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
     ignore:
-      - goos: darwin
-        goarch: arm64
       - goos: darwin
         goarch: i386
     tags:
@@ -30,19 +29,9 @@ archives:
       - cmd/skiperator
     format: binary
 
-# dockers:
-#   - image_templates:
-#       - "kartverket/skiperator"
-#       - "kartverket/skiperator:latest"
-#       - "kartverket/skiperator:{{ .Version }}"
-#     goos: linux
-#     goarch: amd64
-#     goarm: ""
-#     ids:
-#       - kartverket/skiperator
-#     dockerfile: Dockerfile
-#     extra_files:
-#       - Makefile
+dockers:
+  - image_templates:
+      - "kartverket/skiperator"
 
 checksum:
   name_template: "checksums.txt"
