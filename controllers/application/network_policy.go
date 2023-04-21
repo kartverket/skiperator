@@ -72,7 +72,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 				networkingv1.PolicyTypeEgress,
 			},
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": application.Name},
+				MatchLabels: util.GetApplicationSelector(application.Name),
 			},
 			Ingress: getIngressRules(application),
 			Egress:  r.getEgressRules(application, serviceList.Items),

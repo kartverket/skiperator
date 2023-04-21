@@ -72,7 +72,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		}
 		skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-		labels := map[string]string{"app": application.Name}
+		labels := util.GetApplicationSelector(application.Name)
 
 		deployment.Spec = appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},
