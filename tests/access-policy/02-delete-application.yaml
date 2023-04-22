@@ -4,3 +4,6 @@ delete:
   - apiVersion: skiperator.kartverket.no/v1alpha1
     kind: Application
     name: access-policy
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: access-policy-2

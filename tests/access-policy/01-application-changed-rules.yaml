@@ -1,0 +1,16 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: access-policy
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: baz.com
+          ports:
+            - name: http
+              port: 80
+              protocol: HTTP
+        - host: bar.com
