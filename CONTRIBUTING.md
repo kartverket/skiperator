@@ -48,7 +48,7 @@ $ kubens skiperator-system
 Install Istio to make sure all CRDs are available
 
 ```
-$ istioctl install
+$ kubectl create ns istio-gateways && istioctl install
 ```
 
 Cert-manager (version in link above) must be installed locally on your cluster with
