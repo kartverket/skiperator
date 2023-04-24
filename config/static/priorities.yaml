@@ -1,6 +1,14 @@
 apiVersion: scheduling.k8s.io/v1
 kind: PriorityClass
 metadata:
+  name: skip-ultra-low
+value: 5000
+globalDefault: false
+description: "This priority class should be used for non-critical SKIP components"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
   name: skip-low
 value: 10000
 globalDefault: false
