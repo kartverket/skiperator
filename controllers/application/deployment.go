@@ -57,11 +57,15 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			replicas = 1
 		}
 		deployment.Spec.Replicas = &replicas
+		revisionHistoryLimit := int32(2)
+		deployment.Spec.RevisionHistoryLimit = &revisionHistoryLimit
 
 		deployment.Spec.Strategy.Type = appsv1.DeploymentStrategyType(application.Spec.Strategy.Type)
 		if application.Spec.Strategy.Type == "Recreate" {
 			deployment.Spec.Strategy.RollingUpdate = nil
 		}
+
+		deployment.Spec.Template.Spec.PriorityClassName = fmt.Sprintf("skip-%s", application.Spec.Priority)
 
 		deployment.Spec.Template.Spec.Containers = make([]corev1.Container, 1)
 		container := &deployment.Spec.Template.Spec.Containers[0]
@@ -78,12 +82,12 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		deployment.Spec.Template.Spec.SecurityContext = &corev1.PodSecurityContext{}
 		deployment.Spec.Template.Spec.SecurityContext.SupplementalGroups = []int64{uid}
 		deployment.Spec.Template.Spec.SecurityContext.FSGroup = &uid
+		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
+		deployment.Spec.Template.Spec.SecurityContext.SeccompProfile.Type = "RuntimeDefault"
 
 		yes := true
 		no := false
 		container.SecurityContext = &corev1.SecurityContext{}
-		container.SecurityContext.SeccompProfile = &corev1.SeccompProfile{}
-		container.SecurityContext.SeccompProfile.Type = "RuntimeDefault"
 		container.SecurityContext.Privileged = &no
 		container.SecurityContext.AllowPrivilegeEscalation = &no
 		container.SecurityContext.ReadOnlyRootFilesystem = &yes
