@@ -246,15 +246,3 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 	return reconcile.Result{}, err
 }
-
-func determinePriorityClass(priority string) string {
-	if priority == "high" {
-		return "skip-high"
-	}
-
-	if priority == "low" {
-		return "skip-low"
-	}
-
-	return "skip-medium"
-}
