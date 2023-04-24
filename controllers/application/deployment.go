@@ -104,6 +104,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 					Volumes:            podVolumes,
 				},
 			},
+			RevisionHistoryLimit: util.PointTo(int32(2)),
 		}
 
 		// add an external link to argocd
