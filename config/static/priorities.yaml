@@ -19,7 +19,7 @@ kind: PriorityClass
 metadata:
   name: skip-medium
 value: 20000
-globalDefault: false
+globalDefault: true
 description: "This priority class should be used by 'normal' applications."
 ---
 apiVersion: scheduling.k8s.io/v1
