@@ -299,6 +299,13 @@ spec:
                 type: object
               port:
                 type: integer
+              priority:
+                default: medium
+                enum:
+                - low
+                - medium
+                - high
+                type: string
               readiness:
                 properties:
                   failureThreshold:

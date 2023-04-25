@@ -1,0 +1,15 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: low-priority
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: medium-priority
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: high-priority
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: default-priority

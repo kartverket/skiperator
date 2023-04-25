@@ -43,9 +43,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			ImagePullPolicy: corev1.PullAlways,
 			Command:         application.Spec.Command,
 			SecurityContext: &corev1.SecurityContext{
-				SeccompProfile: &corev1.SeccompProfile{
-					Type: corev1.SeccompProfileTypeRuntimeDefault,
-				},
 				Privileged:               util.PointTo(false),
 				AllowPrivilegeEscalation: util.PointTo(false),
 				ReadOnlyRootFilesystem:   util.PointTo(true),
@@ -99,9 +96,13 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 					SecurityContext: &corev1.PodSecurityContext{
 						SupplementalGroups: []int64{util.SkiperatorUser},
 						FSGroup:            &util.SkiperatorUser,
+						SeccompProfile: &corev1.SeccompProfile{
+							Type: corev1.SeccompProfileTypeRuntimeDefault,
+						},
 					},
 					ServiceAccountName: application.Name,
 					Volumes:            podVolumes,
+					PriorityClassName:  fmt.Sprintf("skip-%s", application.Spec.Priority),
 				},
 			},
 			RevisionHistoryLimit: util.PointTo(int32(2)),

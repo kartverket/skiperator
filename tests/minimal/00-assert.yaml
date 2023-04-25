@@ -34,8 +34,6 @@ spec:
             readOnlyRootFilesystem: true
             runAsGroup: 150
             runAsUser: 150
-            seccompProfile:
-              type: RuntimeDefault
           volumeMounts:
             - mountPath: /tmp
               name: tmp
@@ -45,6 +43,8 @@ spec:
         fsGroup: 150
         supplementalGroups:
           - 150
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: minimal
       volumes:
         - emptyDir: {}

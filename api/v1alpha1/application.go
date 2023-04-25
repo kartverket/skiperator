@@ -35,6 +35,9 @@ type Application struct {
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
+	//+kubebuilder:validation:Enum=low;medium;high
+	//+kubebuilder:default=medium
+	Priority string `json:"priority,omitempty"`
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
