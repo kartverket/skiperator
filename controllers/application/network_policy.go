@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -59,8 +60,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
 		util.SetCommonAnnotations(&networkPolicy)
 
-		serviceList := corev1.ServiceList{}
-		err = r.GetClient().List(ctx, &serviceList, client.InNamespace(application.Namespace))
+		egressRules, err := r.getEgressRules(application, ctx)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
@@ -75,7 +75,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 				MatchLabels: util.GetApplicationSelector(application.Name),
 			},
 			Ingress: getIngressRules(application),
-			Egress:  r.getEgressRules(application, serviceList.Items),
+			Egress:  egressRules,
 		}
 
 		return nil
@@ -86,7 +86,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	return reconcile.Result{}, err
 }
 
-func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Application, servicesInNamespace []corev1.Service) []networkingv1.NetworkPolicyEgressRule {
+func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Application, ctx context.Context) ([]networkingv1.NetworkPolicyEgressRule, error) {
 	egressRules := []networkingv1.NetworkPolicyEgressRule{}
 
 	// Egress rules for internal peers
@@ -95,8 +95,9 @@ func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Ap
 			outboundRule.Namespace = application.Namespace
 		}
 
-		service, isPresent := findOutboundService(servicesInNamespace, outboundRule)
-		if !isPresent {
+		service := corev1.Service{}
+		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: outboundRule.Namespace, Name: outboundRule.Application}, &service)
+		if errors.IsNotFound(err) {
 			r.GetRecorder().Eventf(
 				application,
 				corev1.EventTypeWarning, "Missing",
@@ -104,6 +105,8 @@ func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Ap
 				outboundRule.Application, outboundRule.Namespace,
 			)
 			continue
+		} else if err != nil {
+			return egressRules, err
 		}
 
 		servicePorts := []networkingv1.NetworkPolicyPort{}
@@ -130,17 +133,7 @@ func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Ap
 		egressRules = append(egressRules, egressRuleForOutboundRule)
 	}
 
-	return egressRules
-}
-
-func findOutboundService(servicesInNamespace []corev1.Service, outboundRule skiperatorv1alpha1.InternalRule) (corev1.Service, bool) {
-	for _, service := range servicesInNamespace {
-		if service.Name == outboundRule.Application && service.Namespace == outboundRule.Namespace {
-			return service, true
-		}
-	}
-
-	return corev1.Service{}, false
+	return egressRules, nil
 }
 
 func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
