@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -30,11 +31,11 @@ var controllerName = "ConfigMap"
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	r.SetControllerProgressing(ctx, application, controllerName)
 
+	gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+	gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+
 	// Is this an error?
 	if application.Spec.GCP != nil {
-		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
-		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
-
 		if !util.ErrIsMissingOrNil(
 			r.GetRecorder(),
 			err,
@@ -50,6 +51,14 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
+	} else {
+		gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: getGCPAuthConfigMapName(application.Name)}}
+		err := r.GetClient().Delete(ctx, &gcpAuthConfigMap)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
@@ -60,8 +69,7 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpIdentityConfigMap corev1.ConfigMap, application *skiperatorv1alpha1.Application) error {
 
-	gcpAuthConfigMapName := application.Name + "-gcp-auth"
-	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
+	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: getGCPAuthConfigMapName(application.Name)}}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
 		// Set application as owner of the configmap
@@ -98,4 +106,8 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 	})
 
 	return err
+}
+
+func getGCPAuthConfigMapName(applicationName string) string {
+	return applicationName + "-gcp-auth"
 }
