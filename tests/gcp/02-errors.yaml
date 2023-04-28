@@ -1,0 +1,37 @@
+apiVersion: v1
+data:
+  config: '{"type":"external_account","audience":"identitynamespace:testPool:testProvider","service_account_impersonation_url":"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/something@verdier.com:generateAccessToken","subject_token_type":"urn:ietf:params:oauth:token-type:jwt","token_url":"https://sts.googleapis.com/v1/token","credential_source":{"file":"/var/run/secrets/tokens/gcp-ksa/token"}}'
+kind: ConfigMap
+metadata:
+  name: gcp-gcp-auth
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gcp
+spec:
+  template:
+    spec:
+      containers:
+        - env:
+            - name: GOOGLE_APPLICATION_CREDENTIALS
+              value: /var/run/secrets/tokens/gcp-ksa/google-application-credentials.json
+          volumeMounts:
+            - mountPath: /var/run/secrets/tokens/gcp-ksa
+              name: gcp-ksa
+              readOnly: true
+      volumes:
+        - name: gcp-ksa
+          projected:
+            defaultMode: 420
+            sources:
+              - serviceAccountToken:
+                  audience: testPool
+                  expirationSeconds: 172800
+                  path: token
+              - configMap:
+                  items:
+                    - key: config
+                      path: google-application-credentials.json
+                  name: gcp-gcp-auth
+                  optional: false
