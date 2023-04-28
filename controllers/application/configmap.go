@@ -31,11 +31,10 @@ var controllerName = "ConfigMap"
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
-	gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
-
-	// Is this an error?
 	if application.Spec.GCP != nil {
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+
 		if !util.ErrIsMissingOrNil(
 			r.GetRecorder(),
 			err,
