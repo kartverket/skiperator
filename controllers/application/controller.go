@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	policyv1 "k8s.io/api/policy/v1"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -96,6 +97,21 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"Application "+application.Name+" has started reconciliation loop",
 	)
 
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+			if err := r.finalizeApplication(ctx, application); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
+			err := r.GetClient().Update(ctx, application)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
 		r.initializeApplicationStatus,
 		r.initializeApplication,
@@ -117,21 +133,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	for _, fn := range controllerDuties {
 		if _, err := fn(ctx, application); err != nil {
 			return reconcile.Result{}, err
-		}
-	}
-
-	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
-	if isApplicationMarkedToBeDeleted {
-		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
-			if err := r.finalizeApplication(ctx, application); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
-			err := r.GetClient().Update(ctx, application)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"go.uber.org/zap/zapcore"
-	autoscalingv2beta2 "k8s.io/api/autoscaling/v2beta2"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	policyv1 "k8s.io/api/policy/v1"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -41,7 +41,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(autoscalingv2beta2.AddToScheme(scheme))
+	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
