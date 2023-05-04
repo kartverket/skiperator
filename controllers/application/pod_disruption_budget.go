@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
@@ -14,8 +15,6 @@ import (
 func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "PodDisruptionBudget"
 	_, _ = r.SetControllerProgressing(ctx, application, controllerName)
-
-	labels := map[string]string{"app": application.Name}
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &pdb, func() error {
@@ -30,7 +29,9 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 		util.SetCommonAnnotations(&pdb)
 
 		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
-			Selector:     &metav1.LabelSelector{MatchLabels: labels},
+			Selector: &metav1.LabelSelector{
+				MatchLabels: util.GetApplicationSelector(application.Name),
+			},
 			MinAvailable: determineMinAvailable(application.Spec.Replicas.Min),
 		}
 

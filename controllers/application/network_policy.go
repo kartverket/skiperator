@@ -60,144 +60,22 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
 		util.SetCommonAnnotations(&networkPolicy)
 
-		labels := map[string]string{"app": application.Name}
-		networkPolicy.Spec.PodSelector.MatchLabels = labels
-
-		networkPolicy.Spec.PolicyTypes = []networkingv1.PolicyType{
-			networkingv1.PolicyTypeIngress,
-			networkingv1.PolicyTypeEgress,
+		egressRules, err := r.getEgressRules(application, ctx)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return err
 		}
 
-		// Ingress rules
-		internal := false
-		external := false
-		for _, hostname := range application.Spec.Ingresses {
-			if util.IsInternal(hostname) {
-				internal = true
-			} else {
-				external = true
-			}
-		}
-
-		count := 0
-		if internal {
-			count += 1
-		}
-		if external {
-			count += 1
-		}
-		if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
-			count += 1
-		}
-		networkPolicy.Spec.Ingress = make([]networkingv1.NetworkPolicyIngressRule, 0, count)
-
-		// Ingress rule for ingress gateways
-		if internal {
-			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
-			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
-
-			ingress.From = make([]networkingv1.NetworkPolicyPeer, 1)
-			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
-
-			ingress.From[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
-			ingress.From[0].NamespaceSelector.MatchLabels = labels
-
-			ingress.From[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"app": "istio-ingress-internal"}
-			ingress.From[0].PodSelector.MatchLabels = labels
-
-			port := intstr.FromInt(application.Spec.Port)
-			ingress.Ports[0].Port = &port
-		}
-
-		if external {
-			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
-			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
-
-			ingress.From = make([]networkingv1.NetworkPolicyPeer, 1)
-			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
-
-			ingress.From[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
-			ingress.From[0].NamespaceSelector.MatchLabels = labels
-
-			ingress.From[0].PodSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"app": "istio-ingress-external"}
-			ingress.From[0].PodSelector.MatchLabels = labels
-
-			port := intstr.FromInt(application.Spec.Port)
-			ingress.Ports[0].Port = &port
-		}
-
-		// Ingress rules for internal peers
-		if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
-			networkPolicy.Spec.Ingress = append(networkPolicy.Spec.Ingress, networkingv1.NetworkPolicyIngressRule{})
-			ingress := &networkPolicy.Spec.Ingress[len(networkPolicy.Spec.Ingress)-1]
-
-			ingress.From = make([]networkingv1.NetworkPolicyPeer, len(application.Spec.AccessPolicy.Inbound.Rules))
-			ingress.Ports = make([]networkingv1.NetworkPolicyPort, 1)
-
-			for i, rule := range application.Spec.AccessPolicy.Inbound.Rules {
-				if rule.Namespace == "" {
-					rule.Namespace = application.Namespace
-				}
-
-				ingress.From[i].NamespaceSelector = &metav1.LabelSelector{}
-				labels = map[string]string{"kubernetes.io/metadata.name": rule.Namespace}
-				ingress.From[i].NamespaceSelector.MatchLabels = labels
-
-				ingress.From[i].PodSelector = &metav1.LabelSelector{}
-				labels = map[string]string{"app": rule.Application}
-				ingress.From[i].PodSelector.MatchLabels = labels
-			}
-
-			port := intstr.FromInt(application.Spec.Port)
-			ingress.Ports[0].Port = &port
-		}
-
-		// Egress rules
-		count = len(application.Spec.AccessPolicy.Outbound.Rules)
-		networkPolicy.Spec.Egress = make([]networkingv1.NetworkPolicyEgressRule, 0, count)
-
-		// Egress rules for internal peers
-		for _, rule := range application.Spec.AccessPolicy.Outbound.Rules {
-			if rule.Namespace == "" {
-				rule.Namespace = application.Namespace
-			}
-
-			svc := corev1.Service{}
-			err = r.GetClient().Get(ctx, types.NamespacedName{Namespace: rule.Namespace, Name: rule.Application}, &svc)
-			if errors.IsNotFound(err) {
-				r.GetRecorder().Eventf(
-					application,
-					corev1.EventTypeWarning, "Missing",
-					"Cannot find application named %s in namespace %s",
-					rule.Application, rule.Namespace,
-				)
-				continue
-			} else if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return err
-			}
-
-			networkPolicy.Spec.Egress = append(networkPolicy.Spec.Egress, networkingv1.NetworkPolicyEgressRule{})
-			egress := &networkPolicy.Spec.Egress[len(networkPolicy.Spec.Egress)-1]
-
-			egress.To = make([]networkingv1.NetworkPolicyPeer, 1)
-			egress.Ports = make([]networkingv1.NetworkPolicyPort, len(svc.Spec.Ports))
-
-			egress.To[0].NamespaceSelector = &metav1.LabelSelector{}
-			labels = map[string]string{"kubernetes.io/metadata.name": rule.Namespace}
-			egress.To[0].NamespaceSelector.MatchLabels = labels
-
-			egress.To[0].PodSelector = &metav1.LabelSelector{}
-			egress.To[0].PodSelector.MatchLabels = svc.Spec.Selector
-
-			for i := range svc.Spec.Ports {
-				port := intstr.FromInt(int(svc.Spec.Ports[i].Port))
-				egress.Ports[i].Port = &port
-			}
+		networkPolicy.Spec = networkingv1.NetworkPolicySpec{
+			PolicyTypes: []networkingv1.PolicyType{
+				networkingv1.PolicyTypeIngress,
+				networkingv1.PolicyTypeEgress,
+			},
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: util.GetApplicationSelector(application.Name),
+			},
+			Ingress: getIngressRules(application),
+			Egress:  egressRules,
 		}
 
 		return nil
@@ -206,4 +84,154 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Application, ctx context.Context) ([]networkingv1.NetworkPolicyEgressRule, error) {
+	egressRules := []networkingv1.NetworkPolicyEgressRule{}
+
+	// Egress rules for internal peers
+	for _, outboundRule := range application.Spec.AccessPolicy.Outbound.Rules {
+		if outboundRule.Namespace == "" {
+			outboundRule.Namespace = application.Namespace
+		}
+
+		service := corev1.Service{}
+		err := r.GetClient().Get(ctx, types.NamespacedName{Namespace: outboundRule.Namespace, Name: outboundRule.Application}, &service)
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				application,
+				corev1.EventTypeWarning, "Missing",
+				"Cannot find application named %s in namespace %s. Egress rule will not be added.",
+				outboundRule.Application, outboundRule.Namespace,
+			)
+			continue
+		} else if err != nil {
+			return egressRules, err
+		}
+
+		servicePorts := []networkingv1.NetworkPolicyPort{}
+		for _, port := range service.Spec.Ports {
+			servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
+				Port: util.PointTo(intstr.FromInt(int(port.Port))),
+			})
+		}
+
+		egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
+			Ports: servicePorts,
+			To: []networkingv1.NetworkPolicyPeer{
+				{
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: service.Spec.Selector,
+					},
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"kubernetes.io/metadata.name": outboundRule.Namespace},
+					},
+				},
+			},
+		}
+
+		egressRules = append(egressRules, egressRuleForOutboundRule)
+	}
+
+	return egressRules, nil
+}
+
+func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyIngressRule {
+	ingressRules := []networkingv1.NetworkPolicyIngressRule{}
+
+	if len(application.Spec.Ingresses) > 0 {
+		if hasInternalIngress(application.Spec.Ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(*application, true))
+		}
+
+		if hasExternalIngress(application.Spec.Ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(*application, false))
+		}
+	}
+
+	if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
+		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
+			From: getInboundPolicyPeers(application),
+			Ports: []networkingv1.NetworkPolicyPort{
+				{
+					Port: util.PointTo(intstr.FromInt(application.Spec.Port)),
+				},
+			},
+		}
+
+		ingressRules = append(ingressRules, inboundTrafficIngressRule)
+	}
+
+	return ingressRules
+}
+
+func getInboundPolicyPeers(application *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyPeer {
+	policyPeers := []networkingv1.NetworkPolicyPeer{}
+
+	for _, inboundRule := range application.Spec.AccessPolicy.Inbound.Rules {
+		if inboundRule.Namespace == "" {
+			inboundRule.Namespace = application.Namespace
+		}
+
+		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"kubernetes.io/metadata.name": inboundRule.Namespace},
+			},
+			PodSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": inboundRule.Application},
+			},
+		})
+	}
+
+	return policyPeers
+}
+
+func hasExternalIngress(applicationIngresses []string) bool {
+	for _, hostname := range applicationIngresses {
+		if !util.IsInternal(hostname) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasInternalIngress(applicationIngresses []string) bool {
+	for _, hostname := range applicationIngresses {
+		if util.IsInternal(hostname) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getGatewayIngressRule(application skiperatorv1alpha1.Application, isInternal bool) networkingv1.NetworkPolicyIngressRule {
+	ingressRule := networkingv1.NetworkPolicyIngressRule{
+		From: []networkingv1.NetworkPolicyPeer{
+			{
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "istio-gateways"},
+				},
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: getIngressGatewayLabel(isInternal),
+				},
+			},
+		},
+		Ports: []networkingv1.NetworkPolicyPort{
+			{
+				Port: util.PointTo(intstr.FromInt(application.Spec.Port)),
+			},
+		},
+	}
+
+	return ingressRule
+}
+
+func getIngressGatewayLabel(isInternal bool) map[string]string {
+	if isInternal {
+		return map[string]string{"app": "istio-ingress-internal"}
+	} else {
+		return map[string]string{"app": "istio-ingress-external"}
+	}
 }
