@@ -7,4 +7,4 @@ var CommonAnnotations = map[string]string{
 	"argocd.argoproj.io/sync-options": "Prune=false",
 }
 
-var SkiperatorUser = int64(150)
+const SkiperatorUser = int64(150)
