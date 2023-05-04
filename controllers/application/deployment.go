@@ -46,8 +46,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				Privileged:               util.PointTo(false),
 				AllowPrivilegeEscalation: util.PointTo(false),
 				ReadOnlyRootFilesystem:   util.PointTo(true),
-				RunAsUser:                &util.SkiperatorUser,
-				RunAsGroup:               &util.SkiperatorUser,
+				RunAsUser:                util.PointTo(util.SkiperatorUser),
+				RunAsGroup:               util.PointTo(util.SkiperatorUser),
 			},
 			Ports:   getContainerPorts(application),
 			EnvFrom: getEnvFrom(application.Spec.EnvFrom),
@@ -95,7 +95,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
 					SecurityContext: &corev1.PodSecurityContext{
 						SupplementalGroups: []int64{util.SkiperatorUser},
-						FSGroup:            &util.SkiperatorUser,
+						FSGroup:            util.PointTo(util.SkiperatorUser),
 						SeccompProfile: &corev1.SeccompProfile{
 							Type: corev1.SeccompProfileTypeRuntimeDefault,
 						},
