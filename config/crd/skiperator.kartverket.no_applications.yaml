@@ -274,6 +274,8 @@ spec:
               image:
                 type: string
               ingresses:
+                description: Ingresses must be lowercase, contain no spaces, and be
+                  non-empty
                 items:
                   type: string
                 type: array
@@ -323,7 +325,7 @@ spec:
                 - port
                 type: object
               redirectToHTTPS:
-                default: false
+                default: true
                 type: boolean
               replicas:
                 properties:

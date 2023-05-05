@@ -66,11 +66,13 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Startup *Probe `json:"startup,omitempty"`
 
+	// Ingresses must be lowercase, contain no spaces, and be non-empty
+	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
+	//+kubebuilder:default=true
 	RedirectToHTTPS bool `json:"redirectToHTTPS,omitempty"`
 
 	//+kubebuilder:validation:Optional

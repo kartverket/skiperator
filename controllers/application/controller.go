@@ -2,6 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	policyv1 "k8s.io/api/policy/v1"
 
@@ -18,6 +20,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -87,6 +90,16 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			application,
 			corev1.EventTypeNormal, "ReconcileStartFail",
 			"Something went wrong fetching the application. It might have been deleted",
+		)
+		return reconcile.Result{}, err
+	}
+
+	err = r.validateApplicationSpec(application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "InvalidApplication",
+			"Application was not valid, error: %s", err.Error(),
 		)
 		return reconcile.Result{}, err
 	}
@@ -206,4 +219,33 @@ func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, applica
 
 	}
 	return err
+}
+
+func (r *ApplicationReconciler) validateApplicationSpec(application *skiperatorv1alpha1.Application) error {
+	validationFunctions := []func(application *skiperatorv1alpha1.Application) error{
+		ValidateIngresses,
+	}
+
+	for _, validationFunction := range validationFunctions {
+		err := validationFunction(application)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
+	for _, ingress := range application.Spec.Ingresses {
+		if ingress == "" || util.HasUpperCaseLetter(ingress) || strings.Contains(ingress, " ") {
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, and be a non-empty string", ingress)
+			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
+				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
+			})
+		}
+	}
+
+	return nil
 }

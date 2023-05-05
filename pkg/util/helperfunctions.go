@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"regexp"
+	"unicode"
 
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
@@ -70,4 +71,16 @@ func PointTo[T any](x T) *T {
 
 func GetApplicationSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
+}
+
+func HasUpperCaseLetter(word string) bool {
+	hasUpper := false
+	for _, letter := range word {
+		if unicode.IsUpper(letter) {
+			hasUpper = true
+			break
+		}
+	}
+
+	return hasUpper
 }
