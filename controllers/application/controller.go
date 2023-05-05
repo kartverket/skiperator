@@ -94,16 +94,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	err = r.validateApplicationSpec(application)
-	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "InvalidApplication",
-			"Application was not valid, error: %s", err.Error(),
-		)
-		return reconcile.Result{}, err
-	}
-
 	r.GetRecorder().Eventf(
 		application,
 		corev1.EventTypeNormal, "ReconcileStart",
@@ -123,6 +113,16 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 				return ctrl.Result{}, err
 			}
 		}
+	}
+
+	err = r.validateApplicationSpec(application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "InvalidApplication",
+			"Application was not valid, error: %s", err.Error(),
+		)
+		return reconcile.Result{}, err
 	}
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
