@@ -16,7 +16,7 @@ spec:
               kubernetes.io/metadata.name: other
           podSelector:
             matchLabels:
-              app: other
+              app: access-policy-other
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: test
@@ -27,15 +27,6 @@ spec:
       ports:
         - port: 8080
   egress:
-    - to:
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: test
-          podSelector:
-            matchLabels:
-              app: access-policy-two
-      ports:
-        - port: 8080
     - to:
         - namespaceSelector:
             matchLabels:
