@@ -74,13 +74,11 @@ func GetApplicationSelector(applicationName string) map[string]string {
 }
 
 func HasUpperCaseLetter(word string) bool {
-	hasUpper := false
 	for _, letter := range word {
 		if unicode.IsUpper(letter) {
-			hasUpper = true
-			break
+			return true
 		}
 	}
 
-	return hasUpper
+	return false
 }
