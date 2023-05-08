@@ -120,7 +120,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.GetRecorder().Eventf(
 			application,
 			corev1.EventTypeWarning, "InvalidApplication",
-			"Application was not valid, error: %s", err.Error(),
+			"Application failed validation and was rejected, error: %s", err.Error(),
 		)
 		return reconcile.Result{}, err
 	}

@@ -36,7 +36,7 @@ spec:
   # Most workloads should not have to specify this field. If you think you
   # do, please consult with SKIP beforehand.
   priority: medium
-  # An optional list of extra port to expose on a pod level basis, 
+  # An optional list of extra port to expose on a pod level basis,
   # for example so Instana or other APM tools can reach it
   additionalPorts:
     - name: metrics-port
@@ -56,6 +56,7 @@ spec:
   # (also known as pretty hostnames) requires additional DNS setup.
   # The below hostnames will also have TLS certificates issued and be reachable on both
   # HTTP and HTTPS.
+  # Ingresses must be lowercase, contain no spaces, and be non-empty
   ingresses:
     - testapp.dev.skip.statkart.no
   # Configuration used to automatically scale the deployment based on load
