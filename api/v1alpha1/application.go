@@ -72,8 +72,8 @@ type ApplicationSpec struct {
 	Ingresses []string `json:"ingresses,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=true
-	RedirectToHTTPS bool `json:"redirectToHTTPS,omitempty"`
+	//+kubebuilder:default:=true
+	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
