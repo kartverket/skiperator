@@ -139,6 +139,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.RedirectToHTTPS != nil {
+		in, out := &in.RedirectToHTTPS, &out.RedirectToHTTPS
+		*out = new(bool)
+		**out = **in
+	}
 	in.AccessPolicy.DeepCopyInto(&out.AccessPolicy)
 	if in.GCP != nil {
 		in, out := &in.GCP, &out.GCP

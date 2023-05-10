@@ -42,7 +42,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 				Http:     []*networkingv1beta1api.HTTPRoute{},
 			}
 
-			if application.Spec.RedirectToHTTPS {
+			if application.Spec.RedirectToHTTPS != nil && *application.Spec.RedirectToHTTPS {
 				virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
 					Name: "redirect-to-https",
 					Match: []*networkingv1beta1api.HTTPMatchRequest{

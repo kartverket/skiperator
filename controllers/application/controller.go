@@ -2,6 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 
 	policyv1 "k8s.io/api/policy/v1"
 
@@ -18,6 +20,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -110,6 +113,16 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 				return ctrl.Result{}, err
 			}
 		}
+	}
+
+	err = r.validateApplicationSpec(application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "InvalidApplication",
+			"Application failed validation and was rejected, error: %s", err.Error(),
+		)
+		return reconcile.Result{}, err
 	}
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
@@ -206,4 +219,34 @@ func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, applica
 
 	}
 	return err
+}
+
+func (r *ApplicationReconciler) validateApplicationSpec(application *skiperatorv1alpha1.Application) error {
+	validationFunctions := []func(application *skiperatorv1alpha1.Application) error{
+		ValidateIngresses,
+	}
+
+	for _, validationFunction := range validationFunctions {
+		err := validationFunction(application)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
+	matchExpression, _ := regexp.Compile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
+	for _, ingress := range application.Spec.Ingresses {
+		if !matchExpression.MatchString(ingress) {
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", ingress)
+			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
+				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
+			})
+		}
+	}
+
+	return nil
 }
