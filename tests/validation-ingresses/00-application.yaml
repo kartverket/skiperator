@@ -27,3 +27,13 @@ spec:
   port: 8080
   ingresses:
     - ""
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: ingresses-no-domain
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - test
