@@ -241,7 +241,7 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 	matchExpression, _ := regexp.Compile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 	for _, ingress := range application.Spec.Ingresses {
 		if !matchExpression.MatchString(ingress) {
-			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, and be a non-empty string", ingress)
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", ingress)
 			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
 				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
 			})

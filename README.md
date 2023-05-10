@@ -56,7 +56,7 @@ spec:
   # (also known as pretty hostnames) requires additional DNS setup.
   # The below hostnames will also have TLS certificates issued and be reachable on both
   # HTTP and HTTPS.
-  # Ingresses must be lowercase, contain no spaces, and be non-empty
+  # Ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
   ingresses:
     - testapp.dev.skip.statkart.no
   # Configuration used to automatically scale the deployment based on load
