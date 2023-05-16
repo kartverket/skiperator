@@ -20,7 +20,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	defaultDenyAuthPolicy := getDefaultDenyPolicy(application)
 
 	if application.Spec.ActuatorSettings != nil {
-		if *application.Spec.ActuatorSettings.AllowAll == true {
+		if application.Spec.ActuatorSettings.AllowAll == true {
 			err := r.GetClient().Delete(ctx, &defaultDenyAuthPolicy)
 			err = client.IgnoreNotFound(err)
 			if err != nil {

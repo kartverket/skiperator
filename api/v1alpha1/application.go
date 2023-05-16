@@ -103,11 +103,11 @@ type ApplicationSpec struct {
 // +kubebuilder:object:generate=true
 type ActuatorSettings struct {
 	// Allows all actuator endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
-	// If field is unset or false, the contents of AllowList will be used instead.
+	// If field is false, the contents of AllowList will be used instead if set.
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false
-	AllowAll *bool `json:"allowAll,omitempty"`
+	AllowAll bool `json:"allowAll,omitempty"`
 
 	// Allows specific actuator endpoints. Common values include health, startup, info.
 	//

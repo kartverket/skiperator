@@ -114,8 +114,8 @@ spec:
                     default: false
                     description: Allows all actuator endpoints by not creating an
                       AuthorizationPolicy, and ignores the content of AllowList. If
-                      field is unset or false, the contents of AllowList will be used
-                      instead.
+                      field is false, the contents of AllowList will be used instead
+                      if set.
                     type: boolean
                   allowList:
                     description: Allows specific actuator endpoints. Common values
