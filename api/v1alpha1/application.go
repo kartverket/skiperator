@@ -71,7 +71,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
-	// Controls whether or not the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
+	// Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
 	// This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
 	//
 	//+kubebuilder:validation:Optional
@@ -89,12 +89,37 @@ type ApplicationSpec struct {
 
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	ActuatorSettings *ActuatorSettings `json:"actuatorSettings,omitempty"`
 }
 
+// ActuatorSettings Settings for overriding the default deny of actuator endpoints. AllowAll will allow any
+// actuator endpoint to be exposed. Use AllowList to only allow specific endpoints.
+//
+// Please be aware that actuator endpoints may expose information about your application which you do not want to expose.
+// Before applying actuator settings, please be aware of what these endpoints will expose, especially if your application is served via an external ingress.
+//
+// +kubebuilder:object:generate=true
+type ActuatorSettings struct {
+	// Allows all actuator endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
+	// If field is unset or false, the contents of AllowList will be used instead.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	AllowAll *bool `json:"allowAll,omitempty"`
+
+	// Allows specific actuator endpoints. Common values include health, startup, info.
+	//
+	//+kubebuilder:validation:Optional
+	AllowList []string `json:"allowList,omitempty"`
+}
+
+// ResourceRequirements
 // +kubebuilder:object:generate=true
 type ResourceRequirements struct {
 	// TODO
-	// Remember to reasess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
+	// Remember to reassess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
 
 	//+kubebuilder:validation:Optional
 	Limits corev1.ResourceList `json:"limits,omitempty"`

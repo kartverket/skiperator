@@ -1,0 +1,10 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: actuator-settings-allow-list-actuator-allow
+spec:
+  rules:
+    - to:
+        - operation:
+            paths:
+              - /actuator/health

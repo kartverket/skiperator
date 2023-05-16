@@ -1,0 +1,12 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: actuator-settings-default-deny
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: actuator-settings-allow-all
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: Application
+    name: actuator-settings-allow-list

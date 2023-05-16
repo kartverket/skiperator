@@ -100,6 +100,30 @@ spec:
                         type: array
                     type: object
                 type: object
+              actuatorSettings:
+                description: "ActuatorSettings Settings for overriding the default
+                  deny of actuator endpoints. AllowAll will allow any actuator endpoint
+                  to be exposed. Use AllowList to only allow specific endpoints. \n
+                  Please be aware that actuator endpoints may expose information about
+                  your application which you do not want to expose. Before applying
+                  actuator settings, please be aware of what these endpoints will
+                  expose, especially if your application is served via an external
+                  ingress."
+                properties:
+                  allowAll:
+                    default: false
+                    description: Allows all actuator endpoints by not creating an
+                      AuthorizationPolicy, and ignores the content of AllowList. If
+                      field is unset or false, the contents of AllowList will be used
+                      instead.
+                    type: boolean
+                  allowList:
+                    description: Allows specific actuator endpoints. Common values
+                      include health, startup, info.
+                    items:
+                      type: string
+                    type: array
+                type: object
               additionalPorts:
                 items:
                   properties:
@@ -274,8 +298,8 @@ spec:
               image:
                 type: string
               ingresses:
-                description: Ingresses must be lowercase, contain no spaces, and be
-                  non-empty
+                description: Ingresses must be lower case, contain no spaces, be a
+                  non-empty string, and have a hostname/domain separated by a period
                 items:
                   type: string
                 type: array
@@ -326,6 +350,10 @@ spec:
                 type: object
               redirectToHTTPS:
                 default: true
+                description: Controls whether the application will automatically redirect
+                  all HTTP calls to HTTPS via the istio VirtualService. This redirect
+                  does not happen on the route /.well-known/acme-challenge/, as the
+                  ACME challenge can only be done on port 80.
                 type: boolean
               replicas:
                 properties:
@@ -345,6 +373,7 @@ spec:
                   type: object
                 type: object
               resources:
+                description: ResourceRequirements
                 properties:
                   limits:
                     additionalProperties:
