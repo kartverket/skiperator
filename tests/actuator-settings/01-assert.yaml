@@ -37,22 +37,25 @@ spec:
   selector:
     matchLabels:
       app: actuator-settings-allow-list
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: actuator-settings-allow-all-actuator-deny
-spec:
-  action: DENY
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /actuator*
-  selector:
-    matchLabels:
-      app: actuator-settings-allow-all
+# This assertion does not work in the emulated control plane of Kuttl. See https://github.com/kudobuilder/kuttl/issues/471
+# for progress regarding this issue
+# TODO Add this back when issue fixed
+#---
+#apiVersion: security.istio.io/v1beta1
+#kind: AuthorizationPolicy
+#metadata:
+#  name: actuator-settings-allow-all-actuator-deny
+#spec:
+#  action: DENY
+#  rules:
+#    - from:
+#        - source:
+#            namespaces:
+#              - istio-gateways
+#      to:
+#        - operation:
+#            paths:
+#              - /actuator*
+#  selector:
+#    matchLabels:
+#      app: actuator-settings-allow-all
