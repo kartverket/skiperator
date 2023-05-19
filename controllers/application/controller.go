@@ -40,6 +40,7 @@ import (
 // +kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications;authorizationpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
 	util.ReconcilerBase
@@ -134,6 +135,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.reconcileNetworkPolicy,
 		r.reconcileAuthorizationPolicy,
 		r.reconcilePodDisruptionBudget,
+		r.reconcileServiceMonitor,
 	}
 
 	for _, fn := range controllerDuties {
