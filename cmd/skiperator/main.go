@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	policyv1 "k8s.io/api/policy/v1"
@@ -46,6 +47,7 @@ func init() {
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 	utilruntime.Must(policyv1.AddToScheme(scheme))
+	utilruntime.Must(pov1.AddToScheme(scheme))
 }
 
 func main() {
