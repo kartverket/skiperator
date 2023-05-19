@@ -31,9 +31,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		service.Spec = corev1.ServiceSpec{
 			Selector: util.GetApplicationSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
-			Ports: []corev1.ServicePort{
-				getServicePort(application.Spec.Port),
-			},
+			Ports:    append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port)),
 		}
 
 		return nil
@@ -42,6 +40,21 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func getAdditionalPorts(additionalPorts []skiperatorv1alpha1.InternalPort) []corev1.ServicePort {
+	var ports []corev1.ServicePort
+
+	for _, p := range additionalPorts {
+		ports = append(ports, corev1.ServicePort{
+			Name:       p.Name,
+			Port:       p.Port,
+			Protocol:   p.Protocol,
+			TargetPort: intstr.FromInt(int(p.Port)),
+		})
+	}
+
+	return ports
 }
 
 func getServicePort(applicationPort int) corev1.ServicePort {
