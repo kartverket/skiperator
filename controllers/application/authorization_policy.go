@@ -17,7 +17,10 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	controllerName := "AuthorizationPolicy"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	defaultDenyAuthPolicy := getDefaultActuatorDenyPolicy(application)
+	defaultDenyPaths := []string{
+		"/actuator*",
+	}
+	defaultDenyAuthPolicy := getDefaultDenyPolicy(application, defaultDenyPaths)
 
 	if application.Spec.AuthorizationSettings != nil {
 		if application.Spec.AuthorizationSettings.AllowAll == true {
@@ -106,7 +109,7 @@ func getGeneralFromRule() []*securityv1beta1api.Rule_From {
 	}
 }
 
-func getDefaultActuatorDenyPolicy(application *skiperatorv1alpha1.Application) securityv1beta1.AuthorizationPolicy {
+func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths []string) securityv1beta1.AuthorizationPolicy {
 	return securityv1beta1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
@@ -119,7 +122,7 @@ func getDefaultActuatorDenyPolicy(application *skiperatorv1alpha1.Application) s
 					To: []*securityv1beta1api.Rule_To{
 						{
 							Operation: &securityv1beta1api.Operation{
-								Paths: []string{"/actuator*"},
+								Paths: denyPaths,
 							},
 						},
 					},
