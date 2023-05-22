@@ -113,7 +113,7 @@ func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths
 	return securityv1beta1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
-			Name:      application.Name + "-actuator-deny",
+			Name:      application.Name + "-deny",
 		},
 		Spec: securityv1beta1api.AuthorizationPolicy{
 			Action: securityv1beta1api.AuthorizationPolicy_DENY,
