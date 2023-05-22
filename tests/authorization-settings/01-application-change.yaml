@@ -5,7 +5,7 @@ metadata:
 spec:
   image: image
   port: 8080
-  actuatorSettings:
+  authorizationSettings:
     allowList:
       - "/actuator/info"
       - "/actuator/shutdown"

@@ -123,11 +123,11 @@ spec:
                 type: array
               authorizationSettings:
                 description: "AuthorizationSettings Settings for overriding the default
-                  deny of actuator endpoints. AllowAll will allow any actuator endpoint
+                  deny of all actuator endpoints. AllowAll will allow any endpoint
                   to be exposed. Use AllowList to only allow specific endpoints. \n
                   Please be aware that actuator endpoints may expose information about
-                  your application which you do not want to expose. Before applying
-                  actuator settings, please be aware of what these endpoints will
+                  your application which you do not want to expose. Before allow listing
+                  actuator endpoints, please be aware of what these endpoints will
                   expose, especially if your application is served via an external
                   ingress."
                 properties:
@@ -138,8 +138,8 @@ spec:
                       contents of AllowList will be used instead if AllowList is set.
                     type: boolean
                   allowList:
-                    description: Allows specific endpoints. Common values include
-                      health, startup, info.
+                    description: Allows specific endpoints. For actuator endpoints,
+                      common values include /actuator/health, /actuator/startup, /actuator/info.
                     items:
                       type: string
                     type: array
