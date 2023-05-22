@@ -169,17 +169,18 @@ spec:
       labelKeyTwo: A value for the two label
 
   # Settings for overriding the default deny of actuator endpoints. AllowAll set to true will allow any
-  # actuator endpoint to be exposed. Use AllowList to only allow specific endpoints.
+  # endpoint to be exposed. Use AllowList to only allow specific endpoints.
   #
   # Please be aware that actuator endpoints may expose information about your application which you do not want to expose.
-  # Before applying actuator settings, please be aware of what these endpoints will expose, especially if your application is served via an external ingress.
-  actuatorSettings:
+  # Before applying authorization settings, please be aware of what these endpoints will expose, especially if your application is served via an external ingress.
+  authorizationSettings:
     # Default false
     allowAll: false
     # Default empty
+    # Endpoints must be prefixed with /
     allowList:
-      - "health"
-      - "info"
+      - "/actuator/health"
+      - "/actuator/info"
   # Resource limits to apply to the deployment. It's common to set these to
   # prevent the app from swelling in resource usage and consuming all the
   # resources of other apps on the cluster.

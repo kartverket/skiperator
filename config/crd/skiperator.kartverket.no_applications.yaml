@@ -100,7 +100,28 @@ spec:
                         type: array
                     type: object
                 type: object
-              actuatorSettings:
+              additionalPorts:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    port:
+                      format: int32
+                      type: integer
+                    protocol:
+                      default: TCP
+                      enum:
+                      - TCP
+                      - UDP
+                      - SCTP
+                      type: string
+                  required:
+                  - name
+                  - port
+                  - protocol
+                  type: object
+                type: array
+              authorizationSettings:
                 description: "AuthorizationSettings Settings for overriding the default
                   deny of actuator endpoints. AllowAll will allow any actuator endpoint
                   to be exposed. Use AllowList to only allow specific endpoints. \n
@@ -123,27 +144,6 @@ spec:
                       type: string
                     type: array
                 type: object
-              additionalPorts:
-                items:
-                  properties:
-                    name:
-                      type: string
-                    port:
-                      format: int32
-                      type: integer
-                    protocol:
-                      default: TCP
-                      enum:
-                      - TCP
-                      - UDP
-                      - SCTP
-                      type: string
-                  required:
-                  - name
-                  - port
-                  - protocol
-                  type: object
-                type: array
               command:
                 items:
                   type: string
