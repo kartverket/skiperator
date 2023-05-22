@@ -17,8 +17,7 @@ import (
 )
 
 // This is a bit hacky, but seems like best solution
-func (r *ApplicationReconciler) NetworkPoliciesFromService(obj client.Object) []reconcile.Request {
-	ctx := context.TODO()
+func (r *ApplicationReconciler) NetworkPoliciesFromService(ctx context.Context, obj client.Object) []reconcile.Request {
 	svc := obj.(*corev1.Service)
 
 	applications := &skiperatorv1alpha1.ApplicationList{}
