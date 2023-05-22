@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: actuator-settings-default-deny-actuator-deny
+  name: authorization-settings-default-deny-actuator-deny
 spec:
   action: DENY
   rules:
@@ -15,12 +15,12 @@ spec:
               - /actuator*
   selector:
     matchLabels:
-      app: actuator-settings-default-deny
+      app: authorization-settings-default-deny
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: actuator-settings-allow-list-actuator-deny
+  name: authorization-settings-allow-list-actuator-deny
 spec:
   action: DENY
   rules:
@@ -34,12 +34,12 @@ spec:
               - /actuator*
   selector:
     matchLabels:
-      app: actuator-settings-allow-list
+      app: authorization-settings-allow-list
 ---
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: actuator-settings-allow-list-actuator-allow
+  name: authorization-settings-allow-list-allow
 spec:
   rules:
     - from:
@@ -55,4 +55,4 @@ spec:
               - /actuator/info
   selector:
     matchLabels:
-      app: actuator-settings-allow-list
+      app: authorization-settings-allow-list

@@ -91,25 +91,25 @@ type ApplicationSpec struct {
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	ActuatorSettings *ActuatorSettings `json:"actuatorSettings,omitempty"`
+	AuthorizationSettings *AuthorizationSettings `json:"actuatorSettings,omitempty"`
 }
 
-// ActuatorSettings Settings for overriding the default deny of actuator endpoints. AllowAll will allow any
+// AuthorizationSettings Settings for overriding the default deny of actuator endpoints. AllowAll will allow any
 // actuator endpoint to be exposed. Use AllowList to only allow specific endpoints.
 //
 // Please be aware that actuator endpoints may expose information about your application which you do not want to expose.
 // Before applying actuator settings, please be aware of what these endpoints will expose, especially if your application is served via an external ingress.
 //
 // +kubebuilder:object:generate=true
-type ActuatorSettings struct {
-	// Allows all actuator endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
-	// If field is false, the contents of AllowList will be used instead if set.
+type AuthorizationSettings struct {
+	// Allows all endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
+	// If field is false, the contents of AllowList will be used instead if AllowList is set.
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false
 	AllowAll bool `json:"allowAll,omitempty"`
 
-	// Allows specific actuator endpoints. Common values include health, startup, info.
+	// Allows specific endpoints. Common values include health, startup, info.
 	//
 	//+kubebuilder:validation:Optional
 	AllowList []string `json:"allowList,omitempty"`

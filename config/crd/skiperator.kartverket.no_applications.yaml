@@ -101,7 +101,7 @@ spec:
                     type: object
                 type: object
               actuatorSettings:
-                description: "ActuatorSettings Settings for overriding the default
+                description: "AuthorizationSettings Settings for overriding the default
                   deny of actuator endpoints. AllowAll will allow any actuator endpoint
                   to be exposed. Use AllowList to only allow specific endpoints. \n
                   Please be aware that actuator endpoints may expose information about
@@ -112,14 +112,13 @@ spec:
                 properties:
                   allowAll:
                     default: false
-                    description: Allows all actuator endpoints by not creating an
-                      AuthorizationPolicy, and ignores the content of AllowList. If
-                      field is false, the contents of AllowList will be used instead
-                      if set.
+                    description: Allows all endpoints by not creating an AuthorizationPolicy,
+                      and ignores the content of AllowList. If field is false, the
+                      contents of AllowList will be used instead if AllowList is set.
                     type: boolean
                   allowList:
-                    description: Allows specific actuator endpoints. Common values
-                      include health, startup, info.
+                    description: Allows specific endpoints. Common values include
+                      health, startup, info.
                     items:
                       type: string
                     type: array

@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: actuator-settings-allow-all-actuator-deny
+  name: authorization-settings-allow-all-actuator-deny
 spec:
   action: DENY
   rules:
@@ -15,4 +15,4 @@ spec:
               - /actuator*
   selector:
     matchLabels:
-      app: actuator-settings-allow-all
+      app: authorization-settings-allow-all

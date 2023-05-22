@@ -17,10 +17,10 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	controllerName := "AuthorizationPolicy"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	defaultDenyAuthPolicy := getDefaultDenyPolicy(application)
+	defaultDenyAuthPolicy := getDefaultActuatorDenyPolicy(application)
 
-	if application.Spec.ActuatorSettings != nil {
-		if application.Spec.ActuatorSettings.AllowAll == true {
+	if application.Spec.AuthorizationSettings != nil {
+		if application.Spec.AuthorizationSettings.AllowAll == true {
 			err := r.GetClient().Delete(ctx, &defaultDenyAuthPolicy)
 			err = client.IgnoreNotFound(err)
 			if err != nil {
@@ -33,15 +33,15 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 		}
 
 		allowListAuthPolicy := getAllowListPolicy(application)
-		if len(application.Spec.ActuatorSettings.AllowList) > 0 {
+		if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
 			newAllowRule := securityv1beta1api.Rule{
 				To:   []*securityv1beta1api.Rule_To{},
 				From: getGeneralFromRule(),
 			}
-			for _, actuatorEndpoint := range application.Spec.ActuatorSettings.AllowList {
+			for _, endpoint := range application.Spec.AuthorizationSettings.AllowList {
 				newToRule := securityv1beta1api.Rule_To{
 					Operation: &securityv1beta1api.Operation{
-						Paths: []string{"/actuator/" + actuatorEndpoint},
+						Paths: []string{endpoint},
 					},
 				}
 
@@ -106,7 +106,7 @@ func getGeneralFromRule() []*securityv1beta1api.Rule_From {
 	}
 }
 
-func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application) securityv1beta1.AuthorizationPolicy {
+func getDefaultActuatorDenyPolicy(application *skiperatorv1alpha1.Application) securityv1beta1.AuthorizationPolicy {
 	return securityv1beta1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
@@ -137,7 +137,7 @@ func getAllowListPolicy(application *skiperatorv1alpha1.Application) securityv1b
 	return securityv1beta1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
-			Name:      application.Name + "-actuator-allow",
+			Name:      application.Name + "-allow",
 		},
 		Spec: securityv1beta1api.AuthorizationPolicy{
 			Selector: &typev1beta1.WorkloadSelector{
