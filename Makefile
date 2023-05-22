@@ -8,7 +8,7 @@ export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; e
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
 SKIPERATOR_CONTEXT ?= kind-kind
-KUBERNETES_VERSION = 1.25
+KUBERNETES_VERSION = 1.26
 
 .PHONY: test-tools
 test-tools:
