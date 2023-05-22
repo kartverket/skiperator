@@ -14,7 +14,7 @@ KUBERNETES_VERSION = 1.25
 test-tools:
 	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}.0-${OS}-${ARCH}.tar.gz" | \
     tar --gzip --extract --strip-components 2 --directory bin
-	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl
+	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl@v0.15.0
 
 
 .PHONY: generate
