@@ -18,6 +18,11 @@ type ApplicationList struct {
 	Items []Application `json:"items"`
 }
 
+// Application
+//
+// Root object for Application resource. An application resource is a resource for easily managing a Dockerized container within the context of a Kartverket cluster.
+// This allows product teams to avoid the need to set up networking on the cluster, as well as a lot of out of the box security features.
+//
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
@@ -33,45 +38,91 @@ type Application struct {
 
 // +kubebuilder:object:generate=true
 type ApplicationSpec struct {
+	// The image the application will run. This image will be added to a Deployment resource
+	//
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
-	//+kubebuilder:validation:Enum=low;medium;high
-	//+kubebuilder:default=medium
-	Priority string `json:"priority,omitempty"`
-	//+kubebuilder:validation:Optional
-	Command []string `json:"command,omitempty"`
 
-	//+kubebuilder:validation:Optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
-	//+kubebuilder:validation:Optional
-	Replicas Replicas `json:"replicas,omitempty"`
-	//+kubebuilder:validation:Optional
-	Strategy Strategy `json:"strategy,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	Env []corev1.EnvVar `json:"env,omitempty"`
-	//+kubebuilder:validation:Optional
-	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
-	//+kubebuilder:validation:Optional
-	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
-
+	// The port the deployment exposes
+	//
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
-	//+kubebuilder:validation:Optional
-	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
-	//+kubebuilder:validation:Optional
-	Liveness *Probe `json:"liveness,omitempty"`
-	//+kubebuilder:validation:Optional
-	Readiness *Probe `json:"readiness,omitempty"`
-	//+kubebuilder:validation:Optional
-	Startup *Probe `json:"startup,omitempty"`
 
+	// Any external hostnames that route to this application. Using a skip.statkart.no-address
+	// will make the application reachable for kartverket-clients (internal), other addresses
+	// make the app reachable on the internet. Note that other addresses than skip.statkart.no
+	// (also known as pretty hostnames) requires additional DNS setup.
+	// The below hostnames will also have TLS certificates issued and be reachable on both
+	// HTTP and HTTPS.
+	//
 	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
 	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
-	// Controls whether or not the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
+	// Configuration used to automatically scale the deployment based on load. If Replicas is set you must set Replicas.Min.
+	//
+	//+kubebuilder:validation:Optional
+	Replicas Replicas `json:"replicas,omitempty"`
+
+	// An optional priority. Supported values are 'low', 'medium' and 'high'.
+	// The default value is 'medium'.
+	//
+	// Most workloads should not have to specify this field. If you think you
+	// do, please consult with SKIP beforehand.
+	//
+	//+kubebuilder:validation:Enum=low;medium;high
+	//+kubebuilder:default=medium
+	Priority string `json:"priority,omitempty"`
+
+	// Override the command set in the Dockerfile. Usually only used when debugging
+	// or running third-party containers where you don't have control over the Dockerfile
+	//
+	//+kubebuilder:validation:Optional
+	Command []string `json:"command,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	Resources ResourceRequirements `json:"resources,omitempty"`
+
+	// Defines an alternative strategy for the Kubernetes deployment. This is useful when
+	// the default strategy, RollingUpdate, is not usable. Setting type to
+	// Recreate will take down all the pods before starting new pods, whereas the
+	// default of RollingUpdate will try to start the new pods before taking down the
+	// old ones.
+	//
+	// Valid values are: RollingUpdate, Recreate. Default is RollingUpdate
+	//
+	//+kubebuilder:validation:Optional
+	Strategy Strategy `json:"strategy,omitempty"`
+
+	// Environment variables that will be set inside the Deployment's Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.
+	//
+	//+kubebuilder:validation:Optional
+	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// Environment variables mounted from files. When specified all the keys of the
+	// resource will be assigned as environment variables. Supports both configmaps
+	// and secrets.
+	//
+	// For mounting as files see FilesFrom.
+	//
+	//+kubebuilder:validation:Optional
+	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
+
+	// Mounting volumes into the Deployment are done using the FilesFrom argument
+	//
+	// FilesFrom supports ConfigMaps, Secrets and PVCs. The Application resource
+	// assumes these have already been created by you, and will fail if this is not the case.
+	//
+	// For mounting environment variables see EnvFrom.
+	//
+	//+kubebuilder:validation:Optional
+	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+
+	// Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
 	// This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
 	//
 	//+kubebuilder:validation:Optional
@@ -81,6 +132,13 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
 
+	// For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
+	// to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
+	// service account and bind this to the Pod's Kubernetes SA.
+	//
+	// Documentation on how this is done can be found here (Closed Wiki):
+	// https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+	//
 	//+kubebuilder:validation:Optional
 	GCP *GCP `json:"gcp,omitempty"`
 
@@ -89,6 +147,33 @@ type ApplicationSpec struct {
 
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
+
+	// Liveness probes define a resource that returns 200 OK when the app is running
+	// as intended. Returning a non-200 code will make kubernetes restart the app.
+	// Liveness is optional, but when provided, path and port are required
+	//
+	// See Probe for structure definition.
+	//
+	//+kubebuilder:validation:Optional
+	Liveness *Probe `json:"liveness,omitempty"`
+
+	// Readiness probes define a resource that returns 200 OK when the app is running
+	// as intended. Kubernetes will wait until the resource returns 200 OK before
+	// marking the pod as Running and progressing with the deployment strategy.
+	// Readiness is optional, but when provided, path and port are required
+	//
+	//+kubebuilder:validation:Optional
+	Readiness *Probe `json:"readiness,omitempty"`
+
+	// Kubernetes uses startup probes to know when a container application has started.
+	// If such a probe is configured, it disables liveness and readiness checks until it
+	// succeeds, making sure those probes don't interfere with the application startup.
+	// This can be used to adopt liveness checks on slow starting containers, avoiding them
+	// getting killed by Kubernetes before they are up and running.
+	// Startup is optional, but when provided, path and port are required
+	//
+	//+kubebuilder:validation:Optional
+	Startup *Probe `json:"startup,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -104,11 +189,21 @@ type ResourceRequirements struct {
 }
 
 type Replicas struct {
+	// Min represents the minimum number of replicas when load is low.
+	// Note that the SKIP team recommends that you set this to at least two, but this is only required for production.
+	//
 	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
+
+	// Max represents the maximum number of replicas the deployment is allowed to scale to
+	//
 	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
+	// When the average CPU utilization across all pods crosses this threshold another replica is started, up to a maximum of Max
+	//
+	// TargetCpuUtilization is an integer representing a percentage.
+	//
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
@@ -141,18 +236,37 @@ type FilesFrom struct {
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 }
 
+// Probe
+//
+// Type configuration for all types of Kubernetes probes.
 type Probe struct {
-	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
-	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
-	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
+	// Number of the port to access on the container
+	//
 	//+kubebuilder:validation:Required
 	Port uint16 `json:"port"`
+
+	// The path to access on the HTTP server
+	//
 	//+kubebuilder:validation:Required
 	Path string `json:"path"`
+
+	// Delay sending the first probe by X seconds. Can be useful for applications that
+	// are slow to start.
+	//
+	//+kubebuilder:validation:Optional
+	InitialDelay uint `json:"initialDelay,omitempty"`
+
+	// Number of seconds after which the probe times out. Defaults to 1 second.
+	// Minimum value is 1
+	//
+	//+kubebuilder:validation:Optional
+	Timeout uint `json:"timeout,omitempty"`
+
+	// Minimum consecutive failures for the probe to be considered failed after
+	// having succeeded. Defaults to 3. Minimum value is 1
+	//
+	//+kubebuilder:validation:Optional
+	FailureThreshold uint `json:"failureThreshold,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -215,11 +329,19 @@ type InternalPort struct {
 	Protocol corev1.Protocol `json:"protocol"`
 }
 
+// GCP
+//
+// Configuration for interacting with Google Cloud Platform
 type GCP struct {
+	// Configuration for authenticating a Pod with Google Cloud Platform
+	//
 	//+kubebuilder:validation:Required
 	Auth Auth `json:"auth"`
 }
 
+// Auth
+//
+// Configuration for authenticating a Pod with Google Cloud Platform
 type Auth struct {
 	//+kubebuilder:validation:Required
 	ServiceAccount string `json:"serviceAccount"`

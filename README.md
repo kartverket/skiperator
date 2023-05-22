@@ -21,20 +21,12 @@ See also [the documentation directory](https://github.com/kartverket/skiperator/
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  # *Required*: The name of the Application and the created resources
   name: teamname-frontend
-  # *Required*: The namespace the Application and the created resources will be in
   namespace: yournamespace
 spec:
-  # *Required*: A deployment will be created and this image will be run
   image: "kartverket/example"
-  # The port the deployment exposes
+  
   port: 8080
-  # An optional priority. Supported values are 'low', 'medium' and 'high'.
-  # The default value is 'medium'.
-  #
-  # Most workloads should not have to specify this field. If you think you
-  # do, please consult with SKIP beforehand.
   priority: medium
   # An optional list of extra port to expose on a pod level basis,
   # for example so Instana or other APM tools can reach it
@@ -45,35 +37,16 @@ spec:
     - name: another-port
       port: 8282
       protocol: TCP
-  # Override the command set in the Dockerfile. Usually only used when debugging
-  # or running third-party containers where you don't have control over the Dockerfile
   command:
     - node
     - ./server.js
-  # Any external hostnames that route to this application. Using a skip.statkart.no-address
-  # will make the application reachable for kartverket-clients (internal), other adresses
-  # make the app reachable on the internet. Note that other adresses than skip.statkart.no
-  # (also known as pretty hostnames) requires additional DNS setup.
-  # The below hostnames will also have TLS certificates issued and be reachable on both
-  # HTTP and HTTPS.
-  # Ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
   ingresses:
     - testapp.dev.skip.statkart.no
-  # Configuration used to automatically scale the deployment based on load
   replicas:
-    # Minimum number of replicas when load is low
     min: 3
-    # Maximum number of replicas the deployment is allowed to scale to
     max: 5
-    # When the average CPU utilization crosses this threshold another replica is started
     targetCpuUtilization: 80
-  # To interact with GCP.
   gcp:
-    # For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-    # to set the GCP serviceaccount to identify as. To allow this, we need a iam-rolebinding in
-    # GCP Adding the role Workload Identity User for the kubernetes SA on the GCP SA.
-    # Documentation on how this is done can be found here:
-    # https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
     auth:
       serviceAccount: some-serviceaccount@some-project-id.iam.gserviceaccount.com
   # Environment variables that will be set inside the Deployment's pod
@@ -93,15 +66,9 @@ spec:
         secretKeyRef:
           name: some-secret
           key: password
-  # Environment variables mounted from files. When specified all the keys of the
-  # resource will be assigned as environment variables. Supports both configmaps
-  # and secrets. For mounting as files see filesFrom
   envFrom:
     - configMap: some-configmap
     - secret: some-secret
-  # Mounting volumes into the Deployment are done using the filesFrom argument
-  # filesFrom supports configmaps, secrets and pvcs. The Application resource
-  # assumes these have already been created by you
   filesFrom:
     - emptyDir: temp-dir
       mountPath: /tmp
@@ -111,44 +78,20 @@ spec:
       mountPath: /var/run/secret
     - persistentVolumeClaim: some-pvc
       mountPath: /var/run/volume
-  # Defines an alternative strategy for the Kubernetes deployment is useful for when
-  # the deafult which is rolling deployments are not usable. Setting type to
-  # Recreate will take down all the pods before starting new pods, whereas the
-  # default of RollingUpdate will try to start the new pods before taking down the
-  # old ones
+  
   strategy:
     # Valid values: RollingUpdate, Recreate. Default RollingUpdate
     type: RollingUpdate
-  # Liveness probes define a resource that returns 200 OK when the app is running
-  # as intended. Returning a non-200 code will make kubernetes restart the app.
-  # Liveness is optional, but when provided path and port is requred
+  
   liveness:
-    # The path to access on the HTTP server
-    path: /healthz
-    # Number of the port to access on the container
+    path: "/"
     port: 8080
-    # Minimum consecutive failures for the probe to be considered failed after
-    # having succeeded. Defaults to 3. Minimum value is 1
     failureThreshold: 3
-    # Number of seconds after which the probe times out. Defaults to 1 second.
-    # Minimum value is 1
     timeout: 1
-    # Delay sending the first probe by X seconds. Can be useful for applications that
-    # are slow to start.
     initialDelay: 0
-  # Readiness probes define a resource that returns 200 OK when the app is running
-  # as intended. Kubernetes will wait until the resource returns 200 OK before
-  # marking the pod as Running and progressing with the deployment strategy.
-  # Readiness is optional, but when provided path and port is requred
   readiness:
     # Readiness has the same options as liveness
     path: ..
-  # Kubernetes uses startup probes to know when a container application has started.
-  # If such a probe is configured, it disables liveness and readiness checks until it
-  # succeeds, making sure those probes don't interfere with the application startup.
-  # This can be used to adopt liveness checks on slow starting containers, avoiding them
-  # getting killed by Kubernetes before they are up and running.
-  # Startup is optional, but when provided path and port is requred
   startup:
     # Startup has the same options as liveness
     path: ..
