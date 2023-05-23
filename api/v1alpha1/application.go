@@ -111,6 +111,8 @@ type AuthorizationSettings struct {
 
 	// Allows specific endpoints. Common endpoints one might want to allow include /actuator/health, /actuator/startup, /actuator/info.
 	//
+	// Note that endpoints are matched specifically on the input, so if you allow /actuator/health, you will *not* allow /actuator/health/
+	//
 	//+kubebuilder:validation:Optional
 	AllowList []string `json:"allowList,omitempty"`
 }

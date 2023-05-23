@@ -138,8 +138,11 @@ spec:
                       contents of AllowList will be used instead if AllowList is set.
                     type: boolean
                   allowList:
-                    description: Allows specific endpoints. Common endpoints one might
-                      want to allow include /actuator/health, /actuator/startup, /actuator/info.
+                    description: "Allows specific endpoints. Common endpoints one
+                      might want to allow include /actuator/health, /actuator/startup,
+                      /actuator/info. \n Note that endpoints are matched specifically
+                      on the input, so if you allow /actuator/health, you will *not*
+                      allow /actuator/health/"
                     items:
                       type: string
                     type: array

@@ -178,6 +178,7 @@ spec:
     allowAll: false
     # Default empty
     # Endpoints must be prefixed with /
+    # Note that endpoints are matched specifically on the input, so if you for example allow /actuator/health, you will *not* allow /actuator/health/
     allowList:
       - "/actuator/health"
       - "/actuator/info"
