@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: authorization-settings-allow-list
+  name: allow-list
 spec:
   image: image
   port: 8080
@@ -13,7 +13,7 @@ spec:
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: authorization-settings-allow-all
+  name: allow-all
 spec:
   image: image
   port: 8080

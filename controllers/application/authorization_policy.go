@@ -34,50 +34,6 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 			return reconcile.Result{}, nil
 		}
-
-		allowListAuthPolicy := getAllowListPolicy(application)
-		if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
-			newAllowRule := securityv1beta1api.Rule{
-				To:   []*securityv1beta1api.Rule_To{},
-				From: getGeneralFromRule(),
-			}
-			for _, endpoint := range application.Spec.AuthorizationSettings.AllowList {
-				newToRule := securityv1beta1api.Rule_To{
-					Operation: &securityv1beta1api.Operation{
-						Paths: []string{endpoint},
-					},
-				}
-
-				newAllowRule.To = append(newAllowRule.To, &newToRule)
-			}
-
-			_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &allowListAuthPolicy, func() error {
-				err := ctrlutil.SetControllerReference(application, &allowListAuthPolicy, r.GetScheme())
-				if err != nil {
-					r.SetControllerError(ctx, application, controllerName, err)
-					return err
-				}
-				// Reinitialise instead of append to avoid appending rules on AllowList change
-				allowListAuthPolicy.Spec.Rules = []*securityv1beta1api.Rule{&newAllowRule}
-
-				r.SetLabelsFromApplication(ctx, &allowListAuthPolicy, *application)
-				util.SetCommonAnnotations(&allowListAuthPolicy)
-
-				return nil
-			})
-
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
-			}
-		} else {
-			err := r.GetClient().Delete(ctx, &allowListAuthPolicy)
-			err = client.IgnoreNotFound(err)
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
-			}
-		}
 	}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &defaultDenyAuthPolicy, func() error {
@@ -89,6 +45,19 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 
 		r.SetLabelsFromApplication(ctx, &defaultDenyAuthPolicy, *application)
 		util.SetCommonAnnotations(&defaultDenyAuthPolicy)
+
+		if application.Spec.AuthorizationSettings != nil {
+
+			// As of now we only use one rule and one operation for all default denies. No need to loop over them all
+			defaultDenyToOperation := defaultDenyAuthPolicy.Spec.Rules[0].To[0].Operation
+			defaultDenyToOperation.NotPaths = nil
+
+			if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
+				for _, endpoint := range application.Spec.AuthorizationSettings.AllowList {
+					defaultDenyToOperation.NotPaths = append(defaultDenyToOperation.NotPaths, endpoint)
+				}
+			}
+		}
 
 		// update defaultDenyAuthPolicy rules and action
 		return nil
@@ -132,22 +101,6 @@ func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths
 			Selector: &typev1beta1.WorkloadSelector{
 				MatchLabels: util.GetApplicationSelector(application.Name),
 			},
-		},
-	}
-}
-
-func getAllowListPolicy(application *skiperatorv1alpha1.Application) securityv1beta1.AuthorizationPolicy {
-	return securityv1beta1.AuthorizationPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: application.Namespace,
-			Name:      application.Name + "-allow",
-		},
-		Spec: securityv1beta1api.AuthorizationPolicy{
-			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
-			},
-			Rules:  []*securityv1beta1api.Rule{},
-			Action: securityv1beta1api.AuthorizationPolicy_ALLOW,
 		},
 	}
 }

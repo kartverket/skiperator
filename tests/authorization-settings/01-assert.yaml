@@ -1,28 +1,8 @@
+
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: authorization-settings-allow-list-allow
-spec:
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /actuator/info
-        - operation:
-            paths:
-              - /actuator/shutdown
-  selector:
-    matchLabels:
-      app: authorization-settings-allow-list
----
-apiVersion: security.istio.io/v1beta1
-kind: AuthorizationPolicy
-metadata:
-  name: authorization-settings-allow-list-deny
+  name: allow-list-deny
 spec:
   action: DENY
   rules:
@@ -34,9 +14,12 @@ spec:
         - operation:
             paths:
               - /actuator*
+            notPaths:
+              - /actuator/info
+              - /actuator/shutdown
   selector:
     matchLabels:
-      app: authorization-settings-allow-list
+      app: allow-list
 # This assertion does not work in the emulated control plane of Kuttl. See https://github.com/kudobuilder/kuttl/issues/471
 # for progress regarding this issue
 # TODO Add this back when issue fixed
@@ -44,7 +27,7 @@ spec:
 #apiVersion: security.istio.io/v1beta1
 #kind: AuthorizationPolicy
 #metadata:
-#  name: authorization-settings-allow-all-deny
+#  name: allow-all-deny
 #spec:
 #  action: DENY
 #  rules:
@@ -58,4 +41,5 @@ spec:
 #              - /actuator*
 #  selector:
 #    matchLabels:
-#      app: authorization-settings-allow-all
+#      app: allow-all
+

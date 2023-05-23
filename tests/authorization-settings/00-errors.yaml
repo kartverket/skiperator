@@ -1,18 +1,4 @@
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
-  name: authorization-settings-allow-all-deny
-spec:
-  action: DENY
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /actuator*
-  selector:
-    matchLabels:
-      app: authorization-settings-allow-all
+  name: allow-all-deny
