@@ -16,6 +16,11 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	controllerName := "ServiceMonitor"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
+	if !r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com") {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+		return reconcile.Result{}, nil
+	}
+
 	if !hasMetricsPort(application) {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 		return reconcile.Result{}, nil
