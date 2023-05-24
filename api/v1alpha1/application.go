@@ -81,6 +81,10 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
+	// ResourceRequirements to apply to the deployment. It's common to set some of these to
+	// prevent the app from swelling in resource usage and consuming all the
+	// resources of other apps on the cluster.
+	//
 	//+kubebuilder:validation:Optional
 	Resources ResourceRequirements `json:"resources,omitempty"`
 
@@ -119,6 +123,9 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
 
+	// An optional list of extra port to expose on a pod level basis,
+	// for example so Instana or other APM tools can reach it
+	//
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
 
@@ -129,6 +136,9 @@ type ApplicationSpec struct {
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
+
+	// The root AccessPolicy for managing zero trust access to your Application. See AccessPolicy for more information.
+	//
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
 
@@ -142,9 +152,18 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	GCP *GCP `json:"gcp,omitempty"`
 
+	// Labels can be used if you want every resource created by your application to
+	// have the same labels, including your application. This could for example be useful for
+	// metrics, where a certain label and the corresponding resources liveliness can be combined.
+	// Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+	//
 	//+kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
+	// ResourceLabels can be used if you want to add a label to a specific resources created by
+	// the application. One such label could for example be set on a Deployment, such that
+	// the deployment avoids certain rules from Gatekeeper, or similar. Any amount of labels may be added per ResourceLabels item.
+	//
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 
@@ -176,14 +195,28 @@ type ApplicationSpec struct {
 	Startup *Probe `json:"startup,omitempty"`
 }
 
+// ResourceRequirements
+//
+// A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.
+// For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes
+//
 // +kubebuilder:object:generate=true
 type ResourceRequirements struct {
-	// TODO
-	// Remember to reasess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
 
+	// Limits set the maximum the app is allowed to use. Exceeding this limit will
+	// make kubernetes kill the app and restart it.
+	//
+	// Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
+	//
 	//+kubebuilder:validation:Optional
 	Limits corev1.ResourceList `json:"limits,omitempty"`
 
+	// Requests set the initial allocation that is done for the app and will
+	// thus be available to the app on startup. More is allocated on demand
+	// until the limit is reached.
+	//
+	// Requests can be set on the CPU and memory.
+	//
 	//+kubebuilder:validation:Optional
 	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
@@ -208,7 +241,13 @@ type Replicas struct {
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
+// Strategy
+//
+// Object representing a Kubernetes deployment strategy. Currently only contains a Type object,
+// could probably be omitted in favour of directly using the Type.
 type Strategy struct {
+	// Valid values are: RollingUpdate, Recreate. Default is RollingUpdate
+	//
 	//+kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
@@ -216,13 +255,24 @@ type Strategy struct {
 }
 
 type EnvFrom struct {
+	// Name of Kubernetes ConfigMap in which the deployment should mount environment variables from. Must be in the same namespace as the Application
+	//
 	//+kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
+
+	// Name of Kubernetes Secret in which the deployment should mount environment variables from. Must be in the same namespace as the Application
+	//
 	//+kubebuilder:validation:Optional
 	Secret string `json:"secret,omitempty"`
 }
 
+// FilesFrom
+//
+// Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
+// One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present. 
 type FilesFrom struct {
+	// The path to mount the file in the Pods directory. Required.
+	//
 	//+kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
@@ -269,50 +319,122 @@ type Probe struct {
 	FailureThreshold uint `json:"failureThreshold,omitempty"`
 }
 
+// AccessPolicy
+//
+// Zero trust dictates that only applications with a reason for being able
+// to access another resource should be able to reach it. This is set up by
+// default by denying all ingress and egress traffic from the Pods in the
+// Deployment. The AccessPolicy field is an allowlist of other applications and hostnames
+// that are allowed to talk with this Application and which resources this app can talk to
+//
 // +kubebuilder:object:generate=true
 type AccessPolicy struct {
+	// Inbound specifies the ingress rules. Which apps on the cluster can talk to this app?
+	//
 	//+kubebuilder:validation:Optional
 	Inbound InboundPolicy `json:"inbound,omitempty"`
+
+	// Outbound specifies egress rules. Which apps on the cluster and the
+	// internet is the Application allowed to send requests to?
+	//
 	//+kubebuilder:validation:Optional
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
-// +kubebuilder:object:generate=true
+// InboundPolicy
+//
+//+kubebuilder:object:generate=true
 type InboundPolicy struct {
+	// The rules list specifies a list of applications. When no namespace is
+	// specified it refers to an app in the current namespace. For apps in
+	// other namespaces namespace is required
+	//
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 
-// +kubebuilder:object:generate=true
+// OutboundPolicy
+//
+// The rules list specifies a list of applications that are reachable on the cluster.
+// Note that the application you're trying to reach also must specify that they accept communication
+// from this app in their ingress rules.
+//
+//+kubebuilder:object:generate=true
 type OutboundPolicy struct {
+	// Rules apply the same in-cluster rules as InboundPolicy
+	//
 	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules,omitempty"`
+
+	// External specifies which applications on the internet the application
+	// can reach. Only host is required unless it is on another port than HTTPS port 443.
+	// If other ports or protocols are required then `ports` must be specified as well
+	//
 	//+kubebuilder:validation:Optional
 	External []ExternalRule `json:"external,omitempty"`
 }
 
+// InternalRule
+//
+// The rules list specifies a list of applications. When no namespace is
+// specified it refers to an app in the current namespace. For apps in
+// other namespaces namespace is required
+//
+//+kubebuilder:validation:Optional
 type InternalRule struct {
+	// The namespace in which the Application you are allowing traffic to/from resides. If unset, uses namespace of Application.
+	//
 	//+kubebuilder:validation:Optional
 	Namespace string `json:"namespace,omitempty"`
+
+	// The name of the Application you are allowing traffic to/from.
+	//
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 }
 
+// ExternalRule
+//
+// Describes a rule for allowing your Application to route traffic to external applications and hosts.
+//
 // +kubebuilder:object:generate=true
 type ExternalRule struct {
+	// The allowed hostname. Note that this does not include subdomains.
+	//
 	//+kubebuilder:validation:Required
+
 	Host string `json:"host"`
+	// Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
+	// Only required for TCP requests.
+	//
+	// Note: Hostname must always be defined even if IP is set statically
+	//
 	//+kubebuilder:validation:Optional
 	Ip string `json:"ip,omitempty"`
+
+	// The ports to allow for the above hostname. When not specified HTTP and
+	// HTTPS on port 80 and 443 respectively are put into the allowlist
+	//
 	//+kubebuilder:validation:Optional
 	Ports []ExternalPort `json:"ports,omitempty"`
 }
 
+// ExternalPort
+//
+// A custom port describing an external host
 type ExternalPort struct {
+	// Name is required and is an arbitrary name. Must be unique within all ExternalRule ports.
+	//
 	//+kubebuilder:validation:Required
 	Name string `json:"name"`
+
+	// The port number of the external host
+	//
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
+
+	// The protocol to use for communication with the host. Only HTTP, HTTPS and TCP are supported.
+	//
 	//+kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
 	Protocol string `json:"protocol"`
@@ -343,17 +465,27 @@ type GCP struct {
 //
 // Configuration for authenticating a Pod with Google Cloud Platform
 type Auth struct {
+	// Name of the service account in which you are trying to authenticate your pod with
+	// Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com
+	//
 	//+kubebuilder:validation:Required
 	ServiceAccount string `json:"serviceAccount"`
 }
 
+// ApplicationStatus
+//
+// A status field shown on the Application resource which contains information regarding all controllers present on the Application.
+// Will for example show errors on the Deployment field when something went wrong when attempting to create a Deployment.
+//
 // +kubebuilder:object:generate=true
 type ApplicationStatus struct {
 	ApplicationStatus Status            `json:"application"`
 	ControllersStatus map[string]Status `json:"controllers"`
 }
 
-// +kubebuilder:object:generate=true
+// Status
+//
+//+kubebuilder:object:generate=true
 type Status struct {
 	// +kubebuilder:default="Synced"
 	Status StatusNames `json:"status"`
