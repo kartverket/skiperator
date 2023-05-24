@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -67,14 +66,8 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
-		Watches(
-			&source.Kind{Type: &certmanagerv1.Certificate{}},
-			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),
-		).
-		Watches(
-			&source.Kind{Type: &corev1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService),
-		).
+		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
+		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
