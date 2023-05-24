@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/slices"
@@ -16,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(obj client.Object) []reconcile.Request {
+func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
 	certificate, isCert := obj.(*certmanagerv1.Certificate)
 
 	if !isCert {
@@ -45,28 +46,22 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
-		name := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
+		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 
-		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: name}}
+		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
 			r.SetLabelsFromApplication(ctx, &certificate, *application)
 
-			certificate.Spec.IssuerRef.Kind = "ClusterIssuer"
-			certificate.Spec.IssuerRef.Name = "cluster-issuer" // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
-			certificate.Spec.DNSNames = []string{hostname}
-			certificate.Spec.SecretName = name
-
-			certLabels := certificate.Labels
-			if len(certLabels) == 0 {
-				certLabels = make(map[string]string)
+			certificate.Spec = certmanagerv1.CertificateSpec{
+				IssuerRef: v1.ObjectReference{
+					Kind: "ClusterIssuer",
+					Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
+				},
+				DNSNames:   []string{hostname},
+				SecretName: certificateName,
 			}
-			certLabels["app.kubernetes.io/managed-by"] = "skiperator"
 
-			// TODO Find better label names here
-			certLabels["application.skiperator.no/app-name"] = application.Name
-			certLabels["application.skiperator.no/app-namespace"] = application.Namespace
-
-			certificate.Labels = certLabels
+			certificate.Labels = getLabels(certificate, application)
 
 			return nil
 		})
@@ -113,6 +108,20 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func getLabels(certificate certmanagerv1.Certificate, application *skiperatorv1alpha1.Application) map[string]string {
+	certLabels := certificate.Labels
+	if len(certLabels) == 0 {
+		certLabels = make(map[string]string)
+	}
+	certLabels["app.kubernetes.io/managed-by"] = "skiperator"
+
+	// TODO Find better label names here
+	certLabels["application.skiperator.no/app-name"] = application.Name
+	certLabels["application.skiperator.no/app-namespace"] = application.Namespace
+
+	return certLabels
 }
 
 func (r *ApplicationReconciler) GetSkiperatorOwnedCertificates(context context.Context) (certmanagerv1.CertificateList, error) {

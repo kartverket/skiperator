@@ -20,8 +20,11 @@ func (r *NamespaceReconciler) reconcileSidecar(ctx context.Context, namespace *c
 			return err
 		}
 
-		sidecar.Spec.OutboundTrafficPolicy = &networkingv1beta1api.OutboundTrafficPolicy{}
-		sidecar.Spec.OutboundTrafficPolicy.Mode = networkingv1beta1api.OutboundTrafficPolicy_REGISTRY_ONLY
+		sidecar.Spec = networkingv1beta1api.Sidecar{
+			OutboundTrafficPolicy: &networkingv1beta1api.OutboundTrafficPolicy{
+				Mode: networkingv1beta1api.OutboundTrafficPolicy_REGISTRY_ONLY,
+			},
+		}
 
 		return nil
 	})

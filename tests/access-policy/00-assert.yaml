@@ -23,10 +23,19 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
+              kubernetes.io/metadata.name: test
+          podSelector:
+            matchLabels:
+              app: access-policy-two
+      ports:
+        - port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
               kubernetes.io/metadata.name: other
           podSelector:
             matchLabels:
-              app: other
+              app: access-policy-other
       ports:
         - port: 8080
 ---

@@ -27,22 +27,27 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
 		util.SetCommonAnnotations(&horizontalPodAutoscaler)
 
-		horizontalPodAutoscaler.Spec.ScaleTargetRef.APIVersion = "apps/v1"
-		horizontalPodAutoscaler.Spec.ScaleTargetRef.Kind = "Deployment"
-		horizontalPodAutoscaler.Spec.ScaleTargetRef.Name = application.Name
-
-		min := int32(application.Spec.Replicas.Min)
-		horizontalPodAutoscaler.Spec.MinReplicas = &min
-		max := int32(application.Spec.Replicas.Max)
-		horizontalPodAutoscaler.Spec.MaxReplicas = max
-
-		horizontalPodAutoscaler.Spec.Metrics = make([]autoscalingv2.MetricSpec, 1)
-		horizontalPodAutoscaler.Spec.Metrics[0].Type = autoscalingv2.ResourceMetricSourceType
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource = &autoscalingv2.ResourceMetricSource{}
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Name = "cpu"
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Target.Type = autoscalingv2.UtilizationMetricType
-		averageUtilization := int32(application.Spec.Replicas.TargetCpuUtilization)
-		horizontalPodAutoscaler.Spec.Metrics[0].Resource.Target.AverageUtilization = &averageUtilization
+		horizontalPodAutoscaler.Spec = autoscalingv2.HorizontalPodAutoscalerSpec{
+			ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       application.Name,
+			},
+			MinReplicas: util.PointTo(int32(application.Spec.Replicas.Min)),
+			MaxReplicas: int32(application.Spec.Replicas.Max),
+			Metrics: []autoscalingv2.MetricSpec{
+				{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricSource{
+						Name: "cpu",
+						Target: autoscalingv2.MetricTarget{
+							Type:               autoscalingv2.UtilizationMetricType,
+							AverageUtilization: util.PointTo(int32(application.Spec.Replicas.TargetCpuUtilization)),
+						},
+					},
+				},
+			},
+		}
 
 		return nil
 	})

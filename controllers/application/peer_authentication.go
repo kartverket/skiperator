@@ -26,15 +26,17 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 			return err
 		}
 
+		peerAuthentication.Spec = securityv1beta1api.PeerAuthentication{
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: util.GetApplicationSelector(application.Name),
+			},
+			Mtls: &securityv1beta1api.PeerAuthentication_MutualTLS{
+				Mode: securityv1beta1api.PeerAuthentication_MutualTLS_STRICT,
+			},
+		}
+
 		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
 		util.SetCommonAnnotations(&peerAuthentication)
-
-		peerAuthentication.Spec.Selector = &typev1beta1.WorkloadSelector{}
-		labels := map[string]string{"app": application.Name}
-		peerAuthentication.Spec.Selector.MatchLabels = labels
-
-		peerAuthentication.Spec.Mtls = &securityv1beta1api.PeerAuthentication_MutualTLS{}
-		peerAuthentication.Spec.Mtls.Mode = securityv1beta1api.PeerAuthentication_MutualTLS_STRICT
 
 		return nil
 	})

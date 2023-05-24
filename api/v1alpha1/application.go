@@ -35,6 +35,9 @@ type Application struct {
 type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
+	//+kubebuilder:validation:Enum=low;medium;high
+	//+kubebuilder:default=medium
+	Priority string `json:"priority,omitempty"`
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
@@ -63,12 +66,17 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Startup *Probe `json:"startup,omitempty"`
 
+	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
+	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
+	// Controls whether or not the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
+	// This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
+	//
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
-	RedirectToHTTPS bool `json:"redirectToHTTPS,omitempty"`
+	//+kubebuilder:default:=true
+	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`

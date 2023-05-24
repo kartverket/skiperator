@@ -77,7 +77,7 @@ jobs:
       security-events: write
     steps:
       - name: Run Pharos
-        uses: kartverket/pharos@v0.1.0
+        uses: kartverket/pharos@v0.1.1
         with:
           image_url: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{needs.build.outputs.image_digest}}"
 
@@ -147,5 +147,5 @@ jobs:
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator ${{github.ref_name}}"
+          git commit -am "Deploy Skiperator, commit: ${{ github.event.head_commit.message }}"
           git push

@@ -2,6 +2,9 @@ package applicationcontroller
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+
 	policyv1 "k8s.io/api/policy/v1"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -17,6 +20,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -63,14 +66,8 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
-		Watches(
-			&source.Kind{Type: &certmanagerv1.Certificate{}},
-			handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests),
-		).
-		Watches(
-			&source.Kind{Type: &corev1.Service{}},
-			handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService),
-		).
+		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
+		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
@@ -96,6 +93,31 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"Application "+application.Name+" has started reconciliation loop",
 	)
 
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+			if err := r.finalizeApplication(ctx, application); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
+			err := r.GetClient().Update(ctx, application)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
+
+	err = r.validateApplicationSpec(application)
+	if err != nil {
+		r.GetRecorder().Eventf(
+			application,
+			corev1.EventTypeWarning, "InvalidApplication",
+			"Application failed validation and was rejected, error: %s", err.Error(),
+		)
+		return reconcile.Result{}, err
+	}
+
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
 		r.initializeApplicationStatus,
 		r.initializeApplication,
@@ -117,21 +139,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	for _, fn := range controllerDuties {
 		if _, err := fn(ctx, application); err != nil {
 			return reconcile.Result{}, err
-		}
-	}
-
-	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
-	if isApplicationMarkedToBeDeleted {
-		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
-			if err := r.finalizeApplication(ctx, application); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
-			err := r.GetClient().Update(ctx, application)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
 		}
 	}
 
@@ -205,4 +212,34 @@ func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, applica
 
 	}
 	return err
+}
+
+func (r *ApplicationReconciler) validateApplicationSpec(application *skiperatorv1alpha1.Application) error {
+	validationFunctions := []func(application *skiperatorv1alpha1.Application) error{
+		ValidateIngresses,
+	}
+
+	for _, validationFunction := range validationFunctions {
+		err := validationFunction(application)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
+	matchExpression, _ := regexp.Compile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
+	for _, ingress := range application.Spec.Ingresses {
+		if !matchExpression.MatchString(ingress) {
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", ingress)
+			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
+				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
+			})
+		}
+	}
+
+	return nil
 }

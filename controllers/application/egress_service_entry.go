@@ -35,45 +35,16 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
 			util.SetCommonAnnotations(&serviceEntry)
 
-			// Avoid leaking service entry to other namespaces
-			serviceEntry.Spec.ExportTo = []string{".", "istio-system", "istio-gateways"}
+			resolution, adresses, endpoints := getIpData(rule.Ip)
 
-			serviceEntry.Spec.Hosts = []string{rule.Host}
-			if rule.Ip == "" {
-				serviceEntry.Spec.Resolution = networkingv1beta1api.ServiceEntry_DNS
-			} else {
-				serviceEntry.Spec.Resolution = networkingv1beta1api.ServiceEntry_STATIC
-				serviceEntry.Spec.Addresses = []string{rule.Ip}
-				serviceEntry.Spec.Endpoints = []*networkingv1beta1api.WorkloadEntry{{Address: rule.Ip}}
-			}
-
-			ports := rule.Ports
-
-			// When not specified default to opening HTTPS
-			if len(ports) == 0 {
-				ports = make([]skiperatorv1alpha1.ExternalPort, 1)
-
-				ports[0].Name = "https"
-				ports[0].Port = 443
-				ports[0].Protocol = "HTTPS"
-			}
-
-			serviceEntry.Spec.Ports = make([]*networkingv1beta1api.Port, len(ports))
-			for i, port := range ports {
-				if rule.Ip == "" && port.Protocol == "TCP" {
-					r.GetRecorder().Eventf(
-						application,
-						corev1.EventTypeWarning, "Invalid",
-						"A static IP must be set for TCP port %d",
-						port.Port,
-					)
-					continue
-				}
-
-				serviceEntry.Spec.Ports[i] = &networkingv1beta1api.Port{}
-				serviceEntry.Spec.Ports[i].Name = port.Name
-				serviceEntry.Spec.Ports[i].Number = uint32(port.Port)
-				serviceEntry.Spec.Ports[i].Protocol = port.Protocol
+			serviceEntry.Spec = networkingv1beta1api.ServiceEntry{
+				// Avoid leaking service entry to other namespaces
+				ExportTo:   []string{".", "istio-system", "istio-gateways"},
+				Hosts:      []string{rule.Host},
+				Resolution: resolution,
+				Addresses:  adresses,
+				Endpoints:  endpoints,
+				Ports:      r.getPorts(rule.Ports, rule.Ip, *application),
 			}
 
 			return nil
@@ -127,6 +98,49 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func (r ApplicationReconciler) getPorts(externalPorts []skiperatorv1alpha1.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.Port {
+	ports := []*networkingv1beta1api.Port{}
+
+	if len(externalPorts) == 0 {
+		ports = append(ports, &networkingv1beta1api.Port{
+			Name:     "https",
+			Number:   uint32(443),
+			Protocol: "HTTPS",
+		})
+
+		return ports
+	}
+
+	for _, port := range externalPorts {
+		if ruleIP == "" && port.Protocol == "TCP" {
+			r.GetRecorder().Eventf(
+				&application,
+				corev1.EventTypeWarning, "Invalid",
+				"A static IP must be set for TCP port %d",
+				port.Port,
+			)
+			continue
+		}
+
+		ports = append(ports, &networkingv1beta1api.Port{
+			Name:     port.Name,
+			Number:   uint32(port.Port),
+			Protocol: port.Protocol,
+		})
+
+	}
+
+	return ports
+}
+
+func getIpData(ip string) (networkingv1beta1api.ServiceEntry_Resolution, []string, []*networkingv1beta1api.WorkloadEntry) {
+	if ip == "" {
+		return networkingv1beta1api.ServiceEntry_DNS, nil, nil
+	}
+
+	return networkingv1beta1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1beta1api.WorkloadEntry{{Address: ip}}
 }
 
 // Filter for service entries named like *-egress-*
