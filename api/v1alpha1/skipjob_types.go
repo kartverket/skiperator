@@ -52,9 +52,6 @@ type SKIPJobList struct {
 	Items           []SKIPJob `json:"items"`
 }
 
-type JobSettings struct {
-}
-
 // SKIPJobSpec defines the desired state of SKIPJob
 // +kubebuilder:object:generate=true
 type SKIPJobSpec struct {
@@ -62,6 +59,7 @@ type SKIPJobSpec struct {
 	//+kubebuilder:validation:Required
 	Job JobSettings `json:"job"`
 
+	//+kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
 }
 
@@ -97,18 +95,6 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Optional
 	Startup *podtypes.Probe `json:"startup,omitempty"`
 
-	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
-	//
-	//+kubebuilder:validation:Optional
-	Ingresses []string `json:"ingresses,omitempty"`
-
-	// Controls whether or not the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
-	// This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
-	//
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=true
-	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
-
 	//+kubebuilder:validation:Optional
 	AccessPolicy podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
@@ -121,3 +107,25 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 }
+
+type JobSettings struct {
+}
+
+type CronSettings struct {
+	//+kubebuilder:validation:Required
+	Schedule string `json:"schedule"`
+
+	ConcurrencyPolicy ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
+
+	Suspend bool `json:"suspend,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=Allow,Forbid,Replace
+// +kubebuilder:default="Allow"
+type ConcurrencyPolicy string
+
+const (
+	ALLOW   ConcurrencyPolicy = "Allow"
+	FORBID  ConcurrencyPolicy = "Forbid"
+	REPLACE ConcurrencyPolicy = "Replace"
+)
