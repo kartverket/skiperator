@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"strings"
 	"time"
 
@@ -42,7 +43,7 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -51,20 +52,20 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	//+kubebuilder:validation:Optional
-	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
+	EnvFrom []podtypes.EnvFrom `json:"envFrom,omitempty"`
 	//+kubebuilder:validation:Optional
-	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
+	FilesFrom []podtypes.FilesFrom `json:"filesFrom,omitempty"`
 
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
-	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
 	//+kubebuilder:validation:Optional
-	Liveness *Probe `json:"liveness,omitempty"`
+	Liveness *podtypes.Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Readiness *Probe `json:"readiness,omitempty"`
+	Readiness *podtypes.Probe `json:"readiness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Startup *Probe `json:"startup,omitempty"`
+	Startup *podtypes.Probe `json:"startup,omitempty"`
 
 	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
 	//
@@ -79,28 +80,16 @@ type ApplicationSpec struct {
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	GCP *GCP `json:"gcp,omitempty"`
+	GCP *podtypes.GCP `json:"gcp,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type ResourceRequirements struct {
-	// TODO
-	// Remember to reasess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
-
-	//+kubebuilder:validation:Optional
-	Limits corev1.ResourceList `json:"limits,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
 type Replicas struct {
@@ -118,111 +107,6 @@ type Strategy struct {
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
 	Type string `json:"type"`
-}
-
-type EnvFrom struct {
-	//+kubebuilder:validation:Optional
-	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
-	Secret string `json:"secret,omitempty"`
-}
-
-type FilesFrom struct {
-	//+kubebuilder:validation:Required
-	MountPath string `json:"mountPath"`
-
-	//+kubebuilder:validation:Optional
-	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
-	Secret string `json:"secret,omitempty"`
-	//+kubebuilder:validation:Optional
-	EmptyDir string `json:"emptyDir,omitempty"`
-	//+kubebuilder:validation:Optional
-	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
-}
-
-type Probe struct {
-	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
-	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
-	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
-	//+kubebuilder:validation:Required
-	Port uint16 `json:"port"`
-	//+kubebuilder:validation:Required
-	Path string `json:"path"`
-}
-
-// +kubebuilder:object:generate=true
-type AccessPolicy struct {
-	//+kubebuilder:validation:Optional
-	Inbound InboundPolicy `json:"inbound,omitempty"`
-	//+kubebuilder:validation:Optional
-	Outbound OutboundPolicy `json:"outbound,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type InboundPolicy struct {
-	//+kubebuilder:validation:Optional
-	Rules []InternalRule `json:"rules"`
-}
-
-// +kubebuilder:object:generate=true
-type OutboundPolicy struct {
-	//+kubebuilder:validation:Optional
-	Rules []InternalRule `json:"rules,omitempty"`
-	//+kubebuilder:validation:Optional
-	External []ExternalRule `json:"external,omitempty"`
-}
-
-type InternalRule struct {
-	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace,omitempty"`
-	//+kubebuilder:validation:Required
-	Application string `json:"application"`
-}
-
-// +kubebuilder:object:generate=true
-type ExternalRule struct {
-	//+kubebuilder:validation:Required
-	Host string `json:"host"`
-	//+kubebuilder:validation:Optional
-	Ip string `json:"ip,omitempty"`
-	//+kubebuilder:validation:Optional
-	Ports []ExternalPort `json:"ports,omitempty"`
-}
-
-type ExternalPort struct {
-	//+kubebuilder:validation:Required
-	Name string `json:"name"`
-	//+kubebuilder:validation:Required
-	Port int `json:"port"`
-	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
-	Protocol string `json:"protocol"`
-}
-
-type InternalPort struct {
-	//+kubebuilder:validation:Required
-	Name string `json:"name"`
-	//+kubebuilder:validation:Required
-	Port int32 `json:"port"`
-	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
-	// +kubebuilder:default:TCP
-	Protocol corev1.Protocol `json:"protocol"`
-}
-
-type GCP struct {
-	//+kubebuilder:validation:Required
-	Auth Auth `json:"auth"`
-}
-
-type Auth struct {
-	//+kubebuilder:validation:Required
-	ServiceAccount string `json:"serviceAccount"`
 }
 
 // +kubebuilder:object:generate=true

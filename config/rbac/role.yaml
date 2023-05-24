@@ -163,3 +163,13 @@ rules:
   - list
   - update
   - watch
+- apiGroups:
+  - skiperator.kartverket.no
+  resources:
+  - skipjobs
+  - skipjobs/status
+  verbs:
+  - get
+  - list
+  - update
+  - watch

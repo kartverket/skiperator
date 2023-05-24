@@ -17,4 +17,5 @@ var (
 
 func init() {
 	schemeBuilder.Register(&ApplicationList{}, &Application{})
+	schemeBuilder.Register(&SKIPJobList{}, &SKIPJob{})
 }

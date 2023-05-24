@@ -25,6 +25,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
+	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -89,6 +90,14 @@ func main() {
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
+	}
+
+	err = (&skipjobcontroller.SKIPJobReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
 		os.Exit(1)
 	}
 
