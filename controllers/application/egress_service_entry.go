@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"regexp"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -77,7 +78,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			continue
 		}
 
-		serviceEntryInApplicationSpecIndex := slices.IndexFunc(application.Spec.AccessPolicy.Outbound.External, func(rule skiperatorv1alpha1.ExternalRule) bool {
+		serviceEntryInApplicationSpecIndex := slices.IndexFunc(application.Spec.AccessPolicy.Outbound.External, func(rule podtypes.ExternalRule) bool {
 			egressName := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
 			return serviceEntry.Name == egressName
 		})
@@ -100,7 +101,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	return reconcile.Result{}, err
 }
 
-func (r ApplicationReconciler) getPorts(externalPorts []skiperatorv1alpha1.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.Port {
+func (r ApplicationReconciler) getPorts(externalPorts []podtypes.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.Port {
 	ports := []*networkingv1beta1api.Port{}
 
 	if len(externalPorts) == 0 {

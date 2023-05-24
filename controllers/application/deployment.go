@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -215,7 +217,7 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	return res
 }
 
-func getProbe(appProbe *skiperatorv1alpha1.Probe) *corev1.Probe {
+func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 	if appProbe != nil {
 		probe := corev1.Probe{
 			InitialDelaySeconds: appProbe.InitialDelay,
@@ -370,7 +372,7 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 	return podVolumes, containerVolumeMounts
 }
 
-func getEnvFrom(envFromApplication []skiperatorv1alpha1.EnvFrom) []corev1.EnvFromSource {
+func getEnvFrom(envFromApplication []podtypes.EnvFrom) []corev1.EnvFromSource {
 	envFromSource := []corev1.EnvFromSource{}
 
 	for _, env := range envFromApplication {
