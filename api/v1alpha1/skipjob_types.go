@@ -111,10 +111,14 @@ type ContainerSettings struct {
 
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
+
+	//+kubebuilder:validation:Required
+	RestartPolicy corev1.RestartPolicy `json:"restartPolicy"`
 }
 
 // +kubebuilder:object:generate=true
 type JobSettings struct {
+	Suspend *bool `json:"suspend,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

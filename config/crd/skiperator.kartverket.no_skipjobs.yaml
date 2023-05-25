@@ -350,6 +350,12 @@ spec:
                           pairs.
                         type: object
                     type: object
+                  restartPolicy:
+                    description: RestartPolicy describes how the container should
+                      be restarted. Only one of the following restart policies may
+                      be specified. If none of the following policies is specified,
+                      the default one is RestartPolicyAlways.
+                    type: string
                   startup:
                     properties:
                       failureThreshold:
@@ -369,6 +375,7 @@ spec:
                 required:
                 - image
                 - port
+                - restartPolicy
                 type: object
               cron:
                 properties:
@@ -391,6 +398,9 @@ spec:
                 - schedule
                 type: object
               job:
+                properties:
+                  suspend:
+                    type: boolean
                 type: object
             required:
             - container

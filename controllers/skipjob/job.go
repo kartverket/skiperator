@@ -44,9 +44,11 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	} else {
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
+			println(err)
 			return reconcile.Result{}, err
 		}
 
+		println(job.Name)
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &job, func() error {
 
 			err := ctrlutil.SetControllerReference(skipJob, &job, r.GetScheme())
@@ -61,6 +63,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return nil
 		})
 		if err != nil {
+			println("UHHHH %s", err.Error())
 			return reconcile.Result{}, err
 		}
 	}
@@ -72,6 +75,7 @@ func deleteCronJobIfExists(recClient client.Client, context context.Context, cro
 	err := recClient.Delete(context, &cronJob)
 	err = client.IgnoreNotFound(err)
 	if err != nil {
+
 		return err
 	}
 
@@ -120,7 +124,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob) batchv1.JobSpec {
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       pod.CreatePodSpec(pod.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority),
+			Spec:       pod.CreatePodSpec(pod.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: nil,
 		CompletionMode:          nil,

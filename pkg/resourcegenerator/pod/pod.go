@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string) corev1.PodSpec {
+func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy corev1.RestartPolicy) corev1.PodSpec {
 	return corev1.PodSpec{
 		Volumes: volumes,
 		Containers: []corev1.Container{
@@ -25,6 +25,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		},
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
+		RestartPolicy:     policy,
 	}
 
 }
@@ -52,17 +53,6 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application) cor
 	}
 }
 
-func getResourceRequirements(resources *podtypes.ResourceRequirements) corev1.ResourceRequirements {
-	if resources == nil {
-		return corev1.ResourceRequirements{}
-	}
-
-	return corev1.ResourceRequirements{
-		Limits:   (*resources).Limits,
-		Requests: (*resources).Requests,
-	}
-}
-
 func CreateJobContainer(job *skiperatorv1alpha1.SKIPJob) corev1.Container {
 	return corev1.Container{
 		Name:            job.Name,
@@ -76,11 +66,8 @@ func CreateJobContainer(job *skiperatorv1alpha1.SKIPJob) corev1.Container {
 			RunAsUser:                util.PointTo(util.SkiperatorUser),
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
 		},
-		EnvFrom: getEnvFrom(job.Spec.Container.EnvFrom),
-		Resources: corev1.ResourceRequirements{
-			Limits:   job.Spec.Container.Resources.Limits,
-			Requests: job.Spec.Container.Resources.Requests,
-		},
+		EnvFrom:        getEnvFrom(job.Spec.Container.EnvFrom),
+		Resources:      getResourceRequirements(job.Spec.Container.Resources),
 		Env:            job.Spec.Container.Env,
 		ReadinessProbe: getProbe(job.Spec.Container.Readiness),
 		LivenessProbe:  getProbe(job.Spec.Container.Liveness),
@@ -106,6 +93,17 @@ func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 	}
 
 	return nil
+}
+
+func getResourceRequirements(resources *podtypes.ResourceRequirements) corev1.ResourceRequirements {
+	if resources == nil {
+		return corev1.ResourceRequirements{}
+	}
+
+	return corev1.ResourceRequirements{
+		Limits:   (*resources).Limits,
+		Requests: (*resources).Requests,
+	}
 }
 
 func getEnvFrom(envFromApplication []podtypes.EnvFrom) []corev1.EnvFromSource {

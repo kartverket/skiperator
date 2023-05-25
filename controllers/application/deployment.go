@@ -63,7 +63,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 						"prometheus.io/scrape":            "true",
 					},
 				},
-				Spec: pod.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority),
+				Spec: pod.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority, corev1.RestartPolicyAlways),
 			},
 			RevisionHistoryLimit: util.PointTo(int32(2)),
 		}
