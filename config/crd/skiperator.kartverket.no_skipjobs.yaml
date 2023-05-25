@@ -276,13 +276,6 @@ spec:
                     type: object
                   image:
                     type: string
-                  ingresses:
-                    description: Ingresses must be lower case, contain no spaces,
-                      be a non-empty string, and have a hostname/domain separated
-                      by a period
-                    items:
-                      type: string
-                    type: array
                   labels:
                     additionalProperties:
                       type: string
@@ -328,13 +321,6 @@ spec:
                     - path
                     - port
                     type: object
-                  redirectToHTTPS:
-                    default: true
-                    description: Controls whether or not the application will automatically
-                      redirect all HTTP calls to HTTPS via the istio VirtualService.
-                      This redirect does not happen on the route /.well-known/acme-challenge/,
-                      as the ACME challenge can only be done on port 80.
-                    type: boolean
                   resourceLabels:
                     additionalProperties:
                       additionalProperties:
@@ -383,6 +369,26 @@ spec:
                 required:
                 - image
                 - port
+                type: object
+              cron:
+                properties:
+                  allowConcurrency:
+                    default: Allow
+                    description: ConcurrencyPolicy describes how the job will be handled.
+                      Only one of the following concurrent policies may be specified.
+                      If none of the following policies is specified, the default
+                      one is AllowConcurrent.
+                    enum:
+                    - Allow
+                    - Forbid
+                    - Replace
+                    type: string
+                  schedule:
+                    type: string
+                  suspend:
+                    type: boolean
+                required:
+                - schedule
                 type: object
               job:
                 type: object

@@ -43,7 +43,7 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources podtypes.ResourceRequirements `json:"resources,omitempty"`
+	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
 	Replicas Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -80,7 +80,7 @@ type ApplicationSpec struct {
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AccessPolicy podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`

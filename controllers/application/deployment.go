@@ -3,15 +3,13 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -38,29 +36,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 		util.SetCommonAnnotations(&deployment)
 
-		skiperatorContainer := corev1.Container{
-			Name:            application.Name,
-			Image:           application.Spec.Image,
-			ImagePullPolicy: corev1.PullAlways,
-			Command:         application.Spec.Command,
-			SecurityContext: &corev1.SecurityContext{
-				Privileged:               util.PointTo(false),
-				AllowPrivilegeEscalation: util.PointTo(false),
-				ReadOnlyRootFilesystem:   util.PointTo(true),
-				RunAsUser:                util.PointTo(util.SkiperatorUser),
-				RunAsGroup:               util.PointTo(util.SkiperatorUser),
-			},
-			Ports:   getContainerPorts(application),
-			EnvFrom: getEnvFrom(application.Spec.EnvFrom),
-			Resources: corev1.ResourceRequirements{
-				Limits:   application.Spec.Resources.Limits,
-				Requests: application.Spec.Resources.Requests,
-			},
-			Env:            application.Spec.Env,
-			ReadinessProbe: getProbe(application.Spec.Readiness),
-			LivenessProbe:  getProbe(application.Spec.Liveness),
-			StartupProbe:   getProbe(application.Spec.Startup),
-		}
+		skiperatorContainer := pod.CreateApplicationContainer(application)
 
 		podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
 		podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
@@ -87,24 +63,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 						"prometheus.io/scrape":            "true",
 					},
 				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						skiperatorContainer,
-					},
-
-					// TODO: Make this as part of operator in a safe way
-					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-					SecurityContext: &corev1.PodSecurityContext{
-						SupplementalGroups: []int64{util.SkiperatorUser},
-						FSGroup:            util.PointTo(util.SkiperatorUser),
-						SeccompProfile: &corev1.SeccompProfile{
-							Type: corev1.SeccompProfileTypeRuntimeDefault,
-						},
-					},
-					ServiceAccountName: application.Name,
-					Volumes:            podVolumes,
-					PriorityClassName:  fmt.Sprintf("skip-%s", application.Spec.Priority),
-				},
+				Spec: pod.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority),
 			},
 			RevisionHistoryLimit: util.PointTo(int32(2)),
 		}
@@ -121,26 +80,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
-}
-
-func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
-	if appProbe != nil {
-		probe := corev1.Probe{
-			InitialDelaySeconds: int32(appProbe.InitialDelay),
-			TimeoutSeconds:      int32(appProbe.Timeout),
-			FailureThreshold:    int32(appProbe.FailureThreshold),
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path: appProbe.Path,
-					Port: intstr.FromInt(int(appProbe.Port)),
-				},
-			},
-		}
-
-		return &probe
-	}
-
-	return nil
 }
 
 func (r ApplicationReconciler) appendGCPVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
@@ -275,56 +214,6 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 	}
 
 	return podVolumes, containerVolumeMounts
-}
-
-func getEnvFrom(envFromApplication []podtypes.EnvFrom) []corev1.EnvFromSource {
-	envFromSource := []corev1.EnvFromSource{}
-
-	for _, env := range envFromApplication {
-		if len(env.ConfigMap) > 0 {
-			envFromSource = append(envFromSource,
-				corev1.EnvFromSource{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: env.ConfigMap,
-						},
-					},
-				},
-			)
-		} else if len(env.Secret) > 0 {
-			envFromSource = append(envFromSource,
-				corev1.EnvFromSource{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: env.Secret,
-						},
-					},
-				},
-			)
-		}
-	}
-
-	return envFromSource
-}
-
-func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.ContainerPort {
-
-	containerPorts := []corev1.ContainerPort{
-		{
-			Name:          "main",
-			ContainerPort: int32(application.Spec.Port),
-		},
-	}
-
-	for _, port := range application.Spec.AdditionalPorts {
-		containerPorts = append(containerPorts, corev1.ContainerPort{
-			ContainerPort: port.Port,
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-		})
-	}
-
-	return containerPorts
 }
 
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {

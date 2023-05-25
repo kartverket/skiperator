@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,9 +32,9 @@ type SKIPJobStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:object:generate=true
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -59,10 +60,14 @@ type SKIPJobSpec struct {
 	//+kubebuilder:validation:Required
 	Job JobSettings `json:"job"`
 
+	//+kubebuilder:validation:Optional
+	Cron *CronSettings `json:"cron,omitempty"`
+
 	//+kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
 }
 
+// +kubebuilder:object:generate=true
 type ContainerSettings struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
@@ -77,7 +82,7 @@ type ContainerSettings struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources podtypes.ResourceRequirements `json:"resources,omitempty"`
+	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
@@ -96,7 +101,7 @@ type ContainerSettings struct {
 	Startup *podtypes.Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AccessPolicy podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`
@@ -108,24 +113,18 @@ type ContainerSettings struct {
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type JobSettings struct {
 }
 
+// +kubebuilder:object:generate=true
 type CronSettings struct {
 	//+kubebuilder:validation:Required
 	Schedule string `json:"schedule"`
 
-	ConcurrencyPolicy ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
+	// +kubebuilder:validation:Enum=Allow;Forbid;Replace
+	// +kubebuilder:default="Allow"
+	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
 
-	Suspend bool `json:"suspend,omitempty"`
+	Suspend *bool `json:"suspend,omitempty"`
 }
-
-// +kubebuilder:validation:Enum=Allow,Forbid,Replace
-// +kubebuilder:default="Allow"
-type ConcurrencyPolicy string
-
-const (
-	ALLOW   ConcurrencyPolicy = "Allow"
-	FORBID  ConcurrencyPolicy = "Forbid"
-	REPLACE ConcurrencyPolicy = "Replace"
-)
