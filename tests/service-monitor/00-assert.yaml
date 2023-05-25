@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: some-monitored-app
+spec:
+  selector:
+    matchLabels:
+      app: some-monitored-app
+  template:
+    spec:
+      containers:
+        - name: some-monitored-app
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: main
+              protocol: TCP
+            - containerPort: 8181
+              name: metrics
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: some-monitored-app
+spec:
+  selector:
+    app: some-monitored-app
+  ports:
+    - name: metrics
+      port: 8181
+      targetPort: 8181
+      protocol: TCP
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+# TODO: Determine correct label with Grafana Agent
+#  labels:
+#    release: prometheus-operator
+  name: some-monitored-app
+spec:
+  endpoints:
+    - port: metrics
+  selector:
+    matchLabels:
+      app: some-monitored-app
+  namespaceSelector:
+    matchNames:
+      - test
