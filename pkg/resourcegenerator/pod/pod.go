@@ -55,7 +55,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application) cor
 
 func CreateJobContainer(job *skiperatorv1alpha1.SKIPJob) corev1.Container {
 	return corev1.Container{
-		Name:            job.Name,
+		Name:            job.Name + "-job",
 		Image:           job.Spec.Container.Image,
 		ImagePullPolicy: corev1.PullAlways,
 		Command:         job.Spec.Container.Command,

@@ -16,12 +16,12 @@ import (
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      skipJob.Name,
+		Name:      getJobName(skipJob.Name),
 	}}
 
 	cronJob := batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      skipJob.Name,
+		Name:      getJobName(skipJob.Name),
 	}}
 
 	if skipJob.Spec.Cron != nil {
@@ -44,7 +44,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	} else {
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
-			println(err)
 			return reconcile.Result{}, err
 		}
 
@@ -60,10 +59,10 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			job = getJobDefinition(skipJob)
 
+			println("returning nil")
 			return nil
 		})
 		if err != nil {
-			println("UHHHH %s", err.Error())
 			return reconcile.Result{}, err
 		}
 	}
@@ -86,10 +85,14 @@ func getJobDefinition(skipJob *skiperatorv1alpha1.SKIPJob) batchv1.Job {
 	return batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: skipJob.Namespace,
-			Name:      skipJob.Name,
+			Name:      getJobName(skipJob.Name),
 		},
 		Spec: getJobSpec(skipJob),
 	}
+}
+
+func getJobName(skipJobName string) string {
+	return skipJobName + "-job"
 }
 
 func getCronJobDefinition(skipJob *skiperatorv1alpha1.SKIPJob) batchv1.CronJob {
@@ -123,8 +126,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob) batchv1.JobSpec {
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec:       pod.CreatePodSpec(pod.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: pod.CreatePodSpec(pod.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: nil,
 		CompletionMode:          nil,
