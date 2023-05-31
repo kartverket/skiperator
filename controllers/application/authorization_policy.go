@@ -57,7 +57,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 				},
 			},
 			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
+				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
 		}
 

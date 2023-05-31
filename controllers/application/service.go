@@ -29,7 +29,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		util.SetCommonAnnotations(&service)
 
 		service.Spec = corev1.ServiceSpec{
-			Selector: util.GetApplicationSelector(application.Name),
+			Selector: util.GetPodAppSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
 			Ports: []corev1.ServicePort{
 				getServicePort(application.Spec.Port),

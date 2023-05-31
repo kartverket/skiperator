@@ -2,6 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -16,21 +18,27 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceAccount, func() error {
+	r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
+
+	err := CreateOrPatchServiceAccount(ctx, serviceAccount, application, r.GetClient(), r.GetScheme())
+
+	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
+	return reconcile.Result{}, err
+}
+
+func CreateOrPatchServiceAccount(context context.Context, serviceAccount corev1.ServiceAccount, ownerObject metav1.Object, client client.Client, scheme *runtime.Scheme) error {
+	_, err := ctrlutil.CreateOrPatch(context, client, &serviceAccount, func() error {
 		// Set application as owner of the sidecar
-		err := ctrlutil.SetControllerReference(application, &serviceAccount, r.GetScheme())
+		err := ctrlutil.SetControllerReference(ownerObject, &serviceAccount, scheme)
 		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &serviceAccount, *application)
 		util.SetCommonAnnotations(&serviceAccount)
 
 		return nil
 	})
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
+	return err
 }

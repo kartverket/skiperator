@@ -30,7 +30,7 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 
 		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
+				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
 			MinAvailable: determineMinAvailable(application.Spec.Replicas.Min),
 		}

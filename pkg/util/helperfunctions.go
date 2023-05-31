@@ -69,7 +69,7 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
-func GetApplicationSelector(applicationName string) map[string]string {
+func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
 
