@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
 	"regexp"
 
 	policyv1 "k8s.io/api/policy/v1"
@@ -54,7 +55,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
+			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](istio.IsEgressServiceEntry),
 		)).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
@@ -67,7 +68,6 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
-		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }

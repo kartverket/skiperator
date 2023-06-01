@@ -1,4 +1,4 @@
-package pod
+package core
 
 import (
 	"fmt"

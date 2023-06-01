@@ -72,9 +72,6 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
 
-	//+kubebuilder:validation:Required
-	Port int `json:"port"`
-
 	//+kubebuilder:validation:Enum=low;medium;high
 	//+kubebuilder:default=medium
 	Priority string `json:"priority,omitempty"`

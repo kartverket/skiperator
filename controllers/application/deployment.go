@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		r.SetLabelsFromApplication(ctx, &deployment, *application)
 		util.SetCommonAnnotations(&deployment)
 
-		skiperatorContainer := pod.CreateApplicationContainer(application)
+		skiperatorContainer := core.CreateApplicationContainer(application)
 
 		podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
 		podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
@@ -63,7 +63,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 						"prometheus.io/scrape":            "true",
 					},
 				},
-				Spec: pod.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority, corev1.RestartPolicyAlways),
+				Spec: core.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority, corev1.RestartPolicyAlways),
 			},
 			RevisionHistoryLimit: util.PointTo(int32(2)),
 		}

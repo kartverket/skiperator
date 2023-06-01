@@ -1,4 +1,4 @@
-package pod
+package networking
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -19,6 +19,10 @@ type NetPolOpts struct {
 }
 
 func CreateNetPolSpec(opts NetPolOpts) networkingv1.NetworkPolicySpec {
+	if opts.AccessPolicy == nil {
+		return networkingv1.NetworkPolicySpec{}
+	}
+
 	return networkingv1.NetworkPolicySpec{
 		PolicyTypes: []networkingv1.PolicyType{
 			networkingv1.PolicyTypeIngress,
@@ -104,7 +108,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses *[]string, p
 		}
 	}
 
-	if accessPolicy != nil {
+	if accessPolicy != nil && port != nil {
 		if len((*accessPolicy).Inbound.Rules) > 0 {
 			inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
 				From: getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),

@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -24,6 +25,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&skiperatorv1alpha1.SKIPJob{}).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
+		Owns(&networkingv1.NetworkPolicy{}).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
@@ -52,6 +54,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error){
 		r.reconcileJob,
 		r.reconcileServiceAccount,
+		r.reconcileNetworkPolicy,
 	}
 
 	for _, fn := range controllerDuties {
