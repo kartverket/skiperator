@@ -18,22 +18,40 @@ type NetPolOpts struct {
 	Name            string
 }
 
-func CreateNetPolSpec(opts NetPolOpts) networkingv1.NetworkPolicySpec {
+func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
 	if opts.AccessPolicy == nil {
-		return networkingv1.NetworkPolicySpec{}
+		return nil
 	}
 
-	return networkingv1.NetworkPolicySpec{
-		PolicyTypes: []networkingv1.PolicyType{
-			networkingv1.PolicyTypeIngress,
-			networkingv1.PolicyTypeEgress,
-		},
-		PodSelector: metav1.LabelSelector{
-			MatchLabels: util.GetPodAppSelector(opts.Name),
-		},
-		Ingress: getIngressRules(opts.AccessPolicy, opts.Ingresses, opts.Port, opts.Namespace),
-		Egress:  getEgressRules(opts.AccessPolicy, opts.Namespace, *opts.RelatedServices),
+	ingressRules := getIngressRules(opts.AccessPolicy, opts.Ingresses, opts.Port, opts.Namespace)
+	egressRules := getEgressRules(opts.AccessPolicy, opts.Namespace, *opts.RelatedServices)
+
+	if len(ingressRules) > 0 || len(egressRules) > 0 {
+		return &networkingv1.NetworkPolicySpec{
+			PolicyTypes: getPolicyTypes(ingressRules, egressRules),
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: util.GetPodAppSelector(opts.Name),
+			},
+			Ingress: ingressRules,
+			Egress:  egressRules,
+		}
 	}
+
+	return nil
+}
+
+func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egressRules []networkingv1.NetworkPolicyEgressRule) []networkingv1.PolicyType {
+	var policyType []networkingv1.PolicyType
+
+	if len(ingressRules) > 0 {
+		policyType = append(policyType, networkingv1.PolicyTypeIngress)
+	}
+
+	if len(egressRules) > 0 {
+		policyType = append(policyType, networkingv1.PolicyTypeEgress)
+	}
+
+	return policyType
 }
 
 func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, availableServices []corev1.Service) []networkingv1.NetworkPolicyEgressRule {

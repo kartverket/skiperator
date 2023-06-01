@@ -37,8 +37,7 @@ test: test-tools
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	DEBUG_LEVEL=warn \
 	kubectl kuttl test \
-	--config tests/config.yaml \
-	--start-control-plane \
+	--config tests/config-local.yaml \
 	--suppress-log=events
 
 .PHONY: build-test

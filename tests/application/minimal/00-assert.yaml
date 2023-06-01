@@ -83,18 +83,6 @@ spec:
       protocol: TCP
       appProtocol: http
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: minimal
-spec:
-  podSelector:
-    matchLabels:
-      app: minimal
-  policyTypes:
-    - Ingress
-    - Egress
----
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:

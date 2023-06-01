@@ -82,7 +82,6 @@ spec:
     matchLabels:
       app: access-policy-job
   policyTypes:
-    - Ingress
     - Egress
   egress:
     - to:

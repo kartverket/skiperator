@@ -20,6 +20,19 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		return reconcile.Result{}, err
 	}
 
+	netpolSpec := networking.CreateNetPolSpec(networking.NetPolOpts{
+		AccessPolicy:    application.Spec.AccessPolicy,
+		Ingresses:       &application.Spec.Ingresses,
+		Port:            &application.Spec.Port,
+		Namespace:       application.Namespace,
+		Name:            application.Name,
+		RelatedServices: &egressServices,
+	})
+
+	if netpolSpec == nil {
+		return reconcile.Result{}, err
+	}
+
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set application as owner of the network policy
@@ -32,14 +45,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
 		util.SetCommonAnnotations(&networkPolicy)
 
-		networkPolicy.Spec = networking.CreateNetPolSpec(networking.NetPolOpts{
-			AccessPolicy:    application.Spec.AccessPolicy,
-			Ingresses:       &application.Spec.Ingresses,
-			Port:            &application.Spec.Port,
-			Namespace:       application.Namespace,
-			Name:            application.Name,
-			RelatedServices: &egressServices,
-		})
+		networkPolicy.Spec = *netpolSpec
 
 		return nil
 	})

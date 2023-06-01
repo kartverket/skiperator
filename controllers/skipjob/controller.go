@@ -8,7 +8,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -26,6 +29,9 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
+		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs
+		Watches(&networkingv1.NetworkPolicy{}, handler.EnqueueRequestsFromMapFunc(r.getJobsToReconcile)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
@@ -70,4 +76,33 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	)
 
 	return reconcile.Result{}, err
+}
+
+func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {
+	var jobsToReconcile skiperatorv1alpha1.SKIPJobList
+	var reconcileRequests []reconcile.Request
+
+	owner := object.GetOwnerReferences()
+	if len(owner) == 0 {
+		return reconcileRequests
+	}
+
+	// Assume only one owner
+	if owner[0].Kind != "Application" {
+		return reconcileRequests
+	}
+
+	err := r.GetClient().List(ctx, &jobsToReconcile)
+	if err != nil {
+		return nil
+	}
+	for _, job := range jobsToReconcile.Items {
+		reconcileRequests = append(reconcileRequests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: job.Namespace,
+				Name:      job.Name,
+			},
+		})
+	}
+	return reconcileRequests
 }
