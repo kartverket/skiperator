@@ -396,8 +396,20 @@ spec:
                 type: object
               job:
                 properties:
+                  activeDeadlineSeconds:
+                    format: int64
+                    type: integer
+                  backoffLimit:
+                    format: int32
+                    type: integer
+                  parallelism:
+                    format: int32
+                    type: integer
                   suspend:
                     type: boolean
+                  ttlSecondsAfterFinished:
+                    format: int32
+                    type: integer
                 type: object
             required:
             - container

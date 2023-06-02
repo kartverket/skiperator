@@ -56,13 +56,18 @@ type SKIPJobList struct {
 // SKIPJobSpec defines the desired state of SKIPJob
 // +kubebuilder:object:generate=true
 type SKIPJobSpec struct {
-
+	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
+	//
 	//+kubebuilder:validation:Required
 	Job JobSettings `json:"job"`
 
+	// Settings for the Job if you are running a scheduled job. Optional as Jobs may be one-off.
+	//
 	//+kubebuilder:validation:Optional
 	Cron *CronSettings `json:"cron,omitempty"`
 
+	// Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
+	//
 	//+kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
 }
@@ -115,17 +120,61 @@ type ContainerSettings struct {
 
 // +kubebuilder:object:generate=true
 type JobSettings struct {
+	// ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
+	// the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.
+	//
+	//+kubebuilder:validation:Optional
+	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+
+	// Specifies the number of retry attempts before determining the job as failed. Defaults to 6.
+	//
+	//+kubebuilder:validation:Optional
+	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
+
+	// Specifies the number of Pods to run in parallel. Defaults to 1. Works similar to a Skiperator Application's Replicas.
+	//
+	//+kubebuilder:validation:Optional
+	Parallelism *int32 `json:"parallelism,omitempty"`
+
+	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+	// all running Pods will be terminated.
+	//
+	//+kubebuilder:validation:Optional
 	Suspend *bool `json:"suspend,omitempty"`
+
+	// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
+	// It is recommended to set this to avoid clutter in your resource tree.
+	//
+	//+kubebuilder:validation:Optional
+	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
 type CronSettings struct {
+	// Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
+	// Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
+	// Replace will replace the current active Job with the newer scheduled Job.
+	//
+	// +kubebuilder:validation:Enum=Allow;Forbid;Replace
+	// +kubebuilder:default="Allow"
+	// +kubebuilder:validation:Optional
+	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
+
+	// A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
+	// Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.
+	//
 	//+kubebuilder:validation:Required
 	Schedule string `json:"schedule"`
 
-	// +kubebuilder:validation:Enum=Allow;Forbid;Replace
-	// +kubebuilder:default="Allow"
-	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
+	// Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
+	// If unset, Jobs missing their deadline will be considered failed jobs and will not start.
+	//
+	//+kubebuilder:validation:Optional
+	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
 
+	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+	// all running Pods will be terminated.
+	//
+	//+kubebuilder:validation:Optional
 	Suspend *bool `json:"suspend,omitempty"`
 }

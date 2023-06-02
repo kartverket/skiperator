@@ -82,13 +82,14 @@ func deleteCronJobIfExists(recClient client.Client, context context.Context, cro
 func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, labels map[string]string) batchv1.CronJobSpec {
 	return batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
-		TimeZone:                nil,
-		StartingDeadlineSeconds: nil,
+		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
 		ConcurrencyPolicy:       skipJob.Spec.Cron.ConcurrencyPolicy,
 		Suspend:                 skipJob.Spec.Cron.Suspend,
 		JobTemplate: batchv1.JobTemplateSpec{
 			Spec: getJobSpec(skipJob, selector, labels),
 		},
+		// Not sure if we should add these fields to spec
+		TimeZone:                   nil,
 		SuccessfulJobsHistoryLimit: nil,
 		FailedJobsHistoryLimit:     nil,
 	}
@@ -97,12 +98,21 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, labels map[string]string) batchv1.JobSpec {
 
 	jobSpec := batchv1.JobSpec{
+		Parallelism:           skipJob.Spec.Job.Parallelism,
+		ActiveDeadlineSeconds: skipJob.Spec.Job.ActiveDeadlineSeconds,
+		BackoffLimit:          skipJob.Spec.Job.BackoffLimit,
 		Template: corev1.PodTemplateSpec{
 			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
-		Suspend: skipJob.Spec.Job.Suspend,
+		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
+		Suspend:                 skipJob.Spec.Job.Suspend,
+		// Not sure if we should add these fields to spec
+		CompletionMode: nil,
+		Completions:    nil,
 	}
 
+	// Jobs create their own selector with a random UUID. Upon creation of the Job we do not know this beforehand.
+	// Therefore, simply set these again if they already exist, which would be the case if reconciling an existing job.
 	if selector != nil {
 		jobSpec.Selector = selector
 		jobSpec.Template.ObjectMeta.Labels = labels
