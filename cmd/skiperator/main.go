@@ -79,6 +79,7 @@ func main() {
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          *leaderElection,
 		LeaderElectionNamespace: *leaderElectionNamespace,
+		MetricsBindAddress:      ":8181",
 		LeaderElectionID:        "skiperator",
 	})
 	if err != nil {
