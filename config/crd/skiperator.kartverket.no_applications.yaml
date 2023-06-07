@@ -3,7 +3,8 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.11.3
+  creationTimestamp: null
   name: applications.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -120,6 +121,32 @@ spec:
                   - protocol
                   type: object
                 type: array
+              authorizationSettings:
+                description: "AuthorizationSettings Settings for overriding the default
+                  deny of all actuator endpoints. AllowAll will allow any endpoint
+                  to be exposed. Use AllowList to only allow specific endpoints. \n
+                  Please be aware that HTTP endpoints, such as actuator, may expose
+                  information about your application which you do not want to expose.
+                  Before allow listing HTTP endpoints, make note of what these endpoints
+                  will expose, especially if your application is served via an external
+                  ingress."
+                properties:
+                  allowAll:
+                    default: false
+                    description: Allows all endpoints by not creating an AuthorizationPolicy,
+                      and ignores the content of AllowList. If field is false, the
+                      contents of AllowList will be used instead if AllowList is set.
+                    type: boolean
+                  allowList:
+                    description: "Allows specific endpoints. Common endpoints one
+                      might want to allow include /actuator/health, /actuator/startup,
+                      /actuator/info. \n Note that endpoints are matched specifically
+                      on the input, so if you allow /actuator/health, you will *not*
+                      allow /actuator/health/"
+                    items:
+                      type: string
+                    type: array
+                type: object
               command:
                 items:
                   type: string
@@ -325,10 +352,10 @@ spec:
                 type: object
               redirectToHTTPS:
                 default: true
-                description: Controls whether or not the application will automatically
-                  redirect all HTTP calls to HTTPS via the istio VirtualService. This
-                  redirect does not happen on the route /.well-known/acme-challenge/,
-                  as the ACME challenge can only be done on port 80.
+                description: Controls whether the application will automatically redirect
+                  all HTTP calls to HTTPS via the istio VirtualService. This redirect
+                  does not happen on the route /.well-known/acme-challenge/, as the
+                  ACME challenge can only be done on port 80.
                 type: boolean
               replicas:
                 properties:
@@ -348,6 +375,7 @@ spec:
                   type: object
                 type: object
               resources:
+                description: ResourceRequirements
                 properties:
                   limits:
                     additionalProperties:
