@@ -16,12 +16,12 @@ import (
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      skipJob.Name,
+		Name:      util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
 	}}
 
 	cronJob := batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      skipJob.Name,
+		Name:      util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
 	}}
 
 	if skipJob.Spec.Cron != nil {
@@ -102,7 +102,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		ActiveDeadlineSeconds: skipJob.Spec.Job.ActiveDeadlineSeconds,
 		BackoffLimit:          skipJob.Spec.Job.BackoffLimit,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob), nil, skipJob.Name, skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob), nil, util.ResourceNameWithHash(skipJob.Name, skipJob.Kind), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		Suspend:                 skipJob.Spec.Job.Suspend,

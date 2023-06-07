@@ -30,7 +30,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		return reconcile.Result{}, err
 	}
 
-	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.Name}}
+	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: util.ResourceNameWithHash(skipJob.Name, skipJob.Kind)}}
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		err := ctrlutil.SetControllerReference(skipJob, &networkPolicy, r.GetScheme())
 		if err != nil {

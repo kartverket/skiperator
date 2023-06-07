@@ -53,12 +53,12 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application) cor
 	}
 }
 
-func CreateJobContainer(job *skiperatorv1alpha1.SKIPJob) corev1.Container {
+func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob) corev1.Container {
 	return corev1.Container{
-		Name:            job.Name + "-job",
-		Image:           job.Spec.Container.Image,
+		Name:            util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
+		Image:           skipJob.Spec.Container.Image,
 		ImagePullPolicy: corev1.PullAlways,
-		Command:         job.Spec.Container.Command,
+		Command:         skipJob.Spec.Container.Command,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged:               util.PointTo(false),
 			AllowPrivilegeEscalation: util.PointTo(false),
@@ -66,12 +66,12 @@ func CreateJobContainer(job *skiperatorv1alpha1.SKIPJob) corev1.Container {
 			RunAsUser:                util.PointTo(util.SkiperatorUser),
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
 		},
-		EnvFrom:        getEnvFrom(job.Spec.Container.EnvFrom),
-		Resources:      getResourceRequirements(job.Spec.Container.Resources),
-		Env:            job.Spec.Container.Env,
-		ReadinessProbe: getProbe(job.Spec.Container.Readiness),
-		LivenessProbe:  getProbe(job.Spec.Container.Liveness),
-		StartupProbe:   getProbe(job.Spec.Container.Startup),
+		EnvFrom:        getEnvFrom(skipJob.Spec.Container.EnvFrom),
+		Resources:      getResourceRequirements(skipJob.Spec.Container.Resources),
+		Env:            skipJob.Spec.Container.Env,
+		ReadinessProbe: getProbe(skipJob.Spec.Container.Readiness),
+		LivenessProbe:  getProbe(skipJob.Spec.Container.Liveness),
+		StartupProbe:   getProbe(skipJob.Spec.Container.Startup),
 	}
 }
 

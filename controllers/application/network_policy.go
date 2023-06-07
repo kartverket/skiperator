@@ -17,6 +17,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 
 	egressServices, err := r.GetEgressServices(ctx, application, application.Spec.AccessPolicy)
 	if err != nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
@@ -30,6 +31,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	})
 
 	if netpolSpec == nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 

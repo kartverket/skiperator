@@ -16,8 +16,8 @@ func GetServiceEntries(accessPolicy *podtypes.AccessPolicy, object client.Object
 
 	if accessPolicy != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
-			serviceEntryName := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
-
+			serviceEntryNamePrefix := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
+			serviceEntryName := util.ResourceNameWithHash(serviceEntryNamePrefix, object.GetObjectKind().GroupVersionKind().Kind)
 			resolution, addresses, endpoints := getIpData(rule.Ip)
 
 			serviceEntry := networkingv1beta1.ServiceEntry{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"regexp"
+	"strconv"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -81,4 +82,10 @@ func HasUpperCaseLetter(word string) bool {
 	}
 
 	return false
+}
+
+func ResourceNameWithHash(resourceName string, kind string) string {
+	hash := GenerateHashFromName(resourceName + kind)
+
+	return resourceName + "-" + strconv.FormatUint(hash, 16)
 }
