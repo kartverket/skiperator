@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(obj client.Object) []reconcile.Request {
+func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
 	certificate, isCert := obj.(*certmanagerv1.Certificate)
 
 	if !isCert {

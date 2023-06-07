@@ -31,6 +31,14 @@ spec:
   selector:
     app: additional-ports
   ports:
+    - name: metrics
+      port: 8181
+      targetPort: 8181
+      protocol: TCP
+    - name: some-udp-port
+      port: 8282
+      targetPort: 8282
+      protocol: UDP
     - name: http
       port: 8080
       # Verify that the target port hasn't been changed to a named port

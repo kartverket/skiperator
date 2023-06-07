@@ -8,6 +8,7 @@ commands:
   - command: kubectl apply --filename https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
   - command: kubectl delete validatingwebhookconfiguration cert-manager-webhook
   - command: kubectl delete mutatingwebhookconfiguration cert-manager-webhook
+  - command: kubectl apply --filename https://github.com/prometheus-operator/prometheus-operator/releases/download/v0.64.1/stripped-down-crds.yaml
 
   - command: kubectl apply --filename config/ --recursive
   - command: kubectl create namespace skiperator-system
