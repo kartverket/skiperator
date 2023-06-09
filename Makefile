@@ -33,6 +33,7 @@ build: generate
 
 .PHONY: test
 test: test-tools
+	[[ ! "$(kubectl cluster-info)" =~ "127.0.0.1" ]] && echo "Not Local Cluster, exiting to prevent havoc" && exit 1
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	DEBUG_LEVEL=warn \
