@@ -352,10 +352,14 @@ spec:
                         type: object
                     type: object
                   restartPolicy:
+                    default: Never
                     description: RestartPolicy describes how the container should
                       be restarted. Only one of the following restart policies may
                       be specified. If none of the following policies is specified,
                       the default one is RestartPolicyAlways.
+                    enum:
+                    - OnFailure
+                    - Never
                     type: string
                   startup:
                     properties:
@@ -375,7 +379,6 @@ spec:
                     type: object
                 required:
                 - image
-                - restartPolicy
                 type: object
               cron:
                 description: Settings for the Job if you are running a scheduled job.
@@ -437,6 +440,7 @@ spec:
                     format: int32
                     type: integer
                   suspend:
+                    default: false
                     description: If set to true, this tells Kubernetes to suspend
                       this Job till the field is set to false. If the Job is active
                       while this field is set to false, all running Pods will be terminated.
@@ -451,11 +455,12 @@ spec:
                 type: object
             required:
             - container
-            - job
             type: object
           status:
             description: SKIPJobStatus defines the observed state of SKIPJob
             type: object
+        required:
+        - spec
         type: object
     served: true
     storage: true

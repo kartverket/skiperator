@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy corev1.RestartPolicy) corev1.PodSpec {
+func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy *corev1.RestartPolicy) corev1.PodSpec {
 	return corev1.PodSpec{
 		Volumes: volumes,
 		Containers: []corev1.Container{
@@ -25,7 +25,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		},
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
-		RestartPolicy:     policy,
+		RestartPolicy:     *policy,
 	}
 
 }

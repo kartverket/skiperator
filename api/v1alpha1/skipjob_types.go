@@ -40,7 +40,8 @@ type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   SKIPJobSpec   `json:"spec,omitempty"`
+	//+kubebuilder:validation:Required
+	Spec   SKIPJobSpec   `json:"spec"`
 	Status SKIPJobStatus `json:"status,omitempty"`
 }
 
@@ -58,8 +59,8 @@ type SKIPJobList struct {
 type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
 	//
-	//+kubebuilder:validation:Required
-	Job JobSettings `json:"job"`
+	//+kubebuilder:validation:Optional
+	Job *JobSettings `json:"job,omitempty"`
 
 	// Settings for the Job if you are running a scheduled job. Optional as Jobs may be one-off.
 	//
@@ -114,8 +115,10 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Optional
 	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 
-	//+kubebuilder:validation:Required
-	RestartPolicy corev1.RestartPolicy `json:"restartPolicy"`
+	// +kubebuilder:validation:Enum=OnFailure;Never
+	// +kubebuilder:default="Never"
+	// +kubebuilder:validation:Optional
+	RestartPolicy *corev1.RestartPolicy `json:"restartPolicy"`
 }
 
 // +kubebuilder:object:generate=true
@@ -140,6 +143,7 @@ type JobSettings struct {
 	// all running Pods will be terminated.
 	//
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
 	Suspend *bool `json:"suspend,omitempty"`
 
 	// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.

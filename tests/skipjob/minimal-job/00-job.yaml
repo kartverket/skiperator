@@ -5,7 +5,3 @@ metadata:
 spec:
   container:
     image: image
-    port: 8080
-    restartPolicy: "Never"
-  job:
-    suspend: false

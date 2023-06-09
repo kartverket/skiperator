@@ -59,6 +59,11 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		"SKIPJob "+skipJob.Name+" has started reconciliation loop",
 	)
 
+	err = skipJob.ApplyDefaults()
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error){
 		r.reconcileJob,
 		r.reconcileServiceAccount,
