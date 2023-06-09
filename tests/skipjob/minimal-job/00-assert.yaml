@@ -1,4 +1,40 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: minimal-job
+  name: minimal-job-c4496d13c69993ae
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minimal-job-c4496d13c69993ae
+  labels:
+    job-name: minimal-job-c4496d13c69993ae
+spec:
+  suspend: false
+  backoffLimit: 6
+  completionMode: NonIndexed
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        job-name: minimal-job-c4496d13c69993ae
+    spec:
+      containers:
+        - name: minimal-job-c4496d13c69993ae
+          image: image
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+      imagePullSecrets:
+        - name: github-auth
+      priorityClassName: skip-medium
+      restartPolicy: Never
+      securityContext:
+        fsGroup: 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: minimal-job-c4496d13c69993ae

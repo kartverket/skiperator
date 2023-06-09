@@ -42,7 +42,7 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: access-policy-egress-56cd7aa901014e78
+  name: access-policy-egress-56cd7aa901014e78-6356d07b69fc129d
 spec:
   exportTo:
     - .
@@ -59,7 +59,7 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: access-policy-egress-3a90cb5d70dc06a
+  name: access-policy-egress-3a90cb5d70dc06a-99561aeccea8b051
 spec:
   exportTo:
     - .
@@ -102,3 +102,37 @@ spec:
               app: access-policy-other
       ports:
         - port: 8080
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: access-policy-job-egress-56cd7aa901014e78-6b2e4b52584f6a1b
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - example.com
+  ports:
+    - name: http
+      number: 80
+      protocol: HTTP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: access-policy-egress-3a90cb5d70dc06a-54d14005bba570bb
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - foo.com
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
