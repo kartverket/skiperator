@@ -8,7 +8,7 @@ replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.2023
 require (
 	github.com/cert-manager/cert-manager v1.12.1
 	github.com/kudobuilder/kuttl v0.15.0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.65.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.65.2
 	go.etcd.io/etcd/server/v3 v3.5.9
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
