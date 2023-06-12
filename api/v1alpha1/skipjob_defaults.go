@@ -2,9 +2,12 @@ package v1alpha1
 
 import (
 	"github.com/imdario/mergo"
+	"github.com/kartverket/skiperator/pkg/util"
 )
 
-const ()
+const (
+	DefaultTTLSecondsAfterFinished = int32(60)
+)
 
 func (skipJob *SKIPJob) ApplyDefaults() error {
 	return mergo.Merge(skipJob, getSkipJobDefaults())
@@ -14,13 +17,14 @@ func getSkipJobDefaults() *SKIPJob {
 	return &SKIPJob{
 		Spec: SKIPJobSpec{
 			Job: &JobSettings{
-				ActiveDeadlineSeconds:   nil,
-				BackoffLimit:            nil,
-				Parallelism:             nil,
-				Suspend:                 nil,
-				TTLSecondsAfterFinished: nil,
+				TTLSecondsAfterFinished: util.PointTo(DefaultTTLSecondsAfterFinished),
 			},
-			Cron: nil,
+			Cron: &CronSettings{
+				ConcurrencyPolicy:       "",
+				Schedule:                "",
+				StartingDeadlineSeconds: nil,
+				Suspend:                 nil,
+			},
 		},
 	}
 }

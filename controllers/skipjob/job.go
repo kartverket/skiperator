@@ -89,9 +89,9 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 			Spec: getJobSpec(skipJob, selector, labels),
 		},
 		// Not sure if we should add these fields to spec
-		TimeZone:                   nil,
-		SuccessfulJobsHistoryLimit: nil,
-		FailedJobsHistoryLimit:     nil,
+		//TimeZone:                   nil,
+		//SuccessfulJobsHistoryLimit: nil,
+		//FailedJobsHistoryLimit:     nil,
 	}
 }
 
@@ -107,8 +107,8 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		Suspend:                 skipJob.Spec.Job.Suspend,
 		// Not sure if we should add these fields to spec
-		CompletionMode: nil,
-		Completions:    nil,
+		//CompletionMode: nil,
+		//Completions:    nil,
 	}
 
 	// Jobs create their own selector with a random UUID. Upon creation of the Job we do not know this beforehand.
