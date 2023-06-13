@@ -24,7 +24,16 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	deployment := appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	deployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Deployment",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name,
+		},
+	}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
 		// Set application as owner of the deployment
