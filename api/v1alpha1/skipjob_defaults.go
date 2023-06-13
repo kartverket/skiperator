@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/imdario/mergo"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -14,9 +15,12 @@ func (skipJob *SKIPJob) ApplyDefaults() error {
 
 func getSkipJobDefaults() *SKIPJob {
 	return &SKIPJob{
+		Status: SKIPJobStatus{
+			Conditions: []metav1.Condition{},
+		},
 		Spec: SKIPJobSpec{
 			Job: &JobSettings{
-				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				// TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
 			},
 		},
 	}

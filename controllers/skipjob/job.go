@@ -7,7 +7,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -42,25 +44,48 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{}, err
 		}
 	} else {
+		println("HELLO????")
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &job, func() error {
+		wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels)
 
-			err := ctrlutil.SetControllerReference(skipJob, &job, r.GetScheme())
-			if err != nil {
-				return err
-			}
+		err = ctrlutil.SetControllerReference(skipJob, &job, r.GetScheme())
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 
+		err = r.GetClient().Get(ctx, types.NamespacedName{
+			Namespace: skipJob.Namespace,
+			Name:      job.Name,
+		}, &job)
+
+		if errors.IsNotFound(err) {
 			util.SetCommonAnnotations(&job)
 
-			job.Spec = getJobSpec(skipJob, job.Spec.Selector, job.Labels)
+			job.Spec = wantedSpec
 
-			return nil
-		})
-		if err != nil {
+			err := r.GetClient().Create(ctx, &job)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionRunning(skipJob))
+			if err != nil {
+				return *res, err
+			}
+		} else if err == nil {
+			if job.Status.CompletionTime == nil {
+				// TODO Handle updates of job. Most fields of a job will not be able to be updated.
+			} else {
+				res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob))
+				if err != nil {
+					return *res, err
+				}
+			}
+
+		} else {
 			return reconcile.Result{}, err
 		}
 	}

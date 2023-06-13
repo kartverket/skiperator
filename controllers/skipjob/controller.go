@@ -29,11 +29,32 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&skiperatorv1alpha1.SKIPJob{}).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
+		Watches(&batchv1.Job{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
+			job, isJob := object.(*batchv1.Job)
+
+			if !isJob {
+				return nil
+			}
+
+			if job.Status.CompletionTime != nil {
+				return []reconcile.Request{
+					{
+						types.NamespacedName{
+							Namespace: job.Namespace,
+							Name:      job.GetOwnerReferences()[0].Name,
+						},
+					},
+				}
+			}
+
+			return nil
+		})).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1beta1.ServiceEntry{}).
 		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
 		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs
 		Watches(&networkingv1.NetworkPolicy{}, handler.EnqueueRequestsFromMapFunc(r.getJobsToReconcile)).
+		// TODO Make the event filter not apply to Job/CronJob, as we want to watch for status updates on these objects
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
