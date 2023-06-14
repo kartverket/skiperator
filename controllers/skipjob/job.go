@@ -44,7 +44,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{}, err
 		}
 	} else {
-		println("HELLO????")
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
 			return reconcile.Result{}, err
@@ -71,6 +70,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			if err != nil {
 				return reconcile.Result{}, err
 			}
+
 			res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionRunning(skipJob))
 			if err != nil {
 				return *res, err
@@ -78,13 +78,13 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		} else if err == nil {
 			if job.Status.CompletionTime == nil {
 				// TODO Handle updates of job. Most fields of a job will not be able to be updated.
+				println("Job reconciled but not completed")
 			} else {
 				res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob))
 				if err != nil {
 					return *res, err
 				}
 			}
-
 		} else {
 			return reconcile.Result{}, err
 		}
