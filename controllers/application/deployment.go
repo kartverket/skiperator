@@ -82,6 +82,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	return reconcile.Result{}, err
 }
 
+// TODO Set GCP volume mount for Jobs too
 func (r ApplicationReconciler) appendGCPVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
 	if application.Spec.GCP != nil {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
