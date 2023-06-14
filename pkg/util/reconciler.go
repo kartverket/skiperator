@@ -12,9 +12,11 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -28,31 +30,43 @@ import (
 //	  ... other optional fields ...
 //	}
 type ReconcilerBase struct {
-	apireader  client.Reader
-	client     client.Client
-	scheme     *runtime.Scheme
-	restConfig *rest.Config
-	recorder   record.EventRecorder
+	apireader        client.Reader
+	client           client.Client
+	extensionsClient *apiextensionsclient.Clientset
+	scheme           *runtime.Scheme
+	restConfig       *rest.Config
+	recorder         record.EventRecorder
 }
 
-func NewReconcilerBase(client client.Client, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder, apireader client.Reader) ReconcilerBase {
+func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclient.Clientset, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder, apireader client.Reader) ReconcilerBase {
 	return ReconcilerBase{
-		apireader:  apireader,
-		client:     client,
-		scheme:     scheme,
-		restConfig: restConfig,
-		recorder:   recorder,
+		apireader:        apireader,
+		client:           client,
+		extensionsClient: extensionsClient,
+		scheme:           scheme,
+		restConfig:       restConfig,
+		recorder:         recorder,
 	}
 }
 
 // NewReconcilerBase is a contruction function to create a new ReconcilerBase.
 func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) ReconcilerBase {
-	return NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader())
+	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
+	if err != nil {
+		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
+	}
+
+	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader())
 }
 
 // GetClient returns the underlying client
 func (r *ReconcilerBase) GetClient() client.Client {
 	return r.client
+}
+
+// GetApiExtensionsClient returns the underlying API Extensions client
+func (r *ReconcilerBase) GetApiExtensionsClient() *apiextensionsclient.Clientset {
+	return r.extensionsClient
 }
 
 // GetRestConfig returns the undelying rest config
