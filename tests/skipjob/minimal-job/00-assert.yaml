@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: minimal-job-c4496d13c69993ae
-          image: image
+          image: "perl:5.34.0"
           imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false

@@ -78,7 +78,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		} else if err == nil {
 			if job.Status.CompletionTime == nil {
 				// TODO Handle updates of job. Most fields of a job will not be able to be updated.
-				println("Job reconciled but not completed")
+				// println("Job reconciled but not completed")
 			} else {
 				res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob))
 				if err != nil {
