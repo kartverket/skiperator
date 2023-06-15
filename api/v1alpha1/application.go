@@ -278,7 +278,7 @@ const (
 )
 
 func (a *Application) FillDefaultsSpec() {
-	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
+	a.Spec.Replicas.Min = max(0, a.Spec.Replicas.Min)
 	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 
 	if a.Spec.Replicas.TargetCpuUtilization == 0 {

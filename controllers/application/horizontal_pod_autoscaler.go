@@ -2,11 +2,11 @@ package applicationcontroller
 
 import (
 	"context"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -16,6 +16,17 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	if application.Spec.Replicas.Min == 0 && application.Spec.Replicas.Max == 0 {
+		err := r.GetClient().Delete(ctx, &horizontalPodAutoscaler)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+		return reconcile.Result{}, nil
+	}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &horizontalPodAutoscaler, func() error {
 		// Set application as owner of the horizontal pod autoscaler
 		err := ctrlutil.SetControllerReference(application, &horizontalPodAutoscaler, r.GetScheme())

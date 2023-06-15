@@ -3,7 +3,6 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -82,7 +81,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		deployment.Spec = appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{MatchLabels: labels},
-			Replicas: getReplicasFromAppSpec(application.Spec.Replicas.Min),
 			Strategy: appsv1.DeploymentStrategy{
 				Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
 				RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
@@ -115,6 +113,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				},
 			},
 			RevisionHistoryLimit: util.PointTo(int32(2)),
+		}
+
+		// Set replicas to 0 when min/max is set to 0
+		if int32(application.Spec.Replicas.Min) == 0 && int32(application.Spec.Replicas.Max) == 0 {
+			deployment.Spec.Replicas = util.PointTo(int32(0))
 		}
 
 		// add an external link to argocd
@@ -351,4 +354,15 @@ func getReplicasFromAppSpec(appReplicas uint) *int32 {
 	}
 
 	return &replicas
+}
+
+func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
+	fmt.Printf("\nMIN REPLICAS: %d", minReplicas)
+	fmt.Printf("\nMAX REPLICAS: %d\n", maxReplicas)
+	var min = int32(minReplicas)
+	var max = int32(maxReplicas)
+	if min == 0 && max == 0 {
+		return true
+	}
+	return false
 }
