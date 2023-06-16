@@ -28,6 +28,11 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		r.SetLabelsFromApplication(ctx, &service, *application)
 		util.SetCommonAnnotations(&service)
 
+		// ServiceMonitor requires labels to be set on service to select it
+		labels := service.GetLabels()
+		labels["app"] = application.Name
+		service.SetLabels(labels)
+
 		service.Spec = corev1.ServiceSpec{
 			Selector: util.GetApplicationSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
