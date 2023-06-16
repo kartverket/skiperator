@@ -434,6 +434,22 @@ spec:
                       the job as failed. Defaults to 6.
                     format: int32
                     type: integer
+                  hookSettings:
+                    description: Settings for managing the Hook lifecycle of the Job,
+                      if wanted.
+                    properties:
+                      syncPhase:
+                        description: Sets the SyncPhase of the Job. Only PreSync and
+                          PostSync are allowed. If unset, a normal Sync is performed.
+                          A PreSync will wait for the Job to complete before syncing
+                          other resources in the namespace, which might be useful
+                          for things like database migrations. A PostSync will only
+                          be applied after all other resources are applied.
+                        enum:
+                        - PreSync
+                        - PostSync
+                        type: string
+                    type: object
                   parallelism:
                     description: Specifies the number of Pods to run in parallel.
                       Defaults to 1. Works similar to a Skiperator Application's Replicas.

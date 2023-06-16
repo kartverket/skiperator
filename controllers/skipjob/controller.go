@@ -104,6 +104,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		"SKIPJob "+skipJob.Name+" has finished reconciliation loop",
 	)
 
+	err = r.GetClient().Update(ctx, skipJob)
 	return reconcile.Result{}, err
 }
 
