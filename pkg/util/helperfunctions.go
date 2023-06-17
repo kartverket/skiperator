@@ -2,11 +2,15 @@ package util
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"hash"
 	"hash/fnv"
 	"regexp"
 	"unicode"
 
+	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -18,8 +22,31 @@ import (
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
+const HashLabelName = "skiperator.kartverket.no/hash"
+
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
+}
+
+func GetHashForSpec(specStruct interface{}) string {
+	byteArray, _ := json.Marshal(specStruct)
+	var hasher hash.Hash
+	hasher = ripemd160.New()
+	hasher.Reset()
+	hasher.Write(byteArray)
+	return hex.EncodeToString(hasher.Sum(nil))
+}
+
+func SetHashToLabels(labels map[string]string, specHashActual string) map[string]string {
+	if labels == nil {
+		labels = map[string]string{}
+	}
+	labels[HashLabelName] = specHashActual
+	return labels
+}
+
+func GetHashFromLabels(labels map[string]string) string {
+	return labels[HashLabelName]
 }
 
 func GenerateHashFromName(name string) uint64 {

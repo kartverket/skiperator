@@ -7,9 +7,11 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -19,10 +21,7 @@ const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
 
-func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "Deployment"
-	r.SetControllerProgressing(ctx, application, controllerName)
-
+func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
 	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -34,100 +33,155 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		},
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
-		// Set application as owner of the deployment
-		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
+	skiperatorContainer := corev1.Container{
+		Name:            application.Name,
+		Image:           application.Spec.Image,
+		ImagePullPolicy: corev1.PullAlways,
+		Command:         application.Spec.Command,
+		SecurityContext: &corev1.SecurityContext{
+			Privileged:               util.PointTo(false),
+			AllowPrivilegeEscalation: util.PointTo(false),
+			ReadOnlyRootFilesystem:   util.PointTo(true),
+			RunAsUser:                util.PointTo(util.SkiperatorUser),
+			RunAsGroup:               util.PointTo(util.SkiperatorUser),
+		},
+		Ports:   getContainerPorts(application),
+		EnvFrom: getEnvFrom(application.Spec.EnvFrom),
+		Resources: corev1.ResourceRequirements{
+			Limits:   application.Spec.Resources.Limits,
+			Requests: application.Spec.Resources.Requests,
+		},
+		Env:                      application.Spec.Env,
+		ReadinessProbe:           getProbe(application.Spec.Readiness),
+		LivenessProbe:            getProbe(application.Spec.Liveness),
+		StartupProbe:             getProbe(application.Spec.Startup),
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessagePolicy("File"),
+	}
 
-		r.SetLabelsFromApplication(ctx, &deployment, *application)
-		util.SetCommonAnnotations(&deployment)
+	var err error
 
-		skiperatorContainer := corev1.Container{
-			Name:            application.Name,
-			Image:           application.Spec.Image,
-			ImagePullPolicy: corev1.PullAlways,
-			Command:         application.Spec.Command,
-			SecurityContext: &corev1.SecurityContext{
-				Privileged:               util.PointTo(false),
-				AllowPrivilegeEscalation: util.PointTo(false),
-				ReadOnlyRootFilesystem:   util.PointTo(true),
-				RunAsUser:                util.PointTo(util.SkiperatorUser),
-				RunAsGroup:               util.PointTo(util.SkiperatorUser),
-			},
-			Ports:   getContainerPorts(application),
-			EnvFrom: getEnvFrom(application.Spec.EnvFrom),
-			Resources: corev1.ResourceRequirements{
-				Limits:   application.Spec.Resources.Limits,
-				Requests: application.Spec.Resources.Requests,
-			},
-			Env:            application.Spec.Env,
-			ReadinessProbe: getProbe(application.Spec.Readiness),
-			LivenessProbe:  getProbe(application.Spec.Liveness),
-			StartupProbe:   getProbe(application.Spec.Startup),
-		}
+	podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
+	podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return deployment, err
+	}
+	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-		podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
-		podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
-		skiperatorContainer.VolumeMounts = containerVolumeMounts
+	labels := util.GetApplicationSelector(application.Name)
 
-		labels := util.GetApplicationSelector(application.Name)
-
-		deployment.Spec = appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
-			Strategy: appsv1.DeploymentStrategy{
-				Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
-				RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-					Annotations: map[string]string{
-						"argocd.argoproj.io/sync-options": "Prune=false",
-						"prometheus.io/scrape":            "true",
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						skiperatorContainer,
-					},
-
-					// TODO: Make this as part of operator in a safe way
-					ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-					SecurityContext: &corev1.PodSecurityContext{
-						SupplementalGroups: []int64{util.SkiperatorUser},
-						FSGroup:            util.PointTo(util.SkiperatorUser),
-						SeccompProfile: &corev1.SeccompProfile{
-							Type: corev1.SeccompProfileTypeRuntimeDefault,
-						},
-					},
-					ServiceAccountName: application.Name,
-					Volumes:            podVolumes,
-					PriorityClassName:  fmt.Sprintf("skip-%s", application.Spec.Priority),
+	deployment.Spec = appsv1.DeploymentSpec{
+		Selector: &metav1.LabelSelector{MatchLabels: labels},
+		Strategy: appsv1.DeploymentStrategy{
+			Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
+			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: labels,
+				Annotations: map[string]string{
+					"argocd.argoproj.io/sync-options": "Prune=false",
+					"prometheus.io/scrape":            "true",
 				},
 			},
-			RevisionHistoryLimit: util.PointTo(int32(2)),
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					skiperatorContainer,
+				},
+
+				// TODO: Make this as part of operator in a safe way
+				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
+				SecurityContext: &corev1.PodSecurityContext{
+					SupplementalGroups: []int64{util.SkiperatorUser},
+					FSGroup:            util.PointTo(util.SkiperatorUser),
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
+					},
+				},
+				ServiceAccountName: application.Name,
+				// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
+				// to not create a diff for the hash of existing and wanted spec
+				DeprecatedServiceAccount:      application.Name,
+				Volumes:                       podVolumes,
+				PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
+				RestartPolicy:                 corev1.RestartPolicyAlways,
+				TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
+				DNSPolicy:                     corev1.DNSClusterFirst,
+				SchedulerName:                 corev1.DefaultSchedulerName,
+			},
+		},
+		RevisionHistoryLimit:    util.PointTo(int32(2)),
+		ProgressDeadlineSeconds: util.PointTo(int32(600)),
+	}
+
+	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+		deployment.Spec.Replicas = util.PointTo(int32(0))
+	}
+
+	// add an external link to argocd
+	ingresses := application.Spec.Ingresses
+	if len(ingresses) > 0 {
+		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+	}
+
+	return deployment, nil
+}
+
+func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "Deployment"
+	r.SetControllerProgressing(ctx, application, controllerName)
+
+	deployment := appsv1.Deployment{}
+	deploymentDefinition, err := r.defineDeployment(ctx, application)
+
+	// Set application as owner of the deployment
+	err = ctrlutil.SetControllerReference(application, &deploymentDefinition, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	r.SetLabelsFromApplication(ctx, &deployment, *application)
+	util.SetCommonAnnotations(&deployment)
+
+	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				application,
+				corev1.EventTypeNormal, "NotFound",
+				"Deployment resource for application %s not found. Creating deployment",
+				application.Name,
+			)
+			err = r.GetClient().Create(ctx, &deploymentDefinition)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return reconcile.Result{}, err
+			}
+
+		} else {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	} else {
+
+		if !shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+			// Ignore replicas set by HPA when checking diff
+			if int32(*deployment.Spec.Replicas) > 0 {
+				deployment.Spec.Replicas = nil
+			}
 		}
 
+		deploymentSpecHash := util.GetHashForSpec(&deployment.Spec)
+		deploymentDefinitionSpecHash := util.GetHashForSpec(&deploymentDefinition.Spec)
 		// Set replicas to 0 when min/max is set to 0
-		if int32(application.Spec.Replicas.Min) == 0 && int32(application.Spec.Replicas.Max) == 0 {
-			deployment.Spec.Replicas = util.PointTo(int32(0))
-		}
 
-		// add an external link to argocd
-		ingresses := application.Spec.Ingresses
-		if len(ingresses) > 0 {
-			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		if deploymentSpecHash != deploymentDefinitionSpecHash {
+			patch := client.MergeFrom(deployment.DeepCopy())
+			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
 		}
-
-		return nil
-	})
+	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
@@ -324,6 +378,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.Con
 		{
 			Name:          "main",
 			ContainerPort: int32(application.Spec.Port),
+			Protocol:      corev1.ProtocolTCP,
 		},
 	}
 
@@ -343,25 +398,15 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 		return nil
 	}
 
-	return &appsv1.RollingUpdateDeployment{}
-}
-
-func getReplicasFromAppSpec(appReplicas uint) *int32 {
-	var replicas = int32(appReplicas)
-	if replicas == 0 {
-		minReplicas := int32(1)
-		return &minReplicas
+	return &appsv1.RollingUpdateDeployment{
+		// Fill with defaults
+		MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
+		MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 	}
-
-	return &replicas
 }
 
 func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
-	fmt.Printf("\nMIN REPLICAS: %d", minReplicas)
-	fmt.Printf("\nMAX REPLICAS: %d\n", maxReplicas)
-	var min = int32(minReplicas)
-	var max = int32(maxReplicas)
-	if min == 0 && max == 0 {
+	if minReplicas == 0 && maxReplicas == 0 {
 		return true
 	}
 	return false
