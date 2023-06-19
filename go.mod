@@ -6,7 +6,7 @@ go 1.20
 replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.20230127103832-3aa3dfd6613d
 
 require (
-	github.com/cert-manager/cert-manager v1.12.1
+	github.com/cert-manager/cert-manager v1.12.2
 	github.com/kudobuilder/kuttl v0.15.0
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.65.2
 	go.etcd.io/etcd/server/v3 v3.5.9
