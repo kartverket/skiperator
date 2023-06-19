@@ -10,7 +10,7 @@ var (
 )
 
 func (skipJob *SKIPJob) ApplyDefaults() error {
-	skipJob.SetAnnotations(skipJob.getDefaultAnnotations())
+	skipJob.setDefaultAnnotations()
 	return mergo.Merge(skipJob, getSkipJobDefaults())
 }
 
@@ -27,17 +27,23 @@ func getSkipJobDefaults() *SKIPJob {
 	}
 }
 
-func (in *SKIPJob) getDefaultAnnotations() map[string]string {
+func (in *SKIPJob) setDefaultAnnotations() {
 	annotations := in.Annotations
+
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
 
 	// We do not set SyncPolicies if Cron is set. This is due to the recurring nature of Cron jobs not
 	// working well in tangent with stuff like deletion policies.
-	if in.Spec.Cron == nil && in.Spec.Job.HookSettings != nil {
-		// TODO Allow different type of hook delete policies
-		println("hello???")
-		annotations["argocd.argoproj.io/hook-delete-policy"] = "HookSucceeded"
-		annotations["argocd.argoproj.io/hook"] = *in.Spec.Job.HookSettings.SyncPhase
+	if in.Spec.Cron == nil && in.Spec.Job != nil {
+		if in.Spec.Job.HookSettings != nil {
+			// TODO Allow different type of hook delete policies
+
+			annotations["argocd.argoproj.io/hook-delete-policy"] = "HookSucceeded"
+			annotations["argocd.argoproj.io/hook"] = *in.Spec.Job.HookSettings.SyncPhase
+		}
 	}
 
-	return annotations
+	in.SetAnnotations(annotations)
 }

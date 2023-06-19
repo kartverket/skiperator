@@ -1,7 +1,9 @@
 package applicationcontroller
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -9,7 +11,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -71,26 +76,100 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionRunning(skipJob))
+			res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionRunning(skipJob, metav1.ConditionTrue))
+			if err != nil {
+				return *res, err
+			}
+			res, err = r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob, metav1.ConditionFalse))
 			if err != nil {
 				return *res, err
 			}
 		} else if err == nil {
 			if job.Status.CompletionTime == nil {
-				// TODO Handle updates of job. Most fields of a job will not be able to be updated.
-				// println("Job reconciled but not completed")
-			} else {
-				res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob))
+				jobPods, err := listJobPods(r.GetClient(), ctx, job)
 				if err != nil {
-					return *res, err
+					return reconcile.Result{}, err
 				}
+
+				// TODO Check exit code for container containing actual job, as this might fail, in which case the istio-proxy should also fail (i think)
+				for _, pod := range jobPods.Items {
+					if pod.Status.Phase != corev1.PodRunning {
+						continue
+					}
+
+					for _, containerStatus := range pod.Status.ContainerStatuses {
+						if containerStatus.Name != job.Name {
+							continue
+						}
+
+						if containerStatus.State.Terminated != nil && containerStatus.State.Terminated.ExitCode == 0 {
+							// If the istio-proxy is terminated we may skip all the other containers, as our work is already done
+							if containerStatus.Name == "istio-proxy" {
+								break
+							}
+
+							err := removeIstioProxyForPod(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
+							if err != nil {
+								return reconcile.Result{}, err
+							}
+							res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob, metav1.ConditionTrue))
+							if err != nil {
+								return *res, err
+							}
+						}
+					}
+				}
+			} else {
+
 			}
+
 		} else {
 			return reconcile.Result{}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func removeIstioProxyForPod(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
+	buf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	request := restClient.
+		Post().
+		Namespace(pod.Namespace).
+		Resource("pods").
+		Name(pod.Name).
+		SubResource("exec").
+		VersionedParams(&corev1.PodExecOptions{
+			Container: "istio-proxy",
+			Command:   []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
+			Stdin:     false,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
+		}, codec)
+	exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
+	if err != nil {
+		return fmt.Errorf("%w failed running the exec on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+	}
+	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		Stdout: buf,
+		Stderr: errBuf,
+	})
+	if err != nil {
+		return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+	}
+	return nil
+}
+
+func listJobPods(recClient client.Client, ctx context.Context, job batchv1.Job) (corev1.PodList, error) {
+	jobPods := corev1.PodList{}
+	err := recClient.List(ctx, &jobPods, []client.ListOption{
+		client.InNamespace(job.Namespace),
+		client.MatchingLabels{"job-name": job.Labels["job-name"]},
+	}...)
+
+	return jobPods, err
 }
 
 func deleteCronJobIfExists(recClient client.Client, context context.Context, cronJob batchv1.CronJob) error {

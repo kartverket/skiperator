@@ -13,21 +13,21 @@ const (
 	ConditionFinished = "Finished"
 )
 
-func (r *SKIPJobReconciler) GetConditionRunning(skipJob *skiperatorv1alpha1.SKIPJob) v1.Condition {
+func (r *SKIPJobReconciler) GetConditionRunning(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus) v1.Condition {
 	return v1.Condition{
 		Type:               ConditionRunning,
-		Status:             "True",
+		Status:             status,
 		ObservedGeneration: skipJob.Generation,
 		LastTransitionTime: v1.Now(),
 		Reason:             "JobStarted",
-		Message:            "Job has been created and is now starting",
+		Message:            "Job has been created and is now running",
 	}
 }
 
-func (r *SKIPJobReconciler) GetConditionFinished(skipJob *skiperatorv1alpha1.SKIPJob) v1.Condition {
+func (r *SKIPJobReconciler) GetConditionFinished(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus) v1.Condition {
 	return v1.Condition{
 		Type:               ConditionFinished,
-		Status:             "True",
+		Status:             status,
 		ObservedGeneration: skipJob.Generation,
 		LastTransitionTime: v1.Now(),
 		Reason:             "JobFinished",
@@ -35,7 +35,6 @@ func (r *SKIPJobReconciler) GetConditionFinished(skipJob *skiperatorv1alpha1.SKI
 	}
 }
 
-// TODO Set transitiontime of conditions based on change in Status for Conditions
 func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *skiperatorv1alpha1.SKIPJob, condition v1.Condition) (*ctrl.Result, error) {
 	foundJob := &skiperatorv1alpha1.SKIPJob{}
 	err := r.GetClient().Get(ctx, types.NamespacedName{
