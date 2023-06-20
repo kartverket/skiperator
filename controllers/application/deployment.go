@@ -115,6 +115,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		ProgressDeadlineSeconds: util.PointTo(int32(600)),
 	}
 
+	// Setting replicas to 0 when skiperator manifest specifies min/max to 0
 	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
@@ -123,6 +124,16 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	ingresses := application.Spec.Ingresses
 	if len(ingresses) > 0 {
 		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+	}
+
+	r.SetLabelsFromApplication(ctx, &deployment, *application)
+	util.SetCommonAnnotations(&deployment)
+
+	// Set application as owner of the deployment
+	err = ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return deployment, err
 	}
 
 	return deployment, nil
@@ -134,16 +145,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 	deployment := appsv1.Deployment{}
 	deploymentDefinition, err := r.defineDeployment(ctx, application)
-
-	// Set application as owner of the deployment
-	err = ctrlutil.SetControllerReference(application, &deploymentDefinition, r.GetScheme())
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
-	}
-
-	r.SetLabelsFromApplication(ctx, &deployment, *application)
-	util.SetCommonAnnotations(&deployment)
 
 	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
 	if err != nil {
@@ -159,13 +160,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				r.SetControllerError(ctx, application, controllerName, err)
 				return reconcile.Result{}, err
 			}
-
 		} else {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
 	} else {
-
 		if !shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
 			// Ignore replicas set by HPA when checking diff
 			if int32(*deployment.Spec.Replicas) > 0 {
@@ -173,13 +172,24 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			}
 		}
 
-		deploymentSpecHash := util.GetHashForSpec(&deployment.Spec)
-		deploymentDefinitionSpecHash := util.GetHashForSpec(&deploymentDefinition.Spec)
-		// Set replicas to 0 when min/max is set to 0
+		deploymentHash := util.GetHashForStructs([]interface{}{
+			&deployment.Spec,
+			&deployment.Labels,
+			//&deployment.Annotations,
+		})
+		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
+			&deploymentDefinition.Spec,
+			&deploymentDefinition.Labels,
+			//&deploymentDefinition.Annotations,
+		})
 
-		if deploymentSpecHash != deploymentDefinitionSpecHash {
+		if deploymentHash != deploymentDefinitionHash {
 			patch := client.MergeFrom(deployment.DeepCopy())
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return reconcile.Result{}, err
+			}
 		}
 	}
 
