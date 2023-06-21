@@ -35,7 +35,7 @@ func (r *SKIPJobReconciler) GetConditionFinished(skipJob *skiperatorv1alpha1.SKI
 	}
 }
 
-func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *skiperatorv1alpha1.SKIPJob, condition v1.Condition) (*ctrl.Result, error) {
+func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *skiperatorv1alpha1.SKIPJob, conditions []v1.Condition) (*ctrl.Result, error) {
 	foundJob := &skiperatorv1alpha1.SKIPJob{}
 	err := r.GetClient().Get(ctx, types.NamespacedName{
 		Name:      in.Name,
@@ -45,28 +45,45 @@ func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *s
 		return &ctrl.Result{}, err
 	}
 
-	if shouldAddCondition(foundJob.Status.Conditions, condition) {
-		foundJob.Status.Conditions = append(foundJob.Status.Conditions, condition)
+	for _, conditionToAdd := range conditions {
+		currentCondition, isNotEmpty := r.GetLastCondition(foundJob.Status.Conditions)
 
-		err = r.GetClient().Status().Update(ctx, foundJob)
-		if err != nil {
-			return &ctrl.Result{}, err
+		isSameType := conditionsHaveSameType(currentCondition, &conditionToAdd)
+		isSameStatus := conditionsHaveSameStatus(currentCondition, &conditionToAdd)
+
+		if !isNotEmpty || !isSameType {
+			foundJob.Status.Conditions = append(foundJob.Status.Conditions, conditionToAdd)
 		}
+
+		if isSameType && isSameStatus {
+			continue
+		}
+
+		if isSameType && !isSameStatus {
+			*currentCondition = conditionToAdd
+		}
+	}
+
+	err = r.GetClient().Status().Update(ctx, foundJob)
+	if err != nil {
+		return &ctrl.Result{}, err
 	}
 
 	return nil, nil
 }
 
-func shouldAddCondition(conditions []v1.Condition, conditionToAdd v1.Condition) bool {
+func (r *SKIPJobReconciler) GetLastCondition(conditions []v1.Condition) (*v1.Condition, bool) {
 	if len(conditions) == 0 {
-		return true
+		return &v1.Condition{}, false
 	}
 
-	currentCondition := conditions[len(conditions)-1]
+	return &conditions[len(conditions)-1], true
+}
 
-	if currentCondition.Status == conditionToAdd.Status && currentCondition.Type == conditionToAdd.Type {
-		return false
-	}
+func conditionsHaveSameStatus(condition1 *v1.Condition, condition2 *v1.Condition) bool {
+	return condition1.Status == condition2.Status
+}
 
-	return true
+func conditionsHaveSameType(condition1 *v1.Condition, condition2 *v1.Condition) bool {
+	return condition1.Type == condition2.Type
 }

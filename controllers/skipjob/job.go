@@ -76,46 +76,55 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionRunning(skipJob, metav1.ConditionTrue))
-			if err != nil {
-				return *res, err
-			}
-			res, err = r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob, metav1.ConditionFalse))
+			res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
+				r.GetConditionRunning(skipJob, metav1.ConditionTrue),
+				r.GetConditionFinished(skipJob, metav1.ConditionFalse),
+			})
 			if err != nil {
 				return *res, err
 			}
 		} else if err == nil {
-			if job.Status.CompletionTime == nil {
+			if !r.isSkipJobFinished(skipJob.Status.Conditions) && job.Status.CompletionTime == nil {
+
 				jobPods, err := listJobPods(r.GetClient(), ctx, job)
 				if err != nil {
 					return reconcile.Result{}, err
 				}
 
-				// TODO Check exit code for container containing actual job, as this might fail, in which case the istio-proxy should also fail (i think)
 				for _, pod := range jobPods.Items {
 					if pod.Status.Phase != corev1.PodRunning {
 						continue
 					}
 
+					terminatedContainerStatuses := map[string]int32{}
 					for _, containerStatus := range pod.Status.ContainerStatuses {
-						if containerStatus.Name != job.Name {
-							continue
+						if containerStatus.State.Terminated != nil {
+							terminatedContainerStatuses[containerStatus.Name] = containerStatus.State.Terminated.ExitCode
 						}
+					}
 
-						if containerStatus.State.Terminated != nil && containerStatus.State.Terminated.ExitCode == 0 {
-							// If the istio-proxy is terminated we may skip all the other containers, as our work is already done
-							if containerStatus.Name == "istio-proxy" {
-								break
-							}
+					if _, exists := terminatedContainerStatuses["istio-proxy"]; exists {
+						// We want to skip all further operations if the istio-proxy is terminated
+						continue
+					}
 
-							err := removeIstioProxyForPod(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
+					if exitCode, exists := terminatedContainerStatuses[job.Name]; exists {
+						if exitCode == 0 {
+							err := requestExitForIstioProxyContainer(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
 							if err != nil {
 								return reconcile.Result{}, err
 							}
-							res, err := r.UpdateStatusWithCondition(ctx, skipJob, r.GetConditionFinished(skipJob, metav1.ConditionTrue))
+
+							// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished, and can update the status of the SKIPJob
+							// immediately, so following reconciliations can use that check
+							res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
+								r.GetConditionFinished(skipJob, metav1.ConditionTrue),
+							})
 							if err != nil {
 								return *res, err
 							}
+						} else {
+							// TODO Operate differently if the container containing the job was not terminated successfully
 						}
 					}
 				}
@@ -131,7 +140,17 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	return reconcile.Result{}, nil
 }
 
-func removeIstioProxyForPod(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
+func (r *SKIPJobReconciler) isSkipJobFinished(conditions []metav1.Condition) bool {
+	newestSkipJobCondition, isNotEmpty := r.GetLastCondition(conditions)
+
+	if !isNotEmpty {
+		return false
+	} else {
+		return newestSkipJobCondition.Type == ConditionFinished && newestSkipJobCondition.Status == metav1.ConditionTrue
+	}
+}
+
+func requestExitForIstioProxyContainer(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
 	request := restClient.
