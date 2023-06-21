@@ -144,6 +144,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.EnablePDB != nil {
+		in, out := &in.EnablePDB, &out.EnablePDB
+		*out = new(bool)
+		**out = **in
+	}
 	in.AccessPolicy.DeepCopyInto(&out.AccessPolicy)
 	if in.GCP != nil {
 		in, out := &in.GCP, &out.GCP

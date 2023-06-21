@@ -78,6 +78,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
+	// Whether to enable automatic Pod Disruption Budget creation for this application.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=true
+	EnablePDB *bool `json:"enablePDB,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
 

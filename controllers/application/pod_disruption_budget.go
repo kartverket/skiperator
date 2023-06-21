@@ -2,12 +2,12 @@ package applicationcontroller
 
 import (
 	"context"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -17,30 +17,41 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 	_, _ = r.SetControllerProgressing(ctx, application, controllerName)
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &pdb, func() error {
-		// Set application as owner of the PDB
-		err := ctrlutil.SetControllerReference(application, &pdb, r.GetScheme())
+
+	if *application.Spec.EnablePDB {
+		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &pdb, func() error {
+			// Set application as owner of the PDB
+			err := ctrlutil.SetControllerReference(application, &pdb, r.GetScheme())
+			if err != nil {
+				_, _ = r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			r.SetLabelsFromApplication(ctx, &pdb, *application)
+			util.SetCommonAnnotations(&pdb)
+
+			pdb.Spec = policyv1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: util.GetApplicationSelector(application.Name),
+				},
+				MinAvailable: determineMinAvailable(application.Spec.Replicas.Min),
+			}
+
+			return nil
+		})
+
+		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+
+		return reconcile.Result{}, err
+	} else {
+		err := r.GetClient().Delete(ctx, &pdb)
+		err = client.IgnoreNotFound(err)
 		if err != nil {
-			_, _ = r.SetControllerError(ctx, application, controllerName, err)
-			return err
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
 		}
-
-		r.SetLabelsFromApplication(ctx, &pdb, *application)
-		util.SetCommonAnnotations(&pdb)
-
-		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
-			},
-			MinAvailable: determineMinAvailable(application.Spec.Replicas.Min),
-		}
-
-		return nil
-	})
-
-	_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
+		return reconcile.Result{}, nil
+	}
 }
 
 func determineMinAvailable(replicasAvailable uint) *intstr.IntOrString {
