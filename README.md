@@ -203,6 +203,8 @@ spec:
       cpu: 25m
       # Number of bytes of RAM
       memory: 250M
+  # Whether to enable automatic Pod Disruption Budget creation for this application. Defaults to true and may be omitted.
+  enablePDB: true
   # Zero trust dictates that only applications with a reason for being able
   # to access another resource should be able to reach it. This is set up by
   # default by denying all ingress and egress traffic from the pods in the

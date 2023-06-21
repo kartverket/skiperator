@@ -150,6 +150,11 @@ spec:
                 items:
                   type: string
                 type: array
+              enablePDB:
+                default: true
+                description: Whether to enable automatic Pod Disruption Budget creation
+                  for this application.
+                type: boolean
               env:
                 items:
                   description: EnvVar represents an environment variable present in
