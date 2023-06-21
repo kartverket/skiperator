@@ -30,6 +30,9 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 
 		// ServiceMonitor requires labels to be set on service to select it
 		labels := service.GetLabels()
+		if len(labels) == 0 {
+			labels = make(map[string]string)
+		}
 		labels["app"] = application.Name
 		service.SetLabels(labels)
 

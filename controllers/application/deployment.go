@@ -120,14 +120,14 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
 
+	r.SetLabelsFromApplication(ctx, &deployment, *application)
+	util.SetCommonAnnotations(&deployment)
+
 	// add an external link to argocd
 	ingresses := application.Spec.Ingresses
 	if len(ingresses) > 0 {
 		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
-
-	r.SetLabelsFromApplication(ctx, &deployment, *application)
-	util.SetCommonAnnotations(&deployment)
 
 	// Set application as owner of the deployment
 	err = ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
