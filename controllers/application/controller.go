@@ -3,8 +3,9 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyv1 "k8s.io/api/policy/v1"
 
@@ -138,6 +139,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.reconcileAuthorizationPolicy,
 		r.reconcilePodDisruptionBudget,
 		r.reconcileServiceMonitor,
+		r.reconcileDigdirator,
 	}
 
 	for _, fn := range controllerDuties {

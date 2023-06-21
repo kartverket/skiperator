@@ -66,6 +66,9 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Startup *Probe `json:"startup,omitempty"`
 
+	//+kubebuilder:validation:Optional
+	Digdirator bool `json:"digdirator"`
+
 	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
 	//
 	//+kubebuilder:validation:Optional
