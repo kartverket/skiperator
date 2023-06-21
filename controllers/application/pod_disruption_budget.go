@@ -18,7 +18,7 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
-	if application.Spec.EnablePDB {
+	if *application.Spec.EnablePDB {
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &pdb, func() error {
 			// Set application as owner of the PDB
 			err := ctrlutil.SetControllerReference(application, &pdb, r.GetScheme())

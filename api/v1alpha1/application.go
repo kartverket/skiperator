@@ -82,7 +82,7 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default=true
-	EnablePDB bool `json:"enablePDB"`
+	EnablePDB *bool `json:"enablePDB,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
