@@ -175,7 +175,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		deploymentHash := util.GetHashForStructs([]interface{}{
 			&deployment.Spec,
 			&deployment.Labels,
-			//&deployment.Annotations,
 		})
 		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
 			&deploymentDefinition.Spec,
