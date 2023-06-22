@@ -19,8 +19,6 @@ import (
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
-const HashLabelName = "skiperator.kartverket.no/hash"
-
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
