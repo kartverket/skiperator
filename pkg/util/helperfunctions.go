@@ -2,10 +2,8 @@ package util
 
 import (
 	"context"
-	"crypto/sha1"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
+	"github.com/mitchellh/hashstructure/v2"
 	"hash/fnv"
 	"regexp"
 	"unicode"
@@ -28,12 +26,11 @@ func IsInternal(hostname string) bool {
 }
 
 func GetHashForStructs(obj []interface{}) string {
-	hasher := sha1.New()
-	for _, ob := range obj {
-		byteArray, _ := json.Marshal(ob)
-		hasher.Write(byteArray)
+	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
 	}
-	return hex.EncodeToString(hasher.Sum(nil))
+	return fmt.Sprintf("%d", hash)
 }
 
 func GenerateHashFromName(name string) uint64 {
