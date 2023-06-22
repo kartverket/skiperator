@@ -27,9 +27,6 @@ spec:
   selector:
     matchLabels:
       app: yes-disruption
-status:
-  desiredHealthy: 0
-  expectedPods: 1
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -39,7 +36,7 @@ spec:
   minAvailable: 0
   selector:
     matchLabels:
-      app: yes-disruption
+      app: yes-disruption-2
 status:
   desiredHealthy: 0
   expectedPods: 0
