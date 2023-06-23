@@ -162,6 +162,8 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
 
+	application.Spec.Replicas.Max = util.Max(application.Spec.Replicas.Max, application.Spec.Replicas.Min)
+
 	if len(application.Labels) == 0 {
 		application.Labels = application.Spec.Labels
 	} else {
