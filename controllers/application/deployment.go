@@ -199,20 +199,21 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 func getProbe(appProbe *skiperatorv1alpha1.Probe) *corev1.Probe {
 	if appProbe != nil {
 		probe := corev1.Probe{
-			InitialDelaySeconds: int32(appProbe.InitialDelay),
-			TimeoutSeconds:      int32(appProbe.Timeout),
-			FailureThreshold:    int32(appProbe.FailureThreshold),
+			InitialDelaySeconds: appProbe.InitialDelay,
+			TimeoutSeconds:      appProbe.Timeout,
+			FailureThreshold:    appProbe.FailureThreshold,
+			PeriodSeconds:       appProbe.Period,
+			SuccessThreshold:    appProbe.SuccessThreshold,
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: appProbe.Path,
-					Port: intstr.FromInt(int(appProbe.Port)),
+					Path:   appProbe.Path,
+					Port:   intstr.FromInt(int(appProbe.Port)),
+					Scheme: corev1.URISchemeHTTP,
 				},
 			},
 		}
-
 		return &probe
 	}
-
 	return nil
 }
 

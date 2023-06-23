@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/mitchellh/hashstructure/v2"
+	"golang.org/x/exp/constraints"
 	"hash/fnv"
 	"regexp"
 	"unicode"
@@ -76,6 +77,14 @@ func SetCommonAnnotations(object client.Object) {
 
 func PointTo[T any](x T) *T {
 	return &x
+}
+
+func Max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
 }
 
 func GetApplicationSelector(applicationName string) map[string]string {

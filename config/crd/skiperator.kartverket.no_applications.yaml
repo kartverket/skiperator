@@ -316,14 +316,28 @@ spec:
               liveness:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
                     type: integer
+                  successThreshold:
+                    default: 1
+                    format: int32
+                    type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -341,14 +355,28 @@ spec:
               readiness:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
                     type: integer
+                  successThreshold:
+                    default: 1
+                    format: int32
+                    type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -364,13 +392,14 @@ spec:
               replicas:
                 properties:
                   max:
+                    default: 5
                     type: integer
                   min:
+                    default: 2
                     type: integer
                   targetCpuUtilization:
+                    default: 80
                     type: integer
-                required:
-                - min
                 type: object
               resourceLabels:
                 additionalProperties:
@@ -405,14 +434,28 @@ spec:
               startup:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
                     type: integer
+                  successThreshold:
+                    default: 1
+                    format: int32
+                    type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path
