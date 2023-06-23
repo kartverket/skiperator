@@ -95,7 +95,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		copy(*out, *in)
 	}
 	in.Resources.DeepCopyInto(&out.Resources)
-	out.Replicas = in.Replicas
+	if in.Replicas != nil {
+		in, out := &in.Replicas, &out.Replicas
+		*out = new(Replicas)
+		**out = **in
+	}
 	out.Strategy = in.Strategy
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env

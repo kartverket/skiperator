@@ -44,7 +44,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas Replicas `json:"replicas,omitempty"`
+	Replicas *Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
@@ -284,8 +284,16 @@ const (
 )
 
 func (a *Application) FillDefaultsSpec() {
-	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
-	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
+	if a.Spec.Replicas == nil {
+		a.Spec.Replicas = &Replicas{
+			Min: 2,
+			Max: 5,
+		}
+	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
+	} else {
+		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
+		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
+	}
 
 	if a.Spec.Replicas.TargetCpuUtilization == 0 {
 		a.Spec.Replicas.TargetCpuUtilization = 80
