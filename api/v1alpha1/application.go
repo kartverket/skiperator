@@ -139,10 +139,10 @@ type ResourceRequirements struct {
 type Replicas struct {
 	//+kubebuilder:default:=2
 	//+kubebuilder:validation:Optional
-	Min uint `json:"min,omitempty"`
+	Min *uint `json:"min,omitempty"`
 	//+kubebuilder:default:=5
 	//+kubebuilder:validation:Optional
-	Max uint `json:"max,omitempty"`
+	Max *uint `json:"max,omitempty"`
 
 	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
