@@ -34,14 +34,13 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 				Selector: &metav1.LabelSelector{
 					MatchLabels: util.GetApplicationSelector(application.Name),
 				},
-				MinAvailable: determineMinAvailable(application.Spec.Replicas.Min),
+				MinAvailable: determineMinAvailable(*application.Spec.Replicas.Min),
 			}
 
 			return nil
 		})
 
 		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
 		return reconcile.Result{}, err
 	} else {
 		err := r.GetClient().Delete(ctx, &pdb)
@@ -50,6 +49,8 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
+
+		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, nil
 	}
 }
