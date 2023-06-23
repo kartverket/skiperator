@@ -1,15 +1,16 @@
+# 1
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: some-monitored-app
+  name: some-monitored-app-1
 spec:
   selector:
     matchLabels:
-      app: some-monitored-app
+      app: some-monitored-app-1
   template:
     spec:
       containers:
-        - name: some-monitored-app
+        - name: some-monitored-app-1
           image: image
           imagePullPolicy: Always
           ports:
@@ -23,10 +24,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: some-monitored-app
+  name: some-monitored-app-1
 spec:
   selector:
-    app: some-monitored-app
+    app: some-monitored-app-1
   ports:
     - name: metrics
       port: 8181
@@ -41,16 +42,121 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-# TODO: Determine correct label with Grafana Agent
-#  labels:
-#    release: prometheus-operator
-  name: some-monitored-app
+  labels:
+    instance: primary
+  name: some-monitored-app-1
 spec:
   endpoints:
-    - port: metrics
+    - targetPort: metrics
+      path: /metrics
   selector:
     matchLabels:
-      app: some-monitored-app
+      app: some-monitored-app-1
   namespaceSelector:
     matchNames:
       - test
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: some-monitored-app-1
+spec:
+  podSelector:
+    matchLabels:
+      app: some-monitored-app-1
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: grafana-agent
+              app.kubernetes.io/name: grafana-agent
+      ports:
+        - port: metrics
+---
+# 2
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    instance: primary
+  name: some-monitored-app-2
+spec:
+  endpoints:
+    - targetPort: metrics
+      path: /actuator/metrics
+  selector:
+    matchLabels:
+      app: some-monitored-app-2
+  namespaceSelector:
+    matchNames:
+      - test
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: some-monitored-app-2
+spec:
+  podSelector:
+    matchLabels:
+      app: some-monitored-app-2
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: grafana-agent
+              app.kubernetes.io/name: grafana-agent
+      ports:
+        - port: metrics
+---
+# 3
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    instance: primary
+  name: some-monitored-app-3
+spec:
+  endpoints:
+    - targetPort: 1881
+      path: /metrics
+  selector:
+    matchLabels:
+      app: some-monitored-app-3
+  namespaceSelector:
+    matchNames:
+      - test
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: some-monitored-app-3
+spec:
+  podSelector:
+    matchLabels:
+      app: some-monitored-app-3
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: grafana-agent
+              app.kubernetes.io/name: grafana-agent
+      ports:
+        - port: 1881
