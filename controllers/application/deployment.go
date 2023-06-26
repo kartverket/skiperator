@@ -116,7 +116,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	}
 
 	// Setting replicas to 0 when skiperator manifest specifies min/max to 0
-	if shouldScaleToZero(*application.Spec.Replicas.Min, *application.Spec.Replicas.Max) {
+	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
 
@@ -165,7 +165,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			return reconcile.Result{}, err
 		}
 	} else {
-		if !shouldScaleToZero(*application.Spec.Replicas.Min, *application.Spec.Replicas.Max) {
+		if !shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
 			// Ignore replicas set by HPA when checking diff
 			if int32(*deployment.Spec.Replicas) > 0 {
 				deployment.Spec.Replicas = nil

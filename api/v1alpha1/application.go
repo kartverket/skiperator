@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	"golang.org/x/exp/constraints"
 	"strings"
 	"time"
 
@@ -43,7 +44,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas Replicas `json:"replicas,omitempty"`
+	Replicas *Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
@@ -137,12 +138,10 @@ type ResourceRequirements struct {
 
 // +kubebuilder:object:generate=true
 type Replicas struct {
-	//+kubebuilder:default:=2
+	//+kubebuilder:validation:Required
+	Min uint `json:"min,omitempty"`
 	//+kubebuilder:validation:Optional
-	Min *uint `json:"min,omitempty"`
-	//+kubebuilder:default:=5
-	//+kubebuilder:validation:Optional
-	Max *uint `json:"max,omitempty"`
+	Max uint `json:"max,omitempty"`
 
 	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
@@ -296,6 +295,20 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
+func (a *Application) FillDefaultsSpec() {
+	if a.Spec.Replicas == nil {
+		a.Spec.Replicas = &Replicas{
+			Min:                  2,
+			Max:                  5,
+			TargetCpuUtilization: 80,
+		}
+	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
+	} else {
+		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
+		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
+	}
+}
+
 func (a *Application) FillDefaultsStatus() {
 	if a.Status.ApplicationStatus.Status == "" {
 		a.Status.ApplicationStatus = Status{
@@ -375,6 +388,14 @@ func (a *Application) CalculateApplicationStatus() Status {
 	}
 
 	return returnStatus
+}
+
+func max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
 }
 
 func allSameStatus(a []string) bool {

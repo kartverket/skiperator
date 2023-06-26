@@ -16,7 +16,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	if shouldScaleToZero(*application.Spec.Replicas.Min, *application.Spec.Replicas.Max) {
+	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
 		err := r.GetClient().Delete(ctx, &horizontalPodAutoscaler)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
@@ -44,8 +44,8 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 				Kind:       "Deployment",
 				Name:       application.Name,
 			},
-			MinReplicas: util.PointTo(int32(*application.Spec.Replicas.Min)),
-			MaxReplicas: int32(*application.Spec.Replicas.Max),
+			MinReplicas: util.PointTo(int32(application.Spec.Replicas.Min)),
+			MaxReplicas: int32(application.Spec.Replicas.Max),
 			Metrics: []autoscalingv2.MetricSpec{
 				{
 					Type: autoscalingv2.ResourceMetricSourceType,

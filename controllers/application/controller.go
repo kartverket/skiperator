@@ -158,11 +158,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 func (r *ApplicationReconciler) initializeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
 
+	application.FillDefaultsSpec()
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
-
-	application.Spec.Replicas.Max = util.PointTo(util.Max(*application.Spec.Replicas.Max, *application.Spec.Replicas.Min))
 
 	if len(application.Labels) == 0 {
 		application.Labels = application.Spec.Labels

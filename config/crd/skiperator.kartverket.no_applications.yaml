@@ -392,10 +392,8 @@ spec:
               replicas:
                 properties:
                   max:
-                    default: 5
                     type: integer
                   min:
-                    default: 2
                     type: integer
                   targetCpuUtilization:
                     default: 80
