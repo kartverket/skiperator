@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
 	"os"
 	"strings"
 
@@ -26,7 +27,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
-	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )

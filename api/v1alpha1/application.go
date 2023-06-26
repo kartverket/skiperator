@@ -1,10 +1,10 @@
 package v1alpha1
 
 import (
+	"golang.org/x/exp/constraints"
 	"strings"
 	"time"
 
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,21 +136,24 @@ type ResourceRequirements struct {
 	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Replicas struct {
 	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
 	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
+	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Strategy struct {
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:default:=RollingUpdate
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
-	// +kubebuilder:default=RollingUpdate
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 }
 
 type EnvFrom struct {
@@ -174,14 +177,23 @@ type FilesFrom struct {
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Probe struct {
+	//+kubebuilder:default=0
 	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
+	InitialDelay int32 `json:"initialDelay,omitempty"`
+	//+kubebuilder:default=1
 	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
+	Timeout int32 `json:"timeout,omitempty"`
+	//+kubebuilder:default=10
 	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
+	Period int32 `json:"period,omitempty"`
+	//+kubebuilder:default=1
+	//+kubebuilder:validation:Optional
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+	//+kubebuilder:default=3
+	//+kubebuilder:validation:Optional
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 	//+kubebuilder:validation:Required
 	Port uint16 `json:"port"`
 	//+kubebuilder:validation:Required
@@ -286,21 +298,14 @@ const (
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
 		a.Spec.Replicas = &Replicas{
-			Min: 2,
-			Max: 5,
+			Min:                  2,
+			Max:                  5,
+			TargetCpuUtilization: 80,
 		}
 	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
 	} else {
 		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
 		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
-	}
-
-	if a.Spec.Replicas.TargetCpuUtilization == 0 {
-		a.Spec.Replicas.TargetCpuUtilization = 80
-	}
-
-	if a.Spec.Strategy.Type == "" {
-		a.Spec.Strategy.Type = "RollingUpdate"
 	}
 }
 
