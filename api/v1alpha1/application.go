@@ -139,7 +139,7 @@ type ResourceRequirements struct {
 // +kubebuilder:object:generate=true
 type Replicas struct {
 	//+kubebuilder:validation:Required
-	Min uint `json:"min,omitempty"`
+	Min uint `json:"min"`
 	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
@@ -390,14 +390,6 @@ func (a *Application) CalculateApplicationStatus() Status {
 	return returnStatus
 }
 
-func max[T constraints.Ordered](a, b T) T {
-	if a > b {
-		return a
-	} else {
-		return b
-	}
-}
-
 func allSameStatus(a []string) bool {
 	for _, v := range a {
 		if v != a[0] {
@@ -405,6 +397,14 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
+}
+
+func max[T constraints.Ordered](a, b T) T {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
 }
 
 type ControllerResources string
