@@ -398,6 +398,8 @@ spec:
                   targetCpuUtilization:
                     default: 80
                     type: integer
+                required:
+                - min
                 type: object
               resourceLabels:
                 additionalProperties:

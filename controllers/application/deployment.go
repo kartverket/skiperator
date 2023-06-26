@@ -202,6 +202,8 @@ func getProbe(appProbe *skiperatorv1alpha1.Probe) *corev1.Probe {
 			InitialDelaySeconds: appProbe.InitialDelay,
 			TimeoutSeconds:      appProbe.Timeout,
 			FailureThreshold:    appProbe.FailureThreshold,
+			SuccessThreshold:    appProbe.SuccessThreshold,
+			PeriodSeconds:       appProbe.Period,
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   appProbe.Path,
