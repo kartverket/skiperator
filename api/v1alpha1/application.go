@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
@@ -67,7 +68,10 @@ type ApplicationSpec struct {
 	Startup *Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Digdirator bool `json:"digdirator"`
+	Maskinporten *nais_io_v1.Maskinporten `json:"maskinporten,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	IDPorten *nais_io_v1.IDPorten `json:"idporten,omitempty"`
 
 	// Ingresses must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
 	//

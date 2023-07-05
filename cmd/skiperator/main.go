@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -48,6 +49,7 @@ func init() {
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 	utilruntime.Must(policyv1.AddToScheme(scheme))
 	utilruntime.Must(pov1.AddToScheme(scheme))
+	utilruntime.Must(nais_io_v1.AddToScheme(scheme))
 }
 
 func main() {

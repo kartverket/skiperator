@@ -11,6 +11,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"golang.org/x/exp/maps"
 
 	"github.com/kartverket/skiperator/pkg/util"
@@ -70,6 +71,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
+		Owns(&nais_io_v1.MaskinportenClient{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
 		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
@@ -139,7 +141,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.reconcileAuthorizationPolicy,
 		r.reconcilePodDisruptionBudget,
 		r.reconcileServiceMonitor,
-		r.reconcileDigdirator,
+		// r.reconcileIDPorten,
+		r.reconcileMaskinporten,
 	}
 
 	for _, fn := range controllerDuties {

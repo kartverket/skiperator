@@ -6,6 +6,7 @@
 package v1alpha1
 
 import (
+	nais_iov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -133,6 +134,16 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		in, out := &in.Startup, &out.Startup
 		*out = new(Probe)
 		**out = **in
+	}
+	if in.Maskinporten != nil {
+		in, out := &in.Maskinporten, &out.Maskinporten
+		*out = new(nais_iov1.Maskinporten)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.IDPorten != nil {
+		in, out := &in.IDPorten, &out.IDPorten
+		*out = new(nais_iov1.IDPorten)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Ingresses != nil {
 		in, out := &in.Ingresses, &out.Ingresses
