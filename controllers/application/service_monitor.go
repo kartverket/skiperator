@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -19,16 +20,23 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 		return reconcile.Result{}, nil
 	}
 
-	if application.Spec.Prometheus == nil {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-		return reconcile.Result{}, nil
-	}
-
 	serviceMonitor := pov1.ServiceMonitor{ObjectMeta: metav1.ObjectMeta{
 		Namespace: application.Namespace,
 		Name:      application.Name,
 		Labels:    map[string]string{"instance": "primary"},
 	}}
+
+	if application.Spec.Prometheus == nil {
+		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+		return reconcile.Result{}, nil
+	}
+
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &serviceMonitor, r.GetScheme())
