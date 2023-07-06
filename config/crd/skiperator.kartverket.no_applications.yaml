@@ -353,6 +353,25 @@ spec:
                 - medium
                 - high
                 type: string
+              prometheus:
+                description: PrometheusConfig contains configuration settings instructing
+                  how the app should be scraped.
+                properties:
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                required:
+                - port
+                type: object
               readiness:
                 properties:
                   failureThreshold:

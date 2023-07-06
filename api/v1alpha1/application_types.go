@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/constraints"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 	"time"
 
@@ -60,6 +61,8 @@ type ApplicationSpec struct {
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
+	//+kubebuilder:validation:Optional
+	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 	//+kubebuilder:validation:Optional
 	Liveness *podtypes.Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -155,6 +158,18 @@ type Strategy struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	Type string `json:"type,omitempty"`
+}
+
+// PrometheusConfig contains configuration settings instructing how the app should be scraped.
+// +kubebuilder:object:generate=true
+type PrometheusConfig struct {
+	// The port number or name where metrics are exposed (at the Pod level).
+	//+kubebuilder:validation:Required
+	Port intstr.IntOrString `json:"port"`
+	// The HTTP path where Prometheus compatible metrics exists
+	//+kubebuilder:default:=/metrics
+	//+kubebuilder:validation:Optional
+	Path string `json:"path,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
