@@ -402,7 +402,9 @@ func getEnvFrom(envFromApplication []podtypes.EnvFrom) []corev1.EnvFromSource {
 func getEnv(variables []corev1.EnvVar) []corev1.EnvVar {
 	for _, variable := range variables {
 		if variable.ValueFrom != nil {
-			variable.ValueFrom.FieldRef.APIVersion = "v1"
+			if variable.ValueFrom.FieldRef != nil {
+				variable.ValueFrom.FieldRef.APIVersion = "v1"
+			}
 		}
 	}
 
