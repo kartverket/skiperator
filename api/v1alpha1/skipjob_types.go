@@ -140,7 +140,6 @@ type JobSettings struct {
 	// all running Pods will be terminated.
 	//
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
 	Suspend *bool `json:"suspend,omitempty"`
 
 	// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.

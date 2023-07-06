@@ -456,7 +456,6 @@ spec:
                     format: int32
                     type: integer
                   suspend:
-                    default: false
                     description: If set to true, this tells Kubernetes to suspend
                       this Job till the field is set to false. If the Job is active
                       while this field is set to false, all running Pods will be terminated.

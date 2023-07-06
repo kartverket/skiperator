@@ -4,6 +4,11 @@ metadata:
   name: minimal-cron-job
 spec:
   container:
-    image: image
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(2000)"
   cron:
-    schedule: "* * * * *"
+    schedule: "*/1 * * * *"

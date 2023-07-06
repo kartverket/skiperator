@@ -32,6 +32,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}}
 
 	if skipJob.Spec.Cron != nil {
+		// TODO CRUD CronJobs without CreateOrPatch as well
+		// TODO Handle istio-proxy for CronJobs as well
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &cronJob, func() error {
 
 			err := ctrlutil.SetControllerReference(skipJob, &cronJob, r.GetScheme())
@@ -48,93 +50,101 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+
+		// Requeue the reconciliation after creating the Cron Job to allow the control plane to create subresources
+		return reconcile.Result{
+			Requeue:      true,
+			RequeueAfter: 5,
+		}, nil
 	} else {
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
 			return reconcile.Result{}, err
 		}
+	}
 
-		wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels)
+	err := r.GetClient().Get(ctx, types.NamespacedName{
+		Namespace: skipJob.Namespace,
+		Name:      job.Name,
+	}, &job)
+
+	if errors.IsNotFound(err) {
+		util.SetCommonAnnotations(&job)
 
 		err = ctrlutil.SetControllerReference(skipJob, &job, r.GetScheme())
 		if err != nil {
 			return reconcile.Result{}, err
 		}
 
-		err = r.GetClient().Get(ctx, types.NamespacedName{
-			Namespace: skipJob.Namespace,
-			Name:      job.Name,
-		}, &job)
+		wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels)
+		job.Spec = wantedSpec
 
-		if errors.IsNotFound(err) {
-			util.SetCommonAnnotations(&job)
+		err := r.GetClient().Create(ctx, &job)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 
-			job.Spec = wantedSpec
+		res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
+			r.GetConditionRunning(skipJob, metav1.ConditionTrue),
+			r.GetConditionFinished(skipJob, metav1.ConditionFalse),
+		})
+		if err != nil {
+			return *res, err
+		}
+	} else if err == nil {
+		if !r.isSkipJobFinished(skipJob.Status.Conditions) && job.Status.CompletionTime == nil {
 
-			err := r.GetClient().Create(ctx, &job)
+			// TODO Diff current and wanted Spec for job. Not all updates are created equally, and some will force the recreation of a job.
+			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
+
+			jobPods, err := listJobPods(r.GetClient(), ctx, job)
 			if err != nil {
 				return reconcile.Result{}, err
 			}
 
-			res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
-				r.GetConditionRunning(skipJob, metav1.ConditionTrue),
-				r.GetConditionFinished(skipJob, metav1.ConditionFalse),
-			})
-			if err != nil {
-				return *res, err
-			}
-		} else if err == nil {
-			if !r.isSkipJobFinished(skipJob.Status.Conditions) && job.Status.CompletionTime == nil {
-
-				jobPods, err := listJobPods(r.GetClient(), ctx, job)
-				if err != nil {
-					return reconcile.Result{}, err
+			for _, pod := range jobPods.Items {
+				if pod.Status.Phase != corev1.PodRunning {
+					continue
 				}
 
-				for _, pod := range jobPods.Items {
-					if pod.Status.Phase != corev1.PodRunning {
-						continue
-					}
-
-					terminatedContainerStatuses := map[string]int32{}
-					for _, containerStatus := range pod.Status.ContainerStatuses {
-						if containerStatus.State.Terminated != nil {
-							terminatedContainerStatuses[containerStatus.Name] = containerStatus.State.Terminated.ExitCode
-						}
-					}
-
-					if _, exists := terminatedContainerStatuses["istio-proxy"]; exists {
-						// We want to skip all further operations if the istio-proxy is terminated
-						continue
-					}
-
-					if exitCode, exists := terminatedContainerStatuses[job.Name]; exists {
-						if exitCode == 0 {
-							err := requestExitForIstioProxyContainer(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
-							if err != nil {
-								return reconcile.Result{}, err
-							}
-
-							// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished, and can update the status of the SKIPJob
-							// immediately, so following reconciliations can use that check
-							res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
-								r.GetConditionFinished(skipJob, metav1.ConditionTrue),
-							})
-							if err != nil {
-								return *res, err
-							}
-						} else {
-							// TODO Operate differently if the container containing the job was not terminated successfully
-						}
+				terminatedContainerStatuses := map[string]int32{}
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					if containerStatus.State.Terminated != nil {
+						terminatedContainerStatuses[containerStatus.Name] = containerStatus.State.Terminated.ExitCode
 					}
 				}
-			} else {
 
+				if _, exists := terminatedContainerStatuses["istio-proxy"]; exists {
+					// We want to skip all further operations if the istio-proxy is terminated
+					continue
+				}
+
+				if exitCode, exists := terminatedContainerStatuses[job.Name]; exists {
+					if exitCode == 0 {
+						err := requestExitForIstioProxyContainer(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
+						if err != nil {
+							return reconcile.Result{}, err
+						}
+
+						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished, and can update the status of the SKIPJob
+						// immediately, so following reconciliations can use that check
+						res, err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
+							r.GetConditionFinished(skipJob, metav1.ConditionTrue),
+						})
+						if err != nil {
+							return *res, err
+						}
+					} else {
+						// TODO Operate differently if the container containing the job was not terminated successfully
+					}
+				}
 			}
-
 		} else {
-			return reconcile.Result{}, err
+			// TODO Do we need to do anything when jobs are finished?
 		}
+
+	} else {
+		return reconcile.Result{}, err
 	}
 
 	return reconcile.Result{}, nil
