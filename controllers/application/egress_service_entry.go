@@ -22,37 +22,39 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	controllerName := "EgressServiceEntry"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	for _, rule := range application.Spec.AccessPolicy.Outbound.External {
-		name := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
+	if application.Spec.AccessPolicy != nil {
+		for _, rule := range application.Spec.AccessPolicy.Outbound.External {
+			name := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
 
-		serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
-		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
-			// Set application as owner of the service entry
-			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.GetScheme())
+			serviceEntry := networkingv1beta1.ServiceEntry{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+			_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
+				// Set application as owner of the service entry
+				err := ctrlutil.SetControllerReference(application, &serviceEntry, r.GetScheme())
+				if err != nil {
+					r.SetControllerError(ctx, application, controllerName, err)
+					return err
+				}
+				r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
+				util.SetCommonAnnotations(&serviceEntry)
+
+				resolution, adresses, endpoints := getIpData(rule.Ip)
+
+				serviceEntry.Spec = networkingv1beta1api.ServiceEntry{
+					// Avoid leaking service entry to other namespaces
+					ExportTo:   []string{".", "istio-system", "istio-gateways"},
+					Hosts:      []string{rule.Host},
+					Resolution: resolution,
+					Addresses:  adresses,
+					Endpoints:  endpoints,
+					Ports:      r.getPorts(rule.Ports, rule.Ip, *application),
+				}
+
+				return nil
+			})
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return err
+				return reconcile.Result{}, err
 			}
-			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
-			util.SetCommonAnnotations(&serviceEntry)
-
-			resolution, adresses, endpoints := getIpData(rule.Ip)
-
-			serviceEntry.Spec = networkingv1beta1api.ServiceEntry{
-				// Avoid leaking service entry to other namespaces
-				ExportTo:   []string{".", "istio-system", "istio-gateways"},
-				Hosts:      []string{rule.Host},
-				Resolution: resolution,
-				Addresses:  adresses,
-				Endpoints:  endpoints,
-				Ports:      r.getPorts(rule.Ports, rule.Ip, *application),
-			}
-
-			return nil
-		})
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
 		}
 	}
 
@@ -78,10 +80,15 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 			continue
 		}
 
-		serviceEntryInApplicationSpecIndex := slices.IndexFunc(application.Spec.AccessPolicy.Outbound.External, func(rule podtypes.ExternalRule) bool {
-			egressName := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
-			return serviceEntry.Name == egressName
-		})
+		serviceEntryInApplicationSpecIndex := -1
+
+		if application.Spec.AccessPolicy != nil {
+			serviceEntryInApplicationSpecIndex = slices.IndexFunc(application.Spec.AccessPolicy.Outbound.External, func(rule podtypes.ExternalRule) bool {
+				egressName := fmt.Sprintf("%s-egress-%x", application.Name, util.GenerateHashFromName(rule.Host))
+				return serviceEntry.Name == egressName
+			})
+		}
+
 		ingressGatewayInApplicationSpec := serviceEntryInApplicationSpecIndex != -1
 		if ingressGatewayInApplicationSpec {
 			continue

@@ -51,12 +51,9 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			RunAsUser:                util.PointTo(util.SkiperatorUser),
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
 		},
-		Ports:   getContainerPorts(application),
-		EnvFrom: getEnvFrom(application.Spec.EnvFrom),
-		Resources: corev1.ResourceRequirements{
-			Limits:   application.Spec.Resources.Limits,
-			Requests: application.Spec.Resources.Requests,
-		},
+		Ports:                    getContainerPorts(application),
+		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
+		Resources:                getResourceRequirements(application.Spec.Resources),
 		Env:                      application.Spec.Env,
 		ReadinessProbe:           getProbe(application.Spec.Readiness),
 		LivenessProbe:            getProbe(application.Spec.Liveness),
@@ -440,4 +437,15 @@ func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
 		return true
 	}
 	return false
+}
+
+func getResourceRequirements(resources *podtypes.ResourceRequirements) corev1.ResourceRequirements {
+	if resources == nil {
+		return corev1.ResourceRequirements{}
+	}
+
+	return corev1.ResourceRequirements{
+		Limits:   (*resources).Limits,
+		Requests: (*resources).Requests,
+	}
 }

@@ -28,6 +28,9 @@ func (r *ApplicationReconciler) NetworkPoliciesFromService(ctx context.Context, 
 
 	requests := make([]reconcile.Request, 0, len(applications.Items))
 	for _, application := range applications.Items {
+		if application.Spec.AccessPolicy == nil {
+			continue
+		}
 		for _, rule := range application.Spec.AccessPolicy.Outbound.Rules {
 			if rule.Namespace == svc.Namespace && rule.Application == svc.Name {
 				requests = append(requests, reconcile.Request{
@@ -88,6 +91,9 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 func (r ApplicationReconciler) getEgressRules(application *skiperatorv1alpha1.Application, ctx context.Context) ([]networkingv1.NetworkPolicyEgressRule, error) {
 	egressRules := []networkingv1.NetworkPolicyEgressRule{}
 
+	if application.Spec.AccessPolicy == nil {
+		return egressRules, nil
+	}
 	// Egress rules for internal peers
 	for _, outboundRule := range application.Spec.AccessPolicy.Outbound.Rules {
 		if outboundRule.Namespace == "" {
@@ -146,6 +152,10 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 		if hasExternalIngress(application.Spec.Ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(*application, false))
 		}
+	}
+
+	if application.Spec.AccessPolicy == nil {
+		return ingressRules
 	}
 
 	if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
