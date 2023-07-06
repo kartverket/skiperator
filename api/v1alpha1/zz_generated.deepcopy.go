@@ -78,7 +78,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	in.Resources.DeepCopyInto(&out.Resources)
+	if in.Resources != nil {
+		in, out := &in.Resources, &out.Resources
+		*out = new(podtypes.ResourceRequirements)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(Replicas)
@@ -137,7 +141,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = new(bool)
 		**out = **in
 	}
-	in.AccessPolicy.DeepCopyInto(&out.AccessPolicy)
+	if in.AccessPolicy != nil {
+		in, out := &in.AccessPolicy, &out.AccessPolicy
+		*out = new(podtypes.AccessPolicy)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.GCP != nil {
 		in, out := &in.GCP, &out.GCP
 		*out = new(podtypes.GCP)
