@@ -125,7 +125,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.initializeApplicationStatus,
 		r.initializeApplication,
 		r.reconcileCertificate,
-		r.reconcileDeployment,
 		r.reconcileService,
 		r.reconcileConfigMap,
 		r.reconcileEgressServiceEntry,
@@ -138,6 +137,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.reconcileAuthorizationPolicy,
 		r.reconcilePodDisruptionBudget,
 		r.reconcileServiceMonitor,
+		r.reconcileDeployment,
 	}
 
 	for _, fn := range controllerDuties {

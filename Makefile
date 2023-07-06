@@ -8,11 +8,11 @@ export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; e
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
 SKIPERATOR_CONTEXT ?= kind-kind
-KUBERNETES_VERSION = 1.26
+KUBERNETES_VERSION = 1.27.1
 
 .PHONY: test-tools
 test-tools:
-	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}.0-${OS}-${ARCH}.tar.gz" | \
+	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}-${OS}-${ARCH}.tar.gz" | \
     tar --gzip --extract --strip-components 2 --directory bin
 	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl@v0.15.0
 

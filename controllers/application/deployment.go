@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -11,15 +12,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
-// Adding an argocd external link constant
 const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
+
+var deploymentLog = ctrl.Log.WithName("deployment")
 
 func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
 	deployment := appsv1.Deployment{
@@ -136,7 +140,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		return deployment, err
 	}
 
-	return deployment, nil
+	return *r.resolveDigest(ctx, &deployment), nil
 }
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -171,6 +175,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				deployment.Spec.Replicas = nil
 			}
 		}
+		deployment = *r.resolveDigest(ctx, &deployment)
 
 		deploymentHash := util.GetHashForStructs([]interface{}{
 			&deployment.Spec,
@@ -194,6 +199,20 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
+	res, err := util.ResolveImageTags(ctx, logr.Discard(), r.GetRestConfig(), input)
+	if err != nil {
+		// Exclude dummy image used in tests for decreased verbosity
+		if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
+			deploymentLog.Error(err, "could not resolve container image to digest")
+		}
+		return input
+	}
+	// FIXME: Consider setting imagePullPolicy=IfNotPresent when the image has been resolved to
+	// a digest in order to reduce registry usage and spin-up times.
+	return res
 }
 
 func getProbe(appProbe *skiperatorv1alpha1.Probe) *corev1.Probe {

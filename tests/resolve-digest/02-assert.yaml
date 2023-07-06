@@ -1,0 +1,14 @@
+# Changes to a raw Deployment shall be reverted to the desired state from an Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: some-mutable-app
+spec:
+  selector:
+    matchLabels:
+      app: some-mutable-app
+  template:
+    spec:
+      containers:
+        - name: some-mutable-app
+          image: "quay.io/brancz/prometheus-example-app:v0.4.0@sha256:e9ec73ae9abfc39a0bc08b56fad810bc584dac4fd6ca354f840c8090e5a17328"
