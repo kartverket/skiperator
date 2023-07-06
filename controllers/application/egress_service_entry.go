@@ -100,11 +100,11 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	return reconcile.Result{}, err
 }
 
-func (r ApplicationReconciler) getPorts(externalPorts []skiperatorv1alpha1.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.Port {
-	ports := []*networkingv1beta1api.Port{}
+func (r ApplicationReconciler) getPorts(externalPorts []skiperatorv1alpha1.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.ServicePort {
+	ports := []*networkingv1beta1api.ServicePort{}
 
 	if len(externalPorts) == 0 {
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &networkingv1beta1api.ServicePort{
 			Name:     "https",
 			Number:   uint32(443),
 			Protocol: "HTTPS",
@@ -124,7 +124,7 @@ func (r ApplicationReconciler) getPorts(externalPorts []skiperatorv1alpha1.Exter
 			continue
 		}
 
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &networkingv1beta1api.ServicePort{
 			Name:     port.Name,
 			Number:   uint32(port.Port),
 			Protocol: port.Protocol,
