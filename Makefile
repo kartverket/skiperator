@@ -9,6 +9,7 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.27.1
+CONTROLLER_GEN_VERSION = 0.12.0
 
 .PHONY: test-tools
 test-tools:
@@ -19,7 +20,7 @@ test-tools:
 
 .PHONY: generate
 generate:
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen
+	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
 	go generate ./...
 
 .PHONY: build

@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +53,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		Ports:                    getContainerPorts(application),
 		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
 		Resources:                getResourceRequirements(application.Spec.Resources),
-		Env:                      application.Spec.Env,
+		Env:                      getEnv(application.Spec.Env),
 		ReadinessProbe:           getProbe(application.Spec.Readiness),
 		LivenessProbe:            getProbe(application.Spec.Liveness),
 		StartupProbe:             getProbe(application.Spec.Startup),
@@ -329,6 +328,7 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: file.ConfigMap,
 						},
+						DefaultMode: util.PointTo(int32(420)),
 					},
 				},
 			}
@@ -397,6 +397,16 @@ func getEnvFrom(envFromApplication []podtypes.EnvFrom) []corev1.EnvFromSource {
 	}
 
 	return envFromSource
+}
+
+func getEnv(variables []corev1.EnvVar) []corev1.EnvVar {
+	for _, variable := range variables {
+		if variable.ValueFrom != nil {
+			variable.ValueFrom.FieldRef.APIVersion = "v1"
+		}
+	}
+
+	return variables
 }
 
 func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.ContainerPort {
