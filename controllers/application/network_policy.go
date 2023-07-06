@@ -159,23 +159,6 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 		}
 	}
 
-	if application.Spec.AccessPolicy == nil {
-		return ingressRules
-	}
-
-	if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
-		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
-			From: getInboundPolicyPeers(application),
-			Ports: []networkingv1.NetworkPolicyPort{
-				{
-					Port: util.PointTo(intstr.FromInt(application.Spec.Port)),
-				},
-			},
-		}
-
-		ingressRules = append(ingressRules, inboundTrafficIngressRule)
-	}
-
 	// If Prometheus metrics are exposed, allow grafana-agent to scrape
 	if application.Spec.Prometheus != nil {
 		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
@@ -200,6 +183,23 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 		}
 
 		ingressRules = append(ingressRules, promScrapeRule)
+	}
+
+	if application.Spec.AccessPolicy == nil {
+		return ingressRules
+	}
+
+	if len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
+		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
+			From: getInboundPolicyPeers(application),
+			Ports: []networkingv1.NetworkPolicyPort{
+				{
+					Port: util.PointTo(intstr.FromInt(application.Spec.Port)),
+				},
+			},
+		}
+
+		ingressRules = append(ingressRules, inboundTrafficIngressRule)
 	}
 
 	return ingressRules
