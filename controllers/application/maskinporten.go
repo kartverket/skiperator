@@ -53,6 +53,11 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 
 			return nil
 		})
+
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
 	} else {
 		err = r.GetClient().Delete(ctx, &maskinporten)
 		err = client.IgnoreNotFound(err)
