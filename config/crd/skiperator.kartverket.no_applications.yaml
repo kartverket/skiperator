@@ -427,7 +427,6 @@ spec:
                   type: object
                 type: object
               resources:
-                description: ResourceRequirements
                 properties:
                   limits:
                     additionalProperties:
