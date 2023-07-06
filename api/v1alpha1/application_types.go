@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"golang.org/x/exp/constraints"
 	"strings"
 	"time"
 

@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -50,7 +51,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	return reconcile.Result{}, err
 }
 
-func getAdditionalPorts(additionalPorts []skiperatorv1alpha1.InternalPort) []corev1.ServicePort {
+func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.ServicePort {
 	var ports []corev1.ServicePort
 
 	for _, p := range additionalPorts {

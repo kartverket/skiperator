@@ -1,13 +1,21 @@
 package podtypes
 
 type Probe struct {
+	//+kubebuilder:default=0
 	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
+	InitialDelay int32 `json:"initialDelay,omitempty"`
+	//+kubebuilder:default=1
 	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
+	Timeout int32 `json:"timeout,omitempty"`
+	//+kubebuilder:default=10
 	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
+	Period int32 `json:"period,omitempty"`
+	//+kubebuilder:default=1
+	//+kubebuilder:validation:Optional
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+	//+kubebuilder:default=3
+	//+kubebuilder:validation:Optional
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 	//+kubebuilder:validation:Required
 	Port uint16 `json:"port"`
 	//+kubebuilder:validation:Required

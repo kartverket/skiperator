@@ -4,7 +4,7 @@ metadata:
   namespace: sample
   name: sample-one
 spec:
-  image: "kartverket/example"
+  image: "image"
 
   port: 8080
 
