@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"golang.org/x/exp/constraints"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 	"time"
 
@@ -59,6 +60,8 @@ type ApplicationSpec struct {
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+	//+kubebuilder:validation:Optional
+	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
@@ -175,6 +178,18 @@ type FilesFrom struct {
 	EmptyDir string `json:"emptyDir,omitempty"`
 	//+kubebuilder:validation:Optional
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
+}
+
+// PrometheusConfig contains configuration settings instructing how the app should be scraped.
+// +kubebuilder:object:generate=true
+type PrometheusConfig struct {
+	// The port number or name where metrics are exposed (at the Pod level).
+	//+kubebuilder:validation:Required
+	Port intstr.IntOrString `json:"port"`
+	// The HTTP path where Prometheus compatible metrics exists
+	//+kubebuilder:default:=/metrics
+	//+kubebuilder:validation:Optional
+	Path string `json:"path,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

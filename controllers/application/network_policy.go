@@ -16,6 +16,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	GrafanaAgentName      = "grafana-agent"
+	GrafanaAgentNamespace = GrafanaAgentName
+)
+
 // This is a bit hacky, but seems like best solution
 func (r *ApplicationReconciler) NetworkPoliciesFromService(ctx context.Context, obj client.Object) []reconcile.Request {
 	svc := obj.(*corev1.Service)
@@ -159,6 +164,32 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 		}
 
 		ingressRules = append(ingressRules, inboundTrafficIngressRule)
+	}
+
+	// If Prometheus metrics are exposed, allow grafana-agent to scrape
+	if application.Spec.Prometheus != nil {
+		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
+			From: []networkingv1.NetworkPolicyPeer{
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"kubernetes.io/metadata.name": GrafanaAgentNamespace},
+					},
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/instance": GrafanaAgentName,
+							"app.kubernetes.io/name":     GrafanaAgentName,
+						},
+					},
+				},
+			},
+			Ports: []networkingv1.NetworkPolicyPort{
+				{
+					Port: util.PointTo(application.Spec.Prometheus.Port),
+				},
+			},
+		}
+
+		ingressRules = append(ingressRules, promScrapeRule)
 	}
 
 	return ingressRules
