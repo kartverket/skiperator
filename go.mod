@@ -8,6 +8,7 @@ replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.2023
 require (
 	github.com/cert-manager/cert-manager v1.12.2
 	github.com/kudobuilder/kuttl v0.15.0
+	github.com/nais/digdirator v0.0.0-20230704092917-0a50c69e8712
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.65.2
 	go.etcd.io/etcd/server/v3 v3.5.9
 	go.uber.org/zap v1.24.0
@@ -23,10 +24,10 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute v1.19.3 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
 
 require (
