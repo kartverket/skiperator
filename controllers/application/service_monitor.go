@@ -6,11 +6,19 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var (
+	IstioMetricsPortNumber = intstr.FromInt(15020)
+	IstioMetricsPortName   = intstr.FromString("istio-metrics")
+	IstioMetricsPath       = "/stats/prometheus"
+)
+
+// TODO: Restore on delete
 func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "ServiceMonitor"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -55,10 +63,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{application.Namespace},
 			},
-			Endpoints: []pov1.Endpoint{{
-				Path:       application.Spec.Prometheus.Path,
-				TargetPort: &application.Spec.Prometheus.Port,
-			}},
+			Endpoints: determineEndpoint(application),
 		}
 
 		return nil
@@ -67,4 +72,20 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func determineEndpoint(application *skiperatorv1alpha1.Application) []pov1.Endpoint {
+	ep := pov1.Endpoint{
+		Path: IstioMetricsPath, TargetPort: &IstioMetricsPortName,
+	}
+
+	if *application.Spec.Prometheus.IstioEnabled {
+		return []pov1.Endpoint{ep}
+	}
+
+	return []pov1.Endpoint{{
+		Path:       application.Spec.Prometheus.Path,
+		TargetPort: &application.Spec.Prometheus.Port,
+	},
+	}
 }
