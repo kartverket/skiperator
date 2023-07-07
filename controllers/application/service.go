@@ -13,6 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var defaultPrometheusPort = corev1.ServicePort{
+	Name:       IstioMetricsPortName.StrVal,
+	Protocol:   corev1.ProtocolTCP,
+	Port:       IstioMetricsPortNumber.IntVal,
+	TargetPort: IstioMetricsPortNumber,
+}
+
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Service"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -37,10 +44,15 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		labels["app"] = application.Name
 		service.SetLabels(labels)
 
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
+		if application.IstioEnabled() {
+			ports = append(ports, defaultPrometheusPort)
+		}
+
 		service.Spec = corev1.ServiceSpec{
 			Selector: util.GetApplicationSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
-			Ports:    append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port)),
+			Ports:    ports,
 		}
 
 		return nil

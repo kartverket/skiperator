@@ -170,6 +170,10 @@ type PrometheusConfig struct {
 	//+kubebuilder:default:=/metrics
 	//+kubebuilder:validation:Optional
 	Path string `json:"path,omitempty"`
+	// Whether this application uses Istio.
+	//+kubebuilder:default=true
+	//+kubebuilder:validation:Optional
+	IstioEnabled *bool `json:"istioEnabled,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -391,4 +395,12 @@ func (a *Application) GroupKindFromControllerResource(controllerResource string)
 	default:
 		return metav1.GroupKind{}, false
 	}
+}
+
+func (a *Application) IstioEnabled() bool {
+	if a.Spec.Prometheus == nil {
+		return false
+	}
+
+	return *a.Spec.Prometheus.IstioEnabled
 }

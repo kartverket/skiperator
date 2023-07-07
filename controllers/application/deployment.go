@@ -24,7 +24,13 @@ const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
 
-var deploymentLog = ctrl.Log.WithName("deployment")
+var (
+	deploymentLog         = ctrl.Log.WithName("deployment")
+	defaultPodAnnotations = map[string]string{
+		"argocd.argoproj.io/sync-options": "Prune=false",
+		"prometheus.io/scrape":            "true",
+	}
+)
 
 func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
 	deployment := appsv1.Deployment{
@@ -73,6 +79,18 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	labels := util.GetApplicationSelector(application.Name)
 
+	generatedSpecAnnotations := defaultPodAnnotations
+	// By specifying port and path annotations, Istio will scrape metrics from the application
+	// and merge it together with its own metrics.
+	//
+	// See
+	//  - https://superorbital.io/blog/istio-metrics-merging/
+	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
+	if application.IstioEnabled() {
+		generatedSpecAnnotations["prometheus.io/port"] = application.Spec.Prometheus.Port.String()
+		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
+	}
+
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: labels},
 		Strategy: appsv1.DeploymentStrategy{
@@ -81,11 +99,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		},
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: labels,
-				Annotations: map[string]string{
-					"argocd.argoproj.io/sync-options": "Prune=false",
-					"prometheus.io/scrape":            "true",
-				},
+				Labels:      labels,
+				Annotations: generatedSpecAnnotations,
 			},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{
@@ -426,6 +441,15 @@ func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.Con
 			ContainerPort: port.Port,
 			Name:          port.Name,
 			Protocol:      port.Protocol,
+		})
+	}
+
+	// Expose merged Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
+	if application.IstioEnabled() {
+		containerPorts = append(containerPorts, corev1.ContainerPort{
+			Name:          IstioMetricsPortName.StrVal,
+			ContainerPort: IstioMetricsPortNumber.IntVal,
+			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 

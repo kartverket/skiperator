@@ -177,7 +177,7 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 			},
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: util.PointTo(application.Spec.Prometheus.Port),
+					Port: determinePrometheusScrapePort(application),
 				},
 			},
 		}
@@ -203,6 +203,13 @@ func getIngressRules(application *skiperatorv1alpha1.Application) []networkingv1
 	}
 
 	return ingressRules
+}
+
+func determinePrometheusScrapePort(application *skiperatorv1alpha1.Application) *intstr.IntOrString {
+	if application.IstioEnabled() {
+		return util.PointTo(IstioMetricsPortName)
+	}
+	return util.PointTo(application.Spec.Prometheus.Port)
 }
 
 func getInboundPolicyPeers(application *skiperatorv1alpha1.Application) []networkingv1.NetworkPolicyPeer {
