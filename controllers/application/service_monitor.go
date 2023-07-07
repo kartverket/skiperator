@@ -18,7 +18,6 @@ var (
 	IstioMetricsPath       = "/stats/prometheus"
 )
 
-// TODO: Restore on delete
 func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "ServiceMonitor"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -83,9 +82,10 @@ func determineEndpoint(application *skiperatorv1alpha1.Application) []pov1.Endpo
 		return []pov1.Endpoint{ep}
 	}
 
-	return []pov1.Endpoint{{
-		Path:       application.Spec.Prometheus.Path,
-		TargetPort: &application.Spec.Prometheus.Port,
-	},
+	return []pov1.Endpoint{
+		{
+			Path:       application.Spec.Prometheus.Path,
+			TargetPort: &application.Spec.Prometheus.Port,
+		},
 	}
 }

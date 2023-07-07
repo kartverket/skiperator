@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var defaultPromPort = corev1.ServicePort{
+var defaultPrometheusPort = corev1.ServicePort{
 	Name:       IstioMetricsPortName.StrVal,
 	Protocol:   corev1.ProtocolTCP,
 	Port:       IstioMetricsPortNumber.IntVal,
@@ -46,7 +46,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 
 		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
 		if application.IstioEnabled() {
-			ports = append(ports, defaultPromPort)
+			ports = append(ports, defaultPrometheusPort)
 		}
 
 		service.Spec = corev1.ServiceSpec{
