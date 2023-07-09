@@ -330,7 +330,10 @@ spec:
                     format: int32
                     type: integer
                   port:
-                    type: integer
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
                     format: int32
@@ -392,7 +395,10 @@ spec:
                     format: int32
                     type: integer
                   port:
-                    type: integer
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
                     format: int32
@@ -470,7 +476,10 @@ spec:
                     format: int32
                     type: integer
                   port:
-                    type: integer
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
                     format: int32

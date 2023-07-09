@@ -239,7 +239,7 @@ func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   appProbe.Path,
-					Port:   intstr.FromInt(int(appProbe.Port)),
+					Port:   appProbe.Port,
 					Scheme: corev1.URISchemeHTTP,
 				},
 			},
