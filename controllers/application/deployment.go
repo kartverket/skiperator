@@ -17,7 +17,8 @@ import (
 
 // Adding an argocd external link constant
 const (
-	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
+	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
+	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/"
 )
 
 func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -72,6 +73,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
 		podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
+		podVolumes, containerVolumeMounts, err = r.appendMaskinportenSecretVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
+
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
@@ -149,6 +152,52 @@ func getProbe(appProbe *skiperatorv1alpha1.Probe) *corev1.Probe {
 	}
 
 	return nil
+}
+func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
+	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
+
+		// TODO: check if client is created (?)
+
+		//secretName, err := util.GetSecretName("maskinporten", application.Name)
+		//
+		//if err != nil {
+		//	r.SetControllerError(ctx, application, controllerName, err)
+		//	return volumes, volumeMounts, err
+		//}
+
+		secretName := "mysecret" //TODO: delete this when 'GetSecretName() works properly'
+
+		envFromSecret := corev1.EnvFromSource{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: secretName,
+				},
+			},
+		}
+
+		// TODO: Check if secret exits
+
+		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret)
+
+		volumeMounts = append(volumeMounts, corev1.VolumeMount{
+			Name:      secretName,
+			MountPath: DefaultDigdiratorMaskinportenMountPath,
+			ReadOnly:  true,
+		})
+
+		volumes = append(volumes, corev1.Volume{
+			Name: secretName,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: secretName,
+					Items:      nil,
+				},
+			},
+		})
+	}
+
+	return volumes, volumeMounts, nil
+
 }
 
 func (r ApplicationReconciler) appendGCPVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
