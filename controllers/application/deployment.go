@@ -171,14 +171,12 @@ func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *
 
 		// TODO: check if client is created (?)
 
-		//secretName, err := util.GetSecretName("maskinporten", application.Name)
-		//
-		//if err != nil {
-		//	r.SetControllerError(ctx, application, controllerName, err)
-		//	return volumes, volumeMounts, err
-		//}
+		secretName, err := util.GetSecretName("maskinporten", application.Name)
 
-		secretName := "mysecret" //TODO: delete this when 'GetSecretName() works properly'
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return volumes, volumeMounts, err
+		}
 
 		envFromSecret := corev1.EnvFromSource{
 			SecretRef: &corev1.SecretEnvSource{
@@ -215,14 +213,12 @@ func (r ApplicationReconciler) appendIDportenSecretVolumeMount(application *skip
 	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
 		// TODO: check if client is created (?)
 
-		//secretName, err := util.GetSecretName("idporten", application.Name)
-		//
-		//if err != nil {
-		//	r.SetControllerError(ctx, application, controllerName, err)
-		//	return volumes, volumeMounts, err
-		//}
+		secretName, err := util.GetSecretName("idporten", application.Name)
 
-		secretName := "mysecret" //TODO: delete this when 'GetSecretName() works properly'
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return volumes, volumeMounts, err
+		}
 
 		envFromSecret := corev1.EnvFromSource{
 			SecretRef: &corev1.SecretEnvSource{
