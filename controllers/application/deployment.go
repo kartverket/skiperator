@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -87,7 +88,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
 	if application.IstioEnabled() {
-		generatedSpecAnnotations["prometheus.io/port"] = application.Spec.Prometheus.Port.String()
+		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
@@ -484,4 +485,25 @@ func getResourceRequirements(resources *podtypes.ResourceRequirements) corev1.Re
 		Limits:   (*resources).Limits,
 		Requests: (*resources).Requests,
 	}
+}
+
+func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application) string {
+	if numericPort := port.IntValue(); numericPort > 0 {
+		return fmt.Sprintf("%d", numericPort)
+	}
+
+	desiredPortName := port.String()
+
+	if desiredPortName == "main" {
+		return fmt.Sprintf("%d", application.Spec.Port)
+	}
+
+	for _, p := range application.Spec.AdditionalPorts {
+		if p.Name == desiredPortName {
+			return fmt.Sprintf("%d", p.Port)
+		}
+	}
+
+	deploymentLog.Error(goerrors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
+	return desiredPortName
 }
