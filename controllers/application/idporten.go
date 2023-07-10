@@ -2,140 +2,184 @@ package applicationcontroller
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"path"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
-	naisv1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"github.com/nais/liberator/pkg/namegen"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 )
 
 const (
 	DefaultClientCallbackPath = "/oauth2/callback"
 	DefaultClientLogoutPath   = "/oauth2/logout"
-)
+	DefaultIntegrationType    = string(digdiratorTypes.IntegrationTypeUnknown)
 
-type DigdiratorConnectionConfig struct {
-	// path to kubeconfig file. e.g. "$HOME/.kube/config"
-	kubeconfig string
-	// URL of the server
-	masterURL string
-	// namespace of digdirator
-	namespace string
-}
+	KVBaseURL = "https://kartverket.no"
+)
 
 func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "IDPorten"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	// // TODO: add conn conf to spec?
-	// connConfig := DigdiratorConnectionConfig{}
-
-	// digdiratorClient, err := connConfig.GetClient()
-	// if err != nil {
-	// 	return reconcile.Result{}, fmt.Errorf("failed to initialize digdirator client %w", err)
-	// }
-
-	if application.Spec.IDPorten == nil || !application.Spec.IDPorten.Enabled {
-		return reconcile.Result{}, fmt.Errorf("idporten is not enabled for this application")
-	}
-
-	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
-	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170
-	secretName, err := namegen.ShortName(fmt.Sprintf("idporten-%s/%s", application.Namespace, application.Name), validation.DNS1035LabelMaxLength)
+	secretName, err := util.GetSecretName("idporten", application.Name)
 	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
-	var idporten naisv1.IDPortenClient
-
-	if err := r.GetClient().Get(ctx, types.NamespacedName{
-		Namespace: idporten.ObjectMeta.Namespace,
-		Name:      idporten.ObjectMeta.Name,
-	}, &idporten); err != nil {
-		return reconcile.Result{}, err
+	idporten := nais_io_v1.IDPortenClient{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "nais.io/v1",
+			Kind:       "IDPortenClient",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name,
+		},
 	}
 
-	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &idporten, func() error {
-		// Set application as owner of the sidecar
-		err := ctrlutil.SetControllerReference(application, &idporten, r.GetScheme())
+	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &idporten, func() error {
+			// Set application as owner of the sidecar
+			err := ctrlutil.SetControllerReference(application, &idporten, r.GetScheme())
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			r.SetLabelsFromApplication(ctx, &idporten, *application)
+			util.SetCommonAnnotations(&idporten)
+
+			ingress := KVBaseURL
+			if len(application.Spec.Ingresses) != 0 {
+				ingress = application.Spec.Ingresses[0]
+			}
+			ingress = util.EnsurePrefix(ingress, "https://") // TODO: account for redirectToHTTPS?
+
+			// Use given integration type if set, else use default
+			integrationType := WithFallbackStr(application.Spec.IDPorten.IntegrationType, DefaultIntegrationType)
+
+			// Is scopes is set: use that. Else: use defaults
+			// var scopes []string
+			// if scopes != nil {
+			// 	scopes = *application.Spec.IDPorten.Scopes
+			// } else {
+			// 	scopes = GetDefaultScopesForIntegration(integrationType)
+			// }
+			scopes := GetScopesForIntegration(application.Spec.IDPorten.IntegrationType, application.Spec.IDPorten.Scopes)
+
+			redirectURIs, err := BuildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			frontchannelLogoutURI, err := BuildURI(ingress, application.Spec.IDPorten.FrontchannelLogoutPath, DefaultClientLogoutPath)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return err
+			}
+
+			// prefer given redirectURIs, but default to <ingress>/<DefaultClientLogoutPath> if nothing is specified
+			var postLogoutRedirectURIs []nais_io_v1.IDPortenURI
+			if application.Spec.IDPorten.PostLogoutRedirectURIs != nil {
+				// uri => <uri>/<logout-path>
+				postLogoutRedirectURIs, err = array.MapErr(*application.Spec.IDPorten.PostLogoutRedirectURIs, func(uri nais_io_v1.IDPortenURI) (nais_io_v1.IDPortenURI, error) {
+					u, err := BuildURI(ingress, "", DefaultClientLogoutPath)
+					return nais_io_v1.IDPortenURI(u), err
+				})
+				if err != nil {
+					r.SetControllerError(ctx, application, controllerName, err)
+					return err
+				}
+			} else {
+				uri, err := BuildURI(ingress, application.Spec.IDPorten.PostLogoutRedirectPath, DefaultClientLogoutPath)
+				if err != nil {
+					r.SetControllerError(ctx, application, controllerName, err)
+					return err
+				}
+
+				postLogoutRedirectURIs = []nais_io_v1.IDPortenURI{nais_io_v1.IDPortenURI(uri)}
+			}
+
+			idporten.Spec = nais_io_v1.IDPortenClientSpec{
+				ClientURI:              nais_io_v1.IDPortenURI(WithFallbackStr(application.Spec.IDPorten.ClientURI, nais_io_v1.IDPortenURI(ingress))),
+				IntegrationType:        integrationType,
+				RedirectURIs:           redirectURIs,
+				SecretName:             secretName,
+				AccessTokenLifetime:    WithFallback(application.Spec.IDPorten.AccessTokenLifetime, 3600),
+				SessionLifetime:        WithFallback(application.Spec.IDPorten.SessionLifetime, 7200),
+				FrontchannelLogoutURI:  nais_io_v1.IDPortenURI(frontchannelLogoutURI),
+				PostLogoutRedirectURIs: postLogoutRedirectURIs,
+				Scopes:                 scopes,
+			}
+
+			return nil
+		})
+
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return err
+			return reconcile.Result{}, err
 		}
-
-		r.SetLabelsFromApplication(ctx, &idporten, *application)
-		util.SetCommonAnnotations(&idporten)
-
-		redirectURIs, err := BuildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
+	} else {
+		err = r.GetClient().Delete(ctx, &idporten)
+		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return err
+			return reconcile.Result{}, err
 		}
-
-		frontchannelLogoutURI, err := BuildURI(application.Spec.Ingresses[0], application.Spec.IDPorten.FrontchannelLogoutPath, DefaultClientLogoutPath)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
-
-		spec := naisv1.IDPortenClientSpec{
-			ClientURI:       application.Spec.IDPorten.ClientURI,
-			IntegrationType: application.Spec.IDPorten.IntegrationType,
-			RedirectURIs:    redirectURIs,
-			SecretName:      secretName,
-			// note fallback might not be needed (see: AccessTokenLifetime and SessionLifetime docs, has defaults)
-			AccessTokenLifetime:    WithFallback(application.Spec.IDPorten.AccessTokenLifetime, 3600),
-			SessionLifetime:        WithFallback(application.Spec.IDPorten.SessionLifetime, 7200),
-			FrontchannelLogoutURI:  naisv1.IDPortenURI(frontchannelLogoutURI),
-			PostLogoutRedirectURIs: []naisv1.IDPortenURI{application.Spec.IDPorten.ClientURI},
-		}
-
-		idporten.Spec = spec
-
-		return nil
-	})
+	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
 }
 
+func GetDefaultScopesForIntegration(integration string) []string {
+	switch digdiratorTypes.IntegrationType(integration) {
+	case digdiratorTypes.IntegrationTypeKrr:
+		return []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
+	case digdiratorTypes.IntegrationTypeIDPorten:
+		return []string{"profile", "openid"}
+	}
+
+	return make([]string, 0)
+}
+
+func GetScopesForIntegration(integration string, scopes *[]string) []string {
+	scps := make([]string, 0)
+
+	if defaultScopes := GetDefaultScopesForIntegration(integration); len(defaultScopes) != 0 {
+		scps = defaultScopes
+	} else if scopes != nil {
+		scps = *scopes
+	}
+
+	return scps
+}
+
 func WithFallback[T any](val *T, fallback T) *T {
 	if val == nil {
-		val = &fallback
+		return &fallback
 	}
 
 	return val
 }
 
-func Coalesce[T comparable](vals ...T) *T {
-	var null T
-
-	for _, v := range vals {
-		if v != null {
-			return &v
-		}
+func WithFallbackStr[T ~string](val T, fallback T) T {
+	if val == "" {
+		return fallback
 	}
 
-	return nil
-}
-
-func Must[T any](d T, err error) T {
-	if err != nil {
-		panic(err)
-	}
-
-	return d
+	return val
 }
 
 // https://github.com/nais/naiserator/blob/423676cb2415cfd2ca40ba8e6e5d9edb46f15976/pkg/util/url.go#L31-L35
@@ -154,24 +198,18 @@ func BuildURI(ingress string, pathSeg string, fallback string) (string, error) {
 		pathSeg = fallback
 	}
 
+	ingress = util.EnsurePrefix(ingress, "https://")
+
 	return AppendToPath(ingress, pathSeg)
 }
 
-func BuildURIs(ingresses []string, pathSeg string, fallback string) ([]naisv1.IDPortenURI, error) {
-	return array.MapErr(ingresses, func(ingress string) (naisv1.IDPortenURI, error) {
+func BuildURIs(ingresses []string, pathSeg string, fallback string) ([]nais_io_v1.IDPortenURI, error) {
+	return array.MapErr(ingresses, func(ingress string) (nais_io_v1.IDPortenURI, error) {
 		uri, err := BuildURI(ingress, pathSeg, fallback)
-		return naisv1.IDPortenURI(uri), err
+		return nais_io_v1.IDPortenURI(uri), err
 	})
 }
 
-// Does not work
-func (dcc *DigdiratorConnectionConfig) GetClient() (*kubernetes.Clientset, error) {
-	conf, err := clientcmd.BuildConfigFromFlags(dcc.masterURL, dcc.kubeconfig)
-	if err != nil {
-		return nil, err
-	}
-
-	client, err := kubernetes.NewForConfig(conf)
-
-	return client, err
+func idportenSpecifiedInSpec(mp *skiperatorv1alpha1.IDPorten) bool {
+	return mp != nil && mp.Enabled
 }

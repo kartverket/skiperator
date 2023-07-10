@@ -43,9 +43,14 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 			r.SetLabelsFromApplication(ctx, &maskinporten, *application)
 			util.SetCommonAnnotations(&maskinporten)
 
+			scopes := nais_io_v1.MaskinportenScope{}
+			if application.Spec.Maskinporten.Scopes != nil {
+				scopes = *application.Spec.Maskinporten.Scopes
+			}
+
 			maskinporten.Spec = nais_io_v1.MaskinportenClientSpec{
 				SecretName: secretName,
-				Scopes:     application.Spec.Maskinporten.Scopes,
+				Scopes:     scopes,
 			}
 
 			return nil
@@ -69,6 +74,6 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 	return reconcile.Result{}, err
 }
 
-func maskinportenSpecifiedInSpec(mp *nais_io_v1.Maskinporten) bool {
+func maskinportenSpecifiedInSpec(mp *skiperatorv1alpha1.Maskinporten) bool {
 	return mp != nil && mp.Enabled
 }
