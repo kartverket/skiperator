@@ -1,5 +1,7 @@
 package podtypes
 
+import "k8s.io/apimachinery/pkg/util/intstr"
+
 type Probe struct {
 	//+kubebuilder:default=0
 	//+kubebuilder:validation:Optional
@@ -17,7 +19,7 @@ type Probe struct {
 	//+kubebuilder:validation:Optional
 	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 	//+kubebuilder:validation:Required
-	Port uint16 `json:"port"`
+	Port intstr.IntOrString `json:"port"`
 	//+kubebuilder:validation:Required
 	Path string `json:"path"`
 }

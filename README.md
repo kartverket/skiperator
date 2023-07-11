@@ -125,7 +125,7 @@ spec:
   liveness:
     # The path to access on the HTTP server
     path: /healthz
-    # Number of the port to access on the container
+    # Number or name of the port to access on the container
     port: 8080
     # Minimum consecutive failures for the probe to be considered failed after
     # having succeeded. Defaults to 3. Minimum value is 1
