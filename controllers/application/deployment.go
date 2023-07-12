@@ -180,6 +180,7 @@ func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *
 
 		// TODO: Check if secret exits
 
+		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
 		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorMaskinportenMountPath, true))
 		volumes = append(volumes, fromFilesVolume(secretName, secretName))
 	}
@@ -199,6 +200,7 @@ func (r ApplicationReconciler) appendIDportenSecretVolumeMount(application *skip
 
 		// TODO: Check if secret exits
 
+		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
 		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorIDportenMountPath, true))
 		volumes = append(volumes, fromFilesVolume(secretName, secretName))
 	}
@@ -337,6 +339,16 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 	}
 
 	return podVolumes, containerVolumeMounts
+}
+
+func envFromSecret(secretName string) corev1.EnvFromSource {
+	return corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: secretName,
+			},
+		},
+	}
 }
 
 func fromFilesVolumeMount(secretName string, mountPath string, readOnly bool) corev1.VolumeMount {
