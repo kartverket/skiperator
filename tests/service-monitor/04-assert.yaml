@@ -14,7 +14,7 @@ spec:
         prometheus.io/scrape: 'true'
         # Needed for Prometheus metrics merging
         prometheus.io/path: /metrics
-        prometheus.io/port: metrics
+        prometheus.io/port: "8181"
     spec:
       containers:
         - name: some-monitored-app-1
