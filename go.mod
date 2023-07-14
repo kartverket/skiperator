@@ -7,6 +7,7 @@ replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.2023
 
 require (
 	github.com/cert-manager/cert-manager v1.12.2
+	github.com/dlclark/regexp2 v1.10.0
 	github.com/go-logr/logr v1.2.4
 	github.com/google/k8s-digester v0.1.10
 	github.com/kudobuilder/kuttl v0.15.0

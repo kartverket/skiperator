@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/cleaner"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +32,8 @@ var (
 		"argocd.argoproj.io/sync-options": "Prune=false",
 		"prometheus.io/scrape":            "true",
 	}
+
+	deploymentCleaner = cleaner.InstanaCleaner(&deploymentLog)
 )
 
 func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
@@ -190,13 +193,14 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			}
 		}
 		deployment = *r.resolveDigest(ctx, &deployment)
+		cleanedDeployment := deploymentCleaner.Apply(&deployment)
 
 		deploymentHash := util.GetHashForStructs([]interface{}{
-			&deployment.Spec,
-			&deployment.Labels,
+			removeAnnotations(&cleanedDeployment.Spec),
+			&cleanedDeployment.Labels,
 		})
 		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
-			&deploymentDefinition.Spec,
+			removeAnnotations(&deploymentDefinition.Spec),
 			&deploymentDefinition.Labels,
 		})
 
@@ -213,6 +217,12 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func removeAnnotations(d *appsv1.DeploymentSpec) *appsv1.DeploymentSpec {
+	copy := *d
+	copy.Template.ObjectMeta.Annotations = nil
+	return &copy
 }
 
 func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
