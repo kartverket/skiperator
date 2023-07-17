@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -11,6 +12,13 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+var defaultPrometheusPort = corev1.ServicePort{
+	Name:       IstioMetricsPortName.StrVal,
+	Protocol:   corev1.ProtocolTCP,
+	Port:       IstioMetricsPortNumber.IntVal,
+	TargetPort: IstioMetricsPortNumber,
+}
 
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Service"
@@ -30,13 +38,21 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 
 		// ServiceMonitor requires labels to be set on service to select it
 		labels := service.GetLabels()
+		if len(labels) == 0 {
+			labels = make(map[string]string)
+		}
 		labels["app"] = application.Name
 		service.SetLabels(labels)
+
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
+		if application.IstioEnabled() {
+			ports = append(ports, defaultPrometheusPort)
+		}
 
 		service.Spec = corev1.ServiceSpec{
 			Selector: util.GetApplicationSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
-			Ports:    append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port)),
+			Ports:    ports,
 		}
 
 		return nil
@@ -47,7 +63,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	return reconcile.Result{}, err
 }
 
-func getAdditionalPorts(additionalPorts []skiperatorv1alpha1.InternalPort) []corev1.ServicePort {
+func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.ServicePort {
 	var ports []corev1.ServicePort
 
 	for _, p := range additionalPorts {

@@ -15,6 +15,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	"github.com/kartverket/skiperator/pkg/util"
+	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -73,6 +74,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
+		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
 		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
@@ -129,7 +131,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.initializeApplicationStatus,
 		r.initializeApplication,
 		r.reconcileCertificate,
-		r.reconcileDeployment,
 		r.reconcileService,
 		r.reconcileConfigMap,
 		r.reconcileEgressServiceEntry,
@@ -144,6 +145,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.reconcileServiceMonitor,
 		r.reconcileIDPorten,
 		r.reconcileMaskinporten,
+		r.reconcileDeployment,
 	}
 
 	for _, fn := range controllerDuties {

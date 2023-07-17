@@ -4,8 +4,11 @@ import (
 	"strings"
 	"time"
 
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/constraints"
+	"k8s.io/apimachinery/pkg/util/intstr"
+
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,29 +46,31 @@ type ApplicationSpec struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas Replicas `json:"replicas,omitempty"`
+	Replicas *Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	//+kubebuilder:validation:Optional
-	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
+	EnvFrom []podtypes.EnvFrom `json:"envFrom,omitempty"`
 	//+kubebuilder:validation:Optional
-	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
+	FilesFrom []podtypes.FilesFrom `json:"filesFrom,omitempty"`
 
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 	//+kubebuilder:validation:Optional
-	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
 	//+kubebuilder:validation:Optional
-	Liveness *Probe `json:"liveness,omitempty"`
+	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 	//+kubebuilder:validation:Optional
-	Readiness *Probe `json:"readiness,omitempty"`
+	Liveness *podtypes.Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Startup *Probe `json:"startup,omitempty"`
+	Readiness *podtypes.Probe `json:"readiness,omitempty"`
+	//+kubebuilder:validation:Optional
+	Startup *podtypes.Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Maskinporten *Maskinporten `json:"maskinporten,omitempty"`
@@ -85,11 +90,17 @@ type ApplicationSpec struct {
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 
+	// Whether to enable automatic Pod Disruption Budget creation for this application.
+	//
 	//+kubebuilder:validation:Optional
-	AccessPolicy AccessPolicy `json:"accessPolicy,omitempty"`
+	//+kubebuilder:default=true
+	EnablePDB *bool `json:"enablePDB,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	GCP *GCP `json:"gcp,omitempty"`
+	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	GCP *podtypes.GCP `json:"gcp,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Labels map[string]string `json:"labels,omitempty"`
@@ -227,126 +238,40 @@ type ResourceRequirements struct {
 	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Replicas struct {
 	//+kubebuilder:validation:Required
 	Min uint `json:"min"`
 	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
+	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Strategy struct {
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:default:=RollingUpdate
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
-	// +kubebuilder:default=RollingUpdate
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 }
 
-type EnvFrom struct {
-	//+kubebuilder:validation:Optional
-	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
-	Secret string `json:"secret,omitempty"`
-}
-
-type FilesFrom struct {
-	//+kubebuilder:validation:Required
-	MountPath string `json:"mountPath"`
-
-	//+kubebuilder:validation:Optional
-	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
-	Secret string `json:"secret,omitempty"`
-	//+kubebuilder:validation:Optional
-	EmptyDir string `json:"emptyDir,omitempty"`
-	//+kubebuilder:validation:Optional
-	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
-}
-
-type Probe struct {
-	//+kubebuilder:validation:Optional
-	InitialDelay uint `json:"initialDelay,omitempty"`
-	//+kubebuilder:validation:Optional
-	Timeout uint `json:"timeout,omitempty"`
-	//+kubebuilder:validation:Optional
-	FailureThreshold uint `json:"failureThreshold,omitempty"`
-
-	//+kubebuilder:validation:Required
-	Port uint16 `json:"port"`
-	//+kubebuilder:validation:Required
-	Path string `json:"path"`
-}
-
+// PrometheusConfig contains configuration settings instructing how the app should be scraped.
 // +kubebuilder:object:generate=true
-type AccessPolicy struct {
+type PrometheusConfig struct {
+	// The port number or name where metrics are exposed (at the Pod level).
+	//+kubebuilder:validation:Required
+	Port intstr.IntOrString `json:"port"`
+	// The HTTP path where Prometheus compatible metrics exists
+	//+kubebuilder:default:=/metrics
 	//+kubebuilder:validation:Optional
-	Inbound InboundPolicy `json:"inbound,omitempty"`
+	Path string `json:"path,omitempty"`
+	// Whether this application uses Istio.
+	//+kubebuilder:default=true
 	//+kubebuilder:validation:Optional
-	Outbound OutboundPolicy `json:"outbound,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type InboundPolicy struct {
-	//+kubebuilder:validation:Optional
-	Rules []InternalRule `json:"rules"`
-}
-
-// +kubebuilder:object:generate=true
-type OutboundPolicy struct {
-	//+kubebuilder:validation:Optional
-	Rules []InternalRule `json:"rules,omitempty"`
-	//+kubebuilder:validation:Optional
-	External []ExternalRule `json:"external,omitempty"`
-}
-
-type InternalRule struct {
-	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace,omitempty"`
-	//+kubebuilder:validation:Required
-	Application string `json:"application"`
-}
-
-// +kubebuilder:object:generate=true
-type ExternalRule struct {
-	//+kubebuilder:validation:Required
-	Host string `json:"host"`
-	//+kubebuilder:validation:Optional
-	Ip string `json:"ip,omitempty"`
-	//+kubebuilder:validation:Optional
-	Ports []ExternalPort `json:"ports,omitempty"`
-}
-
-type ExternalPort struct {
-	//+kubebuilder:validation:Required
-	Name string `json:"name"`
-	//+kubebuilder:validation:Required
-	Port int `json:"port"`
-	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
-	Protocol string `json:"protocol"`
-}
-
-type InternalPort struct {
-	//+kubebuilder:validation:Required
-	Name string `json:"name"`
-	//+kubebuilder:validation:Required
-	Port int32 `json:"port"`
-	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
-	// +kubebuilder:default:TCP
-	Protocol corev1.Protocol `json:"protocol"`
-}
-
-type GCP struct {
-	//+kubebuilder:validation:Required
-	Auth Auth `json:"auth"`
-}
-
-type Auth struct {
-	//+kubebuilder:validation:Required
-	ServiceAccount string `json:"serviceAccount"`
+	IstioEnabled *bool `json:"istioEnabled,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -375,15 +300,16 @@ const (
 )
 
 func (a *Application) FillDefaultsSpec() {
-	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
-	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
-
-	if a.Spec.Replicas.TargetCpuUtilization == 0 {
-		a.Spec.Replicas.TargetCpuUtilization = 80
-	}
-
-	if a.Spec.Strategy.Type == "" {
-		a.Spec.Strategy.Type = "RollingUpdate"
+	if a.Spec.Replicas == nil {
+		a.Spec.Replicas = &Replicas{
+			Min:                  2,
+			Max:                  5,
+			TargetCpuUtilization: 80,
+		}
+	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
+	} else {
+		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
+		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 	}
 }
 
@@ -567,4 +493,12 @@ func (a *Application) GroupKindFromControllerResource(controllerResource string)
 	default:
 		return metav1.GroupKind{}, false
 	}
+}
+
+func (a *Application) IstioEnabled() bool {
+	if a.Spec.Prometheus == nil {
+		return false
+	}
+
+	return *a.Spec.Prometheus.IstioEnabled
 }

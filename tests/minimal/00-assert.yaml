@@ -55,8 +55,8 @@ kind: HorizontalPodAutoscaler
 metadata:
   name: minimal
 spec:
-  minReplicas: 1
-  maxReplicas: 1
+  minReplicas: 2
+  maxReplicas: 5
   metrics:
     - type: Resource
       resource:

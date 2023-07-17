@@ -27,3 +27,16 @@ spec:
   selector:
     matchLabels:
       app: yes-disruption
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: yes-disruption-2
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      app: yes-disruption-2
+status:
+  desiredHealthy: 0
+  expectedPods: 0

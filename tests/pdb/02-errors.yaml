@@ -1,0 +1,9 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: no-disruption-2
+spec:
+  minAvailable: 50%
+  selector:
+    matchLabels:
+      app: no-disruption-2

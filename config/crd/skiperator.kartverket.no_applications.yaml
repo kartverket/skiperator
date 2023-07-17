@@ -150,6 +150,11 @@ spec:
                 items:
                   type: string
                 type: array
+              enablePDB:
+                default: true
+                description: Whether to enable automatic Pod Disruption Budget creation
+                  for this application.
+                type: boolean
               env:
                 items:
                   description: EnvVar represents an environment variable present in
@@ -392,14 +397,31 @@ spec:
               liveness:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -503,17 +525,57 @@ spec:
                 - medium
                 - high
                 type: string
+              prometheus:
+                description: PrometheusConfig contains configuration settings instructing
+                  how the app should be scraped.
+                properties:
+                  istioEnabled:
+                    default: true
+                    description: Whether this application uses Istio.
+                    type: boolean
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                required:
+                - port
+                type: object
               readiness:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -533,6 +595,7 @@ spec:
                   min:
                     type: integer
                   targetCpuUtilization:
+                    default: 80
                     type: integer
                 required:
                 - min
@@ -544,7 +607,6 @@ spec:
                   type: object
                 type: object
               resources:
-                description: ResourceRequirements
                 properties:
                   limits:
                     additionalProperties:
@@ -570,14 +632,31 @@ spec:
               startup:
                 properties:
                   failureThreshold:
+                    default: 3
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
+                    format: int32
                     type: integer
                   path:
                     type: string
+                  period:
+                    default: 10
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
+                    format: int32
                     type: integer
                 required:
                 - path

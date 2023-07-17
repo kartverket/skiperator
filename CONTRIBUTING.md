@@ -74,15 +74,11 @@ and installed in the cluster with
 $ kubectl apply -f config/ --recursive
 ```
 
-A minimal application resource is provided in the samples folder and can be applied with
+A few ConfigMaps for a few settings in Skiperator is needed. These vary from cluster to cluster, but a few dummies have been added in the samples/ folder, together with some sample applications.
+These can be added using the following command
 
 ```
-$ kubectl apply -f samples/application.yaml
-```
-
-You will also need to create a configMap with namespace-exclusions before running skiperator locally.
-```
-$ kubectl apply -f samples/ns-exclusions-config.yaml
+$ kubectl apply -f samples/ --recursive
 ```
 
 To start `skiperator` locally on your computer, you can use the the make target `run-local`

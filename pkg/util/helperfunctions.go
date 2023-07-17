@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/hashstructure/v2"
 	"hash/fnv"
 	"regexp"
 	"strings"
@@ -23,6 +24,14 @@ var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
+}
+
+func GetHashForStructs(obj []interface{}) string {
+	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%d", hash)
 }
 
 func GenerateHashFromName(name string) uint64 {
