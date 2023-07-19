@@ -314,7 +314,7 @@ spec:
                   clientURI:
                     description: ClientURI is the URL shown to the user at ID-porten
                       when displaying a 'back' button or on errors.
-                    pattern: ^https?:\/\/.+$
+                    pattern: ^https:\/\/.+$
                     type: string
                   enabled:
                     description: Whether to enable provisioning of an ID-porten client.
@@ -348,7 +348,7 @@ spec:
                       will allow redirecting the end-user to after a single logout
                       has been initiated and performed by the application.
                     items:
-                      pattern: ^https?:\/\/.+$
+                      pattern: ^https:\/\/.+$
                       type: string
                     type: array
                   redirectPath:
