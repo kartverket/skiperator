@@ -108,6 +108,30 @@ rules:
   - update
   - watch
 - apiGroups:
+  - nais.io
+  resources:
+  - idportenclients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - nais.io
+  resources:
+  - maskinportenclients
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - networking.istio.io
   resources:
   - gateways

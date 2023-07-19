@@ -111,6 +111,7 @@ func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, applicati
 			}
 
 			idporten.Spec = nais_io_v1.IDPortenClientSpec{
+				ClientName:             application.Name,
 				ClientURI:              nais_io_v1.IDPortenURI(WithFallbackStr(application.Spec.IDPorten.ClientURI, nais_io_v1.IDPortenURI(ingress))),
 				IntegrationType:        integrationType,
 				RedirectURIs:           redirectURIs,
