@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: idporten-test-client
+spec:
+  selector:
+    matchLabels:
+      app: idporten-test-client
+  template:
+    spec:
+      containers:
+        - name: idporten-test-client
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      volumes:
+        - emptyDir: {}
+          name: tmp
+
+
+
+
+

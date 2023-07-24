@@ -1,0 +1,7 @@
+apiVersion: nais.io/v1
+kind: IDPortenClient
+metadata:
+  name: idporten-test-client
+spec:
+  scopes:
+    - "openid"
