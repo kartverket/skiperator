@@ -180,6 +180,8 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			&deploymentDefinition.Labels,
 		})
 
+		util.GetObjectDiff(deployment.Spec, deploymentDefinition.Spec)
+
 		if deploymentHash != deploymentDefinitionHash {
 			patch := client.MergeFrom(deployment.DeepCopy())
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
@@ -311,7 +313,8 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 				Name: file.Secret,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: file.Secret,
+						SecretName:  file.Secret,
+						DefaultMode: util.PointTo(int32(420)),
 					},
 				},
 			}

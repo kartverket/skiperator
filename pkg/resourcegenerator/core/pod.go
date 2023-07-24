@@ -4,6 +4,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -82,14 +83,16 @@ func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 			InitialDelaySeconds: appProbe.InitialDelay,
 			TimeoutSeconds:      appProbe.Timeout,
 			FailureThreshold:    appProbe.FailureThreshold,
+			SuccessThreshold:    appProbe.SuccessThreshold,
+			PeriodSeconds:       appProbe.Period,
 			ProbeHandler: corev1.ProbeHandler{
 				HTTPGet: &corev1.HTTPGetAction{
-					Path: appProbe.Path,
-					Port: appProbe.Port,
+					Path:   appProbe.Path,
+					Port:   appProbe.Port,
+					Scheme: corev1.URISchemeHTTP,
 				},
 			},
 		}
-
 		return &probe
 	}
 
@@ -155,6 +158,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.Con
 		{
 			Name:          "main",
 			ContainerPort: int32(application.Spec.Port),
+			Protocol:      corev1.ProtocolTCP,
 		},
 	}
 
@@ -163,6 +167,15 @@ func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.Con
 			ContainerPort: port.Port,
 			Name:          port.Name,
 			Protocol:      port.Protocol,
+		})
+	}
+
+	// Expose merged Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
+	if networking.IstioEnabled(application.Spec.Prometheus) {
+		containerPorts = append(containerPorts, corev1.ContainerPort{
+			Name:          util.IstioMetricsPortName.StrVal,
+			ContainerPort: util.IstioMetricsPortNumber.IntVal,
+			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 
