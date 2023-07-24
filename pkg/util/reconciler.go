@@ -2,6 +2,11 @@ package util
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"golang.org/x/exp/slices"
+	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -167,4 +172,74 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 	}
 
 	r.setResourceLabelsIfApplies(context, object, app)
+}
+
+func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Object, accessPolicy *podtypes.AccessPolicy) ([]corev1.Service, error) {
+	var egressServices []corev1.Service
+	if accessPolicy == nil {
+		return egressServices, nil
+	}
+
+	for _, outboundRule := range accessPolicy.Outbound.Rules {
+		if outboundRule.Namespace == "" {
+			outboundRule.Namespace = owner.GetNamespace()
+		}
+
+		service := corev1.Service{}
+
+		err := r.GetClient().Get(ctx, client.ObjectKey{
+			Namespace: outboundRule.Namespace,
+			Name:      outboundRule.Application,
+		}, &service)
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				owner,
+				corev1.EventTypeWarning, "Missing",
+				"Cannot find application named %s in namespace %s. Egress rule will not be added.",
+				outboundRule.Application, outboundRule.Namespace,
+			)
+			continue
+		} else if err != nil {
+			return egressServices, err
+		}
+
+		egressServices = append(egressServices, service)
+	}
+
+	return egressServices, nil
+}
+
+func (r *ReconcilerBase) DeleteUnusedEgresses(ctx context.Context, ownerName string, ownerNamespace string, currentEgresses []networkingv1beta1.ServiceEntry) error {
+	serviceEntriesInNamespace := networkingv1beta1.ServiceEntryList{}
+	err := r.GetClient().List(ctx, &serviceEntriesInNamespace, client.InNamespace(ownerNamespace))
+	if err != nil {
+		return err
+	}
+
+	for _, serviceEntry := range serviceEntriesInNamespace.Items {
+		ownerIndex := slices.IndexFunc(serviceEntry.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+			return ownerReference.Name == ownerName
+		})
+		serviceEntryOwnedByThisApplication := ownerIndex != -1
+		if !serviceEntryOwnedByThisApplication {
+			continue
+		}
+
+		serviceEntryInCurrentEgresses := slices.IndexFunc(currentEgresses, func(inSpecEntry networkingv1beta1.ServiceEntry) bool {
+			return inSpecEntry.Name == serviceEntry.Name
+		})
+
+		serviceEntryInOwnerSpec := serviceEntryInCurrentEgresses != -1
+		if serviceEntryInOwnerSpec {
+			continue
+		}
+
+		err = r.GetClient().Delete(ctx, serviceEntry)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

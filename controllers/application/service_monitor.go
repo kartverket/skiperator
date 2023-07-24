@@ -6,16 +6,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-)
-
-var (
-	IstioMetricsPortNumber = intstr.FromInt(15020)
-	IstioMetricsPortName   = intstr.FromString("istio-metrics")
-	IstioMetricsPath       = "/stats/prometheus"
 )
 
 func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -57,7 +50,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 
 		serviceMonitor.Spec = pov1.ServiceMonitorSpec{
 			Selector: metav1.LabelSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
+				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{application.Namespace},
@@ -75,7 +68,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 
 func determineEndpoint(application *skiperatorv1alpha1.Application) []pov1.Endpoint {
 	ep := pov1.Endpoint{
-		Path: IstioMetricsPath, TargetPort: &IstioMetricsPortName,
+		Path: util.IstioMetricsPath, TargetPort: &util.IstioMetricsPortName,
 	}
 
 	if *application.Spec.Prometheus.IstioEnabled {

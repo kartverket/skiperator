@@ -28,7 +28,7 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 
 		peerAuthentication.Spec = securityv1beta1api.PeerAuthentication{
 			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
+				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
 			Mtls: &securityv1beta1api.PeerAuthentication_MutualTLS{
 				Mode: securityv1beta1api.PeerAuthentication_MutualTLS_STRICT,

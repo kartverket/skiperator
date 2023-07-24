@@ -6,6 +6,7 @@ import (
 	"github.com/mitchellh/hashstructure/v2"
 	"hash/fnv"
 	"regexp"
+	"strconv"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -78,7 +79,7 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
-func GetApplicationSelector(applicationName string) map[string]string {
+func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
 
@@ -90,4 +91,10 @@ func HasUpperCaseLetter(word string) bool {
 	}
 
 	return false
+}
+
+func ResourceNameWithHash(resourceName string, kind string) string {
+	hash := GenerateHashFromName(resourceName + kind)
+
+	return resourceName + "-" + strconv.FormatUint(hash, 16)
 }
