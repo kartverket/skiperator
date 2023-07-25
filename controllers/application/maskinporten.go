@@ -16,10 +16,7 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 	controllerName := "Maskinporten"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	secretName, err := util.GetSecretName("maskinporten", application.Name)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
+	var err error
 
 	maskinporten := nais_io_v1.MaskinportenClient{
 		TypeMeta: metav1.TypeMeta{
@@ -36,24 +33,14 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &maskinporten, func() error {
 			err := ctrlutil.SetControllerReference(application, &maskinporten, r.GetScheme())
 			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
 
 			r.SetLabelsFromApplication(ctx, &maskinporten, *application)
 			util.SetCommonAnnotations(&maskinporten)
 
-			scopes := nais_io_v1.MaskinportenScope{}
-			if application.Spec.Maskinporten.Scopes != nil {
-				scopes = *application.Spec.Maskinporten.Scopes
-			}
-
-			maskinporten.Spec = nais_io_v1.MaskinportenClientSpec{
-				SecretName: secretName,
-				Scopes:     scopes,
-			}
-
-			return nil
+			maskinporten.Spec, err = getMaskinportenSpec(application)
+			return err
 		})
 
 		if err != nil {
@@ -74,6 +61,27 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 	return reconcile.Result{}, err
 }
 
+func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.MaskinportenClientSpec, error) {
+	secretName, err := getMaskinportenSecretName(application.Name)
+	if err != nil {
+		return nais_io_v1.MaskinportenClientSpec{}, err
+	}
+
+	scopes := nais_io_v1.MaskinportenScope{}
+	if application.Spec.Maskinporten.Scopes != nil {
+		scopes = *application.Spec.Maskinporten.Scopes
+	}
+
+	return nais_io_v1.MaskinportenClientSpec{
+		SecretName: secretName,
+		Scopes:     scopes,
+	}, nil
+}
+
 func maskinportenSpecifiedInSpec(mp *skiperatorv1alpha1.Maskinporten) bool {
 	return mp != nil && mp.Enabled
+}
+
+func getMaskinportenSecretName(name string) (string, error) {
+	return util.GetSecretName("maskinporten", name)
 }

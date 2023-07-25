@@ -201,7 +201,7 @@ type IDPorten struct {
 	// IntegrationType `api_klient` have no Default, checkout Digdir documentation.
 	//
 	// +nais:doc:Link="https://docs.digdir.no/oidc_func_clientreg.html?h=api_klient#scopes"
-	Scopes *[]string `json:"scopes,omitempty"`
+	Scopes []string `json:"scopes,omitempty"`
 	// SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
 	// The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
 	//

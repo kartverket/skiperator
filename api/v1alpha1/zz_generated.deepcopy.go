@@ -270,12 +270,8 @@ func (in *IDPorten) DeepCopyInto(out *IDPorten) {
 	}
 	if in.Scopes != nil {
 		in, out := &in.Scopes, &out.Scopes
-		*out = new([]string)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]string, len(*in))
-			copy(*out, *in)
-		}
+		*out = make([]string, len(*in))
+		copy(*out, *in)
 	}
 	if in.SessionLifetime != nil {
 		in, out := &in.SessionLifetime, &out.SessionLifetime

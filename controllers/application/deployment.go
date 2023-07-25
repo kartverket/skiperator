@@ -268,17 +268,11 @@ func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 }
 func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
 	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
-
-		// TODO: check if client is created (?)
-
-		secretName, err := util.GetSecretName("maskinporten", application.Name)
-
+		secretName, err := getMaskinportenSecretName(application.Name)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return volumes, volumeMounts, err
 		}
-
-		// TODO: Check if secret exits
 
 		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
 		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorMaskinportenMountPath, true))
@@ -289,16 +283,11 @@ func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *
 
 func (r ApplicationReconciler) appendIDportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
 	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
-		// TODO: check if client is created (?)
-
-		secretName, err := util.GetSecretName("idporten", application.Name)
-
+		secretName, err := getIDPortenSecretName(application.Name)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return volumes, volumeMounts, err
 		}
-
-		// TODO: Check if secret exits
 
 		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
 		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorIDportenMountPath, true))
