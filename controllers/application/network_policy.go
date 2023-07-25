@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -22,6 +23,13 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		return reconcile.Result{}, err
 	}
 
+	networkPolicy := networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name,
+		},
+	}
+
 	netpolSpec := networking.CreateNetPolSpec(
 		networking.NetPolOpts{
 			AccessPolicy:     application.Spec.AccessPolicy,
@@ -35,11 +43,11 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	)
 
 	if netpolSpec == nil {
+		err = client.IgnoreNotFound(r.GetClient().Delete(ctx, &networkPolicy))
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
-	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set application as owner of the network policy
 		err := ctrlutil.SetControllerReference(application, &networkPolicy, r.GetScheme())
