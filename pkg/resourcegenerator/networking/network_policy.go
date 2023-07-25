@@ -26,10 +26,6 @@ type NetPolOpts struct {
 }
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
-	if opts.AccessPolicy == nil {
-		return nil
-	}
-
 	ingressRules := getIngressRules(opts.AccessPolicy, opts.Ingresses, opts.Port, opts.Namespace, opts.PrometheusConfig)
 	egressRules := getEgressRules(opts.AccessPolicy, opts.Namespace, *opts.RelatedServices)
 
@@ -159,7 +155,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses *[]string, p
 		ingressRules = append(ingressRules, promScrapeRule)
 	}
 
-	if accessPolicy == nil && port == nil {
+	if accessPolicy == nil {
 		return ingressRules
 	}
 

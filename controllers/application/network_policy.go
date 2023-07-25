@@ -22,15 +22,17 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		return reconcile.Result{}, err
 	}
 
-	netpolSpec := networking.CreateNetPolSpec(networking.NetPolOpts{
-		AccessPolicy:     application.Spec.AccessPolicy,
-		Ingresses:        &application.Spec.Ingresses,
-		Port:             &application.Spec.Port,
-		Namespace:        application.Namespace,
-		Name:             application.Name,
-		RelatedServices:  &egressServices,
-		PrometheusConfig: application.Spec.Prometheus,
-	})
+	netpolSpec := networking.CreateNetPolSpec(
+		networking.NetPolOpts{
+			AccessPolicy:     application.Spec.AccessPolicy,
+			Ingresses:        &application.Spec.Ingresses,
+			Port:             &application.Spec.Port,
+			Namespace:        application.Namespace,
+			Name:             application.Name,
+			RelatedServices:  &egressServices,
+			PrometheusConfig: application.Spec.Prometheus,
+		},
+	)
 
 	if netpolSpec == nil {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
