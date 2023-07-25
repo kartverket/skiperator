@@ -13,3 +13,9 @@ spec:
   prometheus:
     port: metrics
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test
+  labels:
+    istio.io/rev: "revision-1"
