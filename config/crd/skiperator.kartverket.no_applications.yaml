@@ -361,10 +361,6 @@ spec:
                 description: PrometheusConfig contains configuration settings instructing
                   how the app should be scraped.
                 properties:
-                  istioEnabled:
-                    default: true
-                    description: Whether this application uses Istio.
-                    type: boolean
                   path:
                     default: /metrics
                     description: The HTTP path where Prometheus compatible metrics

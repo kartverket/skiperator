@@ -11,7 +11,6 @@ spec:
       port: 8181
       protocol: TCP
   prometheus:
-    istioEnabled: false
     port: metrics
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -27,7 +26,6 @@ spec:
       port: 8181
       protocol: TCP
   prometheus:
-    istioEnabled: false
     port: metrics
     path: /actuator/metrics
 ---
@@ -45,4 +43,3 @@ spec:
       protocol: TCP
   prometheus:
     port: 1881
-    istioEnabled: false

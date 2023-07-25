@@ -55,7 +55,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{application.Namespace},
 			},
-			Endpoints: determineEndpoint(application),
+			Endpoints: r.determineEndpoint(ctx, application),
 		}
 
 		return nil
@@ -66,12 +66,12 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	return reconcile.Result{}, err
 }
 
-func determineEndpoint(application *skiperatorv1alpha1.Application) []pov1.Endpoint {
+func (r *ApplicationReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.Application) []pov1.Endpoint {
 	ep := pov1.Endpoint{
 		Path: util.IstioMetricsPath, TargetPort: &util.IstioMetricsPortName,
 	}
 
-	if *application.Spec.Prometheus.IstioEnabled {
+	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
 		return []pov1.Endpoint{ep}
 	}
 

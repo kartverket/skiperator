@@ -2,10 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +44,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		service.SetLabels(labels)
 
 		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
-		if networking.IstioEnabled(application.Spec.Prometheus) {
+		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
 			ports = append(ports, defaultPrometheusPort)
 		}
 

@@ -243,3 +243,20 @@ func (r *ReconcilerBase) DeleteUnusedEgresses(ctx context.Context, ownerName str
 
 	return nil
 }
+
+func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+	namespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	if err != nil {
+		return false
+	}
+
+	_, exists := namespace.Labels[IstioRevisionLabel]
+
+	return exists
+}

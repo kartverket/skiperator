@@ -170,10 +170,6 @@ type PrometheusConfig struct {
 	//+kubebuilder:default:=/metrics
 	//+kubebuilder:validation:Optional
 	Path string `json:"path,omitempty"`
-	// Whether this application uses Istio.
-	//+kubebuilder:default=true
-	//+kubebuilder:validation:Optional
-	IstioEnabled *bool `json:"istioEnabled,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

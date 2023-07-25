@@ -7,7 +7,6 @@ import (
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +45,11 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		},
 	}
 
-	skiperatorContainer := core.CreateApplicationContainer(application)
+	podOpts := core.PodOpts{
+		IstioEnabled: r.IsIstioEnabledForNamespace(ctx, application.Namespace),
+	}
+
+	skiperatorContainer := core.CreateApplicationContainer(application, podOpts)
 
 	var err error
 
@@ -67,7 +70,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if networking.IstioEnabled(application.Spec.Prometheus) {
+	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
 		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
