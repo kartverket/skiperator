@@ -39,18 +39,6 @@ spec:
       protocol: TCP
       appProtocol: http
 ---
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: some-monitored-app-1
-spec:
-  podSelector:
-    matchLabels:
-      app: some-monitored-app-1
-  policyTypes:
-    - Ingress
-    - Egress
----
 # 2
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
@@ -79,7 +67,6 @@ spec:
       app: some-monitored-app-2
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - namespaceSelector:
@@ -120,7 +107,6 @@ spec:
       app: some-monitored-app-3
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - namespaceSelector:

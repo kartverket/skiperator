@@ -99,7 +99,7 @@ func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths
 				},
 			},
 			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
+				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
 		},
 	}

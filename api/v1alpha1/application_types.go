@@ -396,11 +396,3 @@ func (a *Application) GroupKindFromControllerResource(controllerResource string)
 		return metav1.GroupKind{}, false
 	}
 }
-
-func (a *Application) IstioEnabled() bool {
-	if a.Spec.Prometheus == nil {
-		return false
-	}
-
-	return *a.Spec.Prometheus.IstioEnabled
-}

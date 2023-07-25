@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"github.com/mitchellh/hashstructure/v2"
+	"github.com/r3labs/diff/v3"
 	"hash/fnv"
+	"reflect"
 	"regexp"
+	"strconv"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -78,7 +81,7 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
-func GetApplicationSelector(applicationName string) map[string]string {
+func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
 
@@ -90,4 +93,26 @@ func HasUpperCaseLetter(word string) bool {
 	}
 
 	return false
+}
+
+func ResourceNameWithHash(resourceName string, kind string) string {
+	hash := GenerateHashFromName(resourceName + kind)
+
+	return resourceName + "-" + strconv.FormatUint(hash, 16)
+}
+
+func GetObjectDiff[T any](a T, b T) {
+	aKind := reflect.ValueOf(a).Kind()
+	bKind := reflect.ValueOf(b).Kind()
+	if aKind != bKind {
+		fmt.Printf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+		return
+	}
+	changelog, _ := diff.Diff(a, b)
+
+	if len(changelog) == 0 {
+		fmt.Printf("No changes found\n")
+	}
+
+	fmt.Printf("Changes found: \n%v", changelog)
 }

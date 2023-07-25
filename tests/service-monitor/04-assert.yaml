@@ -82,7 +82,6 @@ spec:
       app: some-monitored-app-1
   policyTypes:
     - Ingress
-    - Egress
   ingress:
     - from:
         - namespaceSelector:
