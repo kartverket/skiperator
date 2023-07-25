@@ -180,8 +180,6 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			&deploymentDefinition.Labels,
 		})
 
-		util.GetObjectDiff(deployment.Spec, deploymentDefinition.Spec)
-
 		if deploymentHash != deploymentDefinitionHash {
 			patch := client.MergeFrom(deployment.DeepCopy())
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
