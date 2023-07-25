@@ -70,7 +70,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	if istioEnabled && application.Spec.Prometheus != nil {
 		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
