@@ -13,6 +13,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var defaultPrometheusPort = corev1.ServicePort{
+	Name:       util.IstioMetricsPortName.StrVal,
+	Protocol:   corev1.ProtocolTCP,
+	Port:       util.IstioMetricsPortNumber.IntVal,
+	TargetPort: util.IstioMetricsPortNumber,
+}
+
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Service"
 	r.SetControllerProgressing(ctx, application, controllerName)
@@ -29,10 +36,23 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		r.SetLabelsFromApplication(ctx, &service, *application)
 		util.SetCommonAnnotations(&service)
 
+		// ServiceMonitor requires labels to be set on service to select it
+		labels := service.GetLabels()
+		if len(labels) == 0 {
+			labels = make(map[string]string)
+		}
+		labels["app"] = application.Name
+		service.SetLabels(labels)
+
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
+		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
+			ports = append(ports, defaultPrometheusPort)
+		}
+
 		service.Spec = corev1.ServiceSpec{
 			Selector: util.GetPodAppSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
-			Ports:    append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port)),
+			Ports:    ports,
 		}
 
 		return nil

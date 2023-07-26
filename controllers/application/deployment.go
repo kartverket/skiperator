@@ -2,27 +2,38 @@ package applicationcontroller
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
+	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
-// Adding an argocd external link constant
 const (
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
 
-func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "Deployment"
-	r.SetControllerProgressing(ctx, application, controllerName)
+var (
+	deploymentLog         = ctrl.Log.WithName("deployment")
+	defaultPodAnnotations = map[string]string{
+		"argocd.argoproj.io/sync-options": "Prune=false",
+		"prometheus.io/scrape":            "true",
+	}
+)
 
+func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
 	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -34,61 +45,172 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 		},
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &deployment, func() error {
-		// Set application as owner of the deployment
-		err := ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
+	podOpts := core.PodOpts{
+		IstioEnabled: r.IsIstioEnabledForNamespace(ctx, application.Namespace),
+	}
 
-		r.SetLabelsFromApplication(ctx, &deployment, *application)
-		util.SetCommonAnnotations(&deployment)
+	skiperatorContainer := core.CreateApplicationContainer(application, podOpts)
 
-		skiperatorContainer := core.CreateApplicationContainer(application)
+	var err error
 
-		podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
-		podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
-		skiperatorContainer.VolumeMounts = containerVolumeMounts
+	podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
+	podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return deployment, err
+	}
+	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-		labels := util.GetPodAppSelector(application.Name)
+	labels := util.GetPodAppSelector(application.Name)
 
-		deployment.Spec = appsv1.DeploymentSpec{
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
-			Replicas: getReplicasFromAppSpec(application.Spec.Replicas.Min),
-			Strategy: appsv1.DeploymentStrategy{
-				Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
-				RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
+	generatedSpecAnnotations := defaultPodAnnotations
+	// By specifying port and path annotations, Istio will scrape metrics from the application
+	// and merge it together with its own metrics.
+	//
+	// See
+	//  - https://superorbital.io/blog/istio-metrics-merging/
+	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	if istioEnabled && application.Spec.Prometheus != nil {
+		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
+		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
+	}
+
+	deployment.Spec = appsv1.DeploymentSpec{
+		Selector: &metav1.LabelSelector{MatchLabels: labels},
+		Strategy: appsv1.DeploymentStrategy{
+			Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
+			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
+		},
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels:      labels,
+				Annotations: generatedSpecAnnotations,
 			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-					Annotations: map[string]string{
-						"argocd.argoproj.io/sync-options": "Prune=false",
-						"prometheus.io/scrape":            "true",
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					skiperatorContainer,
+				},
+
+				// TODO: Make this as part of operator in a safe way
+				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
+				SecurityContext: &corev1.PodSecurityContext{
+					SupplementalGroups: []int64{util.SkiperatorUser},
+					FSGroup:            util.PointTo(util.SkiperatorUser),
+					SeccompProfile: &corev1.SeccompProfile{
+						Type: corev1.SeccompProfileTypeRuntimeDefault,
 					},
 				},
-				Spec: core.CreatePodSpec(skiperatorContainer, podVolumes, application.Name, application.Spec.Priority, util.PointTo(corev1.RestartPolicyAlways)),
+				ServiceAccountName: application.Name,
+				// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
+				// to not create a diff for the hash of existing and wanted spec
+				DeprecatedServiceAccount:      application.Name,
+				Volumes:                       podVolumes,
+				PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
+				RestartPolicy:                 corev1.RestartPolicyAlways,
+				TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
+				DNSPolicy:                     corev1.DNSClusterFirst,
+				SchedulerName:                 corev1.DefaultSchedulerName,
 			},
-			RevisionHistoryLimit: util.PointTo(int32(2)),
-		}
+		},
+		RevisionHistoryLimit:    util.PointTo(int32(2)),
+		ProgressDeadlineSeconds: util.PointTo(int32(600)),
+	}
 
-		// add an external link to argocd
-		ingresses := application.Spec.Ingresses
-		if len(ingresses) > 0 {
-			deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
-		}
+	// Setting replicas to 0 when skiperator manifest specifies min/max to 0
+	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+		deployment.Spec.Replicas = util.PointTo(int32(0))
+	}
 
-		return nil
-	})
+	r.SetLabelsFromApplication(ctx, &deployment, *application)
+	util.SetCommonAnnotations(&deployment)
+
+	// add an external link to argocd
+	ingresses := application.Spec.Ingresses
+	if len(ingresses) > 0 {
+		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+	}
+
+	// Set application as owner of the deployment
+	err = ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return deployment, err
+	}
+
+	return *r.resolveDigest(ctx, &deployment), nil
+}
+
+func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+	controllerName := "Deployment"
+	r.SetControllerProgressing(ctx, application, controllerName)
+
+	deployment := appsv1.Deployment{}
+	deploymentDefinition, err := r.defineDeployment(ctx, application)
+
+	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				application,
+				corev1.EventTypeNormal, "NotFound",
+				"Deployment resource for application %s not found. Creating deployment",
+				application.Name,
+			)
+			err = r.GetClient().Create(ctx, &deploymentDefinition)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return reconcile.Result{}, err
+			}
+		} else {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+	} else {
+		if !shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+			// Ignore replicas set by HPA when checking diff
+			if int32(*deployment.Spec.Replicas) > 0 {
+				deployment.Spec.Replicas = nil
+			}
+		}
+		deployment = *r.resolveDigest(ctx, &deployment)
+
+		deploymentHash := util.GetHashForStructs([]interface{}{
+			&deployment.Spec,
+			&deployment.Labels,
+		})
+		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
+			&deploymentDefinition.Spec,
+			&deploymentDefinition.Labels,
+		})
+
+		if deploymentHash != deploymentDefinitionHash {
+			patch := client.MergeFrom(deployment.DeepCopy())
+			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
+			if err != nil {
+				r.SetControllerError(ctx, application, controllerName, err)
+				return reconcile.Result{}, err
+			}
+		}
+	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return reconcile.Result{}, err
+}
+
+func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
+	res, err := util.ResolveImageTags(ctx, logr.Discard(), r.GetRestConfig(), input)
+	if err != nil {
+		// Exclude dummy image used in tests for decreased verbosity
+		if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
+			deploymentLog.Error(err, "could not resolve container image to digest")
+		}
+		return input
+	}
+	// FIXME: Consider setting imagePullPolicy=IfNotPresent when the image has been resolved to
+	// a digest in order to reduce registry usage and spin-up times.
+	return res
 }
 
 // TODO Set GCP volume mount for Jobs too
@@ -186,6 +308,7 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: file.ConfigMap,
 						},
+						DefaultMode: util.PointTo(int32(420)),
 					},
 				},
 			}
@@ -194,7 +317,8 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 				Name: file.Secret,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: file.Secret,
+						SecretName:  file.Secret,
+						DefaultMode: util.PointTo(int32(420)),
 					},
 				},
 			}
@@ -231,15 +355,37 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 		return nil
 	}
 
-	return &appsv1.RollingUpdateDeployment{}
+	return &appsv1.RollingUpdateDeployment{
+		// Fill with defaults
+		MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
+		MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
+	}
 }
 
-func getReplicasFromAppSpec(appReplicas uint) *int32 {
-	var replicas = int32(appReplicas)
-	if replicas == 0 {
-		minReplicas := int32(1)
-		return &minReplicas
+func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
+	if minReplicas == 0 && maxReplicas == 0 {
+		return true
+	}
+	return false
+}
+
+func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application) string {
+	if numericPort := port.IntValue(); numericPort > 0 {
+		return fmt.Sprintf("%d", numericPort)
 	}
 
-	return &replicas
+	desiredPortName := port.String()
+
+	if desiredPortName == "main" {
+		return fmt.Sprintf("%d", application.Spec.Port)
+	}
+
+	for _, p := range application.Spec.AdditionalPorts {
+		if p.Name == desiredPortName {
+			return fmt.Sprintf("%d", p.Port)
+		}
+	}
+
+	deploymentLog.Error(goerrors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
+	return desiredPortName
 }

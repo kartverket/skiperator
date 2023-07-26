@@ -3,7 +3,10 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/hashstructure/v2"
+	"github.com/r3labs/diff/v3"
 	"hash/fnv"
+	"reflect"
 	"regexp"
 	"strconv"
 	"unicode"
@@ -21,6 +24,14 @@ var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
+}
+
+func GetHashForStructs(obj []interface{}) string {
+	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%d", hash)
 }
 
 func GenerateHashFromName(name string) uint64 {
@@ -88,4 +99,20 @@ func ResourceNameWithHash(resourceName string, kind string) string {
 	hash := GenerateHashFromName(resourceName + kind)
 
 	return resourceName + "-" + strconv.FormatUint(hash, 16)
+}
+
+func GetObjectDiff[T any](a T, b T) {
+	aKind := reflect.ValueOf(a).Kind()
+	bKind := reflect.ValueOf(b).Kind()
+	if aKind != bKind {
+		fmt.Printf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+		return
+	}
+	changelog, _ := diff.Diff(a, b)
+
+	if len(changelog) == 0 {
+		fmt.Printf("No changes found\n")
+	}
+
+	fmt.Printf("Changes found: \n%v", changelog)
 }

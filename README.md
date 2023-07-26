@@ -51,12 +51,12 @@ spec:
     - node
     - ./server.js
   # Any external hostnames that route to this application. Using a skip.statkart.no-address
-  # will make the application reachable for kartverket-clients (internal), other adresses
-  # make the app reachable on the internet. Note that other adresses than skip.statkart.no
+  # will make the application reachable for kartverket-clients (internal), other addresses
+  # make the app reachable on the internet. Note that other addresses than skip.statkart.no
   # (also known as pretty hostnames) requires additional DNS setup.
   # The below hostnames will also have TLS certificates issued and be reachable on both
   # HTTP and HTTPS.
-  # Ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
+  # Ingress must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
   ingresses:
     - testapp.dev.skip.statkart.no
   # Configuration used to automatically scale the deployment based on load
@@ -70,8 +70,8 @@ spec:
   # To interact with GCP.
   gcp:
     # For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-    # to set the GCP serviceaccount to identify as. To allow this, we need a iam-rolebinding in
-    # GCP Adding the role Workload Identity User for the kubernetes SA on the GCP SA.
+    # to set the GCP service account to identify as. To allow this, we need an IAM role binding in
+    # GCP adding the role Workload Identity User for the Kubernetes SA on the GCP SA.
     # Documentation on how this is done can be found here:
     # https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
     auth:
@@ -112,7 +112,7 @@ spec:
     - persistentVolumeClaim: some-pvc
       mountPath: /var/run/volume
   # Defines an alternative strategy for the Kubernetes deployment is useful for when
-  # the deafult which is rolling deployments are not usable. Setting type to
+  # the default which is rolling deployments are not usable. Setting type to
   # Recreate will take down all the pods before starting new pods, whereas the
   # default of RollingUpdate will try to start the new pods before taking down the
   # old ones
@@ -121,11 +121,11 @@ spec:
     type: RollingUpdate
   # Liveness probes define a resource that returns 200 OK when the app is running
   # as intended. Returning a non-200 code will make kubernetes restart the app.
-  # Liveness is optional, but when provided path and port is requred
+  # Liveness is optional, but when provided path and port is required
   liveness:
     # The path to access on the HTTP server
     path: /healthz
-    # Number of the port to access on the container
+    # Number or name of the port to access on the container
     port: 8080
     # Minimum consecutive failures for the probe to be considered failed after
     # having succeeded. Defaults to 3. Minimum value is 1
@@ -139,19 +139,21 @@ spec:
   # Readiness probes define a resource that returns 200 OK when the app is running
   # as intended. Kubernetes will wait until the resource returns 200 OK before
   # marking the pod as Running and progressing with the deployment strategy.
-  # Readiness is optional, but when provided path and port is requred
+  # Readiness is optional, but when provided path and port is required
   readiness:
     # Readiness has the same options as liveness
     path: ..
+    port: 8181
   # Kubernetes uses startup probes to know when a container application has started.
   # If such a probe is configured, it disables liveness and readiness checks until it
   # succeeds, making sure those probes don't interfere with the application startup.
   # This can be used to adopt liveness checks on slow starting containers, avoiding them
   # getting killed by Kubernetes before they are up and running.
-  # Startup is optional, but when provided path and port is requred
+  # Startup is optional, but when provided path and port is required
   startup:
     # Startup has the same options as liveness
     path: ..
+    port: 8282
   # Labels can be used if you want every resource created by your application to
   # have the same labels, including your application. This could for example be useful for
   # metrics, where a certain label and the corresponding resources liveliness can be combined.
@@ -167,7 +169,10 @@ spec:
     Service:
       labelKeyOne: A value for the one label
       labelKeyTwo: A value for the two label
-
+  # Optional settings for how Prometheus compatible metrics should be scraped.
+  prometheus:
+    port: 8181         # *Required* Pod port number or name
+    path: "/metrics"   # *Optional* Defaults to /metrics
   # Settings for overriding the default deny of actuator endpoints. AllowAll set to true will allow any
   # endpoint to be exposed. Use AllowList to only allow specific endpoints.
   #
@@ -203,11 +208,13 @@ spec:
       cpu: 25m
       # Number of bytes of RAM
       memory: 250M
+  # Whether to enable automatic Pod Disruption Budget creation for this application. Defaults to true and may be omitted.
+  enablePDB: true
   # Zero trust dictates that only applications with a reason for being able
   # to access another resource should be able to reach it. This is set up by
   # default by denying all ingress and egress traffic from the pods in the
   # Deployment. The accessPolicy field is an allowlist of other applications
-  # that are allowed to talk with this resource and whic resources this app
+  # that are allowed to talk with this resource and which resources this app
   # can talk to
   accessPolicy:
     # inbound specifies the ingress rules. Which apps on the cluster can talk
@@ -221,7 +228,7 @@ spec:
         - application: third-app
           namespace: other-namespace
     # outbound specifies egress rules. Which apps on the cluster and the
-    # internet is the Application allowed to send requests to?
+    # internet are the Application allowed to send requests to?
     outbound:
       # The rules list specifies a list of applications that are reachable on
       # the cluster. See rules in inbound for syntax. Note that the application

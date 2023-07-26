@@ -145,6 +145,9 @@ func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj
 		if present {
 			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
 				objectLabels := obj.GetLabels()
+				if len(objectLabels) == 0 {
+					objectLabels = make(map[string]string)
+				}
 				maps.Copy(objectLabels, resourceLabels)
 				obj.SetLabels(objectLabels)
 			}
@@ -155,7 +158,6 @@ func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj
 				"Could not find according Kind for Resource "+controllerResource+". Make sure your resource is spelled correctly",
 			)
 		}
-
 	}
 }
 
@@ -164,8 +166,10 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	maps.Copy(labels, app.Spec.Labels)
-	object.SetLabels(labels)
+	if app.Spec.Labels != nil {
+		maps.Copy(labels, app.Spec.Labels)
+		object.SetLabels(labels)
+	}
 
 	r.setResourceLabelsIfApplies(context, object, app)
 }
@@ -238,4 +242,21 @@ func (r *ReconcilerBase) DeleteUnusedEgresses(ctx context.Context, ownerName str
 	}
 
 	return nil
+}
+
+func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+	namespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	if err != nil {
+		return false
+	}
+
+	_, exists := namespace.Labels[IstioRevisionLabel]
+
+	return exists
 }

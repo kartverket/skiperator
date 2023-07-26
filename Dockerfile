@@ -13,6 +13,7 @@ CMD ["make", "test"]
 
 FROM scratch
 
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /build/bin/skiperator ./
 
 USER 65532:65532

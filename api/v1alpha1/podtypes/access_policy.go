@@ -3,14 +3,14 @@ package podtypes
 // +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
-	Inbound InboundPolicy `json:"inbound,omitempty"`
+	Inbound *InboundPolicy `json:"inbound,omitempty"`
 	//+kubebuilder:validation:Optional
 	Outbound OutboundPolicy `json:"outbound,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
 type InboundPolicy struct {
-	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Required
 	Rules []InternalRule `json:"rules"`
 }
 

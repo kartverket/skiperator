@@ -2,10 +2,11 @@ package v1alpha1
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"golang.org/x/exp/constraints"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"strings"
 	"time"
 
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,7 +46,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas Replicas `json:"replicas,omitempty"`
+	Replicas *Replicas `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
@@ -61,6 +62,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
 	//+kubebuilder:validation:Optional
+	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
+	//+kubebuilder:validation:Optional
 	Liveness *podtypes.Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
 	Readiness *podtypes.Probe `json:"readiness,omitempty"`
@@ -72,12 +75,18 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
-	// Controls whether or not the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
+	// Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
 	// This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
+
+	// Whether to enable automatic Pod Disruption Budget creation for this application.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=true
+	EnablePDB *bool `json:"enablePDB,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
@@ -124,15 +133,29 @@ type Replicas struct {
 	//+kubebuilder:validation:Optional
 	Max uint `json:"max,omitempty"`
 
+	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type Strategy struct {
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
+}
+
+// PrometheusConfig contains configuration settings instructing how the app should be scraped.
+// +kubebuilder:object:generate=true
+type PrometheusConfig struct {
+	// The port number or name where metrics are exposed (at the Pod level).
+	//+kubebuilder:validation:Required
+	Port intstr.IntOrString `json:"port"`
+	// The HTTP path where Prometheus compatible metrics exists
+	//+kubebuilder:default:=/metrics
+	//+kubebuilder:validation:Optional
+	Path string `json:"path,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -161,15 +184,16 @@ const (
 )
 
 func (a *Application) FillDefaultsSpec() {
-	a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
-	a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
-
-	if a.Spec.Replicas.TargetCpuUtilization == 0 {
-		a.Spec.Replicas.TargetCpuUtilization = 80
-	}
-
-	if a.Spec.Strategy.Type == "" {
-		a.Spec.Strategy.Type = "RollingUpdate"
+	if a.Spec.Replicas == nil {
+		a.Spec.Replicas = &Replicas{
+			Min:                  2,
+			Max:                  5,
+			TargetCpuUtilization: 80,
+		}
+	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
+	} else {
+		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
+		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 	}
 }
 

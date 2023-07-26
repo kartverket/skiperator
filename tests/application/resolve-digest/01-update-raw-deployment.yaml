@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: some-mutable-app
+spec:
+  selector:
+    matchLabels:
+      app: some-mutable-app
+  template:
+    spec:
+      containers:
+        - name: some-mutable-app
+          image: "quay.io/brancz/prometheus-example-app:v0.5.0@sha256:10025acb391cbbc23e0db3d041df02edae53f7c1723fdf485e69d43d3ce2cef9"
