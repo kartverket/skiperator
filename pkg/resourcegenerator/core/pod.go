@@ -4,10 +4,13 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
+
+type PodOpts struct {
+	IstioEnabled bool
+}
 
 func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy *corev1.RestartPolicy) corev1.PodSpec {
 	return corev1.PodSpec{
@@ -30,7 +33,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 
 }
 
-func CreateApplicationContainer(application *skiperatorv1alpha1.Application) corev1.Container {
+func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
 	return corev1.Container{
 		Name:            application.Name,
 		Image:           application.Spec.Image,
@@ -43,7 +46,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application) cor
 			RunAsUser:                util.PointTo(util.SkiperatorUser),
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
 		},
-		Ports:                    getContainerPorts(application),
+		Ports:                    getContainerPorts(application, opts),
 		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
 		Resources:                getResourceRequirements(application.Spec.Resources),
 		Env:                      getEnv(application.Spec.Env),
@@ -152,7 +155,7 @@ func getEnv(variables []corev1.EnvVar) []corev1.EnvVar {
 	return variables
 }
 
-func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.ContainerPort {
+func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts) []corev1.ContainerPort {
 
 	containerPorts := []corev1.ContainerPort{
 		{
@@ -171,7 +174,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.Con
 	}
 
 	// Expose merged Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
-	if networking.IstioEnabled(application.Spec.Prometheus) {
+	if application.Spec.Prometheus != nil && opts.IstioEnabled {
 		containerPorts = append(containerPorts, corev1.ContainerPort{
 			Name:          util.IstioMetricsPortName.StrVal,
 			ContainerPort: util.IstioMetricsPortNumber.IntVal,

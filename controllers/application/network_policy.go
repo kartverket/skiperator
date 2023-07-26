@@ -39,6 +39,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			Name:             application.Name,
 			RelatedServices:  &egressServices,
 			PrometheusConfig: application.Spec.Prometheus,
+			IstioEnabled:     r.IsIstioEnabledForNamespace(ctx, application.Namespace),
 		},
 	)
 

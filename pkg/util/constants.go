@@ -15,4 +15,6 @@ var (
 	IstioMetricsPortNumber = intstr.FromInt(15020)
 	IstioMetricsPortName   = intstr.FromString("istio-metrics")
 	IstioMetricsPath       = "/stats/prometheus"
+
+	IstioRevisionLabel = "istio.io/rev"
 )

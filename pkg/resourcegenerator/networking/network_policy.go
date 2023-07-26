@@ -23,10 +23,11 @@ type NetPolOpts struct {
 	Namespace        string
 	Name             string
 	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
+	IstioEnabled     bool
 }
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
-	ingressRules := getIngressRules(opts.AccessPolicy, opts.Ingresses, opts.Port, opts.Namespace, opts.PrometheusConfig)
+	ingressRules := getIngressRules(opts)
 	egressRules := getEgressRules(opts.AccessPolicy, opts.Namespace, *opts.RelatedServices)
 
 	if len(ingressRules) > 0 || len(egressRules) > 0 {
@@ -116,21 +117,21 @@ func getRelatedService(services []corev1.Service, rule podtypes.InternalRule) (c
 	return corev1.Service{}, false
 }
 
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses *[]string, port *int, namespace string, prometheusConfig *skiperatorv1alpha1.PrometheusConfig) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if ingresses != nil && port != nil && len(*ingresses) > 0 {
-		if hasInternalIngress(*ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*port, true))
+	if opts.Ingresses != nil && opts.Port != nil && len(*opts.Ingresses) > 0 {
+		if hasInternalIngress(*opts.Ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
 		}
 
-		if hasExternalIngress(*ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*port, false))
+		if hasExternalIngress(*opts.Ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
 		}
 	}
 
 	// If Prometheus metrics are exposed, allow grafana-agent to scrape
-	if prometheusConfig != nil {
+	if opts.PrometheusConfig != nil {
 		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -147,7 +148,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses *[]string, p
 			},
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: determinePrometheusScrapePort(prometheusConfig),
+					Port: determinePrometheusScrapePort(opts.PrometheusConfig, opts.IstioEnabled),
 				},
 			},
 		}
@@ -155,16 +156,16 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses *[]string, p
 		ingressRules = append(ingressRules, promScrapeRule)
 	}
 
-	if accessPolicy == nil {
+	if opts.AccessPolicy == nil {
 		return ingressRules
 	}
 
-	if accessPolicy.Inbound != nil {
+	if opts.AccessPolicy.Inbound != nil {
 		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
-			From: getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
+			From: getInboundPolicyPeers(opts.AccessPolicy.Inbound.Rules, opts.Namespace),
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: util.PointTo(intstr.FromInt(*port)),
+					Port: util.PointTo(intstr.FromInt(*opts.Port)),
 				},
 			},
 		}
@@ -246,17 +247,9 @@ func getIngressGatewayLabel(isInternal bool) map[string]string {
 	}
 }
 
-func determinePrometheusScrapePort(prometheusConfig *skiperatorv1alpha1.PrometheusConfig) *intstr.IntOrString {
-	if IstioEnabled(prometheusConfig) {
+func determinePrometheusScrapePort(prometheusConfig *skiperatorv1alpha1.PrometheusConfig, istioEnabled bool) *intstr.IntOrString {
+	if istioEnabled {
 		return util.PointTo(util.IstioMetricsPortName)
 	}
 	return util.PointTo(prometheusConfig.Port)
-}
-
-func IstioEnabled(prometheusConfig *skiperatorv1alpha1.PrometheusConfig) bool {
-	if prometheusConfig == nil {
-		return false
-	}
-
-	return *prometheusConfig.IstioEnabled
 }
