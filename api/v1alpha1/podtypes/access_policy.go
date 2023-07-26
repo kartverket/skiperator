@@ -10,6 +10,7 @@ type AccessPolicy struct {
 
 // +kubebuilder:object:generate=true
 type InboundPolicy struct {
+	//+kubebuilder:validation:Optional
 	Rules []InternalRule `json:"rules"`
 }
 

@@ -174,7 +174,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	}
 
 	// Expose merged Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
-	if opts.IstioEnabled {
+	if application.Spec.Prometheus != nil && opts.IstioEnabled {
 		containerPorts = append(containerPorts, corev1.ContainerPort{
 			Name:          util.IstioMetricsPortName.StrVal,
 			ContainerPort: util.IstioMetricsPortNumber.IntVal,
