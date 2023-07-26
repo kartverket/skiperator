@@ -10,7 +10,6 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.27.1
 CONTROLLER_GEN_VERSION = 0.12.0
-CLUSTER_INFO := '$(shell kubectl cluster-info | grep CoreDNS)'
 
 .PHONY: test-tools
 test-tools:
@@ -35,7 +34,6 @@ build: generate
 
 .PHONY: test
 test: test-tools
-	$(shell [[ ! $(CLUSTER_INFO) =~ "127.0.0.1" ]] && echo "Not Local Cluster, exiting to prevent havoc" && exit 0;)
 	TEST_ASSET_ETCD=bin/etcd \
 	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
 	DEBUG_LEVEL=warn \
