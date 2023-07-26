@@ -7,7 +7,6 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -78,11 +77,4 @@ func getIpData(ip string) (networkingv1beta1api.ServiceEntry_Resolution, []strin
 	}
 
 	return networkingv1beta1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1beta1api.WorkloadEntry{{Address: ip}}
-}
-
-// Filter for service entries named like *-egress-*
-func IsEgressServiceEntry(serviceEntry *networkingv1beta1.ServiceEntry) bool {
-	match, _ := regexp.MatchString("^.*-egress-.*$", serviceEntry.Name)
-
-	return match
 }

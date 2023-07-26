@@ -42,7 +42,7 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: access-policy-egress-56cd7aa901014e78
+  name: access-policy-egress-56cd7aa901014e78-6356d07b69fc129d
 spec:
   exportTo:
     - .
@@ -59,7 +59,7 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: access-policy-egress-3a90cb5d70dc06a
+  name: access-policy-egress-3a90cb5d70dc06a-99561aeccea8b051
 spec:
   exportTo:
     - .
