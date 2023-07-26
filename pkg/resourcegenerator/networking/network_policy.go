@@ -160,7 +160,7 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 		return ingressRules
 	}
 
-	if len((*opts.AccessPolicy).Inbound.Rules) > 0 {
+	if opts.AccessPolicy.Inbound != nil {
 		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
 			From: getInboundPolicyPeers(opts.AccessPolicy.Inbound.Rules, opts.Namespace),
 			Ports: []networkingv1.NetworkPolicyPort{
