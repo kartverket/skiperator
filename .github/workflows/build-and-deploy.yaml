@@ -146,8 +146,8 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/patches/crd.yaml
-          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/patches/skipjob-crd.yaml
+          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/skipjob-crd.yaml
           cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
           rm -rf config/
 
