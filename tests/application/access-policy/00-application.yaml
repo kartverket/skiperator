@@ -44,3 +44,27 @@ metadata:
 spec:
   image: image
   port: 8080
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: access-policy-job
+spec:
+  container:
+    image: image
+    restartPolicy: "Never"
+    accessPolicy:
+      outbound:
+        rules:
+          - application: access-policy-two
+          - namespace: other
+            application: access-policy-other
+        external:
+          - host: example.com
+            ports:
+              - name: http
+                port: 80
+                protocol: HTTP
+          - host: foo.com
+  job:
+    suspend: false

@@ -18,9 +18,14 @@ commands:
   - command: kubectl create namespace test
 
   - command: kubectl create serviceaccount --namespace test skiperator
-  - command: kubectl create clusterrole application-deleter --verb=delete --resource=application.skiperator.kartverket.no
   - command: kubectl create clusterrolebinding skiperator --clusterrole skiperator --serviceaccount test:skiperator
+
+  - command: kubectl create clusterrole application-deleter --verb=delete --resource=application.skiperator.kartverket.no
   - command: kubectl create clusterrolebinding skiperator-application-deleter --clusterrole application-deleter --serviceaccount test:skiperator
+
+  - command: kubectl create clusterrole job-deleter --verb=delete --resource=skipjob.skiperator.kartverket.no
+  - command: kubectl create clusterrolebinding skiperator-job-deleter --clusterrole job-deleter --serviceaccount test:skiperator
+
   - script: kubectl config set-credentials skiperator --token "$(kubectl create token --namespace test skiperator)"
   - command: kubectl config set-context skiperator --cluster cluster --user skiperator
   - command: kubectl config use-context skiperator
