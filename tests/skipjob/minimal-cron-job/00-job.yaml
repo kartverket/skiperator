@@ -1,0 +1,14 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: minimal-cron-job
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(2000)"
+  cron:
+    schedule: "*/1 * * * *"

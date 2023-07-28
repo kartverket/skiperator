@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: minimal-cron-job-e40bac4e8ee4672d
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: minimal-cron-job-e40bac4e8ee4672d
+spec:
+  schedule: "* * * * *"
+  concurrencyPolicy: Allow
+  suspend: false
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: minimal-cron-job-e40bac4e8ee4672d
+              image: image
