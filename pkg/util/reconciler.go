@@ -3,8 +3,6 @@ package util
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"golang.org/x/exp/slices"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
@@ -207,41 +205,6 @@ func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Obj
 	}
 
 	return egressServices, nil
-}
-
-func (r *ReconcilerBase) DeleteUnusedEgresses(ctx context.Context, ownerName string, ownerNamespace string, currentEgresses []networkingv1beta1.ServiceEntry) error {
-	serviceEntriesInNamespace := networkingv1beta1.ServiceEntryList{}
-	err := r.GetClient().List(ctx, &serviceEntriesInNamespace, client.InNamespace(ownerNamespace))
-	if err != nil {
-		return err
-	}
-
-	for _, serviceEntry := range serviceEntriesInNamespace.Items {
-		ownerIndex := slices.IndexFunc(serviceEntry.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
-			return ownerReference.Name == ownerName
-		})
-		serviceEntryOwnedByThisApplication := ownerIndex != -1
-		if !serviceEntryOwnedByThisApplication {
-			continue
-		}
-
-		serviceEntryInCurrentEgresses := slices.IndexFunc(currentEgresses, func(inSpecEntry networkingv1beta1.ServiceEntry) bool {
-			return inSpecEntry.Name == serviceEntry.Name
-		})
-
-		serviceEntryInOwnerSpec := serviceEntryInCurrentEgresses != -1
-		if serviceEntryInOwnerSpec {
-			continue
-		}
-
-		err = r.GetClient().Delete(ctx, serviceEntry)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
