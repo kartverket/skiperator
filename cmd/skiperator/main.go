@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/util"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -27,6 +30,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
+	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
@@ -87,11 +91,32 @@ func main() {
 		os.Exit(1)
 	}
 
+	// This REST client is needed to be able to send HTTP requests to Pods from a controller
+	// The reason we do this is to be able to get information regarding the status of init containers, specifically Istio containers
+	restClient, err := apiutil.RESTClientForGVK(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Pod",
+	}, false, mgr.GetConfig(), serializer.NewCodecFactory(mgr.GetScheme()), mgr.GetHTTPClient())
+	if err != nil {
+		setupLog.Error(err, "unable to start REST client")
+		os.Exit(1)
+	}
+
 	err = (&applicationcontroller.ApplicationReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
+	}
+
+	err = (&skipjobcontroller.SKIPJobReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+		RESTClient:     restClient,
+	}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
 		os.Exit(1)
 	}
 
