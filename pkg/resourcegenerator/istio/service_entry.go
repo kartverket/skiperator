@@ -1,24 +1,41 @@
 package istio
 
 import (
+	"errors"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/slices"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
-func GetServiceEntries(accessPolicy *podtypes.AccessPolicy, object client.Object) []networkingv1beta1.ServiceEntry {
+func GetServiceEntries(accessPolicy *podtypes.AccessPolicy, object client.Object) ([]networkingv1beta1.ServiceEntry, error) {
 	var serviceEntries []networkingv1beta1.ServiceEntry
 
 	if accessPolicy != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
-			serviceEntryNamePrefix := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
-			serviceEntryName := util.ResourceNameWithHash(serviceEntryNamePrefix, object.GetObjectKind().GroupVersionKind().Kind)
+			serviceEntryName := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
+
+			objectKind := object.GetObjectKind().GroupVersionKind().Kind
+
+			switch object.(type) {
+			case *skiperatorv1alpha1.Application:
+				break
+			default:
+				serviceEntryName = fmt.Sprintf("%v-%v", strings.ToLower(objectKind), serviceEntryName)
+			}
+
 			resolution, addresses, endpoints := getIpData(rule.Ip)
+
+			ports, err := getPorts(rule.Ports, rule.Ip)
+			if err != nil {
+				return nil, err
+			}
 
 			serviceEntry := networkingv1beta1.ServiceEntry{
 				ObjectMeta: metav1.ObjectMeta{
@@ -32,7 +49,7 @@ func GetServiceEntries(accessPolicy *podtypes.AccessPolicy, object client.Object
 					Resolution: resolution,
 					Addresses:  addresses,
 					Endpoints:  endpoints,
-					Ports:      getPorts(rule.Ports, rule.Ip),
+					Ports:      ports,
 				},
 			}
 
@@ -40,10 +57,37 @@ func GetServiceEntries(accessPolicy *podtypes.AccessPolicy, object client.Object
 		}
 	}
 
-	return serviceEntries
+	return serviceEntries, nil
 }
 
-func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) []*networkingv1beta1api.Port {
+func GetServiceEntriesToDelete(serviceEntriesInNamespace []*networkingv1beta1.ServiceEntry, ownerName string, currentEgresses []networkingv1beta1.ServiceEntry) []networkingv1beta1.ServiceEntry {
+	var serviceEntriesToDelete []networkingv1beta1.ServiceEntry
+
+	for _, serviceEntry := range serviceEntriesInNamespace {
+		ownerIndex := slices.IndexFunc(serviceEntry.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+			return ownerReference.Name == ownerName
+		})
+		serviceEntryOwnedByThisApplication := ownerIndex != -1
+		if !serviceEntryOwnedByThisApplication {
+			continue
+		}
+
+		serviceEntryInCurrentEgresses := slices.IndexFunc(currentEgresses, func(inSpecEntry networkingv1beta1.ServiceEntry) bool {
+			return inSpecEntry.Name == serviceEntry.Name
+		})
+
+		serviceEntryInOwnerSpec := serviceEntryInCurrentEgresses != -1
+		if serviceEntryInOwnerSpec {
+			continue
+		}
+
+		serviceEntriesToDelete = append(serviceEntriesToDelete, *serviceEntry)
+	}
+
+	return serviceEntriesToDelete
+}
+
+func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networkingv1beta1api.Port, error) {
 	var ports []*networkingv1beta1api.Port
 
 	if len(externalPorts) == 0 {
@@ -53,12 +97,13 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) []*networkin
 			Protocol: "HTTPS",
 		})
 
-		return ports
+		return ports, nil
 	}
 
 	for _, port := range externalPorts {
 		if ruleIP == "" && port.Protocol == "TCP" {
-			continue
+			errorMessage := fmt.Sprintf("static IP must be set for TCP port, found IP: %v", ruleIP)
+			return nil, errors.New(errorMessage)
 		}
 
 		ports = append(ports, &networkingv1beta1api.Port{
@@ -69,7 +114,7 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) []*networkin
 
 	}
 
-	return ports
+	return ports, nil
 }
 
 func getIpData(ip string) (networkingv1beta1api.ServiceEntry_Resolution, []string, []*networkingv1beta1api.WorkloadEntry) {
@@ -78,11 +123,4 @@ func getIpData(ip string) (networkingv1beta1api.ServiceEntry_Resolution, []strin
 	}
 
 	return networkingv1beta1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1beta1api.WorkloadEntry{{Address: ip}}
-}
-
-// Filter for service entries named like *-egress-*
-func IsEgressServiceEntry(serviceEntry *networkingv1beta1.ServiceEntry) bool {
-	match, _ := regexp.MatchString("^.*-egress-.*$", serviceEntry.Name)
-
-	return match
 }
