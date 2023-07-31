@@ -18,7 +18,7 @@ func (r *SKIPJobReconciler) GetConditionRunning(skipJob *skiperatorv1alpha1.SKIP
 		Status:             status,
 		ObservedGeneration: skipJob.Generation,
 		LastTransitionTime: v1.Now(),
-		Reason:             "JobStarted",
+		Reason:             "JobRunning",
 		Message:            "Job has been created and is now running",
 	}
 }
