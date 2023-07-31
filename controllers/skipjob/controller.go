@@ -46,7 +46,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 					{
 						types.NamespacedName{
 							Namespace: job.Namespace,
-							Name:      job.GetOwnerReferences()[0].Name,
+							Name:      job.Labels[SKIPJobReferenceLabelKey],
 						},
 					},
 				}
@@ -96,8 +96,8 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, fn := range controllerDuties {
-		if _, err := fn(ctx, skipJob); err != nil {
-			return reconcile.Result{}, err
+		if res, err := fn(ctx, skipJob); err != nil {
+			return res, err
 		}
 	}
 

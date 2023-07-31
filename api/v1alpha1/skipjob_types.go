@@ -10,6 +10,7 @@ import (
 // SKIPJobStatus defines the observed state of SKIPJob
 // +kubebuilder:object:generate=true
 type SKIPJobStatus struct {
+	//+kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions"`
 }
 
@@ -22,8 +23,10 @@ type SKIPJob struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Spec   SKIPJobSpec   `json:"spec"`
-	Status SKIPJobStatus `json:"status,omitempty"`
+	Spec SKIPJobSpec `json:"spec"`
+
+	//+kubebuilder:validation:Optional
+	Status SKIPJobStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true

@@ -9,6 +9,8 @@ var (
 	DefaultTTLSecondsAfterFinished = int32(60)
 )
 
+var JobCreatedCondition = "SKIPJobCreated"
+
 func (skipJob *SKIPJob) ApplyDefaults() error {
 	skipJob.setDefaultAnnotations()
 	return mergo.Merge(skipJob, getSkipJobDefaults())
@@ -22,7 +24,15 @@ func getSkipJobDefaults() *SKIPJob {
 			},
 		},
 		Status: SKIPJobStatus{
-			Conditions: []metav1.Condition{},
+			Conditions: []metav1.Condition{
+				{
+					Type:               JobCreatedCondition,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+					Reason:             "SKIPJobCreated",
+					Message:            "SKIPJob was created",
+				},
+			},
 		},
 	}
 }

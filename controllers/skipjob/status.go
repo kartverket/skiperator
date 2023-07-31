@@ -4,8 +4,7 @@ import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 const (
@@ -35,41 +34,54 @@ func (r *SKIPJobReconciler) GetConditionFinished(skipJob *skiperatorv1alpha1.SKI
 	}
 }
 
-func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *skiperatorv1alpha1.SKIPJob, conditions []v1.Condition) (*ctrl.Result, error) {
-	foundJob := &skiperatorv1alpha1.SKIPJob{}
-	err := r.GetClient().Get(ctx, types.NamespacedName{
-		Name:      in.Name,
-		Namespace: in.Namespace,
-	}, foundJob)
-	if err != nil {
-		return &ctrl.Result{}, err
-	}
+func (r *SKIPJobReconciler) UpdateStatusWithCondition(ctx context.Context, in *skiperatorv1alpha1.SKIPJob, conditions []v1.Condition) error {
+	jobConditions := in.Status.Conditions
 
 	for _, conditionToAdd := range conditions {
-		currentCondition, isNotEmpty := r.GetLastCondition(foundJob.Status.Conditions)
+		currentCondition, exists := r.GetSameConditionIfExists(&jobConditions, &conditionToAdd)
+		if !exists {
+			in.Status.Conditions = append(in.Status.Conditions, conditionToAdd)
+			continue
+		}
 
 		isSameType := conditionsHaveSameType(currentCondition, &conditionToAdd)
 		isSameStatus := conditionsHaveSameStatus(currentCondition, &conditionToAdd)
-
-		if !isNotEmpty || !isSameType {
-			foundJob.Status.Conditions = append(foundJob.Status.Conditions, conditionToAdd)
-		}
 
 		if isSameType && isSameStatus {
 			continue
 		}
 
 		if isSameType && !isSameStatus {
-			*currentCondition = conditionToAdd
+			r.deleteCondition(ctx, in, *currentCondition)
+			in.Status.Conditions = append(in.Status.Conditions, conditionToAdd)
 		}
 	}
 
-	err = r.GetClient().Status().Update(ctx, foundJob)
+	err := r.GetClient().Status().Update(ctx, in)
 	if err != nil {
-		return &ctrl.Result{}, err
+		return err
 	}
 
-	return nil, nil
+	return nil
+}
+
+func (r *SKIPJobReconciler) deleteCondition(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob, conditionToDelete v1.Condition) error {
+	log := log.FromContext(ctx)
+	var newConditions []v1.Condition
+
+	for _, condition := range skipJob.Status.Conditions {
+		if condition.Type != conditionToDelete.Type {
+			newConditions = append(newConditions, condition)
+		}
+	}
+
+	skipJob.Status.Conditions = newConditions
+	err := r.GetClient().Status().Update(ctx, skipJob)
+	if err != nil {
+		log.Error(err, "skipjob could not delete condition")
+		return err
+	}
+	return nil
 }
 
 func (r *SKIPJobReconciler) GetLastCondition(conditions []v1.Condition) (*v1.Condition, bool) {
@@ -78,6 +90,16 @@ func (r *SKIPJobReconciler) GetLastCondition(conditions []v1.Condition) (*v1.Con
 	}
 
 	return &conditions[len(conditions)-1], true
+}
+
+func (r *SKIPJobReconciler) GetSameConditionIfExists(currentConditions *[]v1.Condition, conditionToFind *v1.Condition) (*v1.Condition, bool) {
+	for _, condition := range *currentConditions {
+		if condition.Type == conditionToFind.Type {
+			return &condition, true
+		}
+	}
+
+	return nil, false
 }
 
 func conditionsHaveSameStatus(condition1 *v1.Condition, condition2 *v1.Condition) bool {
