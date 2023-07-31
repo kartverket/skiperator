@@ -135,7 +135,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				// TODO This requeue does not work. It seems like the controller ignores the requeue after
 				// In the case that the job has no pods yet, we should requeue the request so that the controller can
 				// check the pods when created.
-				return reconcile.Result{RequeueAfter: time.Second * 5}, errors.NewBadRequest("pods not created for job, requeuing")
+				return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 			}
 
 			for _, pod := range jobPods.Items {
