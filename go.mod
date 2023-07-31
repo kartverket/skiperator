@@ -11,26 +11,36 @@ require (
 	github.com/google/k8s-digester v0.1.10
 	github.com/kudobuilder/kuttl v0.15.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/nais/digdirator v0.0.0-20230718084056-a58b64b3a946
+	github.com/nais/digdirator v0.0.0-20230731110512-96d4f8118c39
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.66.0
 	go.etcd.io/etcd/server/v3 v3.5.9
 	go.uber.org/zap v1.24.0
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20230518153929-d0aebaa77ab8
 	istio.io/client-go v1.16.5
-	k8s.io/api v0.27.3
+	k8s.io/api v0.27.4
 	k8s.io/apiextensions-apiserver v0.27.3
-	k8s.io/apimachinery v0.27.3
-	k8s.io/client-go v0.27.3
+	k8s.io/apimachinery v0.27.4
+	k8s.io/client-go v0.27.4
 	sigs.k8s.io/controller-runtime v0.15.0
 	sigs.k8s.io/controller-tools v0.12.1
 	sigs.k8s.io/kustomize/kyaml v0.13.9
 )
 
 require (
+	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/hashstructure v1.1.0 // indirect
+	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+	github.com/spf13/afero v1.9.5 // indirect
+	github.com/spf13/cast v1.5.1 // indirect
+	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spf13/viper v1.16.0 // indirect
+	github.com/subosito/gotenv v1.4.2 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )
 

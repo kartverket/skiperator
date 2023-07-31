@@ -14,6 +14,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	digdiratorClients "github.com/nais/digdirator/pkg/clients"
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 )
 
@@ -149,24 +150,12 @@ func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]nais_io_v1.IDPortenURI,
 }
 
 func getScopes(integrationType string, scopes []string) []string {
-	defaultScopes := getDefaultScopesForIntegration(integrationType)
+	defaultScopes := digdiratorClients.GetIDPortenDefaultScopes(integrationType)
 	if len(defaultScopes) != 0 {
 		return defaultScopes
 	}
 
 	return scopes
-}
-
-// TODO: Remove after https://github.com/nais/digdirator/pull/202 is merged
-func getDefaultScopesForIntegration(integration string) []string {
-	switch integration {
-	case string(digdiratorTypes.IntegrationTypeKrr):
-		return []string{"krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read"}
-	case string(digdiratorTypes.IntegrationTypeIDPorten):
-		return []string{"profile", "openid"}
-	}
-
-	return []string(nil)
 }
 
 func withFallback[T ~string](val T, fallback T) T {
