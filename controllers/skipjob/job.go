@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"time"
@@ -25,6 +26,7 @@ import (
 
 var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
+	DefaultPollingRate       = time.Second * 30
 )
 
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
@@ -44,7 +46,12 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	if skipJob.Spec.Cron != nil {
-		err := r.GetClient().Get(ctx, types.NamespacedName{
+		err := deleteJobIfExists(r.GetClient(), ctx, job)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		err = r.GetClient().Get(ctx, types.NamespacedName{
 			Namespace: cronJob.Namespace,
 			Name:      cronJob.Name,
 		}, &cronJob)
@@ -105,7 +112,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			err = r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
 				r.GetConditionRunning(skipJob, metav1.ConditionTrue),
-				r.GetConditionFinished(skipJob, metav1.ConditionFalse),
 			})
 
 			return reconcile.Result{}, err
@@ -180,7 +186,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 						// TODO Operate differently if the container containing the job was not terminated successfully
 					}
 				} else {
-					println("not finished")
 					err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
 						r.GetConditionRunning(skipJob, metav1.ConditionTrue),
 						r.GetConditionFinished(skipJob, metav1.ConditionFalse),
@@ -188,6 +193,11 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					if err != nil {
 						return reconcile.Result{}, err
 					}
+
+					infoMessage := fmt.Sprintf("job %v/%v not complete, requeueing in %v seconds", job.Name, job.Namespace, DefaultPollingRate.Seconds())
+					log.FromContext(ctx).Info(infoMessage)
+
+					return reconcile.Result{RequeueAfter: DefaultPollingRate}, nil
 				}
 			}
 		} else {
@@ -266,6 +276,17 @@ func requestExitForIstioProxyContainer(ctx context.Context, restClient rest.Inte
 
 func deleteCronJobIfExists(recClient client.Client, context context.Context, cronJob batchv1.CronJob) error {
 	err := recClient.Delete(context, &cronJob)
+	err = client.IgnoreNotFound(err)
+	if err != nil {
+
+		return err
+	}
+
+	return nil
+}
+
+func deleteJobIfExists(recClient client.Client, context context.Context, job batchv1.Job) error {
+	err := recClient.Delete(context, &job)
 	err = client.IgnoreNotFound(err)
 	if err != nil {
 

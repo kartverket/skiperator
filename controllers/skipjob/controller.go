@@ -97,8 +97,11 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, fn := range controllerDuties {
-		if res, err := fn(ctx, skipJob); err != nil {
+		res, err := fn(ctx, skipJob)
+		if err != nil {
 			return res, err
+		} else if res.RequeueAfter > 0 || res.Requeue {
+			return res, nil
 		}
 	}
 
