@@ -7,6 +7,7 @@ import (
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -53,12 +54,32 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	var err error
 
-	podVolumes, containerVolumeMounts := getContainerVolumeMountsAndPodVolumes(application)
-	podVolumes, containerVolumeMounts, err = r.appendGCPVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return deployment, err
+	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
+
+	if application.Spec.GCP != nil {
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+		gcpIdentityConfigMap := corev1.ConfigMap{}
+
+		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+		if !util.ErrIsMissingOrNil(
+			r.GetRecorder(),
+			err,
+			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			application,
+		) {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
+
+		gcpPodVolume := gcp.GetGCPContainerVolume(gcpIdentityConfigMap.Data["workloadIdentityPool"], application.Name)
+		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
+		gcpEnvVar := gcp.GetGCPEnvVar()
+
+		podVolumes = append(podVolumes, gcpPodVolume)
+		containerVolumeMounts = append(containerVolumeMounts, gcpContainerVolumeMount)
+		skiperatorContainer.Env = append(skiperatorContainer.Env, gcpEnvVar)
 	}
+
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
 	labels := util.GetPodAppSelector(application.Name)
@@ -211,141 +232,6 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	// FIXME: Consider setting imagePullPolicy=IfNotPresent when the image has been resolved to
 	// a digest in order to reduce registry usage and spin-up times.
 	return res
-}
-func (r ApplicationReconciler) appendGCPVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
-	if application.Spec.GCP != nil {
-		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
-		gcpIdentityConfigMap := corev1.ConfigMap{}
-
-		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
-
-		if !util.ErrIsMissingOrNil(
-			r.GetRecorder(),
-			err,
-			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
-			application,
-		) {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return volumes, volumeMounts, err
-		}
-
-		envVar := corev1.EnvVar{
-			Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-			Value: "/var/run/secrets/tokens/gcp-ksa/google-application-credentials.json",
-		}
-		skiperatorContainer.Env = append(application.Spec.Env, envVar)
-
-		volumeMounts = append(volumeMounts, corev1.VolumeMount{
-			Name:      "gcp-ksa",
-			MountPath: "/var/run/secrets/tokens/gcp-ksa",
-			ReadOnly:  true,
-		})
-
-		twoDaysInSeconds := int64(172800)
-
-		volumes = append(volumes, corev1.Volume{
-			Name: "gcp-ksa",
-			VolumeSource: corev1.VolumeSource{
-				Projected: &corev1.ProjectedVolumeSource{
-					DefaultMode: util.PointTo(int32(420)),
-					Sources: []corev1.VolumeProjection{
-						{
-							ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
-								Path:              "token",
-								Audience:          gcpIdentityConfigMap.Data["workloadIdentityPool"],
-								ExpirationSeconds: &twoDaysInSeconds,
-							},
-						},
-						{
-							ConfigMap: &corev1.ConfigMapProjection{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: application.Name + "-gcp-auth",
-								},
-								Optional: util.PointTo(false),
-								Items: []corev1.KeyToPath{
-									{
-										Key:  "config",
-										Path: "google-application-credentials.json",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		})
-	}
-
-	return volumes, volumeMounts, nil
-}
-
-func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Application) ([]corev1.Volume, []corev1.VolumeMount) {
-	containerVolumeMounts := []corev1.VolumeMount{
-		{
-			Name:      "tmp",
-			MountPath: "/tmp",
-		},
-	}
-
-	podVolumes := []corev1.Volume{
-		{
-			Name: "tmp",
-			VolumeSource: corev1.VolumeSource{
-				EmptyDir: &corev1.EmptyDirVolumeSource{},
-			},
-		},
-	}
-
-	for _, file := range application.Spec.FilesFrom {
-		volume := corev1.Volume{}
-		if len(file.ConfigMap) > 0 {
-			volume = corev1.Volume{
-				Name: file.ConfigMap,
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: file.ConfigMap,
-						},
-						DefaultMode: util.PointTo(int32(420)),
-					},
-				},
-			}
-		} else if len(file.Secret) > 0 {
-			volume = corev1.Volume{
-				Name: file.Secret,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName:  file.Secret,
-						DefaultMode: util.PointTo(int32(420)),
-					},
-				},
-			}
-		} else if len(file.EmptyDir) > 0 {
-			volume = corev1.Volume{
-				Name: file.EmptyDir,
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
-			}
-		} else if len(file.PersistentVolumeClaim) > 0 {
-			volume = corev1.Volume{
-				Name: file.PersistentVolumeClaim,
-				VolumeSource: corev1.VolumeSource{
-					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: file.PersistentVolumeClaim,
-					},
-				},
-			}
-		}
-
-		podVolumes = append(podVolumes, volume)
-		containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
-			Name:      volume.Name,
-			MountPath: file.MountPath,
-		})
-	}
-
-	return podVolumes, containerVolumeMounts
 }
 
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {
