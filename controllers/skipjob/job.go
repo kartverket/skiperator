@@ -6,6 +6,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +38,11 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		Name:      util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
 	}}
 
+	gcpIdentityConfigMap, err := r.getGCPIdentityConfigMap(ctx, *skipJob)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	if skipJob.Spec.Cron != nil {
 		err := r.GetClient().Get(ctx, types.NamespacedName{
 			Namespace: cronJob.Namespace,
@@ -50,7 +56,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			util.SetCommonAnnotations(&cronJob)
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, job.Labels)
+
+			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, job.Labels, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -63,11 +70,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				RequeueAfter: 5,
 			}, nil
 		} else if err == nil {
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, job.Labels)
-			err = r.GetClient().Update(ctx, &cronJob)
-			if err != nil {
-				return reconcile.Result{}, err
-			}
+			// TODO Figure out how to update CronJobs
 		} else if err != nil {
 			// TODO Send event due to error
 			return reconcile.Result{}, err
@@ -91,7 +94,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels)
+			wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels, gcpIdentityConfigMap)
 			job.Labels = GetJobLabels(skipJob, job.Name, job.Labels)
 			job.Spec = wantedSpec
 
@@ -111,7 +114,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 	jobsToCheckList := batchv1.JobList{}
 
-	err := r.GetClient().List(ctx, &jobsToCheckList, client.MatchingLabels{
+	err = r.GetClient().List(ctx, &jobsToCheckList, client.MatchingLabels{
 		SKIPJobReferenceLabelKey: skipJob.Name,
 	})
 	if err != nil {
@@ -196,6 +199,26 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	return reconcile.Result{}, nil
 }
 
+func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob skiperatorv1alpha1.SKIPJob) (*corev1.ConfigMap, error) {
+	if skipJob.Spec.Container.GCP != nil {
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
+
+		configMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+		if !util.ErrIsMissingOrNil(
+			r.GetRecorder(),
+			err,
+			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			&skipJob,
+		) {
+			return nil, err
+		}
+
+		return &configMap, nil
+	} else {
+		return nil, nil
+	}
+}
+
 func (r *SKIPJobReconciler) isSkipJobFinished(conditions []metav1.Condition) bool {
 	newestSkipJobCondition, isNotEmpty := r.GetLastCondition(conditions)
 
@@ -252,7 +275,7 @@ func deleteCronJobIfExists(recClient client.Client, context context.Context, cro
 	return nil
 }
 
-func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, labels map[string]string) batchv1.CronJobSpec {
+func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, labels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	return batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
@@ -262,7 +285,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: GetJobLabels(skipJob, jobName, labels),
 			},
-			Spec: getJobSpec(skipJob, selector, labels),
+			Spec: getJobSpec(skipJob, selector, labels, gcpIdentityConfigMap),
 		},
 		// Not sure if we should add these fields to spec
 		//TimeZone:                   nil,
@@ -281,14 +304,25 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels ma
 	return labels
 }
 
-func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, labels map[string]string) batchv1.JobSpec {
+func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, labels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
+	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
+
+	if skipJob.Spec.Container.GCP != nil {
+		gcpPodVolume := gcp.GetGCPContainerVolume(gcpIdentityConfigMap.Data["workloadIdentityPool"], skipJob.Name)
+		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
+		gcpEnvVar := gcp.GetGCPEnvVar()
+
+		podVolumes = append(podVolumes, gcpPodVolume)
+		containerVolumeMounts = append(containerVolumeMounts, gcpContainerVolumeMount)
+		skipJob.Spec.Container.Env = append(skipJob.Spec.Container.Env, gcpEnvVar)
+	}
 
 	jobSpec := batchv1.JobSpec{
 		Parallelism:           skipJob.Spec.Job.Parallelism,
 		ActiveDeadlineSeconds: skipJob.Spec.Job.ActiveDeadlineSeconds,
 		BackoffLimit:          skipJob.Spec.Job.BackoffLimit,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob), nil, util.ResourceNameWithHash(skipJob.Name, skipJob.Kind), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, util.ResourceNameWithHash(skipJob.Name, skipJob.Kind), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		Suspend:                 skipJob.Spec.Job.Suspend,

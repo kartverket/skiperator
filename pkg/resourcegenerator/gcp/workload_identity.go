@@ -28,7 +28,7 @@ type CredentialSource struct {
 
 func GetGoogleServiceAccountCredentialsConfigMap(ctx context.Context, namespace string, name string, gcpServiceAccount string, workloadIdentityConfigMap corev1.ConfigMap) (corev1.ConfigMap, error) {
 	logger := log.FromContext(ctx)
-	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name + "-gcp-auth"}}
+	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name}}
 
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",

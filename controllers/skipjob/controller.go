@@ -93,6 +93,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.reconcileServiceAccount,
 		r.reconcileNetworkPolicy,
 		r.reconcileEgressServiceEntry,
+		r.reconcileConfigMap,
 	}
 
 	for _, fn := range controllerDuties {

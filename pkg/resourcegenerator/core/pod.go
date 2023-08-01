@@ -58,7 +58,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 	}
 }
 
-func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob) corev1.Container {
+func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount) corev1.Container {
 	return corev1.Container{
 		Name:            util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
 		Image:           skipJob.Spec.Container.Image,
@@ -79,6 +79,7 @@ func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob) corev1.Container {
 		StartupProbe:             getProbe(skipJob.Spec.Container.Startup),
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		VolumeMounts:             volumeMounts,
 	}
 }
 
