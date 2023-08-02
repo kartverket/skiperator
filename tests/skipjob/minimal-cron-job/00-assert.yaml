@@ -19,4 +19,4 @@ spec:
         spec:
           containers:
             - name: minimal-cron-job-e40bac4e8ee4672d
-              image: image
+              image: "perl:5.34.0"

@@ -2,6 +2,7 @@ package skipjobcontroller
 
 import (
 	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,7 +40,7 @@ func (r *SKIPJobReconciler) getConditionFinished(skipJob *skiperatorv1alpha1.SKI
 func (r *SKIPJobReconciler) getConditionFailed(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus, err *string) v1.Condition {
 	conditionMessage := "Job failed previous run"
 	if err != nil {
-		conditionMessage = conditionMessage + ": " + *err
+		conditionMessage = fmt.Sprintf("%v: %v", conditionMessage, *err)
 	}
 	return v1.Condition{
 		Type:               ConditionFailed,

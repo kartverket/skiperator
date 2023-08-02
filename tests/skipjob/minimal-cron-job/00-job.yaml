@@ -11,4 +11,4 @@ spec:
       - "-wle"
       - "print bpi(2000)"
   cron:
-    schedule: "*/1 * * * *"
+    schedule: "* * * * *"

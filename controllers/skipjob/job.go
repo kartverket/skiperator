@@ -144,6 +144,11 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			for _, pod := range jobPods.Items {
+				if pod.Status.Phase == corev1.PodFailed {
+					err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed", pod.Name))
+					return reconcile.Result{}, err
+				}
+
 				if pod.Status.Phase != corev1.PodRunning {
 					continue
 				}

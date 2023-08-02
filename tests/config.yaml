@@ -32,8 +32,9 @@ commands:
 
   - command: skiperator -l -ln test -e warn
     background: true
-parallel: 1
+parallel: 8
 namespace: test
 testDirs:
   - tests/application
   - tests/namespace
+  - tests/skipjob
