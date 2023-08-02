@@ -110,9 +110,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			err = r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
-				r.GetConditionRunning(skipJob, metav1.ConditionTrue),
-			})
+			err = r.SetStatusRunning(ctx, skipJob)
 
 			return reconcile.Result{}, err
 		}
@@ -133,17 +131,15 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
 
 			jobPods := corev1.PodList{}
-			err := r.GetClient().List(ctx, &jobPods, []client.ListOption{
-				client.MatchingLabels{"job-name": job.Name},
-			}...)
+			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
 				return reconcile.Result{}, err
 			}
 
 			if len(jobPods.Items) == 0 {
-				// TODO This requeue does not work. It seems like the controller ignores the requeue after
 				// In the case that the job has no pods yet, we should requeue the request so that the controller can
 				// check the pods when created.
+				log.FromContext(ctx).Info(fmt.Sprintf("could not find pods for job %v/%v, requeuing reconcile", job.Name, job.Namespace))
 				return reconcile.Result{RequeueAfter: time.Second * 5}, nil
 			}
 
@@ -173,23 +169,16 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished, and can update the status of the SKIPJob
 						// immediately, so following reconciliations can use that check
-						err = r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
-							r.GetConditionRunning(skipJob, metav1.ConditionFalse),
-							r.GetConditionFinished(skipJob, metav1.ConditionTrue),
-						})
-
+						err = r.SetStatusFinished(ctx, skipJob)
 						if err != nil {
 							return reconcile.Result{}, err
 						}
 					} else {
-
-						// TODO Operate differently if the container containing the job was not terminated successfully
+						err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed with exit code %v", pod.Name, exitCode))
+						return reconcile.Result{}, err
 					}
 				} else {
-					err := r.UpdateStatusWithCondition(ctx, skipJob, []metav1.Condition{
-						r.GetConditionRunning(skipJob, metav1.ConditionTrue),
-						r.GetConditionFinished(skipJob, metav1.ConditionFalse),
-					})
+					err := r.SetStatusRunning(ctx, skipJob)
 					if err != nil {
 						return reconcile.Result{}, err
 					}
@@ -228,17 +217,6 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 		return nil, nil
 	}
 }
-
-func (r *SKIPJobReconciler) isSkipJobFinished(conditions []metav1.Condition) bool {
-	newestSkipJobCondition, isNotEmpty := r.GetLastCondition(conditions)
-
-	if !isNotEmpty {
-		return false
-	} else {
-		return newestSkipJobCondition.Type == ConditionFinished && newestSkipJobCondition.Status == metav1.ConditionTrue
-	}
-}
-
 func requestExitForIstioProxyContainer(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
 	buf := &bytes.Buffer{}
 	errBuf := &bytes.Buffer{}
