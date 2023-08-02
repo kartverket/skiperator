@@ -3,9 +3,11 @@ package util
 import (
 	"context"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/r3labs/diff/v3"
 	"hash/fnv"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -38,6 +40,19 @@ func GenerateHashFromName(name string) uint64 {
 	hash := fnv.New64()
 	_, _ = hash.Write([]byte(name))
 	return hash.Sum64()
+}
+
+func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
+	if skiperatorv1alpha1.IsReplicasFloat(jsonReplicas) {
+		return false
+	} else if skiperatorv1alpha1.IsReplicasStruct(jsonReplicas) {
+		replicas, err := skiperatorv1alpha1.GetReplicasStruct(jsonReplicas)
+		if err == nil && replicas.Min == 0 {
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func GetConfigMap(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.ConfigMap, error) {

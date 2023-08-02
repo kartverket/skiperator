@@ -1,15 +1,17 @@
 package v1alpha1
 
 import (
+	"encoding/json"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/constraints"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"strings"
-	"time"
-
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"reflect"
+	"strings"
+	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -46,7 +48,8 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas *Replicas `json:"replicas,omitempty"`
+	//+kubebuilder:validation:AnyOf[]=type:number,format:int32;type:object
+	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
@@ -184,18 +187,83 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
+func SetReplicas(manifestReplicas *apiextensionsv1.JSON, replicas interface{}) error {
+	newReplicas, err := json.Marshal(replicas)
+	if err == nil {
+		manifestReplicas.Raw = newReplicas
+	}
+	return err
+}
+
+func IsReplicasFloat(jsonReplicas *apiextensionsv1.JSON) bool {
+	var result float64
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func IsReplicasStruct(jsonReplicas *apiextensionsv1.JSON) bool {
+	result := Replicas{
+		Min:                  2,
+		Max:                  5,
+		TargetCpuUtilization: 80,
+	}
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+	if err != nil {
+		return false
+	}
+
+	return true
+}
+
+func GetReplicasFloat(jsonReplicas *apiextensionsv1.JSON) (float64, error) {
+	var result float64
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+
+	return result, err
+}
+
+func GetReplicasStruct(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
+	result := Replicas{
+		Min:                  2,
+		Max:                  5,
+		TargetCpuUtilization: 80,
+	}
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+
+	return result, err
+}
+
+func GetTypeOfInterface(i interface{}) string {
+	return reflect.TypeOf(i).String()
+}
+
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
-		a.Spec.Replicas = &Replicas{
-			Min:                  2,
-			Max:                  5,
-			TargetCpuUtilization: 80,
-		}
-	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
-	} else {
-		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
-		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
+		SetReplicas(a.Spec.Replicas, 2)
 	}
+	if IsReplicasFloat(a.Spec.Replicas) {
+		replicasFloat, err := GetReplicasFloat(a.Spec.Replicas)
+		if err == nil {
+			println(replicasFloat)
+		}
+
+	} else if IsReplicasStruct(a.Spec.Replicas) {
+		replicasStruct, err := GetReplicasStruct(a.Spec.Replicas)
+		if err == nil {
+			println(replicasStruct.Min)
+		}
+	}
+
+	//_, err := ParseReplicasToFloat(a.Spec.Replicas)
+	//if err != nil {
+	//	objReplicas, err := ParseReplicasToObject(a.Spec.Replicas)
+	//	if err == nil {
+	//		setReplicas(a.Spec.Replicas, objReplicas)
+	//	}
+	//}
 }
 
 func (a *Application) FillDefaultsStatus() {

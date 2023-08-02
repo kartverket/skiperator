@@ -417,17 +417,7 @@ spec:
                   ACME challenge can only be done on port 80.
                 type: boolean
               replicas:
-                properties:
-                  max:
-                    type: integer
-                  min:
-                    type: integer
-                  targetCpuUtilization:
-                    default: 80
-                    type: integer
-                required:
-                - min
-                type: object
+                x-kubernetes-preserve-unknown-fields: true
               resourceLabels:
                 additionalProperties:
                   additionalProperties:
