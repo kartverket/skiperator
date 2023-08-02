@@ -27,6 +27,8 @@ import (
 var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
 	DefaultPollingRate       = time.Second * 30
+
+	IstioProxyPodContainerName = "istio-proxy"
 )
 
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
@@ -77,7 +79,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				RequeueAfter: 5,
 			}, nil
 		} else if err == nil {
-			// TODO Figure out how to update CronJobs
+			// RFC: How should we handle updates to CronJobs and Jobs in general? A lot of Job fields are immutable, and will force a recreate.
+			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
 		} else if err != nil {
 			// TODO Send event due to error
 			return reconcile.Result{}, err
@@ -127,9 +130,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 	for _, job := range jobsToCheckList.Items {
 		if job.Status.CompletionTime == nil {
-			// TODO Diff current and wanted Spec for job. Not all updates are created equally, and some will force the recreation of a job.
-			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
-
 			jobPods := corev1.PodList{}
 			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
@@ -155,14 +155,14 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					}
 				}
 
-				if _, exists := terminatedContainerStatuses["istio-proxy"]; exists {
+				if _, exists := terminatedContainerStatuses[IstioProxyPodContainerName]; exists {
 					// We want to skip all further operations if the istio-proxy is terminated
 					continue
 				}
 
 				if exitCode, exists := terminatedContainerStatuses[job.Labels["job-name"]]; exists {
 					if exitCode == 0 {
-						err := requestExitForIstioProxyContainer(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
+						err := requestExitForIstioProxyContainerIfExists(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
 						if err != nil {
 							return reconcile.Result{}, err
 						}
@@ -190,7 +190,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				}
 			}
 		} else {
-			// TODO Do we need to do anything when jobs are finished?
+			// RFC: Do we need to do anything when jobs are finished?
 			// Perhaps remove them after x time? CronJobs automatically clear old jobs for one
 		}
 	}
@@ -217,38 +217,43 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 		return nil, nil
 	}
 }
-func requestExitForIstioProxyContainer(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
-	buf := &bytes.Buffer{}
-	errBuf := &bytes.Buffer{}
+func requestExitForIstioProxyContainerIfExists(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
+	for _, container := range pod.Spec.Containers {
+		if container.Name == IstioProxyPodContainerName {
+			buf := &bytes.Buffer{}
+			errBuf := &bytes.Buffer{}
 
-	// Execute into the pod to tell the istio container to quit, which in turns allows the Pod to finish
-	request := restClient.
-		Post().
-		Namespace(pod.Namespace).
-		Resource("pods").
-		Name(pod.Name).
-		SubResource("exec").
-		VersionedParams(&corev1.PodExecOptions{
-			Container: "istio-proxy",
-			Command:   []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
-			Stdin:     false,
-			Stdout:    true,
-			Stderr:    true,
-			TTY:       true,
-		}, codec)
-	exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
-	if err != nil {
-		return fmt.Errorf("%w failed running the exec on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
-	}
-	err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-		Stdout: buf,
-		Stderr: errBuf,
-	})
+			// Execute into the pod to tell the istio container to quit, which in turns allows the Pod to finish
+			request := restClient.
+				Post().
+				Namespace(pod.Namespace).
+				Resource("pods").
+				Name(pod.Name).
+				SubResource("exec").
+				VersionedParams(&corev1.PodExecOptions{
+					Container: IstioProxyPodContainerName,
+					Command:   []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
+					Stdin:     false,
+					Stdout:    true,
+					Stderr:    true,
+					TTY:       true,
+				}, codec)
+			exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
+			if err != nil {
+				return fmt.Errorf("%w failed running the exec on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+			}
+			err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+				Stdout: buf,
+				Stderr: errBuf,
+			})
 
-	// Ignore container not found error, as this just means the container has been killed in this case
-	if err != nil && !strings.Contains(err.Error(), "container not found") {
-		return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+			// Ignore container not found error, as this just means the container has been killed in this case
+			if err != nil && !strings.Contains(err.Error(), "container not found") {
+				return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+			}
+		}
 	}
+
 	return nil
 }
 
