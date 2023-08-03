@@ -14,6 +14,7 @@ import (
 func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	egressServices, err := r.GetEgressServices(ctx, skipJob, skipJob.Spec.Container.AccessPolicy)
 	if err != nil {
+		println("something wrong in the egresservices")
 		return reconcile.Result{}, err
 	}
 
@@ -27,6 +28,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 	netpolSpec := networking.CreateNetPolSpec(netpolOpts)
 
 	if netpolSpec == nil {
+		println("something wrong in the netpolspec")
 		return reconcile.Result{}, err
 	}
 

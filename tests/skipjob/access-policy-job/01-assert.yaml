@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-policy-job-41f7edc29364727e
+spec:
+  egress:
+    - ports:
+        - port: 8080
+          protocol: TCP
+      to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: test
+          podSelector:
+            matchLabels:
+              app: minimal-application
+  podSelector:
+    matchLabels:
+      app: access-policy-job
+  policyTypes:
+    - Egress
