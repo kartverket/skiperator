@@ -143,3 +143,11 @@ func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object clien
 	}
 	return reconcileRequests
 }
+
+func (r *SKIPJobReconciler) SendSKIPJobEvent(skipJob *skiperatorv1alpha1.SKIPJob, reason string, message string) {
+	r.GetRecorder().Event(
+		skipJob,
+		corev1.EventTypeWarning, reason,
+		message,
+	)
+}

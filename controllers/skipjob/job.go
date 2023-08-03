@@ -50,6 +50,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	if skipJob.Spec.Cron != nil {
 		err := deleteJobIfExists(r.GetClient(), ctx, job)
 		if err != nil {
+			r.SendSKIPJobEvent(skipJob, "CouldNotDeleteJob", fmt.Sprintf("something went wrong when deleting the outdated Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 
@@ -82,12 +83,13 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			// RFC: How should we handle updates to CronJobs and Jobs in general? A lot of Job fields are immutable, and will force a recreate.
 			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
 		} else if err != nil {
-			// TODO Send event due to error
+			r.SendSKIPJobEvent(skipJob, "CouldNotGetCronJob", fmt.Sprintf("something went wrong when getting the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 	} else {
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
+			r.SendSKIPJobEvent(skipJob, "CouldNotDeleteCronJob", fmt.Sprintf("something went wrong when deleting the outdated CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 
@@ -110,11 +112,18 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			err := r.GetClient().Create(ctx, &job)
 			if err != nil {
+				r.SendSKIPJobEvent(skipJob, "CouldNotCreateJob", fmt.Sprintf("something went wrong when creating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
 			err = r.SetStatusRunning(ctx, skipJob)
 
+			return reconcile.Result{}, err
+		} else if err == nil {
+			// RFC: How should we handle updates to CronJobs and Jobs in general? A lot of Job fields are immutable, and will force a recreate.
+			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
+		} else if err != nil {
+			r.SendSKIPJobEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 	}
@@ -133,6 +142,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			jobPods := corev1.PodList{}
 			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
+				r.SendSKIPJobEvent(skipJob, "CouldNotListPods", fmt.Sprintf("something went wrong when listing Pods of Job %v: %v", job.Name, err))
 				return reconcile.Result{}, err
 			}
 
@@ -169,6 +179,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					if exitCode == 0 {
 						err := requestExitForIstioProxyContainerIfExists(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
 						if err != nil {
+							r.SendSKIPJobEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
 							return reconcile.Result{}, err
 						}
 
