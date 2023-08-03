@@ -134,29 +134,6 @@ type JobSettings struct {
 	//
 	//+kubebuilder:validation:Optional
 	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
-
-	// Settings for managing the Hook lifecycle of the Job, if wanted.
-	//
-	//+kubebuilder:validation:Optional
-	HookSettings *HookSettings `json:"hookSettings,omitempty"`
-}
-
-// HookSettings
-// Created own settings object to allow for configuration of more hook settings in the future, just in case.
-//
-// +kubebuilder:object:generate=true
-type HookSettings struct {
-	// Sets the SyncPhase of the Job. Only PreSync and PostSync are allowed. If unset, a normal Sync is performed.
-	// A PreSync will wait for the Job to complete before syncing other resources in the namespace, which might be useful for
-	// things like database migrations. A PostSync will only be applied after all other resources are applied.
-	//
-	// +kubebuilder:validation:Enum=PreSync;PostSync
-	//+kubebuilder:validation:Required
-	SyncPhase *string `json:"syncPhase,omitempty"`
-
-	// Potential configuration for DeletionPolicy
-	//
-	// DeletionPolicy *string `json:"deletionPolicy,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

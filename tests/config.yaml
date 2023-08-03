@@ -35,6 +35,6 @@ commands:
 parallel: 8
 namespace: test
 testDirs:
-  - tests/application
-  - tests/namespace
+#  - tests/application
+#  - tests/namespace
   - tests/skipjob

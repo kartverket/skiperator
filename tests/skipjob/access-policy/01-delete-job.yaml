@@ -2,8 +2,8 @@ apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 delete:
   - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: SKIPJob
-    name: presync-job
+    kind: Application
+    name: minimal-application
   - apiVersion: skiperator.kartverket.no/v1alpha1
     kind: SKIPJob
-    name: postsync-job
+    name: access-policy-job

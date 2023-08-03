@@ -44,16 +44,5 @@ func (in *SKIPJob) setDefaultAnnotations() {
 		annotations = map[string]string{}
 	}
 
-	// We do not set SyncPolicies if Cron is set. This is due to the recurring nature of Cron jobs not
-	// working well in tangent with stuff like deletion policies.
-	if in.Spec.Cron == nil && in.Spec.Job != nil {
-		if in.Spec.Job.HookSettings != nil {
-			// TODO Allow different type of hook delete policies
-
-			annotations["argocd.argoproj.io/hook-delete-policy"] = "HookSucceeded"
-			annotations["argocd.argoproj.io/hook"] = *in.Spec.Job.HookSettings.SyncPhase
-		}
-	}
-
 	in.SetAnnotations(annotations)
 }
