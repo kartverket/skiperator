@@ -63,16 +63,33 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		return deployment, err
 	}
 
-	podVolumes, containerVolumeMounts, err = r.appendMaskinportenSecretVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return deployment, err
+	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
+		secretName, err := getIDPortenSecretName(application.Name)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
+		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+			&skiperatorContainer,
+			containerVolumeMounts,
+			podVolumes,
+			secretName,
+			DefaultDigdiratorIDportenMountPath,
+		)
 	}
-
-	podVolumes, containerVolumeMounts, err = r.appendIDportenSecretVolumeMount(application, ctx, &skiperatorContainer, containerVolumeMounts, podVolumes)
-	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
-		return deployment, err
+	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
+		secretName, err := getMaskinportenSecretName(application.Name)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
+		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+			&skiperatorContainer,
+			containerVolumeMounts,
+			podVolumes,
+			secretName,
+			DefaultDigdiratorMaskinportenMountPath,
+		)
 	}
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
@@ -228,35 +245,12 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	// a digest in order to reduce registry usage and spin-up times.
 	return res
 }
+func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName string, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {
+	skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
+	volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, mountPath, true))
+	volumes = append(volumes, fromFilesVolume(secretName, secretName))
 
-func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
-	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
-		secretName, err := getMaskinportenSecretName(application.Name)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return volumes, volumeMounts, err
-		}
-
-		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
-		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorMaskinportenMountPath, true))
-		volumes = append(volumes, fromFilesVolume(secretName, secretName))
-	}
-	return volumes, volumeMounts, nil
-}
-
-func (r ApplicationReconciler) appendIDportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
-	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
-		secretName, err := getIDPortenSecretName(application.Name)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return volumes, volumeMounts, err
-		}
-
-		skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
-		volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, DefaultDigdiratorIDportenMountPath, true))
-		volumes = append(volumes, fromFilesVolume(secretName, secretName))
-	}
-	return volumes, volumeMounts, nil
+	return volumes, volumeMounts
 }
 
 func (r ApplicationReconciler) appendGCPVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
