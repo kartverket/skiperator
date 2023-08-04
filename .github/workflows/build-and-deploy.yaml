@@ -26,7 +26,8 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
   RBAC_FILE_PATH: config/rbac/role.yaml
-  CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
   ARTIFACT_NAME: skiperator-artifact
 
 jobs:
@@ -110,7 +111,8 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
             ${{ env.RBAC_FILE_PATH }}
-            ${{ env.CRD_FILE_PATH }}
+            ${{ env.CRD_APP_FILE_PATH }}
+            ${{ env.CRD_JOB_FILE_PATH }}
 
   deploy-argo:
     if: github.event_name == 'push' || github.ref == 'refs/heads/main'
@@ -144,7 +146,8 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/skipjob-crd.yaml
           cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
           rm -rf config/
 

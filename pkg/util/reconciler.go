@@ -2,6 +2,9 @@ package util
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -167,4 +170,56 @@ func (r *ReconcilerBase) SetLabelsFromApplication(context context.Context, objec
 	}
 
 	r.setResourceLabelsIfApplies(context, object, app)
+}
+
+func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Object, accessPolicy *podtypes.AccessPolicy) ([]corev1.Service, error) {
+	var egressServices []corev1.Service
+	if accessPolicy == nil {
+		return egressServices, nil
+	}
+
+	for _, outboundRule := range accessPolicy.Outbound.Rules {
+		if outboundRule.Namespace == "" {
+			outboundRule.Namespace = owner.GetNamespace()
+		}
+
+		service := corev1.Service{}
+
+		err := r.GetClient().Get(ctx, client.ObjectKey{
+			Namespace: outboundRule.Namespace,
+			Name:      outboundRule.Application,
+		}, &service)
+		if errors.IsNotFound(err) {
+			r.GetRecorder().Eventf(
+				owner,
+				corev1.EventTypeWarning, "Missing",
+				"Cannot find application named %s in namespace %s. Egress rule will not be added.",
+				outboundRule.Application, outboundRule.Namespace,
+			)
+			continue
+		} else if err != nil {
+			return egressServices, err
+		}
+
+		egressServices = append(egressServices, service)
+	}
+
+	return egressServices, nil
+}
+
+func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+	namespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	if err != nil {
+		return false
+	}
+
+	_, exists := namespace.Labels[IstioRevisionLabel]
+
+	return exists
 }

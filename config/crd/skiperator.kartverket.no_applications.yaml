@@ -53,6 +53,8 @@ spec:
                           - application
                           type: object
                         type: array
+                    required:
+                    - rules
                     type: object
                   outbound:
                     properties:
@@ -302,7 +304,7 @@ spec:
                 - auth
                 type: object
               idporten:
-                description: https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
+                description: Settings for IDPorten integration with Digitaliseringsdirektoratet
                 properties:
                   accessTokenLifetime:
                     description: "AccessTokenLifetime is the lifetime in seconds for
@@ -321,18 +323,9 @@ spec:
                       If enabled, an ID-porten client be provisioned.
                     type: boolean
                   frontchannelLogoutPath:
-                    description: FrontchannelLogoutPath is a valid path for your application
-                      where ID-porten sends a request to whenever the user has initiated
-                      a logout elsewhere as part of a single logout (front channel
-                      logout) process.
                     pattern: ^\/.*$
                     type: string
                   integrationType:
-                    description: "IntegrationType is used to make sensible choices
-                      for your client. Which type of integration you choose will provide
-                      guidance on which scopes you can use with the client. A client
-                      can only have one integration type. \n NB! It is not possible
-                      to change the integration type after creation."
                     enum:
                     - krr
                     - idporten
@@ -428,7 +421,7 @@ spec:
                 - port
                 type: object
               maskinporten:
-                description: https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L376
+                description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
                 properties:
                   enabled:
                     description: If enabled, provisions and configures a Maskinporten
@@ -529,10 +522,6 @@ spec:
                 description: PrometheusConfig contains configuration settings instructing
                   how the app should be scraped.
                 properties:
-                  istioEnabled:
-                    default: true
-                    description: Whether this application uses Istio.
-                    type: boolean
                   path:
                     default: /metrics
                     description: The HTTP path where Prometheus compatible metrics

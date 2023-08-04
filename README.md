@@ -173,7 +173,6 @@ spec:
   prometheus:
     port: 8181         # *Required* Pod port number or name
     path: "/metrics"   # *Optional* Defaults to /metrics
-    istioEnabled: true # *Optional* Whether this application uses Istio. Defaults to true.
   # Settings for overriding the default deny of actuator endpoints. AllowAll set to true will allow any
   # endpoint to be exposed. Use AllowList to only allow specific endpoints.
   #

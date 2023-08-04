@@ -72,9 +72,13 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Startup *podtypes.Probe `json:"startup,omitempty"`
 
+	// Settings for Maskinporten integration with Digitaliseringsdirektoratet
+	//
 	//+kubebuilder:validation:Optional
 	Maskinporten *Maskinporten `json:"maskinporten,omitempty"`
 
+	// Settings for IDPorten integration with Digitaliseringsdirektoratet
+	//
 	//+kubebuilder:validation:Optional
 	IDPorten *IDPorten `json:"idporten,omitempty"`
 
@@ -135,28 +139,30 @@ type AuthorizationSettings struct {
 	AllowList []string `json:"allowList,omitempty"`
 }
 
+// Based off NAIS' IDPorten specification as seen here:
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
+//
 // +kubebuilder:object:generate=true
 type IDPorten struct {
 	// Whether to enable provisioning of an ID-porten client.
 	// If enabled, an ID-porten client be provisioned.
-	// +nais:doc:Availability="team namespaces"
 	Enabled bool `json:"enabled"`
+
 	// AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
 	//
 	// If unspecified, defaults to `3600` seconds (1 hour).
-	// +nais:doc:Default="3600"
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=3600
 	AccessTokenLifetime *int `json:"accessTokenLifetime,omitempty"`
+
 	// ClientURI is the URL shown to the user at ID-porten when displaying a 'back' button or on errors.
 	ClientURI nais_io_v1.IDPortenURI `json:"clientURI,omitempty"`
+
 	// FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
 	// initiated a logout elsewhere as part of a single logout (front channel logout) process.
 	//
-	// +nais:doc:Link="https://doc.nais.io/security/auth/idporten/#front-channel-logout";"https://docs.digdir.no/oidc_func_sso.html#2-h%C3%A5ndtere-utlogging-fra-id-porten"
-	// +nais:doc:Default="/oauth2/logout"
 	// +kubebuilder:validation:Pattern=`^\/.*$`
+
 	FrontchannelLogoutPath string `json:"frontchannelLogoutPath,omitempty"`
 	// IntegrationType is used to make sensible choices for your client.
 	// Which type of integration you choose will provide guidance on which scopes you can use with the client.
@@ -164,11 +170,8 @@ type IDPorten struct {
 	//
 	// NB! It is not possible to change the integration type after creation.
 	//
-	// +nais:doc:Immutable=true
-	// +nais:doc:Default=idporten
-	// +nais:doc:Link="https://docs.digdir.no/oidc_protocol_scope.html#scope-limitations"
-	// +nais:doc:Link="https://docs.digdir.no/oidc_func_clientreg.html"
 	// +kubebuilder:validation:Enum=krr;idporten;api_klient
+
 	IntegrationType string `json:"integrationType,omitempty" nais:"immutable"`
 
 	// PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
@@ -180,14 +183,10 @@ type IDPorten struct {
 
 	// PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
 	// has been initiated and performed by the application.
-	//
-	// +nais:doc:Default="https://www.nav.no"
-	// +nais:doc:Link="https://doc.nais.io/security/auth/idporten/#self-initiated-logout";"https://docs.digdir.no/oidc_func_sso.html#1-utlogging-fra-egen-tjeneste"
 	PostLogoutRedirectURIs *[]nais_io_v1.IDPortenURI `json:"postLogoutRedirectURIs,omitempty"`
 
 	// RedirectPath is a valid path that ID-porten redirects back to after a successful authorization request.
 	//
-	// +nais:doc:Default="/oauth2/callback"
 	// +kubebuilder:validation:Pattern=`^\/.*$`
 	// +kubebuilder:validation:Optional
 	RedirectPath string `json:"redirectPath,omitempty"`
@@ -199,16 +198,14 @@ type IDPorten struct {
 	// Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
 	// Default for IntegrationType `idporten` = ("openid", "profile")
 	// IntegrationType `api_klient` have no Default, checkout Digdir documentation.
-	//
-	// +nais:doc:Link="https://docs.digdir.no/oidc_func_clientreg.html?h=api_klient#scopes"
 	Scopes []string `json:"scopes,omitempty"`
+
 	// SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
 	// The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
 	//
 	// If unspecified, defaults to `7200` seconds (2 hours).
 	// Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.
 	//
-	// +nais:doc:Default="7200"
 	// +kubebuilder:validation:Minimum=3600
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
@@ -218,9 +215,8 @@ type IDPorten struct {
 // +kubebuilder:object:generate=true
 type Maskinporten struct {
 	// If enabled, provisions and configures a Maskinporten client with consumed scopes and/or Exposed scopes with DigDir.
-	// +nais:doc:Availability="team namespaces"
-	// +nais:doc:Default="false"
 	Enabled bool `json:"enabled"`
+
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 }
@@ -268,10 +264,6 @@ type PrometheusConfig struct {
 	//+kubebuilder:default:=/metrics
 	//+kubebuilder:validation:Optional
 	Path string `json:"path,omitempty"`
-	// Whether this application uses Istio.
-	//+kubebuilder:default=true
-	//+kubebuilder:validation:Optional
-	IstioEnabled *bool `json:"istioEnabled,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -493,12 +485,4 @@ func (a *Application) GroupKindFromControllerResource(controllerResource string)
 	default:
 		return metav1.GroupKind{}, false
 	}
-}
-
-func (a *Application) IstioEnabled() bool {
-	if a.Spec.Prometheus == nil {
-		return false
-	}
-
-	return *a.Spec.Prometheus.IstioEnabled
 }

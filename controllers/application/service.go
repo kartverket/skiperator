@@ -2,9 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,10 +13,10 @@ import (
 )
 
 var defaultPrometheusPort = corev1.ServicePort{
-	Name:       IstioMetricsPortName.StrVal,
+	Name:       util.IstioMetricsPortName.StrVal,
 	Protocol:   corev1.ProtocolTCP,
-	Port:       IstioMetricsPortNumber.IntVal,
-	TargetPort: IstioMetricsPortNumber,
+	Port:       util.IstioMetricsPortNumber.IntVal,
+	TargetPort: util.IstioMetricsPortNumber,
 }
 
 func (r *ApplicationReconciler) reconcileService(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -45,12 +44,12 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		service.SetLabels(labels)
 
 		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
-		if application.IstioEnabled() {
+		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
 			ports = append(ports, defaultPrometheusPort)
 		}
 
 		service.Spec = corev1.ServiceSpec{
-			Selector: util.GetApplicationSelector(application.Name),
+			Selector: util.GetPodAppSelector(application.Name),
 			Type:     corev1.ServiceTypeClusterIP,
 			Ports:    ports,
 		}

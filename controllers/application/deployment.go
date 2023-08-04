@@ -9,7 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	skiperatorv1alpha1Types "github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 const (
@@ -49,28 +50,11 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		},
 	}
 
-	skiperatorContainer := corev1.Container{
-		Name:            application.Name,
-		Image:           application.Spec.Image,
-		ImagePullPolicy: corev1.PullAlways,
-		Command:         application.Spec.Command,
-		SecurityContext: &corev1.SecurityContext{
-			Privileged:               util.PointTo(false),
-			AllowPrivilegeEscalation: util.PointTo(false),
-			ReadOnlyRootFilesystem:   util.PointTo(true),
-			RunAsUser:                util.PointTo(util.SkiperatorUser),
-			RunAsGroup:               util.PointTo(util.SkiperatorUser),
-		},
-		Ports:                    getContainerPorts(application),
-		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
-		Resources:                getResourceRequirements(application.Spec.Resources),
-		Env:                      getEnv(application.Spec.Env),
-		ReadinessProbe:           getProbe(application.Spec.Readiness),
-		LivenessProbe:            getProbe(application.Spec.Liveness),
-		StartupProbe:             getProbe(application.Spec.Startup),
-		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
-		TerminationMessagePolicy: corev1.TerminationMessagePolicy("File"),
+	podOpts := core.PodOpts{
+		IstioEnabled: r.IsIstioEnabledForNamespace(ctx, application.Namespace),
 	}
+
+	skiperatorContainer := core.CreateApplicationContainer(application, podOpts)
 
 	var err error
 
@@ -95,7 +79,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-	labels := util.GetApplicationSelector(application.Name)
+	labels := util.GetPodAppSelector(application.Name)
 
 	generatedSpecAnnotations := defaultPodAnnotations
 	// By specifying port and path annotations, Istio will scrape metrics from the application
@@ -104,7 +88,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if application.IstioEnabled() {
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	if istioEnabled && application.Spec.Prometheus != nil {
 		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
@@ -246,26 +231,6 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	return res
 }
 
-func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
-	if appProbe != nil {
-		probe := corev1.Probe{
-			InitialDelaySeconds: appProbe.InitialDelay,
-			TimeoutSeconds:      appProbe.Timeout,
-			FailureThreshold:    appProbe.FailureThreshold,
-			SuccessThreshold:    appProbe.SuccessThreshold,
-			PeriodSeconds:       appProbe.Period,
-			ProbeHandler: corev1.ProbeHandler{
-				HTTPGet: &corev1.HTTPGetAction{
-					Path:   appProbe.Path,
-					Port:   appProbe.Port,
-					Scheme: corev1.URISchemeHTTP,
-				},
-			},
-		}
-		return &probe
-	}
-	return nil
-}
 func (r ApplicationReconciler) appendMaskinportenSecretVolumeMount(application *skiperatorv1alpha1.Application, ctx context.Context, skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume) ([]corev1.Volume, []corev1.VolumeMount, error) {
 	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
 		secretName, err := getMaskinportenSecretName(application.Name)
@@ -399,7 +364,8 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 				Name: file.Secret,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
-						SecretName: file.Secret,
+						SecretName:  file.Secret,
+						DefaultMode: util.PointTo(int32(420)),
 					},
 				},
 			}
@@ -461,78 +427,6 @@ func fromFilesVolume(volumeName string, secretName string) corev1.Volume {
 	}
 }
 
-func getEnvFrom(envFromApplication []skiperatorv1alpha1Types.EnvFrom) []corev1.EnvFromSource {
-	envFromSource := []corev1.EnvFromSource{}
-
-	for _, env := range envFromApplication {
-		if len(env.ConfigMap) > 0 {
-			envFromSource = append(envFromSource,
-				corev1.EnvFromSource{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: env.ConfigMap,
-						},
-					},
-				},
-			)
-		} else if len(env.Secret) > 0 {
-			envFromSource = append(envFromSource,
-				corev1.EnvFromSource{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: env.Secret,
-						},
-					},
-				},
-			)
-		}
-	}
-
-	return envFromSource
-}
-
-func getEnv(variables []corev1.EnvVar) []corev1.EnvVar {
-	for _, variable := range variables {
-		if variable.ValueFrom != nil {
-			if variable.ValueFrom.FieldRef != nil {
-				variable.ValueFrom.FieldRef.APIVersion = "v1"
-			}
-		}
-	}
-
-	return variables
-}
-
-func getContainerPorts(application *skiperatorv1alpha1.Application) []corev1.ContainerPort {
-
-	containerPorts := []corev1.ContainerPort{
-		{
-			Name:          "main",
-			ContainerPort: int32(application.Spec.Port),
-			Protocol:      corev1.ProtocolTCP,
-		},
-	}
-
-	for _, port := range application.Spec.AdditionalPorts {
-		containerPorts = append(containerPorts, corev1.ContainerPort{
-			ContainerPort: port.Port,
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-		})
-	}
-
-	// Expose merged Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
-	if application.IstioEnabled() {
-		containerPorts = append(containerPorts, corev1.ContainerPort{
-			Name:          IstioMetricsPortName.StrVal,
-			ContainerPort: IstioMetricsPortNumber.IntVal,
-			Protocol:      corev1.ProtocolTCP,
-		})
-	}
-
-	return containerPorts
-}
-
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {
 	if updateStrategy == "Recreate" {
 		return nil
@@ -550,17 +444,6 @@ func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
 		return true
 	}
 	return false
-}
-
-func getResourceRequirements(resources *podtypes.ResourceRequirements) corev1.ResourceRequirements {
-	if resources == nil {
-		return corev1.ResourceRequirements{}
-	}
-
-	return corev1.ResourceRequirements{
-		Limits:   (*resources).Limits,
-		Requests: (*resources).Requests,
-	}
 }
 
 func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application) string {

@@ -4,7 +4,7 @@ metadata:
   namespace: sample
   name: sample-one
 spec:
-  image: "image"
+  image: "quay.io/brancz/prometheus-example-app:v0.4.0"
 
   port: 8080
 

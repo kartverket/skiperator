@@ -61,9 +61,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.ServiceEntry](isEgressServiceEntry),
-		)).
+		Owns(&networkingv1beta1.ServiceEntry{}).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
@@ -78,7 +76,6 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
-		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.NetworkPoliciesFromService)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
