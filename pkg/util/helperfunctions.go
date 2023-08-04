@@ -43,13 +43,10 @@ func GenerateHashFromName(name string) uint64 {
 }
 
 func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
-	if skiperatorv1alpha1.IsReplicasFloat(jsonReplicas) {
-		return false
-	} else if skiperatorv1alpha1.IsReplicasStruct(jsonReplicas) {
-		replicas, err := skiperatorv1alpha1.GetReplicasStruct(jsonReplicas)
-		if err == nil && replicas.Min == 0 {
-			return false
-		}
+	replicas, err := skiperatorv1alpha1.GetReplicasStruct(jsonReplicas)
+	if err == nil &&
+		replicas.Min > 0 &&
+		replicas.Min < replicas.Max {
 		return true
 	}
 	return false

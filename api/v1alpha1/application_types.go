@@ -9,7 +9,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"reflect"
 	"strings"
 	"time"
 )
@@ -187,35 +186,16 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
-func SetReplicas(manifestReplicas *apiextensionsv1.JSON, replicas interface{}) error {
-	newReplicas, err := json.Marshal(replicas)
+func MarshalledReplicas(replicas interface{}) *apiextensionsv1.JSON {
+	replicasJson := &apiextensionsv1.JSON{}
+	var err error
+
+	replicasJson.Raw, err = json.Marshal(replicas)
 	if err == nil {
-		manifestReplicas.Raw = newReplicas
-	}
-	return err
-}
-
-func IsReplicasFloat(jsonReplicas *apiextensionsv1.JSON) bool {
-	var result float64
-	err := json.Unmarshal(jsonReplicas.Raw, &result)
-	if err != nil {
-		return false
-	}
-	return true
-}
-
-func IsReplicasStruct(jsonReplicas *apiextensionsv1.JSON) bool {
-	result := Replicas{
-		Min:                  2,
-		Max:                  5,
-		TargetCpuUtilization: 80,
-	}
-	err := json.Unmarshal(jsonReplicas.Raw, &result)
-	if err != nil {
-		return false
+		return replicasJson
 	}
 
-	return true
+	return nil
 }
 
 func GetReplicasFloat(jsonReplicas *apiextensionsv1.JSON) (float64, error) {
@@ -236,34 +216,20 @@ func GetReplicasStruct(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
 	return result, err
 }
 
-func GetTypeOfInterface(i interface{}) string {
-	return reflect.TypeOf(i).String()
-}
-
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
-		SetReplicas(a.Spec.Replicas, 2)
-	}
-	if IsReplicasFloat(a.Spec.Replicas) {
-		replicasFloat, err := GetReplicasFloat(a.Spec.Replicas)
-		if err == nil {
-			println(replicasFloat)
+		defaultReplicas := Replicas{
+			Min:                  2,
+			Max:                  5,
+			TargetCpuUtilization: 80,
 		}
-
-	} else if IsReplicasStruct(a.Spec.Replicas) {
-		replicasStruct, err := GetReplicasStruct(a.Spec.Replicas)
-		if err == nil {
-			println(replicasStruct.Min)
+		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
+	} else if replicas, err := GetReplicasStruct(a.Spec.Replicas); err == nil {
+		if replicas.Min > replicas.Max {
+			replicas.Max = replicas.Min
+			a.Spec.Replicas = MarshalledReplicas(replicas)
 		}
 	}
-
-	//_, err := ParseReplicasToFloat(a.Spec.Replicas)
-	//if err != nil {
-	//	objReplicas, err := ParseReplicasToObject(a.Spec.Replicas)
-	//	if err == nil {
-	//		setReplicas(a.Spec.Replicas, objReplicas)
-	//	}
-	//}
 }
 
 func (a *Application) FillDefaultsStatus() {
