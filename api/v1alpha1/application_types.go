@@ -186,6 +186,14 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
+func NewDefaultReplicas() Replicas {
+	return Replicas{
+		Min:                  2,
+		Max:                  5,
+		TargetCpuUtilization: 80,
+	}
+}
+
 func MarshalledReplicas(replicas interface{}) *apiextensionsv1.JSON {
 	replicasJson := &apiextensionsv1.JSON{}
 	var err error
@@ -206,11 +214,7 @@ func GetReplicasFloat(jsonReplicas *apiextensionsv1.JSON) (float64, error) {
 }
 
 func GetReplicasStruct(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
-	result := Replicas{
-		Min:                  2,
-		Max:                  5,
-		TargetCpuUtilization: 80,
-	}
+	result := NewDefaultReplicas()
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
 
 	return result, err
@@ -218,11 +222,7 @@ func GetReplicasStruct(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
 
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
-		defaultReplicas := Replicas{
-			Min:                  2,
-			Max:                  5,
-			TargetCpuUtilization: 80,
-		}
+		defaultReplicas := NewDefaultReplicas()
 		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
 	} else if replicas, err := GetReplicasStruct(a.Spec.Replicas); err == nil {
 		if replicas.Min > replicas.Max {
