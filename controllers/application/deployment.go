@@ -246,9 +246,27 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	return res
 }
 func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName string, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {
-	skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, envFromSecret(secretName))
-	volumeMounts = append(volumeMounts, fromFilesVolumeMount(secretName, mountPath, true))
-	volumes = append(volumes, fromFilesVolume(secretName, secretName))
+	skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: secretName,
+			},
+		},
+	})
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      secretName,
+		MountPath: mountPath,
+		ReadOnly:  true,
+	})
+	volumes = append(volumes, corev1.Volume{
+		Name: secretName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: secretName,
+				Items:      nil,
+			},
+		},
+	})
 
 	return volumes, volumeMounts
 }
@@ -387,36 +405,6 @@ func getContainerVolumeMountsAndPodVolumes(application *skiperatorv1alpha1.Appli
 	}
 
 	return podVolumes, containerVolumeMounts
-}
-
-func envFromSecret(secretName string) corev1.EnvFromSource {
-	return corev1.EnvFromSource{
-		SecretRef: &corev1.SecretEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: secretName,
-			},
-		},
-	}
-}
-
-func fromFilesVolumeMount(secretName string, mountPath string, readOnly bool) corev1.VolumeMount {
-	return corev1.VolumeMount{
-		Name:      secretName,
-		MountPath: mountPath,
-		ReadOnly:  readOnly,
-	}
-}
-
-func fromFilesVolume(volumeName string, secretName string) corev1.Volume {
-	return corev1.Volume{
-		Name: volumeName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: secretName,
-				Items:      nil,
-			},
-		},
-	}
 }
 
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {
