@@ -396,7 +396,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralContainer, error) {
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			Name:                     "debugger-abcde",
+			Name:                     "istio-debugger",
 			Image:                    "istio/base",
 			Command:                  []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
