@@ -124,9 +124,9 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	}
 
 	if !util.IsHPAEnabled(application.Spec.Replicas) {
-		if replicas, err := skiperatorv1alpha1.GetReplicasFloat(application.Spec.Replicas); err == nil {
+		if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas))
-		} else if replicas, err := skiperatorv1alpha1.GetReplicasStruct(application.Spec.Replicas); err == nil {
+		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
 			r.SetControllerError(ctx, application, controllerName, err)
@@ -373,11 +373,11 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 }
 
 func shouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
-	replicas, err := skiperatorv1alpha1.GetReplicasFloat(jsonReplicas)
+	replicas, err := skiperatorv1alpha1.GetStaticReplicas(jsonReplicas)
 	if err == nil && replicas == 0 {
 		return true
 	}
-	replicasStruct, err := skiperatorv1alpha1.GetReplicasStruct(jsonReplicas)
+	replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(jsonReplicas)
 	if err == nil && (replicasStruct.Min == 0 || replicasStruct.Max == 0) {
 		return true
 	}

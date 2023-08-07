@@ -29,26 +29,26 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 
 			r.SetLabelsFromApplication(ctx, &pdb, *application)
 			util.SetCommonAnnotations(&pdb)
-			var min_replicas uint
+			var minReplicas uint
 
-			replicas, err := skiperatorv1alpha1.GetReplicasFloat(application.Spec.Replicas)
+			replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas)
 			if err != nil {
-				replicasStruct, err := skiperatorv1alpha1.GetReplicasStruct(application.Spec.Replicas)
+				replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 				if err != nil {
 					r.SetControllerError(ctx, application, controllerName, err)
 					return err
 				} else {
-					min_replicas = replicasStruct.Min
+					minReplicas = replicasStruct.Min
 				}
 			} else {
-				min_replicas = uint(replicas)
+				minReplicas = replicas
 			}
 
 			pdb.Spec = policyv1.PodDisruptionBudgetSpec{
 				Selector: &metav1.LabelSelector{
 					MatchLabels: util.GetPodAppSelector(application.Name),
 				},
-				MinAvailable: determineMinAvailable(min_replicas),
+				MinAvailable: determineMinAvailable(minReplicas),
 			}
 
 			return nil

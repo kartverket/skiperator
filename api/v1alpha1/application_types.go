@@ -47,7 +47,6 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:AnyOf[]=type:number,format:int32;type:object
 	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
@@ -206,14 +205,14 @@ func MarshalledReplicas(replicas interface{}) *apiextensionsv1.JSON {
 	return nil
 }
 
-func GetReplicasFloat(jsonReplicas *apiextensionsv1.JSON) (float64, error) {
-	var result float64
+func GetStaticReplicas(jsonReplicas *apiextensionsv1.JSON) (uint, error) {
+	var result uint
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
 
 	return result, err
 }
 
-func GetReplicasStruct(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
+func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
 	result := NewDefaultReplicas()
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
 
@@ -224,7 +223,7 @@ func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
 		defaultReplicas := NewDefaultReplicas()
 		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
-	} else if replicas, err := GetReplicasStruct(a.Spec.Replicas); err == nil {
+	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
 		if replicas.Min > replicas.Max {
 			replicas.Max = replicas.Min
 			a.Spec.Replicas = MarshalledReplicas(replicas)

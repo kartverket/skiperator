@@ -38,7 +38,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
 		util.SetCommonAnnotations(&horizontalPodAutoscaler)
 
-		replicas, err := skiperatorv1alpha1.GetReplicasStruct(application.Spec.Replicas)
+		replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
