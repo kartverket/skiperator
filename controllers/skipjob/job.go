@@ -12,10 +12,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -25,7 +23,7 @@ import (
 
 var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
-	DefaultPollingRate       = time.Second * 5
+	DefaultPollingRate       = time.Second * 15
 
 	IstioProxyPodContainerName = "istio-proxy"
 )
@@ -252,62 +250,6 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 		return nil, nil
 	}
 }
-func requestExitForIstioProxyContainerIfExists(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
-	for _, container := range pod.Spec.Containers {
-		if container.Name == IstioProxyPodContainerName {
-
-			//execContainer := corev1.EphemeralContainer{
-			//	EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			//		Name:      "debug",
-			//		Image:     "istio/base",
-			//		Command:   []string{},
-			//		Resources: corev1.ResourceRequirements{},
-			//	},
-			//	TargetContainerName: IstioProxyPodContainerName,
-			//}
-
-			execContainerJSONPatch := `{"spec":{"ephemeralContainers":[{"name": "debug","command": ["/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"],"image": "istio/base","targetContainerName": "istio-proxy","stdin": true,"tty": true}]}}`
-
-			//execContainerJSON, _ := json.Marshal(execContainer)
-			//println(string(execContainerJSON))
-
-			// Execute into the pod to tell the istio container to quit, which in turns allows the Pod to finish
-			request := restClient.
-				Patch(types.StrategicMergePatchType).
-				Namespace(pod.Namespace).
-				Resource("pods").
-				Name(pod.Name).
-				SubResource("ephemeralcontainers").
-				Body(execContainerJSONPatch).
-				Do(ctx)
-
-			_, err := request.Get()
-
-			// println(res.GetObjectKind())
-			if err != nil {
-				println(err.Error())
-			}
-
-			//buf := &bytes.Buffer{}
-			//errBuf := &bytes.Buffer{}
-
-			//VersionedParams(&execContainer, codec)
-			//exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
-			//
-			//err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-			//	Stdout: buf,
-			//	Stderr: errBuf,
-			//})
-			//
-			//// Ignore container not found error, as this just means the container has been killed in this case
-			//if err != nil && !strings.Contains(err.Error(), "container not found") {
-			//	return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
-			//}
-		}
-	}
-
-	return nil
-}
 
 func deleteCronJobIfExists(recClient client.Client, context context.Context, cronJob batchv1.CronJob) error {
 	err := recClient.Delete(context, &cronJob)
@@ -400,7 +342,16 @@ func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralCont
 			Image:                    "istio/base",
 			Command:                  []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
 			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-			TTY:                      true,
+			SecurityContext: util.PointTo(corev1.SecurityContext{
+				RunAsUser:                util.PointTo(int64(1337)),
+				RunAsGroup:               util.PointTo(int64(1337)),
+				RunAsNonRoot:             util.PointTo(true),
+				ReadOnlyRootFilesystem:   util.PointTo(true),
+				AllowPrivilegeEscalation: util.PointTo(false),
+				SeccompProfile: util.PointTo(corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				}),
+			}),
 		},
 		TargetContainerName: IstioProxyPodContainerName,
 	}
