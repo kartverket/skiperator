@@ -59,10 +59,13 @@ spec:
   # Ingress must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
   ingresses:
     - testapp.dev.skip.statkart.no
-  # Configuration used to automatically scale the deployment based on load
+  # The number of replicas can either be specified as a static number as follows:
+  replicas: 2
+  # Or by specifying a range between min and max to enable HorizontalPodAutoscaling
+  # The default value for replicas is "min: 2, max: 5, targetCpuUtilization: 80"
   replicas:
     # Minimum number of replicas when load is low
-    min: 3
+    min: 2
     # Maximum number of replicas the deployment is allowed to scale to
     max: 5
     # When the average CPU utilization crosses this threshold another replica is started
