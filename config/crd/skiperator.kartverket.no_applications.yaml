@@ -53,6 +53,8 @@ spec:
                           - application
                           type: object
                         type: array
+                    required:
+                    - rules
                     type: object
                   outbound:
                     properties:

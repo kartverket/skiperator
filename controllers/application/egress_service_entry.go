@@ -3,8 +3,10 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"regexp"
+
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"istio.io/api/networking/v1beta1"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -108,11 +110,11 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	return reconcile.Result{}, err
 }
 
-func (r ApplicationReconciler) getPorts(externalPorts []podtypes.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*networkingv1beta1api.Port {
-	ports := []*networkingv1beta1api.Port{}
+func (r ApplicationReconciler) getPorts(externalPorts []podtypes.ExternalPort, ruleIP string, application skiperatorv1alpha1.Application) []*v1beta1.ServicePort {
+	ports := []*v1beta1.ServicePort{}
 
 	if len(externalPorts) == 0 {
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &v1beta1.ServicePort{
 			Name:     "https",
 			Number:   uint32(443),
 			Protocol: "HTTPS",
@@ -132,7 +134,7 @@ func (r ApplicationReconciler) getPorts(externalPorts []podtypes.ExternalPort, r
 			continue
 		}
 
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &v1beta1.ServicePort{
 			Name:     port.Name,
 			Number:   uint32(port.Port),
 			Protocol: port.Protocol,
