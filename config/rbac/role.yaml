@@ -100,7 +100,7 @@ rules:
   - ""
   resources:
   - pods
-  - pods/exec
+  - pods/ephemeralcontainers
   verbs:
   - create
   - delete

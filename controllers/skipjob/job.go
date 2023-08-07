@@ -1,8 +1,8 @@
 package skipjobcontroller
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
@@ -14,19 +14,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 	"time"
 )
 
 var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
-	DefaultPollingRate       = time.Second * 30
+	DefaultPollingRate       = time.Second * 5
 
 	IstioProxyPodContainerName = "istio-proxy"
 )
@@ -177,7 +176,13 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 				if exitCode, exists := terminatedContainerStatuses[job.Labels["job-name"]]; exists {
 					if exitCode == 0 {
-						err := requestExitForIstioProxyContainerIfExists(ctx, r.RESTClient, &pod, r.GetRestConfig(), runtime.NewParameterCodec(r.GetScheme()))
+						ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
+						if err != nil {
+							r.SendSKIPJobEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
+							return reconcile.Result{}, err
+						}
+
+						err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
 						if err != nil {
 							r.SendSKIPJobEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
 							return reconcile.Result{}, err
@@ -214,6 +219,20 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	return reconcile.Result{}, nil
 }
 
+func getEphemeralContainerPatch(pod corev1.Pod) ([]byte, error) {
+	tempPod, _, err := generateDebugContainer(&pod)
+	if err != nil {
+		return nil, err
+	}
+
+	podJSON, _ := json.Marshal(pod)
+	ecPodJSON, _ := json.Marshal(tempPod)
+
+	patch, err := strategicpatch.CreateTwoWayMergePatch(podJSON, ecPodJSON, pod)
+
+	return patch, err
+}
+
 func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob skiperatorv1alpha1.SKIPJob) (*corev1.ConfigMap, error) {
 	if skipJob.Spec.Container.GCP != nil {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
@@ -236,37 +255,54 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 func requestExitForIstioProxyContainerIfExists(ctx context.Context, restClient rest.Interface, pod *corev1.Pod, restConfig *rest.Config, codec runtime.ParameterCodec) error {
 	for _, container := range pod.Spec.Containers {
 		if container.Name == IstioProxyPodContainerName {
-			buf := &bytes.Buffer{}
-			errBuf := &bytes.Buffer{}
+
+			//execContainer := corev1.EphemeralContainer{
+			//	EphemeralContainerCommon: corev1.EphemeralContainerCommon{
+			//		Name:      "debug",
+			//		Image:     "istio/base",
+			//		Command:   []string{},
+			//		Resources: corev1.ResourceRequirements{},
+			//	},
+			//	TargetContainerName: IstioProxyPodContainerName,
+			//}
+
+			execContainerJSONPatch := `{"spec":{"ephemeralContainers":[{"name": "debug","command": ["/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"],"image": "istio/base","targetContainerName": "istio-proxy","stdin": true,"tty": true}]}}`
+
+			//execContainerJSON, _ := json.Marshal(execContainer)
+			//println(string(execContainerJSON))
 
 			// Execute into the pod to tell the istio container to quit, which in turns allows the Pod to finish
 			request := restClient.
-				Post().
+				Patch(types.StrategicMergePatchType).
 				Namespace(pod.Namespace).
 				Resource("pods").
 				Name(pod.Name).
-				SubResource("exec").
-				VersionedParams(&corev1.PodExecOptions{
-					Container: IstioProxyPodContainerName,
-					Command:   []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
-					Stdin:     false,
-					Stdout:    true,
-					Stderr:    true,
-					TTY:       true,
-				}, codec)
-			exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
-			if err != nil {
-				return fmt.Errorf("%w failed running the exec on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
-			}
-			err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
-				Stdout: buf,
-				Stderr: errBuf,
-			})
+				SubResource("ephemeralcontainers").
+				Body(execContainerJSONPatch).
+				Do(ctx)
 
-			// Ignore container not found error, as this just means the container has been killed in this case
-			if err != nil && !strings.Contains(err.Error(), "container not found") {
-				return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+			_, err := request.Get()
+
+			// println(res.GetObjectKind())
+			if err != nil {
+				println(err.Error())
 			}
+
+			//buf := &bytes.Buffer{}
+			//errBuf := &bytes.Buffer{}
+
+			//VersionedParams(&execContainer, codec)
+			//exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", request.URL())
+			//
+			//err = exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+			//	Stdout: buf,
+			//	Stderr: errBuf,
+			//})
+			//
+			//// Ignore container not found error, as this just means the container has been killed in this case
+			//if err != nil && !strings.Contains(err.Error(), "container not found") {
+			//	return fmt.Errorf("%w failed executing on %v/%v\n%s\n%s", err, pod.Namespace, pod.Name, buf.String(), errBuf.String())
+			//}
 		}
 	}
 
@@ -355,4 +391,24 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	}
 
 	return jobSpec
+}
+
+func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralContainer, error) {
+	ec := &corev1.EphemeralContainer{
+		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
+			Name:                     "debugger-abcde",
+			Image:                    "istio/base",
+			Command:                  []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+			TTY:                      true,
+		},
+		TargetContainerName: IstioProxyPodContainerName,
+	}
+
+	copied := pod.DeepCopy()
+	copied.Spec.EphemeralContainers = append(copied.Spec.EphemeralContainers, *ec)
+
+	ec = &copied.Spec.EphemeralContainers[len(copied.Spec.EphemeralContainers)-1]
+
+	return copied, ec, nil
 }
