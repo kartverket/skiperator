@@ -118,11 +118,6 @@ type JobSettings struct {
 	//+kubebuilder:validation:Optional
 	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
 
-	// Specifies the number of Pods to run in parallel. Defaults to 1. Works similar to a Skiperator Application's Replicas.
-	//
-	//+kubebuilder:validation:Optional
-	Parallelism *int32 `json:"parallelism,omitempty"`
-
 	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
 	// all running Pods will be terminated.
 	//

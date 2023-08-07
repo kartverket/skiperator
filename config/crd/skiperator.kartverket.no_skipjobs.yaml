@@ -486,11 +486,6 @@ spec:
                       the job as failed. Defaults to 6.
                     format: int32
                     type: integer
-                  parallelism:
-                    description: Specifies the number of Pods to run in parallel.
-                      Defaults to 1. Works similar to a Skiperator Application's Replicas.
-                    format: int32
-                    type: integer
                   suspend:
                     description: If set to true, this tells Kubernetes to suspend
                       this Job till the field is set to false. If the Job is active

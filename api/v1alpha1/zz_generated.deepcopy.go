@@ -380,11 +380,6 @@ func (in *JobSettings) DeepCopyInto(out *JobSettings) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Parallelism != nil {
-		in, out := &in.Parallelism, &out.Parallelism
-		*out = new(int32)
-		**out = **in
-	}
 	if in.Suspend != nil {
 		in, out := &in.Suspend, &out.Suspend
 		*out = new(bool)
