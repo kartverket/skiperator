@@ -149,7 +149,7 @@ func (r *SKIPJobReconciler) updateStatusWithCondition(ctx context.Context, in *s
 }
 
 func (r *SKIPJobReconciler) deleteCondition(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob, conditionToDelete v1.Condition) error {
-	log := log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 	var newConditions []v1.Condition
 
 	for _, condition := range skipJob.Status.Conditions {
@@ -161,7 +161,7 @@ func (r *SKIPJobReconciler) deleteCondition(ctx context.Context, skipJob *skiper
 	skipJob.Status.Conditions = newConditions
 	err := r.GetClient().Status().Update(ctx, skipJob)
 	if err != nil {
-		log.Error(err, "skipjob could not delete condition")
+		logger.Error(err, "skipjob could not delete condition")
 		return err
 	}
 	return nil
