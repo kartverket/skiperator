@@ -31,12 +31,12 @@ var (
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
+		Name:      skipJob.HashedName(),
 	}}
 
 	cronJob := batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
-		Name:      util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
+		Name:      skipJob.HashedName(),
 	}}
 
 	gcpIdentityConfigMap, err := r.getGCPIdentityConfigMap(ctx, *skipJob)
@@ -358,7 +358,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, util.ResourceNameWithHash(skipJob.Name, skipJob.Kind), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.HashedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		CompletionMode:          util.PointTo(batchv1.NonIndexedCompletion),

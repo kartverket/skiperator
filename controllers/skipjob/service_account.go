@@ -13,7 +13,7 @@ import (
 
 func (r *SKIPJobReconciler) reconcileServiceAccount(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 
-	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: util.ResourceNameWithHash(skipJob.Name, skipJob.Kind)}}
+	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.HashedName()}}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceAccount, func() error {
 		// Set application as owner of the sidecar

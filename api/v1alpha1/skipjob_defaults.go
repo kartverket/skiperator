@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/imdario/mergo"
+	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,18 +46,22 @@ func (skipJob *SKIPJob) setSkipJobDefaults() error {
 	if skipJob.Spec.Cron != nil {
 		defaults.Spec.Cron = skipJob.Spec.Cron
 
-		defaults.Spec.Cron.Suspend = &DefaultSuspend
+		defaults.Spec.Cron.Suspend = util.PointTo(false)
 	}
 
 	return mergo.Merge(skipJob, defaults)
 }
 
-func (in *SKIPJob) setDefaultAnnotations() {
-	annotations := in.Annotations
+func (skipJob *SKIPJob) setDefaultAnnotations() {
+	annotations := skipJob.Annotations
 
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
 
-	in.SetAnnotations(annotations)
+	skipJob.SetAnnotations(annotations)
+}
+
+func (skipJob *SKIPJob) HashedName() string {
+	return util.ResourceNameWithHash(skipJob.Name, skipJob.Kind)
 }
