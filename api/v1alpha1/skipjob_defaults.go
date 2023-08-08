@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultTTLSecondsAfterFinished = int32(60)
+	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7)
 	DefaultBackoffLimit            = int32(6)
 
 	DefaultSuspend = false
@@ -24,9 +24,9 @@ func (skipJob *SKIPJob) setSkipJobDefaults() error {
 	defaults := &SKIPJob{
 		Spec: SKIPJobSpec{
 			Job: &JobSettings{
-				// TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
-				BackoffLimit: &DefaultBackoffLimit,
-				Suspend:      &DefaultSuspend,
+				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				BackoffLimit:            &DefaultBackoffLimit,
+				Suspend:                 &DefaultSuspend,
 			},
 		},
 		Status: SKIPJobStatus{
