@@ -66,7 +66,7 @@ func GetGCPConfigMapName(ownerName string) string {
 func GetGCPEnvVar() corev1.EnvVar {
 	return corev1.EnvVar{
 		Name:  "GOOGLE_APPLICATION_CREDENTIALS",
-		Value: CredentialsMountPath + CredentialsFileName,
+		Value: fmt.Sprintf("%v/%v", CredentialsMountPath, CredentialsFileName),
 	}
 }
 
