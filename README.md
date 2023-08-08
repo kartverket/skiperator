@@ -63,6 +63,7 @@ spec:
   replicas: 2
   # Or by specifying a range between min and max to enable HorizontalPodAutoscaling
   # The default value for replicas is "min: 2, max: 5, targetCpuUtilization: 80"
+  # Using autoscaling is the recommended configuration for replicas
   replicas:
     # Minimum number of replicas when load is low
     min: 2
