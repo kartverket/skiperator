@@ -6,6 +6,7 @@ metadata:
 spec:
   image: nginxinc/nginx-unprivileged
   port: 80
+  replicas: 2
   ingresses:
     - foo.com
     - bar.com
