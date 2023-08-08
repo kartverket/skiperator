@@ -27,7 +27,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 	netpolSpec := networking.CreateNetPolSpec(netpolOpts)
 
 	if netpolSpec == nil {
-		return reconcile.Result{}, err
+		return reconcile.Result{}, nil
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: util.ResourceNameWithHash(skipJob.Name, skipJob.Kind)}}
