@@ -47,7 +47,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	if skipJob.Spec.Cron != nil {
 		err := deleteJobIfExists(r.GetClient(), ctx, job)
 		if err != nil {
-			r.SendSKIPJobEvent(skipJob, "CouldNotDeleteJob", fmt.Sprintf("something went wrong when deleting the outdated Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+			r.EmitWarningEvent(skipJob, "CouldNotDeleteJob", fmt.Sprintf("something went wrong when deleting the outdated Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 
@@ -82,18 +82,18 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			jobTemplateDiff, err := util.GetObjectDiff(currentSpec.JobTemplate, desiredSpec.JobTemplate)
 			if err != nil {
-				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+				r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
 			if len(jobTemplateDiff) > 0 {
-				r.SendSKIPJobEvent(skipJob, "CantUpdateCronJob", fmt.Sprintf("an attempt was made to update the job template of CronJob %v, CronJob must be deleted to update the job template", cronJob.Name))
+				r.EmitWarningEvent(skipJob, "CantUpdateCronJob", fmt.Sprintf("an attempt was made to update the job template of CronJob %v, CronJob must be deleted to update the job template", cronJob.Name))
 				return reconcile.Result{}, err
 			}
 
 			fullJobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
-				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+				r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
@@ -101,18 +101,18 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				patch := client.MergeFrom(cronJob.DeepCopy())
 				err = r.GetClient().Patch(ctx, &cronJob, patch)
 				if err != nil {
-					r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+					r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 					return reconcile.Result{}, err
 				}
 			}
 		} else if err != nil {
-			r.SendSKIPJobEvent(skipJob, "CouldNotGetCronJob", fmt.Sprintf("something went wrong when getting the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+			r.EmitWarningEvent(skipJob, "CouldNotGetCronJob", fmt.Sprintf("something went wrong when getting the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 	} else {
 		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
 		if err != nil {
-			r.SendSKIPJobEvent(skipJob, "CouldNotDeleteCronJob", fmt.Sprintf("something went wrong when deleting the outdated CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+			r.EmitWarningEvent(skipJob, "CouldNotDeleteCronJob", fmt.Sprintf("something went wrong when deleting the outdated CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 
@@ -135,7 +135,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			err := r.GetClient().Create(ctx, &job)
 			if err != nil {
-				r.SendSKIPJobEvent(skipJob, "CouldNotCreateJob", fmt.Sprintf("something went wrong when creating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+				r.EmitWarningEvent(skipJob, "CouldNotCreateJob", fmt.Sprintf("something went wrong when creating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
@@ -148,16 +148,16 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			jobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
-				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+				r.EmitWarningEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
 			if len(jobDiff) > 0 {
-				r.SendSKIPJobEvent(skipJob, "CantUpdateJob", fmt.Sprintf("an attempt was made to update the Job subresource of SKIPJob %v, Jobs cannot be updated after creation and must be deleted to update", skipJob.Name))
+				r.EmitWarningEvent(skipJob, "CantUpdateJob", fmt.Sprintf("an attempt was made to update the Job subresource of SKIPJob %v, Jobs cannot be updated after creation and must be deleted to update", skipJob.Name))
 				return reconcile.Result{}, err
 			}
 		} else if err != nil {
-			r.SendSKIPJobEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+			r.EmitWarningEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
 		}
 	}
@@ -176,7 +176,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			jobPods := corev1.PodList{}
 			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
-				r.SendSKIPJobEvent(skipJob, "CouldNotListPods", fmt.Sprintf("something went wrong when listing Pods of Job %v: %v", job.Name, err))
+				r.EmitWarningEvent(skipJob, "CouldNotListPods", fmt.Sprintf("something went wrong when listing Pods of Job %v: %v", job.Name, err))
 				return reconcile.Result{}, err
 			}
 
@@ -213,13 +213,13 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					if exitCode == 0 {
 						ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
 						if err != nil {
-							r.SendSKIPJobEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
+							r.EmitWarningEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
 							return reconcile.Result{}, err
 						}
 
 						err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
 						if err != nil {
-							r.SendSKIPJobEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
+							r.EmitWarningEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
 							return reconcile.Result{}, err
 						}
 

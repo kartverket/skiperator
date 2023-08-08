@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7)
+	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7) // One week
 	DefaultBackoffLimit            = int32(6)
 
 	DefaultSuspend = false

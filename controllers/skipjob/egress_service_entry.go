@@ -2,11 +2,11 @@ package skipjobcontroller
 
 import (
 	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -15,13 +15,7 @@ import (
 func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	serviceEntries, err := istio.GetServiceEntries(skipJob.Spec.Container.AccessPolicy, skipJob)
 	if err != nil {
-		r.GetRecorder().Eventf(
-			skipJob,
-			corev1.EventTypeWarning, "ServiceEntryError",
-			err.Error(),
-			skipJob.Name,
-		)
-
+		r.EmitWarningEvent(skipJob, "ServiceEntryError", fmt.Sprintf("something went wrong when fetching service entries: %v", err.Error()))
 		return reconcile.Result{}, err
 	}
 

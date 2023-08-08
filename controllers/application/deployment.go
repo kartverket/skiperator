@@ -172,12 +172,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.GetRecorder().Eventf(
-				application,
-				corev1.EventTypeNormal, "NotFound",
-				"Deployment resource for application %s not found. Creating deployment",
-				application.Name,
-			)
+			r.EmitNormalEvent(application, "NotFound", fmt.Sprintf("deployment resource for application %s not found, creating deployment", application.Name))
 			err = r.GetClient().Create(ctx, &deploymentDefinition)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)

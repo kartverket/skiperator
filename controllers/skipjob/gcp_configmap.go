@@ -2,6 +2,7 @@ package skipjobcontroller
 
 import (
 	"context"
+	"fmt"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,7 +23,7 @@ func (r *SKIPJobReconciler) reconcileConfigMap(ctx context.Context, skipJob *ski
 		if !util.ErrIsMissingOrNil(
 			r.GetRecorder(),
 			err,
-			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			fmt.Sprintf("cannot find configmap named %v in namespace %v", gcpIdentityConfigMapNamespacedName.Name, gcpIdentityConfigMapNamespacedName.Namespace),
 			skipJob,
 		) {
 			return reconcile.Result{}, err

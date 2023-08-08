@@ -2,11 +2,11 @@ package skipjobcontroller
 
 import (
 	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -69,19 +69,11 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if errors.IsNotFound(err) {
 		return reconcile.Result{}, nil
 	} else if err != nil {
-		r.GetRecorder().Eventf(
-			skipJob,
-			corev1.EventTypeNormal, "ReconcileStartFail",
-			"Something went wrong fetching the SKIPJob. It might have been deleted",
-		)
+		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
 		return reconcile.Result{}, err
 	}
 
-	r.GetRecorder().Eventf(
-		skipJob,
-		corev1.EventTypeNormal, "ReconcileStart",
-		"SKIPJob "+skipJob.Name+" has started reconciliation loop",
-	)
+	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
 	err = skipJob.ApplyDefaults()
 	if err != nil {
@@ -105,11 +97,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 	}
 
-	r.GetRecorder().Eventf(
-		skipJob,
-		corev1.EventTypeNormal, "ReconcileEnd",
-		"SKIPJob "+skipJob.Name+" has finished reconciliation loop",
-	)
+	r.EmitNormalEvent(skipJob, "ReconcileEnd", fmt.Sprintf("SKIPJob %v has finished reconciliation loop", skipJob.Name))
 
 	err = r.GetClient().Update(ctx, skipJob)
 	return reconcile.Result{}, err
@@ -142,12 +130,4 @@ func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object clien
 		})
 	}
 	return reconcileRequests
-}
-
-func (r *SKIPJobReconciler) SendSKIPJobEvent(skipJob *skiperatorv1alpha1.SKIPJob, reason string, message string) {
-	r.GetRecorder().Event(
-		skipJob,
-		corev1.EventTypeWarning, reason,
-		message,
-	)
 }

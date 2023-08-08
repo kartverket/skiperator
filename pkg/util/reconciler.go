@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -94,11 +95,8 @@ func (r *ReconcilerBase) manageControllerStatus(context context.Context, app *sk
 func (r *ReconcilerBase) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
 	err := r.GetClient().Status().Update(context, app)
-	r.GetRecorder().Eventf(
-		app,
-		corev1.EventTypeWarning, "Controller Fault",
-		controller+" controller experienced an error",
-	)
+	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
+
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -150,11 +148,7 @@ func (r *ReconcilerBase) setResourceLabelsIfApplies(context context.Context, obj
 				obj.SetLabels(objectLabels)
 			}
 		} else {
-			r.GetRecorder().Eventf(
-				&app,
-				corev1.EventTypeWarning, "MistypedLabel",
-				"Could not find according Kind for Resource "+controllerResource+". Make sure your resource is spelled correctly",
-			)
+			r.EmitWarningEvent(&app, "MistypedLabel", fmt.Sprintf("could not find according Kind for Resource %v, make sure your resource is spelled correctly", controllerResource))
 		}
 	}
 }
@@ -190,12 +184,7 @@ func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Obj
 			Name:      outboundRule.Application,
 		}, &service)
 		if errors.IsNotFound(err) {
-			r.GetRecorder().Eventf(
-				owner,
-				corev1.EventTypeWarning, "Missing",
-				"Cannot find application named %s in namespace %s. Egress rule will not be added.",
-				outboundRule.Application, outboundRule.Namespace,
-			)
+			r.EmitWarningEvent(owner, "MissingApplication", fmt.Sprintf("cannot find Application named %s in Namespace %s, egress rule will not be added", outboundRule.Application, outboundRule.Namespace))
 			continue
 		} else if err != nil {
 			return egressServices, err
@@ -222,4 +211,20 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	_, exists := namespace.Labels[IstioRevisionLabel]
 
 	return exists
+}
+
+func (r *ReconcilerBase) EmitWarningEvent(object runtime.Object, reason string, message string) {
+	r.GetRecorder().Event(
+		object,
+		corev1.EventTypeWarning, reason,
+		message,
+	)
+}
+
+func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, message string) {
+	r.GetRecorder().Event(
+		object,
+		corev1.EventTypeNormal, reason,
+		message,
+	)
 }

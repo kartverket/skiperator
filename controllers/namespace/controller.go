@@ -2,7 +2,7 @@ package namespacecontroller
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -56,11 +56,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	if errors.IsNotFound(err) {
 		return reconcile.Result{}, nil
 	} else if err != nil {
-		r.GetRecorder().Eventf(
-			namespace,
-			corev1.EventTypeNormal, "ReconcileStartFail",
-			"Something went wrong fetching the namespace. It might have been deleted",
-		)
+		r.EmitWarningEvent(namespace, "ReconcileStartFail", "something went wrong fetching the namespace, it might have been deleted")
+
 		return reconcile.Result{}, err
 	}
 
@@ -68,11 +65,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return reconcile.Result{}, err
 	}
 
-	r.GetRecorder().Eventf(
-		namespace,
-		corev1.EventTypeNormal, "ReconcileStart",
-		"Namespace "+namespace.Name+" has started reconciliation loop",
-	)
+	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 
 	controllerDuties := []func(context.Context, *corev1.Namespace) (reconcile.Result, error){
 		r.reconcileDefaultDenyNetworkPolicy,
@@ -86,11 +79,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		}
 	}
 
-	r.GetRecorder().Eventf(
-		namespace,
-		corev1.EventTypeNormal, "ReconcileEnd",
-		"Namespace "+namespace.Name+" has finished reconciliation loop",
-	)
+	r.EmitNormalEvent(namespace, "ReconcileEnd", fmt.Sprintf("Namespace %v has finished reconciliation loop", namespace.Name))
 
 	return reconcile.Result{}, err
 }
