@@ -21,7 +21,7 @@ spec:
               mountPath: /empty-dir
             - name: persistent-volume-claim
               mountPath: /persistent-volume-claim
-            - mountPath: /var/run/secrets/tokens/gcp-ksa/
+            - mountPath: /var/run/secrets/tokens/gcp-ksa
               name: gcp-ksa
               readOnly: true
       volumes:

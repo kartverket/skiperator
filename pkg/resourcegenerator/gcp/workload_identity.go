@@ -3,6 +3,7 @@ package gcp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,8 +11,10 @@ import (
 )
 
 var (
-	CredentialsMountPath = "/var/run/secrets/tokens/gcp-ksa/"
+	CredentialsMountPath = "/var/run/secrets/tokens/gcp-ksa"
 	CredentialsFileName  = "google-application-credentials.json"
+
+	ServiceAccountTokenExpiration = int64(60 * 60 * 24 * 2) // Two days
 )
 
 type WorkloadIdentityCredentials struct {
@@ -37,7 +40,7 @@ func GetGoogleServiceAccountCredentialsConfigMap(ctx context.Context, namespace 
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",
 		CredentialSource: CredentialSource{
-			File: CredentialsMountPath + "token",
+			File: fmt.Sprintf("%v/token", CredentialsMountPath),
 		},
 	}
 
@@ -68,8 +71,6 @@ func GetGCPEnvVar() corev1.EnvVar {
 }
 
 func GetGCPContainerVolume(workloadIdentityPool string, name string) corev1.Volume {
-	twoDaysInSeconds := int64(172800)
-
 	return corev1.Volume{
 		Name: "gcp-ksa",
 		VolumeSource: corev1.VolumeSource{
@@ -80,7 +81,7 @@ func GetGCPContainerVolume(workloadIdentityPool string, name string) corev1.Volu
 						ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
 							Path:              "token",
 							Audience:          workloadIdentityPool,
-							ExpirationSeconds: &twoDaysInSeconds,
+							ExpirationSeconds: &ServiceAccountTokenExpiration,
 						},
 					},
 					{
