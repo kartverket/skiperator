@@ -7,20 +7,26 @@ import (
 
 var (
 	DefaultTTLSecondsAfterFinished = int32(60)
+	DefaultBackoffLimit            = int32(6)
+
+	DefaultSuspend = false
 )
 
 var JobCreatedCondition = "SKIPJobCreated"
 
 func (skipJob *SKIPJob) ApplyDefaults() error {
 	skipJob.setDefaultAnnotations()
-	return mergo.Merge(skipJob, getSkipJobDefaults())
+	return skipJob.setSkipJobDefaults()
 }
 
-func getSkipJobDefaults() *SKIPJob {
-	return &SKIPJob{
+func (skipJob *SKIPJob) setSkipJobDefaults() error {
+
+	defaults := &SKIPJob{
 		Spec: SKIPJobSpec{
 			Job: &JobSettings{
 				// TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				BackoffLimit: &DefaultBackoffLimit,
+				Suspend:      &DefaultSuspend,
 			},
 		},
 		Status: SKIPJobStatus{
@@ -35,6 +41,14 @@ func getSkipJobDefaults() *SKIPJob {
 			},
 		},
 	}
+
+	if skipJob.Spec.Cron != nil {
+		defaults.Spec.Cron = skipJob.Spec.Cron
+
+		defaults.Spec.Cron.Suspend = &DefaultSuspend
+	}
+
+	return mergo.Merge(skipJob, defaults)
 }
 
 func (in *SKIPJob) setDefaultAnnotations() {

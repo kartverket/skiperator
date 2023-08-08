@@ -101,18 +101,17 @@ func ResourceNameWithHash(resourceName string, kind string) string {
 	return resourceName + "-" + strconv.FormatUint(hash, 16)
 }
 
-func GetObjectDiff[T any](a T, b T) {
+func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
 	aKind := reflect.ValueOf(a).Kind()
 	bKind := reflect.ValueOf(b).Kind()
 	if aKind != bKind {
-		fmt.Printf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
-		return
+		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
 	}
-	changelog, _ := diff.Diff(a, b)
+	changelog, err := diff.Diff(a, b)
 
 	if len(changelog) == 0 {
-		fmt.Printf("No changes found\n")
+		return nil, err
 	}
 
-	fmt.Printf("Changes found: \n%v", changelog)
+	return changelog, nil
 }

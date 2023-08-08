@@ -18,7 +18,15 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		Containers: []corev1.Container{
 			container,
 		},
-		ServiceAccountName: serviceAccountName,
+		RestartPolicy:                 *policy,
+		TerminationGracePeriodSeconds: util.PointTo(int64(30)),
+		DNSPolicy:                     "ClusterFirst",
+		ServiceAccountName:            serviceAccountName,
+		DeprecatedServiceAccount:      serviceAccountName,
+		NodeName:                      "",
+		HostNetwork:                   false,
+		HostPID:                       false,
+		HostIPC:                       false,
 		SecurityContext: &corev1.PodSecurityContext{
 			SupplementalGroups: []int64{util.SkiperatorUser},
 			FSGroup:            util.PointTo(util.SkiperatorUser),
@@ -27,8 +35,8 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 			},
 		},
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
+		SchedulerName:     "default-scheduler",
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
-		RestartPolicy:     *policy,
 	}
 
 }

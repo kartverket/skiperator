@@ -64,7 +64,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			util.SetCommonAnnotations(&cronJob)
 
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, job.Labels, gcpIdentityConfigMap)
+			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Labels, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -77,8 +77,34 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				RequeueAfter: 5,
 			}, nil
 		} else if err == nil {
-			// RFC: How should we handle updates to CronJobs and Jobs in general? A lot of Job fields are immutable, and will force a recreate.
-			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
+			currentSpec := cronJob.Spec
+			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Labels, gcpIdentityConfigMap)
+
+			jobTemplateDiff, err := util.GetObjectDiff(currentSpec.JobTemplate, desiredSpec.JobTemplate)
+			if err != nil {
+				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+				return reconcile.Result{}, err
+			}
+
+			if len(jobTemplateDiff) > 0 {
+				r.SendSKIPJobEvent(skipJob, "CantUpdateCronJob", fmt.Sprintf("an attempt was made to update the job template of CronJob %v, CronJob must be deleted to update the job template", cronJob.Name))
+				return reconcile.Result{}, err
+			}
+
+			fullJobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
+			if err != nil {
+				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+				return reconcile.Result{}, err
+			}
+
+			if len(fullJobDiff) > 0 {
+				patch := client.MergeFrom(cronJob.DeepCopy())
+				err = r.GetClient().Patch(ctx, &cronJob, patch)
+				if err != nil {
+					r.SendSKIPJobEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
+					return reconcile.Result{}, err
+				}
+			}
 		} else if err != nil {
 			r.SendSKIPJobEvent(skipJob, "CouldNotGetCronJob", fmt.Sprintf("something went wrong when getting the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
@@ -117,8 +143,19 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			return reconcile.Result{}, err
 		} else if err == nil {
-			// RFC: How should we handle updates to CronJobs and Jobs in general? A lot of Job fields are immutable, and will force a recreate.
-			// Perhaps we should not allow updates to Jobs, instead forcing a recreate every time the spec differs? Doesn't really make sense to update a running job.
+			currentSpec := job.Spec
+			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels, gcpIdentityConfigMap)
+
+			jobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
+			if err != nil {
+				r.SendSKIPJobEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+				return reconcile.Result{}, err
+			}
+
+			if len(jobDiff) > 0 {
+				r.SendSKIPJobEvent(skipJob, "CantUpdateJob", fmt.Sprintf("an attempt was made to update the Job subresource of SKIPJob %v, Jobs cannot be updated after creation and must be deleted to update", skipJob.Name))
+				return reconcile.Result{}, err
+			}
 		} else if err != nil {
 			r.SendSKIPJobEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
@@ -186,8 +223,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 							return reconcile.Result{}, err
 						}
 
-						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished, and can update the status of the SKIPJob
-						// immediately, so following reconciliations can use that check
+						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished
 						err = r.SetStatusFinished(ctx, skipJob)
 						if err != nil {
 							return reconcile.Result{}, err
@@ -285,10 +321,8 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 			},
 			Spec: getJobSpec(skipJob, selector, labels, gcpIdentityConfigMap),
 		},
-		// Not sure if we should add these fields to spec
-		//TimeZone:                   nil,
-		//SuccessfulJobsHistoryLimit: nil,
-		//FailedJobsHistoryLimit:     nil,
+		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
+		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
 	}
 }
 
@@ -316,12 +350,18 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	}
 
 	jobSpec := batchv1.JobSpec{
+		Parallelism:           util.PointTo(int32(1)),
+		Completions:           util.PointTo(int32(1)),
 		ActiveDeadlineSeconds: skipJob.Spec.Job.ActiveDeadlineSeconds,
+		PodFailurePolicy:      nil,
 		BackoffLimit:          skipJob.Spec.Job.BackoffLimit,
+		Selector:              nil,
+		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
 			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, util.ResourceNameWithHash(skipJob.Name, skipJob.Kind), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
+		CompletionMode:          util.PointTo(batchv1.NonIndexedCompletion),
 		Suspend:                 skipJob.Spec.Job.Suspend,
 	}
 
