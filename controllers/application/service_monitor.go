@@ -45,7 +45,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &serviceMonitor, *application)
+		r.SetLabelsFromApplication(&serviceMonitor, *application)
 		util.SetCommonAnnotations(&serviceMonitor)
 
 		serviceMonitor.Spec = pov1.ServiceMonitorSpec{

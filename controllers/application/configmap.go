@@ -91,7 +91,7 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
-		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
+		r.SetLabelsFromApplication(&gcpAuthConfigMap, *application)
 
 		return nil
 	})

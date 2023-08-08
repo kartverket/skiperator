@@ -143,7 +143,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
 
-	r.SetLabelsFromApplication(ctx, &deployment, *application)
+	r.SetLabelsFromApplication(&deployment, *application)
 	util.SetCommonAnnotations(&deployment)
 
 	// add an external link to argocd

@@ -57,7 +57,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &networkPolicy, *application)
+		r.SetLabelsFromApplication(&networkPolicy, *application)
 		util.SetCommonAnnotations(&networkPolicy)
 
 		networkPolicy.Spec = *netpolSpec

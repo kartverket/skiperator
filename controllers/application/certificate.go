@@ -50,7 +50,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
-			r.SetLabelsFromApplication(ctx, &certificate, *application)
+			r.SetLabelsFromApplication(&certificate, *application)
 
 			certificate.Spec = certmanagerv1.CertificateSpec{
 				IssuerRef: v1.ObjectReference{

@@ -35,7 +35,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
+		r.SetLabelsFromApplication(&horizontalPodAutoscaler, *application)
 		util.SetCommonAnnotations(&horizontalPodAutoscaler)
 
 		horizontalPodAutoscaler.Spec = autoscalingv2.HorizontalPodAutoscalerSpec{

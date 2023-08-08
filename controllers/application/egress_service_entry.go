@@ -31,7 +31,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 				r.SetControllerError(ctx, application, controllerName, err)
 				return err
 			}
-			r.SetLabelsFromApplication(ctx, &serviceEntry, *application)
+			r.SetLabelsFromApplication(&serviceEntry, *application)
 			util.SetCommonAnnotations(&serviceEntry)
 
 			return nil
