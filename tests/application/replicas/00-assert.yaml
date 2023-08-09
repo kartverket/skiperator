@@ -1,0 +1,11 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-replicas
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: static-replicas
+  replicas: 2
