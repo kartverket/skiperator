@@ -1,0 +1,9 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minimal-job-c4496d13c69993ae
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: minimal-cron-job-e40bac4e8ee4672d
