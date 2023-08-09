@@ -3,13 +3,11 @@ package skipjobcontroller
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -40,7 +38,7 @@ func (r *SKIPJobReconciler) reconcileConfigMap(ctx context.Context, skipJob *ski
 				Name:      gcp.GetGCPConfigMapName(skipJob.Name),
 			},
 		}
-		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &gcpAuthConfigMap))
+		err := r.DeleteObjectIfExists(ctx, &gcpAuthConfigMap)
 		if err != nil {
 			return reconcile.Result{}, err
 		}

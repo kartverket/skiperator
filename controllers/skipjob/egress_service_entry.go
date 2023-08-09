@@ -44,8 +44,7 @@ func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, ski
 
 	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, skipJob.Name, serviceEntries)
 	for _, serviceEntry := range serviceEntriesToDelete {
-		err = r.GetClient().Delete(ctx, &serviceEntry)
-		err = client.IgnoreNotFound(err)
+		err = r.DeleteObjectIfExists(ctx, &serviceEntry)
 		if err != nil {
 			return reconcile.Result{}, err
 		}

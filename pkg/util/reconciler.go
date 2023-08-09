@@ -140,3 +140,12 @@ func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, m
 		message,
 	)
 }
+
+func (r *ReconcilerBase) DeleteObjectIfExists(ctx context.Context, object client.Object) error {
+	err := client.IgnoreNotFound(r.GetClient().Delete(ctx, object))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

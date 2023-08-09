@@ -45,7 +45,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	if skipJob.Spec.Cron != nil {
-		err := deleteJobIfExists(r.GetClient(), ctx, job)
+		err := r.DeleteObjectIfExists(ctx, &job)
 		if err != nil {
 			r.EmitWarningEvent(skipJob, "CouldNotDeleteJob", fmt.Sprintf("something went wrong when deleting the outdated Job subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
@@ -110,7 +110,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{}, err
 		}
 	} else {
-		err := deleteCronJobIfExists(r.GetClient(), ctx, cronJob)
+		err := r.DeleteObjectIfExists(ctx, &cronJob)
 		if err != nil {
 			r.EmitWarningEvent(skipJob, "CouldNotDeleteCronJob", fmt.Sprintf("something went wrong when deleting the outdated CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 			return reconcile.Result{}, err
@@ -285,28 +285,6 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 	} else {
 		return nil, nil
 	}
-}
-
-func deleteCronJobIfExists(recClient client.Client, context context.Context, cronJob batchv1.CronJob) error {
-	err := recClient.Delete(context, &cronJob)
-	err = client.IgnoreNotFound(err)
-	if err != nil {
-
-		return err
-	}
-
-	return nil
-}
-
-func deleteJobIfExists(recClient client.Client, context context.Context, job batchv1.Job) error {
-	err := recClient.Delete(context, &job)
-	err = client.IgnoreNotFound(err)
-	if err != nil {
-
-		return err
-	}
-
-	return nil
 }
 
 func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, labels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
