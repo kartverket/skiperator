@@ -8,6 +8,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/maps"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -64,7 +65,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			util.SetCommonAnnotations(&cronJob)
 
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Labels, gcpIdentityConfigMap)
+			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -78,7 +79,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}, nil
 		} else if err == nil {
 			currentSpec := cronJob.Spec
-			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Labels, gcpIdentityConfigMap)
+			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
 
 			jobTemplateDiff, err := util.GetObjectDiff(currentSpec.JobTemplate, desiredSpec.JobTemplate)
 			if err != nil {
@@ -98,8 +99,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			if len(fullJobDiff) > 0 {
-				patch := client.MergeFrom(cronJob.DeepCopy())
-				err = r.GetClient().Patch(ctx, &cronJob, patch)
+				cronJob.Spec = desiredSpec
+				err = r.GetClient().Update(ctx, &cronJob)
 				if err != nil {
 					r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 					return reconcile.Result{}, err
@@ -129,9 +130,9 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			wantedSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels, gcpIdentityConfigMap)
+			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
 			job.Labels = GetJobLabels(skipJob, job.Name, job.Labels)
-			job.Spec = wantedSpec
+			job.Spec = desiredSpec
 
 			err := r.GetClient().Create(ctx, &job)
 			if err != nil {
@@ -144,7 +145,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{}, err
 		} else if err == nil {
 			currentSpec := job.Spec
-			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Labels, gcpIdentityConfigMap)
+			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
 
 			jobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
@@ -287,7 +288,7 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 	}
 }
 
-func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, labels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
+func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	return batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
@@ -295,9 +296,9 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 		Suspend:                 skipJob.Spec.Cron.Suspend,
 		JobTemplate: batchv1.JobTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: GetJobLabels(skipJob, jobName, labels),
+				Labels: GetJobLabels(skipJob, jobName, podLabels),
 			},
-			Spec: getJobSpec(skipJob, selector, labels, gcpIdentityConfigMap),
+			Spec: getJobSpec(skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
 		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
 		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
@@ -314,7 +315,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels ma
 	return labels
 }
 
-func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, labels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
+func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
 
 	if skipJob.Spec.Container.GCP != nil {
@@ -347,7 +348,10 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	// Therefore, simply set these again if they already exist, which would be the case if reconciling an existing job.
 	if selector != nil {
 		jobSpec.Selector = selector
-		jobSpec.Template.ObjectMeta.Labels = labels
+		if jobSpec.Template.ObjectMeta.Labels == nil {
+			jobSpec.Template.ObjectMeta.Labels = map[string]string{}
+		}
+		maps.Copy(jobSpec.Template.ObjectMeta.Labels, podLabels)
 	}
 
 	return jobSpec
