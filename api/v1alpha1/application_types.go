@@ -164,8 +164,8 @@ type IDPorten struct {
 	// initiated a logout elsewhere as part of a single logout (front channel logout) process.
 	//
 	// +kubebuilder:validation:Pattern=`^\/.*$`
-
 	FrontchannelLogoutPath string `json:"frontchannelLogoutPath,omitempty"`
+
 	// IntegrationType is used to make sensible choices for your client.
 	// Which type of integration you choose will provide guidance on which scopes you can use with the client.
 	// A client can only have one integration type.
@@ -173,7 +173,6 @@ type IDPorten struct {
 	// NB! It is not possible to change the integration type after creation.
 	//
 	// +kubebuilder:validation:Enum=krr;idporten;api_klient
-
 	IntegrationType string `json:"integrationType,omitempty" nais:"immutable"`
 
 	// PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
@@ -221,19 +220,6 @@ type Maskinporten struct {
 
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
-}
-
-// ResourceRequirements
-// +kubebuilder:object:generate=true
-type ResourceRequirements struct {
-	// TODO
-	// Remember to reassess whether or not Claims work properly with kubebuilder when we upgrade to Kubernetes 1.26
-
-	//+kubebuilder:validation:Optional
-	Limits corev1.ResourceList `json:"limits,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	Requests corev1.ResourceList `json:"requests,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
