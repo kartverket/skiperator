@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"encoding/json"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/constraints"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -11,6 +12,7 @@ import (
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -48,7 +50,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
 	//+kubebuilder:validation:Optional
-	Replicas *Replicas `json:"replicas,omitempty"`
+	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
 	//+kubebuilder:validation:Optional
 	Strategy Strategy `json:"strategy,omitempty"`
 
@@ -291,17 +293,49 @@ const (
 	PENDING     StatusNames = "Pending"
 )
 
+func NewDefaultReplicas() Replicas {
+	return Replicas{
+		Min:                  2,
+		Max:                  5,
+		TargetCpuUtilization: 80,
+	}
+}
+
+func MarshalledReplicas(replicas interface{}) *apiextensionsv1.JSON {
+	replicasJson := &apiextensionsv1.JSON{}
+	var err error
+
+	replicasJson.Raw, err = json.Marshal(replicas)
+	if err == nil {
+		return replicasJson
+	}
+
+	return nil
+}
+
+func GetStaticReplicas(jsonReplicas *apiextensionsv1.JSON) (uint, error) {
+	var result uint
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+
+	return result, err
+}
+
+func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
+	result := NewDefaultReplicas()
+	err := json.Unmarshal(jsonReplicas.Raw, &result)
+
+	return result, err
+}
+
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
-		a.Spec.Replicas = &Replicas{
-			Min:                  2,
-			Max:                  5,
-			TargetCpuUtilization: 80,
+		defaultReplicas := NewDefaultReplicas()
+		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
+	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
+		if replicas.Min > replicas.Max {
+			replicas.Max = replicas.Min
+			a.Spec.Replicas = MarshalledReplicas(replicas)
 		}
-	} else if a.Spec.Replicas.Min == 0 && a.Spec.Replicas.Max == 0 {
-	} else {
-		a.Spec.Replicas.Min = max(1, a.Spec.Replicas.Min)
-		a.Spec.Replicas.Max = max(a.Spec.Replicas.Min, a.Spec.Replicas.Max)
 	}
 }
 

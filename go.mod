@@ -12,12 +12,12 @@ require (
 	github.com/imdario/mergo v0.3.16
 	github.com/kudobuilder/kuttl v0.15.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/nais/digdirator v0.0.0-20230731110512-96d4f8118c39
-	github.com/nais/liberator v0.0.0-20230803132608-99794719bc65
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.66.0
+	github.com/nais/digdirator v0.0.0-20230807232250-9c034372d1bb
+	github.com/nais/liberator v0.0.0-20230807082713-b3572ceadac6
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.67.1
 	github.com/r3labs/diff/v3 v3.0.1
 	go.etcd.io/etcd/server/v3 v3.5.9
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 	istio.io/api v0.0.0-20230518153929-d0aebaa77ab8
 	istio.io/client-go v1.16.5
@@ -25,7 +25,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.27.3
 	k8s.io/apimachinery v0.27.4
 	k8s.io/client-go v0.27.4
-	sigs.k8s.io/controller-runtime v0.15.0
+	sigs.k8s.io/controller-runtime v0.15.1
 	sigs.k8s.io/controller-tools v0.12.1
 	sigs.k8s.io/kustomize/kyaml v0.13.9
 )
@@ -167,8 +167,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.15.0 // indirect
 	go.opentelemetry.io/otel/trace v1.15.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
-	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.12.0 // indirect

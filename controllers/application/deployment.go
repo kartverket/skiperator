@@ -12,6 +12,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -150,9 +151,20 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		ProgressDeadlineSeconds: util.PointTo(int32(600)),
 	}
 
-	// Setting replicas to 0 when skiperator manifest specifies min/max to 0
-	if shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+	// Setting replicas to 0 if manifest has replicas set to 0 or replicas.min/max set to 0
+	if shouldScaleToZero(application.Spec.Replicas) {
 		deployment.Spec.Replicas = util.PointTo(int32(0))
+	}
+
+	if !util.IsHPAEnabled(application.Spec.Replicas) {
+		if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
+			deployment.Spec.Replicas = util.PointTo(int32(replicas))
+		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
+			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
+		} else {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
 	}
 
 	r.SetLabelsFromApplication(ctx, &deployment, *application)
@@ -200,7 +212,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			return reconcile.Result{}, err
 		}
 	} else {
-		if !shouldScaleToZero(application.Spec.Replicas.Min, application.Spec.Replicas.Max) {
+		if !shouldScaleToZero(application.Spec.Replicas) && util.IsHPAEnabled(application.Spec.Replicas) {
 			// Ignore replicas set by HPA when checking diff
 			if int32(*deployment.Spec.Replicas) > 0 {
 				deployment.Spec.Replicas = nil
@@ -419,8 +431,13 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 	}
 }
 
-func shouldScaleToZero(minReplicas uint, maxReplicas uint) bool {
-	if minReplicas == 0 && maxReplicas == 0 {
+func shouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
+	replicas, err := skiperatorv1alpha1.GetStaticReplicas(jsonReplicas)
+	if err == nil && replicas == 0 {
+		return true
+	}
+	replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(jsonReplicas)
+	if err == nil && (replicasStruct.Min == 0 || replicasStruct.Max == 0) {
 		return true
 	}
 	return false

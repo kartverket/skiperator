@@ -8,7 +8,8 @@ package v1alpha1
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	nais_iov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -87,13 +88,13 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(Replicas)
-		**out = **in
+		*out = new(v1.JSON)
+		(*in).DeepCopyInto(*out)
 	}
 	out.Strategy = in.Strategy
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -267,7 +268,7 @@ func (in *ContainerSettings) DeepCopyInto(out *ContainerSettings) {
 	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
-		*out = make([]v1.EnvVar, len(*in))
+		*out = make([]corev1.EnvVar, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -338,7 +339,7 @@ func (in *ContainerSettings) DeepCopyInto(out *ContainerSettings) {
 	}
 	if in.RestartPolicy != nil {
 		in, out := &in.RestartPolicy, &out.RestartPolicy
-		*out = new(v1.RestartPolicy)
+		*out = new(corev1.RestartPolicy)
 		**out = **in
 	}
 }
@@ -538,14 +539,14 @@ func (in *ResourceRequirements) DeepCopyInto(out *ResourceRequirements) {
 	*out = *in
 	if in.Limits != nil {
 		in, out := &in.Limits, &out.Limits
-		*out = make(v1.ResourceList, len(*in))
+		*out = make(corev1.ResourceList, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val.DeepCopy()
 		}
 	}
 	if in.Requests != nil {
 		in, out := &in.Requests, &out.Requests
-		*out = make(v1.ResourceList, len(*in))
+		*out = make(corev1.ResourceList, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val.DeepCopy()
 		}
