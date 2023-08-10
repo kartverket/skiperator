@@ -6,7 +6,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
 	"github.com/kartverket/skiperator/pkg/util"
-	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -49,7 +49,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		}
 	}
 
-	serviceEntriesInNamespace := istionetworkingv1beta1.ServiceEntryList{}
+	serviceEntriesInNamespace := networkingv1beta1.ServiceEntryList{}
 	err = r.GetClient().List(ctx, &serviceEntriesInNamespace, client.InNamespace(application.Namespace))
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
