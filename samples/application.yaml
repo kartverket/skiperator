@@ -24,10 +24,8 @@ spec:
     - testapp.dev.skip.statkart.no
 
   replicas:
-    min: 3
-
+    min: 2
     max: 5
-
     targetCpuUtilization: 80
 
   gcp:

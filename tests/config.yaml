@@ -30,4 +30,5 @@ commands:
 parallel: 1
 namespace: test
 testDirs:
-  - tests
+  - tests/application
+  - tests/namespace

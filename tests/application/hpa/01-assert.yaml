@@ -1,0 +1,9 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-hpa
+spec:
+  selector:
+    matchLabels:
+      app: test-deployment-hpa
+  replicas: 10

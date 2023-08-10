@@ -6,12 +6,13 @@ go 1.20
 replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.20230127103832-3aa3dfd6613d
 
 require (
-	github.com/cert-manager/cert-manager v1.12.2
+	github.com/cert-manager/cert-manager v1.12.3
 	github.com/go-logr/logr v1.2.4
 	github.com/google/k8s-digester v0.1.10
+	github.com/imdario/mergo v0.3.12
 	github.com/kudobuilder/kuttl v0.15.0
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.66.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.67.1
 	github.com/r3labs/diff/v3 v3.0.1
 	go.etcd.io/etcd/server/v3 v3.5.9
 	go.uber.org/zap v1.24.0
@@ -23,7 +24,7 @@ require (
 	k8s.io/apimachinery v0.27.4
 	k8s.io/client-go v0.27.3
 	sigs.k8s.io/controller-runtime v0.15.0
-	sigs.k8s.io/controller-tools v0.12.0
+	sigs.k8s.io/controller-tools v0.12.1
 	sigs.k8s.io/kustomize/kyaml v0.13.9
 )
 
@@ -106,7 +107,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
