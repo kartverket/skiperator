@@ -19,10 +19,10 @@ import (
 )
 
 const (
-	defaultClientCallbackPath = "/oauth2/callback"
-	defaultClientLogoutPath   = "/oauth2/logout"
+	DefaultClientCallbackPath = "/oauth2/callback"
+	DefaultClientLogoutPath   = "/oauth2/logout"
 
-	kvBaseURL = "https://kartverket.no"
+	KVBaseURL = "https://kartverket.no"
 )
 
 func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -89,7 +89,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 		}
 	}
 
-	ingress := kvBaseURL
+	ingress := KVBaseURL
 	if len(application.Spec.Ingresses) != 0 {
 		ingress = application.Spec.Ingresses[0]
 	}
@@ -97,12 +97,12 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 
 	scopes := getScopes(integrationType, application.Spec.IDPorten.Scopes)
 
-	redirectURIs, err := buildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, defaultClientCallbackPath)
+	redirectURIs, err := buildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
 	if err != nil {
 		return nais_io_v1.IDPortenClientSpec{}, nil
 	}
 
-	frontchannelLogoutURI, err := buildURI(ingress, application.Spec.IDPorten.FrontchannelLogoutPath, defaultClientLogoutPath)
+	frontchannelLogoutURI, err := buildURI(ingress, application.Spec.IDPorten.FrontchannelLogoutPath, DefaultClientLogoutPath)
 	if err != nil {
 		return nais_io_v1.IDPortenClientSpec{}, nil
 	}
@@ -120,7 +120,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 	return nais_io_v1.IDPortenClientSpec{
 		ClientName:             application.Name,
 		ClientURI:              withFallback(application.Spec.IDPorten.ClientURI, nais_io_v1.IDPortenURI(ingress)),
-		IntegrationType:        string(integrationType),
+		IntegrationType:        integrationType,
 		RedirectURIs:           redirectURIs,
 		SecretName:             secretName,
 		AccessTokenLifetime:    application.Spec.IDPorten.AccessTokenLifetime,
@@ -139,7 +139,7 @@ func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]nais_io_v1.IDPortenURI,
 	}
 
 	if postLogoutRedirectPath != "" {
-		u, err := buildURI(ingress, postLogoutRedirectPath, defaultClientLogoutPath)
+		u, err := buildURI(ingress, postLogoutRedirectPath, DefaultClientLogoutPath)
 		if err != nil {
 			return uris, err
 		}
