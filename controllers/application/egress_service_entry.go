@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
 	"github.com/kartverket/skiperator/pkg/util"
