@@ -61,7 +61,3 @@ func (skipJob *SKIPJob) setDefaultAnnotations() {
 
 	skipJob.SetAnnotations(annotations)
 }
-
-func (skipJob *SKIPJob) HashedName() string {
-	return util.ResourceNameWithHash(skipJob.Name, skipJob.Kind)
-}

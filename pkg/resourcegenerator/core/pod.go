@@ -68,7 +68,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 
 func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount) corev1.Container {
 	return corev1.Container{
-		Name:                     skipJob.HashedName(),
+		Name:                     skipJob.KindPostFixedName(),
 		Image:                    skipJob.Spec.Container.Image,
 		ImagePullPolicy:          corev1.PullAlways,
 		Command:                  skipJob.Spec.Container.Command,

@@ -1,18 +1,18 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: minimal-job-c4496d13c69993ae
+  name: minimal-job
 spec:
   template:
     spec:
       containers:
-        - name: minimal-job-c4496d13c69993ae
+        - name: minimal-job-skipjob
           image: "perl:5.34.0"
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: minimal-cron-job-e40bac4e8ee4672d
+  name: minimal-cron-job
 spec:
   schedule: "5 * * * *"
 ---

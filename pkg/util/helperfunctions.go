@@ -8,7 +8,7 @@ import (
 	"hash/fnv"
 	"reflect"
 	"regexp"
-	"strconv"
+	"strings"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -95,10 +95,8 @@ func HasUpperCaseLetter(word string) bool {
 	return false
 }
 
-func ResourceNameWithHash(resourceName string, kind string) string {
-	hash := GenerateHashFromName(resourceName + kind)
-
-	return resourceName + "-" + strconv.FormatUint(hash, 16)
+func ResourceNameWithKindPostfix(resourceName string, kind string) string {
+	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
 }
 
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
