@@ -10,7 +10,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,7 +24,6 @@ import (
 
 type SKIPJobReconciler struct {
 	util.ReconcilerBase
-	RESTClient rest.Interface
 }
 
 func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
