@@ -73,6 +73,7 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Enum=low;medium;high
 	//+kubebuilder:default=medium
 	Priority string `json:"priority,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
@@ -100,12 +101,6 @@ type ContainerSettings struct {
 
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	Labels map[string]string `json:"labels,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
 
 	// +kubebuilder:validation:Enum=OnFailure;Never
 	// +kubebuilder:default="Never"
