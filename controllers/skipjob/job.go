@@ -46,12 +46,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	if skipJob.Spec.Cron != nil {
-		err := r.DeleteObjectIfExists(ctx, &job)
-		if err != nil {
-			r.EmitWarningEvent(skipJob, "CouldNotDeleteJob", fmt.Sprintf("something went wrong when deleting the outdated Job subresource of SKIPJob %v: %v", skipJob.Name, err))
-			return reconcile.Result{}, err
-		}
-
 		err = r.GetClient().Get(ctx, types.NamespacedName{
 			Namespace: cronJob.Namespace,
 			Name:      cronJob.Name,
@@ -111,12 +105,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{}, err
 		}
 	} else {
-		err := r.DeleteObjectIfExists(ctx, &cronJob)
-		if err != nil {
-			r.EmitWarningEvent(skipJob, "CouldNotDeleteCronJob", fmt.Sprintf("something went wrong when deleting the outdated CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
-			return reconcile.Result{}, err
-		}
-
 		err = r.GetClient().Get(ctx, types.NamespacedName{
 			Namespace: skipJob.Namespace,
 			Name:      job.Name,

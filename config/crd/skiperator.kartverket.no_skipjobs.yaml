@@ -32,12 +32,16 @@ spec:
           metadata:
             type: object
           spec:
-            description: SKIPJobSpec defines the desired state of SKIPJob
+            description: "SKIPJobSpec defines the desired state of SKIPJob \n A SKIPJob
+              is either defined as a one-off or a scheduled job. If the Cron field
+              is set for SKIPJob, it may not be removed. If the Cron field is unset,
+              it may not be added."
             properties:
               container:
                 description: Settings for the Pods running in the job. Fields are
                   mostly the same as an Application, and are (probably) better documented
-                  there. Some fields are omitted, but none added.
+                  there. Some fields are omitted, but none added. Once set, you may
+                  not change Container without deleting your current SKIPJob
                 properties:
                   accessPolicy:
                     properties:
@@ -432,6 +436,9 @@ spec:
                 required:
                 - image
                 type: object
+                x-kubernetes-validations:
+                - message: Container is immutable
+                  rule: self == oldSelf
               cron:
                 description: Settings for the Job if you are running a scheduled job.
                   Optional as Jobs may be one-off.
@@ -502,6 +509,13 @@ spec:
             required:
             - container
             type: object
+            x-kubernetes-validations:
+            - message: After creation of a SKIPJob you may not remove the Cron field
+                if it was previously present, or add it if it was previously omitted.
+                Please delete the SKIPJob to change its nature from a one-off/scheduled
+                job.
+              rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
+                !has(self.cron))
           status:
             description: SKIPJobStatus defines the observed state of SKIPJob
             properties:
