@@ -35,6 +35,7 @@ commands:
 parallel: 1
 namespace: test
 testDirs:
+# TODO Re-add these when not testing skipjobs exclusively
 #  - tests/application
 #  - tests/namespace
   - tests/skipjob
