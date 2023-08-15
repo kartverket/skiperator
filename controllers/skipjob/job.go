@@ -75,24 +75,13 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			currentSpec := cronJob.Spec
 			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
 
-			jobTemplateDiff, err := util.GetObjectDiff(currentSpec.JobTemplate, desiredSpec.JobTemplate)
+			cronJobSpecDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
 				r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
 				return reconcile.Result{}, err
 			}
 
-			if len(jobTemplateDiff) > 0 {
-				r.EmitWarningEvent(skipJob, "CantUpdateCronJob", fmt.Sprintf("an attempt was made to update the job template of CronJob %v, CronJob must be deleted to update the job template", cronJob.Name))
-				return reconcile.Result{}, err
-			}
-
-			fullJobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
-			if err != nil {
-				r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
-				return reconcile.Result{}, err
-			}
-
-			if len(fullJobDiff) > 0 {
+			if len(cronJobSpecDiff) > 0 {
 				cronJob.Spec = desiredSpec
 				err = r.GetClient().Update(ctx, &cronJob)
 				if err != nil {
@@ -142,8 +131,14 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			if len(jobDiff) > 0 {
-				r.EmitWarningEvent(skipJob, "CantUpdateJob", fmt.Sprintf("an attempt was made to update the Job subresource of SKIPJob %v, Jobs cannot be updated after creation and must be deleted to update", skipJob.Name))
-				return reconcile.Result{}, err
+				job.Spec = desiredSpec
+				err := r.GetClient().Update(ctx, &job)
+				if err != nil {
+					r.EmitWarningEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
+					return reconcile.Result{}, err
+				}
+
+				return reconcile.Result{}, nil
 			}
 		} else if err != nil {
 			r.EmitWarningEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))

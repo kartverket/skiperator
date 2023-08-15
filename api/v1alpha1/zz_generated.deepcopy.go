@@ -302,30 +302,6 @@ func (in *ContainerSettings) DeepCopyInto(out *ContainerSettings) {
 		*out = new(podtypes.GCP)
 		**out = **in
 	}
-	if in.Labels != nil {
-		in, out := &in.Labels, &out.Labels
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
-	if in.ResourceLabels != nil {
-		in, out := &in.ResourceLabels, &out.ResourceLabels
-		*out = make(map[string]map[string]string, len(*in))
-		for key, val := range *in {
-			var outVal map[string]string
-			if val == nil {
-				(*out)[key] = nil
-			} else {
-				in, out := &val, &outVal
-				*out = make(map[string]string, len(*in))
-				for key, val := range *in {
-					(*out)[key] = val
-				}
-			}
-			(*out)[key] = outVal
-		}
-	}
 	if in.RestartPolicy != nil {
 		in, out := &in.RestartPolicy, &out.RestartPolicy
 		*out = new(corev1.RestartPolicy)
