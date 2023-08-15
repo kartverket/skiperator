@@ -210,7 +210,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					continue
 				}
 
-				if exitCode, exists := terminatedContainerStatuses[job.Labels["job-name"]]; exists {
+				if exitCode, exists := terminatedContainerStatuses[skipJob.KindPostFixedName()]; exists {
 					if exitCode == 0 {
 						ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
 						if err != nil {
