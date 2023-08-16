@@ -26,6 +26,10 @@ var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
 	DefaultPollingRate       = time.Second * 15
 
+	DefaultRequeueForPodsWait = time.Second * 5
+
+	DefaultAwaitCronJobResourcesWait = time.Second * 5
+
 	IstioProxyPodContainerName = "istio-proxy"
 )
 
@@ -66,11 +70,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				return reconcile.Result{}, err
 			}
 
-			// Requeue the reconciliation after creating the Cron Job to allow the control plane to create subresources
-			return reconcile.Result{
-				Requeue:      true,
-				RequeueAfter: 5,
-			}, nil
+			log.FromContext(ctx).Info(fmt.Sprintf("cronjob %v/%v created, requeuing reconcile in %v seconds to await subresource creation", cronJob.Namespace, cronJob.Name, DefaultAwaitCronJobResourcesWait.Seconds()))
+			return reconcile.Result{RequeueAfter: 5}, nil
 		} else if err == nil {
 			currentSpec := cronJob.Spec
 			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
@@ -155,6 +156,11 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		return reconcile.Result{}, err
 	}
 
+	if len(jobsToCheckList.Items) == 0 {
+		log.FromContext(ctx).Info(fmt.Sprintf("could not find any jobs related to SKIPJob %v/%v, skipping job checks", skipJob.Namespace, skipJob.Name))
+		return reconcile.Result{}, nil
+	}
+
 	for _, job := range jobsToCheckList.Items {
 		if job.Status.CompletionTime == nil {
 			jobPods := corev1.PodList{}
@@ -167,8 +173,8 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			if len(jobPods.Items) == 0 {
 				// In the case that the job has no pods yet, we should requeue the request so that the controller can
 				// check the pods when created.
-				log.FromContext(ctx).Info(fmt.Sprintf("could not find pods for job %v/%v, requeuing reconcile", job.Name, job.Namespace))
-				return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+				log.FromContext(ctx).Info(fmt.Sprintf("could not find pods for job %v/%v, requeuing reconcile in %v seconds", job.Namespace, job.Name, DefaultRequeueForPodsWait.Seconds()))
+				return reconcile.Result{RequeueAfter: DefaultRequeueForPodsWait}, nil
 			}
 
 			for _, pod := range jobPods.Items {
@@ -222,15 +228,12 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 						return reconcile.Result{}, err
 					}
 
-					infoMessage := fmt.Sprintf("job %v/%v not complete, requeueing in %v seconds", job.Name, job.Namespace, DefaultPollingRate.Seconds())
+					infoMessage := fmt.Sprintf("job %v/%v not complete, requeueing in %v seconds", job.Namespace, job.Name, DefaultPollingRate.Seconds())
 					log.FromContext(ctx).Info(infoMessage)
 
 					return reconcile.Result{RequeueAfter: DefaultPollingRate}, nil
 				}
 			}
-		} else {
-			// RFC: Do we need to do anything when jobs are finished?
-			// Perhaps remove them after x time? CronJobs automatically clear old jobs for one
 		}
 	}
 
