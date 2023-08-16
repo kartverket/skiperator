@@ -101,11 +101,11 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error){
-		r.reconcileJob,
 		r.reconcileServiceAccount,
 		r.reconcileNetworkPolicy,
 		r.reconcileEgressServiceEntry,
 		r.reconcileConfigMap,
+		r.reconcileJob,
 	}
 
 	for _, fn := range controllerDuties {
