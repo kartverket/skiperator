@@ -71,12 +71,34 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{}, err
 	}
 
-	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
-
+	tmpSkipJob := skipJob.DeepCopy()
 	err = skipJob.ApplyDefaults()
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+
+	specDiff, err := util.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	statusDiff, err := util.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
+	// updates to be visible even though the controllerDuties may take some time.
+	if len(specDiff) > 0 {
+		err := r.GetClient().Update(ctx, skipJob)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	if len(statusDiff) > 0 {
+		err := r.GetClient().Status().Update(ctx, skipJob)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error){
 		r.reconcileJob,
