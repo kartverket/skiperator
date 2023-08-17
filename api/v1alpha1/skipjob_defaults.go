@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"github.com/imdario/mergo"
-	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,11 +42,18 @@ func (skipJob *SKIPJob) setSkipJobDefaults() error {
 		},
 	}
 
+	shouldSuspendCron := false
 	if skipJob.Spec.Cron != nil {
 		defaults.Spec.Cron = skipJob.Spec.Cron
 
-		defaults.Spec.Cron.Suspend = util.PointTo(false)
+		// Due to an error in mergo, bool values are not merged properly. Temporary workaround
+		// Should only be necessary for spec.cron.suspend as it's the only bool that we add by default and merge using mergo
+		// See: https://github.com/darccio/mergo/issues/237
+		//defaults.Spec.Cron.Suspend = util.PointTo(false)
+		shouldSuspendCron = *skipJob.Spec.Cron.Suspend
 	}
+
+	defaults.Spec.Cron.Suspend = &shouldSuspendCron
 
 	return mergo.Merge(skipJob, defaults)
 }
