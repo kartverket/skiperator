@@ -18,7 +18,15 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		Containers: []corev1.Container{
 			container,
 		},
-		ServiceAccountName: serviceAccountName,
+		RestartPolicy:                 *policy,
+		TerminationGracePeriodSeconds: util.PointTo(int64(30)),
+		DNSPolicy:                     "ClusterFirst",
+		ServiceAccountName:            serviceAccountName,
+		DeprecatedServiceAccount:      serviceAccountName,
+		NodeName:                      "",
+		HostNetwork:                   false,
+		HostPID:                       false,
+		HostIPC:                       false,
 		SecurityContext: &corev1.PodSecurityContext{
 			SupplementalGroups: []int64{util.SkiperatorUser},
 			FSGroup:            util.PointTo(util.SkiperatorUser),
@@ -27,8 +35,8 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 			},
 		},
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
+		SchedulerName:     "default-scheduler",
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
-		RestartPolicy:     *policy,
 	}
 
 }
@@ -58,27 +66,24 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 	}
 }
 
-//func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob) corev1.Container {
-//	return corev1.Container{
-//		Name:            util.ResourceNameWithHash(skipJob.Name, skipJob.Kind),
-//		Image:           skipJob.Spec.Container.Image,
-//		ImagePullPolicy: corev1.PullAlways,
-//		Command:         skipJob.Spec.Container.Command,
-//		SecurityContext: &corev1.SecurityContext{
-//			Privileged:               util.PointTo(false),
-//			AllowPrivilegeEscalation: util.PointTo(false),
-//			ReadOnlyRootFilesystem:   util.PointTo(true),
-//			RunAsUser:                util.PointTo(util.SkiperatorUser),
-//			RunAsGroup:               util.PointTo(util.SkiperatorUser),
-//		},
-//		EnvFrom:        getEnvFrom(skipJob.Spec.Container.EnvFrom),
-//		Resources:      getResourceRequirements(skipJob.Spec.Container.Resources),
-//		Env:            skipJob.Spec.Container.Env,
-//		ReadinessProbe: getProbe(skipJob.Spec.Container.Readiness),
-//		LivenessProbe:  getProbe(skipJob.Spec.Container.Liveness),
-//		StartupProbe:   getProbe(skipJob.Spec.Container.Startup),
-//	}
-//}
+func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount) corev1.Container {
+	return corev1.Container{
+		Name:                     skipJob.KindPostFixedName(),
+		Image:                    skipJob.Spec.Container.Image,
+		ImagePullPolicy:          corev1.PullAlways,
+		Command:                  skipJob.Spec.Container.Command,
+		SecurityContext:          &util.LeastPrivilegeContainerSecurityContext,
+		EnvFrom:                  getEnvFrom(skipJob.Spec.Container.EnvFrom),
+		Resources:                getResourceRequirements(skipJob.Spec.Container.Resources),
+		Env:                      skipJob.Spec.Container.Env,
+		ReadinessProbe:           getProbe(skipJob.Spec.Container.Readiness),
+		LivenessProbe:            getProbe(skipJob.Spec.Container.Liveness),
+		StartupProbe:             getProbe(skipJob.Spec.Container.Startup),
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		VolumeMounts:             volumeMounts,
+	}
+}
 
 func getProbe(appProbe *podtypes.Probe) *corev1.Probe {
 	if appProbe != nil {

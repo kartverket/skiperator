@@ -313,6 +313,16 @@ func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
 	return result, err
 }
 
+func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
+	replicas, err := GetScalingReplicas(jsonReplicas)
+	if err == nil &&
+		replicas.Min > 0 &&
+		replicas.Min < replicas.Max {
+		return true
+	}
+	return false
+}
+
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
 		defaultReplicas := NewDefaultReplicas()

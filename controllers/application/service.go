@@ -32,7 +32,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &service, *application)
+		r.SetLabelsFromApplication(&service, *application)
 		util.SetCommonAnnotations(&service)
 
 		// ServiceMonitor requires labels to be set on service to select it

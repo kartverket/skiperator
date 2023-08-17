@@ -35,6 +35,19 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - cert-manager.io
   resources:
   - certificates
@@ -86,6 +99,19 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  - pods/ephemeralcontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -111,17 +137,6 @@ rules:
   - nais.io
   resources:
   - idportenclients
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - nais.io
-  resources:
   - maskinportenclients
   verbs:
   - create
@@ -199,6 +214,16 @@ rules:
   resources:
   - applications
   - applications/status
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - skiperator.kartverket.no
+  resources:
+  - skipjobs
+  - skipjobs/status
   verbs:
   - get
   - list

@@ -27,7 +27,7 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 				return err
 			}
 
-			r.SetLabelsFromApplication(ctx, &pdb, *application)
+			r.SetLabelsFromApplication(&pdb, *application)
 			util.SetCommonAnnotations(&pdb)
 			var minReplicas uint
 

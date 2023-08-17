@@ -67,6 +67,9 @@ jobs:
           push: ${{ !github.event.pull_request.draft }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Notice of image digest
+        run: echo "${{ steps.build-docker.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
     outputs:
       image_digest: ${{ steps.build-docker.outputs.digest }}
 

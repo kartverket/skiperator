@@ -323,9 +323,18 @@ spec:
                       If enabled, an ID-porten client be provisioned.
                     type: boolean
                   frontchannelLogoutPath:
+                    description: FrontchannelLogoutPath is a valid path for your application
+                      where ID-porten sends a request to whenever the user has initiated
+                      a logout elsewhere as part of a single logout (front channel
+                      logout) process.
                     pattern: ^\/.*$
                     type: string
                   integrationType:
+                    description: "IntegrationType is used to make sensible choices
+                      for your client. Which type of integration you choose will provide
+                      guidance on which scopes you can use with the client. A client
+                      can only have one integration type. \n NB! It is not possible
+                      to change the integration type after creation."
                     enum:
                     - krr
                     - idporten

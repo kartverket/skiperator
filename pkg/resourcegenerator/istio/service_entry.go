@@ -87,11 +87,11 @@ func GetServiceEntriesToDelete(serviceEntriesInNamespace []*networkingv1beta1.Se
 	return serviceEntriesToDelete
 }
 
-func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networkingv1beta1api.Port, error) {
-	var ports []*networkingv1beta1api.Port
+func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networkingv1beta1api.ServicePort, error) {
+	var ports []*networkingv1beta1api.ServicePort
 
 	if len(externalPorts) == 0 {
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &networkingv1beta1api.ServicePort{
 			Name:     "https",
 			Number:   uint32(443),
 			Protocol: "HTTPS",
@@ -106,7 +106,7 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networki
 			return nil, errors.New(errorMessage)
 		}
 
-		ports = append(ports, &networkingv1beta1api.Port{
+		ports = append(ports, &networkingv1beta1api.ServicePort{
 			Name:     port.Name,
 			Number:   uint32(port.Port),
 			Protocol: port.Protocol,

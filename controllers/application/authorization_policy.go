@@ -43,7 +43,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &defaultDenyAuthPolicy, *application)
+		r.SetLabelsFromApplication(&defaultDenyAuthPolicy, *application)
 		util.SetCommonAnnotations(&defaultDenyAuthPolicy)
 
 		if application.Spec.AuthorizationSettings != nil {

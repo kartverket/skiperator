@@ -51,7 +51,7 @@ func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, applicati
 				return err
 			}
 
-			r.SetLabelsFromApplication(ctx, &idporten, *application)
+			r.SetLabelsFromApplication(&idporten, *application)
 			util.SetCommonAnnotations(&idporten)
 
 			idporten.Spec, err = getIDPortenSpec(application)

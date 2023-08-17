@@ -36,7 +36,7 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 				return err
 			}
 
-			r.SetLabelsFromApplication(ctx, &maskinporten, *application)
+			r.SetLabelsFromApplication(&maskinporten, *application)
 			util.SetCommonAnnotations(&maskinporten)
 
 			maskinporten.Spec, err = getMaskinportenSpec(application)

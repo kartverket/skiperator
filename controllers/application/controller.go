@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -86,19 +87,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if errors.IsNotFound(err) {
 		return reconcile.Result{}, nil
 	} else if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeNormal, "ReconcileStartFail",
-			"Something went wrong fetching the application. It might have been deleted",
-		)
+		r.EmitWarningEvent(application, "ReconcileStartFail", "something went wrong fetching the application, it might have been deleted")
 		return reconcile.Result{}, err
 	}
 
-	r.GetRecorder().Eventf(
-		application,
-		corev1.EventTypeNormal, "ReconcileStart",
-		"Application "+application.Name+" has started reconciliation loop",
-	)
+	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
@@ -117,11 +110,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	err = r.validateApplicationSpec(application)
 	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeWarning, "InvalidApplication",
-			"Application failed validation and was rejected, error: %s", err.Error(),
-		)
+		r.EmitNormalEvent(application, "InvalidApplication", fmt.Sprintf("Application %v failed validation and was rejected, error: %s", application.Name, err.Error()))
 		return reconcile.Result{}, err
 	}
 
@@ -152,11 +141,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		}
 	}
 
-	r.GetRecorder().Eventf(
-		application,
-		corev1.EventTypeNormal, "ReconcileEnd",
-		"Application "+application.Name+" has finished reconciliation loop",
-	)
+	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return reconcile.Result{}, err
 }
@@ -179,11 +164,7 @@ func (r *ApplicationReconciler) initializeApplication(ctx context.Context, appli
 
 	err := r.GetClient().Update(ctx, application)
 	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeNormal, "InitializeAppFunc",
-			"Application "+application.Name+" could not init: "+err.Error(),
-		)
+		r.EmitWarningEvent(application, "InitializeAppFunc", fmt.Sprintf("Application %v could not init due to error: %v", application.Name, err.Error()))
 	}
 
 	return reconcile.Result{}, err
@@ -195,11 +176,7 @@ func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context,
 	application.FillDefaultsStatus()
 	err := r.GetClient().Status().Update(ctx, application)
 	if err != nil {
-		r.GetRecorder().Eventf(
-			application,
-			corev1.EventTypeNormal, "InitializeAppStatusFunc",
-			"Application "+application.Name+" could not init status: "+err.Error(),
-		)
+		r.EmitWarningEvent(application, "InitializeAppStatusFunc", fmt.Sprintf("Application %v could not init status due to error: %v", application.Name, err.Error()))
 	}
 
 	return reconcile.Result{}, err
@@ -262,4 +239,87 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 	}
 
 	return nil
+}
+
+func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
+	app.UpdateControllerStatus(controller, message, statusName)
+	err := r.GetClient().Status().Update(context, app)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	return reconcile.Result{}, nil
+}
+
+func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
+	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
+	err := r.GetClient().Status().Update(context, app)
+	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
+
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	return reconcile.Result{}, issue
+}
+
+func (r *ApplicationReconciler) SetControllerPending(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has been initialized and is pending Skiperator startup"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PENDING, message)
+}
+
+func (r *ApplicationReconciler) SetControllerProgressing(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has started sync"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PROGRESSING, message)
+}
+
+func (r *ApplicationReconciler) SetControllerSynced(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
+	message := controller + " has finished synchronizing"
+
+	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.SYNCED, message)
+}
+
+func (r *ApplicationReconciler) SetControllerError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
+	return r.manageControllerStatusError(context, app, controller, issue)
+}
+
+func (r *ApplicationReconciler) SetControllerFinishedOutcome(context context.Context, app *skiperatorv1alpha1.Application, controllerName string, issue error) (reconcile.Result, error) {
+	if issue != nil {
+		return r.manageControllerStatusError(context, app, controllerName, issue)
+	}
+
+	return r.SetControllerSynced(context, app, controllerName)
+}
+
+func (r *ApplicationReconciler) setResourceLabelsIfApplies(obj client.Object, app skiperatorv1alpha1.Application) {
+	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
+
+	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
+		resourceLabelGroupKind, present := app.GroupKindFromControllerResource(controllerResource)
+		if present {
+			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
+				objectLabels := obj.GetLabels()
+				if len(objectLabels) == 0 {
+					objectLabels = make(map[string]string)
+				}
+				maps.Copy(objectLabels, resourceLabels)
+				obj.SetLabels(objectLabels)
+			}
+		} else {
+			r.EmitWarningEvent(&app, "MistypedLabel", fmt.Sprintf("could not find according Kind for Resource %v, make sure your resource is spelled correctly", controllerResource))
+		}
+	}
+}
+
+func (r *ApplicationReconciler) SetLabelsFromApplication(object client.Object, app skiperatorv1alpha1.Application) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	if app.Spec.Labels != nil {
+		maps.Copy(labels, app.Spec.Labels)
+		object.SetLabels(labels)
+	}
+
+	r.setResourceLabelsIfApplies(object, app)
 }
