@@ -3,14 +3,12 @@ package util
 import (
 	"context"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/r3labs/diff/v3"
 	"hash/fnv"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"regexp"
-	"strconv"
+	"strings"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -40,16 +38,6 @@ func GenerateHashFromName(name string) uint64 {
 	hash := fnv.New64()
 	_, _ = hash.Write([]byte(name))
 	return hash.Sum64()
-}
-
-func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
-	replicas, err := skiperatorv1alpha1.GetScalingReplicas(jsonReplicas)
-	if err == nil &&
-		replicas.Min > 0 &&
-		replicas.Min < replicas.Max {
-		return true
-	}
-	return false
 }
 
 func GetConfigMap(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.ConfigMap, error) {
@@ -107,24 +95,21 @@ func HasUpperCaseLetter(word string) bool {
 	return false
 }
 
-func ResourceNameWithHash(resourceName string, kind string) string {
-	hash := GenerateHashFromName(resourceName + kind)
-
-	return resourceName + "-" + strconv.FormatUint(hash, 16)
+func ResourceNameWithKindPostfix(resourceName string, kind string) string {
+	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
 }
 
-func GetObjectDiff[T any](a T, b T) {
+func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
 	aKind := reflect.ValueOf(a).Kind()
 	bKind := reflect.ValueOf(b).Kind()
 	if aKind != bKind {
-		fmt.Printf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
-		return
+		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
 	}
-	changelog, _ := diff.Diff(a, b)
+	changelog, err := diff.Diff(a, b)
 
 	if len(changelog) == 0 {
-		fmt.Printf("No changes found\n")
+		return nil, err
 	}
 
-	fmt.Printf("Changes found: \n%v", changelog)
+	return changelog, nil
 }

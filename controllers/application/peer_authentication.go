@@ -27,7 +27,7 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 
 		peerAuthentication.Spec = istio.GetPeerAuthentication(application.Name)
 
-		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
+		r.SetLabelsFromApplication(&peerAuthentication, *application)
 		util.SetCommonAnnotations(&peerAuthentication)
 
 		return nil

@@ -1,0 +1,37 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: condition-finish
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(2000)"
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: condition-running
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "sleep(60)"
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: condition-fail
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-wle"
+      - "exit 1"

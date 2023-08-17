@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,6 +11,7 @@ import (
 // SKIPJobStatus defines the observed state of SKIPJob
 // +kubebuilder:object:generate=true
 type SKIPJobStatus struct {
+	//+kubebuilder:validation:Optional
 	Conditions []metav1.Condition `json:"conditions"`
 }
 
@@ -22,8 +24,10 @@ type SKIPJob struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Spec   SKIPJobSpec   `json:"spec"`
-	Status SKIPJobStatus `json:"status,omitempty"`
+	Spec SKIPJobSpec `json:"spec"`
+
+	//+kubebuilder:validation:Optional
+	Status SKIPJobStatus `json:"status"`
 }
 
 //+kubebuilder:object:root=true
@@ -36,6 +40,11 @@ type SKIPJobList struct {
 }
 
 // SKIPJobSpec defines the desired state of SKIPJob
+//
+// A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
+// The Container settings of a SKIPJob is also immutable, and may not be changed after creating a SKIPJob.
+//
+// +kubebuilder:validation:XValidation:rule="(has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) && !has(self.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
 // +kubebuilder:object:generate=true
 type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
@@ -49,8 +58,10 @@ type SKIPJobSpec struct {
 	Cron *CronSettings `json:"cron,omitempty"`
 
 	// Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
+	// Once set, you may not change Container without deleting your current SKIPJob
 	//
-	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="The field Container is immutable. Please delete your SKIPJob to change the containers settings."
+	// +kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
 }
 
@@ -62,6 +73,7 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Enum=low;medium;high
 	//+kubebuilder:default=medium
 	Priority string `json:"priority,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	Command []string `json:"command,omitempty"`
 
@@ -90,12 +102,6 @@ type ContainerSettings struct {
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`
 
-	//+kubebuilder:validation:Optional
-	Labels map[string]string `json:"labels,omitempty"`
-
-	//+kubebuilder:validation:Optional
-	ResourceLabels map[string]map[string]string `json:"resourceLabels,omitempty"`
-
 	// +kubebuilder:validation:Enum=OnFailure;Never
 	// +kubebuilder:default="Never"
 	// +kubebuilder:validation:Optional
@@ -115,11 +121,6 @@ type JobSettings struct {
 	//+kubebuilder:validation:Optional
 	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
 
-	// Specifies the number of Pods to run in parallel. Defaults to 1. Works similar to a Skiperator Application's Replicas.
-	//
-	//+kubebuilder:validation:Optional
-	Parallelism *int32 `json:"parallelism,omitempty"`
-
 	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
 	// all running Pods will be terminated.
 	//
@@ -131,29 +132,6 @@ type JobSettings struct {
 	//
 	//+kubebuilder:validation:Optional
 	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
-
-	// Settings for managing the Hook lifecycle of the Job, if wanted.
-	//
-	//+kubebuilder:validation:Optional
-	HookSettings *HookSettings `json:"hookSettings,omitempty"`
-}
-
-// HookSettings
-// Created own settings object to allow for configuration of more hook settings in the future, just in case.
-//
-// +kubebuilder:object:generate=true
-type HookSettings struct {
-	// Sets the SyncPhase of the Job. Only PreSync and PostSync are allowed. If unset, a normal Sync is performed.
-	// A PreSync will wait for the Job to complete before syncing other resources in the namespace, which might be useful for
-	// things like database migrations. A PostSync will only be applied after all other resources are applied.
-	//
-	// +kubebuilder:validation:Enum=PreSync;PostSync
-	//+kubebuilder:validation:Required
-	SyncPhase *string `json:"syncPhase,omitempty"`
-
-	// Potential configuration for DeletionPolicy
-	//
-	// DeletionPolicy *string `json:"deletionPolicy,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -179,9 +157,13 @@ type CronSettings struct {
 	//+kubebuilder:validation:Optional
 	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
 
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
 	// all running Pods will be terminated.
 	//
 	//+kubebuilder:validation:Optional
 	Suspend *bool `json:"suspend,omitempty"`
+}
+
+func (skipJob *SKIPJob) KindPostFixedName() string {
+	return util.ResourceNameWithKindPostfix(skipJob.Name, skipJob.Kind)
 }

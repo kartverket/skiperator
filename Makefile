@@ -39,7 +39,6 @@ test: test-tools
 	DEBUG_LEVEL=warn \
 	kubectl kuttl test \
 	--config tests/config.yaml \
-	--start-control-plane \
 	--suppress-log=events
 
 .PHONY: build-test

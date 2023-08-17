@@ -1,6 +1,9 @@
 package util
 
-import "k8s.io/apimachinery/pkg/util/intstr"
+import (
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
 
 var CommonAnnotations = map[string]string{
 	// Prevents Argo CD from deleting these resources and leaving the namespace
@@ -18,3 +21,23 @@ var (
 
 	IstioRevisionLabel = "istio.io/rev"
 )
+
+// A security context for use in pod containers created by Skiperator
+// follow least privilege best practices for the whole Container Security Context
+var LeastPrivilegeContainerSecurityContext = corev1.SecurityContext{
+	Capabilities: PointTo(corev1.Capabilities{
+		Add: []corev1.Capability{},
+		Drop: []corev1.Capability{
+			"all",
+		},
+	}),
+	Privileged:               PointTo(false),
+	RunAsUser:                PointTo(SkiperatorUser),
+	RunAsGroup:               PointTo(SkiperatorUser),
+	RunAsNonRoot:             PointTo(true),
+	ReadOnlyRootFilesystem:   PointTo(true),
+	AllowPrivilegeEscalation: PointTo(false),
+	SeccompProfile: &corev1.SeccompProfile{
+		Type: corev1.SeccompProfileTypeRuntimeDefault,
+	},
+}

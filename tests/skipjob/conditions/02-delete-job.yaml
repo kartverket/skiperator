@@ -1,0 +1,12 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+delete:
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: SKIPJob
+    name: condition-finish
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: SKIPJob
+    name: condition-fail
+  - apiVersion: skiperator.kartverket.no/v1alpha1
+    kind: SKIPJob
+    name: condition-running

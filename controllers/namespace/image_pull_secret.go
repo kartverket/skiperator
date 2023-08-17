@@ -11,8 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-// TODO Handle controller status when general status handler exists
-
 func (r *NamespaceReconciler) reconcileImagePullSecret(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "github-auth"}}
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &secret, func() error {

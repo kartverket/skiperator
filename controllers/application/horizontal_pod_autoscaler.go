@@ -16,7 +16,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	if shouldScaleToZero(application.Spec.Replicas) || !util.IsHPAEnabled(application.Spec.Replicas) {
+	if shouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
 		err := r.GetClient().Delete(ctx, &horizontalPodAutoscaler)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
@@ -35,7 +35,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 			return err
 		}
 
-		r.SetLabelsFromApplication(ctx, &horizontalPodAutoscaler, *application)
+		r.SetLabelsFromApplication(&horizontalPodAutoscaler, *application)
 		util.SetCommonAnnotations(&horizontalPodAutoscaler)
 
 		replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)

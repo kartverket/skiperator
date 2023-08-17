@@ -32,12 +32,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: SKIPJobSpec defines the desired state of SKIPJob
+            description: "SKIPJobSpec defines the desired state of SKIPJob \n A SKIPJob
+              is either defined as a one-off or a scheduled job. If the Cron field
+              is set for SKIPJob, it may not be removed. If the Cron field is unset,
+              it may not be added. The Container settings of a SKIPJob is also immutable,
+              and may not be changed after creating a SKIPJob."
             properties:
               container:
                 description: Settings for the Pods running in the job. Fields are
                   mostly the same as an Application, and are (probably) better documented
-                  there. Some fields are omitted, but none added.
+                  there. Some fields are omitted, but none added. Once set, you may
+                  not change Container without deleting your current SKIPJob
                 properties:
                   accessPolicy:
                     properties:
@@ -280,10 +285,6 @@ spec:
                     type: object
                   image:
                     type: string
-                  labels:
-                    additionalProperties:
-                      type: string
-                    type: object
                   liveness:
                     properties:
                       failureThreshold:
@@ -357,12 +358,6 @@ spec:
                     - path
                     - port
                     type: object
-                  resourceLabels:
-                    additionalProperties:
-                      additionalProperties:
-                        type: string
-                      type: object
-                    type: object
                   resources:
                     properties:
                       limits:
@@ -432,6 +427,10 @@ spec:
                 required:
                 - image
                 type: object
+                x-kubernetes-validations:
+                - message: The field Container is immutable. Please delete your SKIPJob
+                    to change the containers settings.
+                  rule: self == oldSelf
               cron:
                 description: Settings for the Job if you are running a scheduled job.
                   Optional as Jobs may be one-off.
@@ -464,7 +463,7 @@ spec:
                   suspend:
                     description: If set to true, this tells Kubernetes to suspend
                       this Job till the field is set to false. If the Job is active
-                      while this field is set to false, all running Pods will be terminated.
+                      while this field is set to true, all running Pods will be terminated.
                     type: boolean
                 required:
                 - schedule
@@ -486,27 +485,6 @@ spec:
                       the job as failed. Defaults to 6.
                     format: int32
                     type: integer
-                  hookSettings:
-                    description: Settings for managing the Hook lifecycle of the Job,
-                      if wanted.
-                    properties:
-                      syncPhase:
-                        description: Sets the SyncPhase of the Job. Only PreSync and
-                          PostSync are allowed. If unset, a normal Sync is performed.
-                          A PreSync will wait for the Job to complete before syncing
-                          other resources in the namespace, which might be useful
-                          for things like database migrations. A PostSync will only
-                          be applied after all other resources are applied.
-                        enum:
-                        - PreSync
-                        - PostSync
-                        type: string
-                    type: object
-                  parallelism:
-                    description: Specifies the number of Pods to run in parallel.
-                      Defaults to 1. Works similar to a Skiperator Application's Replicas.
-                    format: int32
-                    type: integer
                   suspend:
                     description: If set to true, this tells Kubernetes to suspend
                       this Job till the field is set to false. If the Job is active
@@ -523,6 +501,13 @@ spec:
             required:
             - container
             type: object
+            x-kubernetes-validations:
+            - message: After creation of a SKIPJob you may not remove the Cron field
+                if it was previously present, or add it if it was previously omitted.
+                Please delete the SKIPJob to change its nature from a one-off/scheduled
+                job.
+              rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
+                !has(self.cron))
           status:
             description: SKIPJobStatus defines the observed state of SKIPJob
             properties:
@@ -594,8 +579,6 @@ spec:
                   - type
                   type: object
                 type: array
-            required:
-            - conditions
             type: object
         required:
         - spec
