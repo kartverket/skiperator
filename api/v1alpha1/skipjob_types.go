@@ -157,7 +157,7 @@ type CronSettings struct {
 	//+kubebuilder:validation:Optional
 	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
 
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
 	// all running Pods will be terminated.
 	//
 	//+kubebuilder:validation:Optional
