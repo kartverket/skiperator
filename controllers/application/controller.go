@@ -54,7 +54,7 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
+		For(&skiperatorv1alpha1.Application{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
@@ -71,7 +71,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
+		//WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
 
@@ -85,8 +85,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		r.EmitWarningEvent(application, "ReconcileStartFail", "something went wrong fetching the application, it might have been deleted")
 		return reconcile.Result{}, err
 	}
-
-	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
@@ -109,9 +107,59 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
+	tmpApplication := application.DeepCopy()
+	application.FillDefaultsSpec()
+	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+		ctrlutil.AddFinalizer(application, applicationFinalizer)
+	}
+
+	if len(application.Labels) == 0 {
+		application.Labels = application.Spec.Labels
+	} else {
+		aggregateLabels := application.Labels
+		maps.Copy(aggregateLabels, application.Spec.Labels)
+		application.Labels = aggregateLabels
+	}
+
+	application.FillDefaultsStatus()
+
+	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	fullDiff, err := util.GetObjectDiff(tmpApplication, application)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
+	// updates to be visible even though the controllerDuties may take some time.
+	if len(specDiff) > 0 {
+		err := r.GetClient().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	if len(statusDiff) > 0 {
+		err := r.GetClient().Status().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	if len(fullDiff) > 0 && len(statusDiff) == 0 {
+		err := r.GetClient().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
+
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
-		r.initializeApplicationStatus,
-		r.initializeApplication,
+		//r.initializeApplicationStatus,
+		//r.initializeApplication,
 		r.reconcileCertificate,
 		r.reconcileService,
 		r.reconcileConfigMap,
@@ -129,13 +177,17 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	for _, fn := range controllerDuties {
-		if _, err := fn(ctx, application); err != nil {
-			return reconcile.Result{}, err
+		res, err := fn(ctx, application)
+		if err != nil {
+			return res, err
+		} else if res.RequeueAfter > 0 || res.Requeue {
+			return res, nil
 		}
 	}
 
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
+	//err = r.GetClient().Update(ctx, application)
 	return reconcile.Result{}, err
 }
 
