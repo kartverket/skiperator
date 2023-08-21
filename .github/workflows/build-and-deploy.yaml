@@ -159,7 +159,7 @@ jobs:
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
           git commit -aF- <<EOF
-          ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
+          skiperator ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
           EOF
           
           git push
