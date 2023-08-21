@@ -53,7 +53,7 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
@@ -70,7 +70,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1beta1.AuthorizationPolicy{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
-		//WithEventFilter(predicate.GenerationChangedPredicate{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
 
