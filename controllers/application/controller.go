@@ -149,8 +149,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
-		//r.initializeApplicationStatus,
-		//r.initializeApplication,
 		r.reconcileCertificate,
 		r.reconcileService,
 		r.reconcileConfigMap,
