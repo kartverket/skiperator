@@ -84,5 +84,5 @@ jobs:
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator Sandbox ${{github.ref_name}}"
+          git commit -am "deploy skiperator branch: ${{github.ref_name}}"
           git push

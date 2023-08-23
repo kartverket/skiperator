@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -91,8 +90,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
-	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
-
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
 		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
@@ -114,9 +111,49 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{}, err
 	}
 
+	tmpApplication := application.DeepCopy()
+	application.FillDefaultsSpec()
+	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+		ctrlutil.AddFinalizer(application, applicationFinalizer)
+	}
+
+	if len(application.Labels) == 0 {
+		application.Labels = application.Spec.Labels
+	} else {
+		aggregateLabels := application.Labels
+		maps.Copy(aggregateLabels, application.Spec.Labels)
+		application.Labels = aggregateLabels
+	}
+
+	application.FillDefaultsStatus()
+
+	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
+	// updates to be visible even though the controllerDuties may take some time.
+	if len(statusDiff) > 0 {
+		err := r.GetClient().Status().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	// Finalizer check is due to a bug when updating using controller-runtime
+	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
+	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
+		err := r.GetClient().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
+
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
-		r.initializeApplicationStatus,
-		r.initializeApplication,
 		r.reconcileCertificate,
 		r.reconcileService,
 		r.reconcileConfigMap,
@@ -136,48 +173,15 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	for _, fn := range controllerDuties {
-		if _, err := fn(ctx, application); err != nil {
-			return reconcile.Result{}, err
+		res, err := fn(ctx, application)
+		if err != nil {
+			return res, err
+		} else if res.RequeueAfter > 0 || res.Requeue {
+			return res, nil
 		}
 	}
 
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
-
-	return reconcile.Result{}, err
-}
-
-func (r *ApplicationReconciler) initializeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
-
-	application.FillDefaultsSpec()
-	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
-		ctrlutil.AddFinalizer(application, applicationFinalizer)
-	}
-
-	if len(application.Labels) == 0 {
-		application.Labels = application.Spec.Labels
-	} else {
-		aggregateLabels := application.Labels
-		maps.Copy(aggregateLabels, application.Spec.Labels)
-		application.Labels = aggregateLabels
-	}
-
-	err := r.GetClient().Update(ctx, application)
-	if err != nil {
-		r.EmitWarningEvent(application, "InitializeAppFunc", fmt.Sprintf("Application %v could not init due to error: %v", application.Name, err.Error()))
-	}
-
-	return reconcile.Result{}, err
-}
-
-func (r *ApplicationReconciler) initializeApplicationStatus(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	_ = r.GetClient().Get(ctx, types.NamespacedName{Namespace: application.Namespace, Name: application.Name}, application)
-
-	application.FillDefaultsStatus()
-	err := r.GetClient().Status().Update(ctx, application)
-	if err != nil {
-		r.EmitWarningEvent(application, "InitializeAppStatusFunc", fmt.Sprintf("Application %v could not init status due to error: %v", application.Name, err.Error()))
-	}
 
 	return reconcile.Result{}, err
 }

@@ -31,11 +31,7 @@ const (
 )
 
 var (
-	deploymentLog         = ctrl.Log.WithName("deployment")
-	defaultPodAnnotations = map[string]string{
-		"argocd.argoproj.io/sync-options": "Prune=false",
-		"prometheus.io/scrape":            "true",
-	}
+	deploymentLog = ctrl.Log.WithName("deployment")
 )
 
 func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
@@ -118,7 +114,10 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	labels := util.GetPodAppSelector(application.Name)
 
-	generatedSpecAnnotations := defaultPodAnnotations
+	generatedSpecAnnotations := map[string]string{
+		"argocd.argoproj.io/sync-options": "Prune=false",
+		"prometheus.io/scrape":            "true",
+	}
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
 	//

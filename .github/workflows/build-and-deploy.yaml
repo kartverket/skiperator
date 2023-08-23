@@ -158,5 +158,8 @@ jobs:
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator, commit: ${{ github.event.head_commit.message }}"
+          git commit -aF- <<EOF
+          skiperator ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
+          EOF
+          
           git push
