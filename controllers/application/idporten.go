@@ -8,7 +8,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -31,7 +31,7 @@ func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, applicati
 
 	var err error
 
-	idporten := nais_io_v1.IDPortenClient{
+	idporten := naisiov1.IDPortenClient{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "nais.io/v1",
 			Kind:       "IDPortenClient",
@@ -77,7 +77,7 @@ func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, applicati
 }
 
 // Assumes application.Spec.IDPorten != nil
-func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.IDPortenClientSpec, error) {
+func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPortenClientSpec, error) {
 	integrationType := application.Spec.IDPorten.IntegrationType
 	if integrationType == "" {
 		// No scopes => idporten
@@ -99,33 +99,33 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 
 	redirectURIs, err := buildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
 	if err != nil {
-		return nais_io_v1.IDPortenClientSpec{}, nil
+		return naisiov1.IDPortenClientSpec{}, nil
 	}
 
 	frontchannelLogoutURI, err := buildURI(ingress, application.Spec.IDPorten.FrontchannelLogoutPath, DefaultClientLogoutPath)
 	if err != nil {
-		return nais_io_v1.IDPortenClientSpec{}, nil
+		return naisiov1.IDPortenClientSpec{}, nil
 	}
 
 	postLogoutRedirectURIs, err := getPostLogoutRedirectURIs(application.Spec.IDPorten.PostLogoutRedirectURIs, ingress, application.Spec.IDPorten.PostLogoutRedirectPath)
 	if err != nil {
-		return nais_io_v1.IDPortenClientSpec{}, nil
+		return naisiov1.IDPortenClientSpec{}, nil
 	}
 
 	secretName, err := getIDPortenSecretName(application.Name)
 	if err != nil {
-		return nais_io_v1.IDPortenClientSpec{}, err
+		return naisiov1.IDPortenClientSpec{}, err
 	}
 
-	return nais_io_v1.IDPortenClientSpec{
+	return naisiov1.IDPortenClientSpec{
 		ClientName:             getClientNameIdPorten(application.Name, application.Spec.IDPorten),
-		ClientURI:              withFallback(application.Spec.IDPorten.ClientURI, nais_io_v1.IDPortenURI(ingress)),
+		ClientURI:              withFallback(application.Spec.IDPorten.ClientURI, naisiov1.IDPortenURI(ingress)),
 		IntegrationType:        integrationType,
 		RedirectURIs:           redirectURIs,
 		SecretName:             secretName,
 		AccessTokenLifetime:    application.Spec.IDPorten.AccessTokenLifetime,
 		SessionLifetime:        application.Spec.IDPorten.SessionLifetime,
-		FrontchannelLogoutURI:  nais_io_v1.IDPortenURI(frontchannelLogoutURI),
+		FrontchannelLogoutURI:  naisiov1.IDPortenURI(frontchannelLogoutURI),
 		PostLogoutRedirectURIs: postLogoutRedirectURIs,
 		Scopes:                 scopes,
 	}, nil
@@ -139,8 +139,8 @@ func getClientNameIdPorten(applicationName string, idPortenSettings *skiperatorv
 	return applicationName
 }
 
-func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]nais_io_v1.IDPortenURI, ingress string, postLogoutRedirectPath string) ([]nais_io_v1.IDPortenURI, error) {
-	uris := make([]nais_io_v1.IDPortenURI, 0)
+func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]naisiov1.IDPortenURI, ingress string, postLogoutRedirectPath string) ([]naisiov1.IDPortenURI, error) {
+	uris := make([]naisiov1.IDPortenURI, 0)
 
 	if postLogoutRedirectURIs != nil {
 		uris = *postLogoutRedirectURIs
@@ -151,7 +151,7 @@ func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]nais_io_v1.IDPortenURI,
 		if err != nil {
 			return uris, err
 		}
-		uris = append(uris, nais_io_v1.IDPortenURI(u))
+		uris = append(uris, naisiov1.IDPortenURI(u))
 	}
 
 	return uris, nil
@@ -199,10 +199,10 @@ func buildURI(ingress string, pathSeg string, fallback string) (string, error) {
 }
 
 // ingress => BuildURI(ingress)
-func buildURIs(ingresses []string, pathSeg string, fallback string) ([]nais_io_v1.IDPortenURI, error) {
-	return array.MapErr(ingresses, func(ingress string) (nais_io_v1.IDPortenURI, error) {
+func buildURIs(ingresses []string, pathSeg string, fallback string) ([]naisiov1.IDPortenURI, error) {
+	return array.MapErr(ingresses, func(ingress string) (naisiov1.IDPortenURI, error) {
 		uri, err := buildURI(ingress, pathSeg, fallback)
-		return nais_io_v1.IDPortenURI(uri), err
+		return naisiov1.IDPortenURI(uri), err
 	})
 }
 

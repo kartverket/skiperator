@@ -5,7 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,7 +18,7 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 
 	var err error
 
-	maskinporten := nais_io_v1.MaskinportenClient{
+	maskinporten := naisiov1.MaskinportenClient{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "nais.io/v1",
 			Kind:       "MaskinportenClient",
@@ -61,18 +61,18 @@ func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, appli
 	return reconcile.Result{}, err
 }
 
-func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.MaskinportenClientSpec, error) {
+func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.MaskinportenClientSpec, error) {
 	secretName, err := getMaskinportenSecretName(application.Name)
 	if err != nil {
-		return nais_io_v1.MaskinportenClientSpec{}, err
+		return naisiov1.MaskinportenClientSpec{}, err
 	}
 
-	scopes := nais_io_v1.MaskinportenScope{}
+	scopes := naisiov1.MaskinportenScope{}
 	if application.Spec.Maskinporten.Scopes != nil {
 		scopes = *application.Spec.Maskinporten.Scopes
 	}
 
-	return nais_io_v1.MaskinportenClientSpec{
+	return naisiov1.MaskinportenClientSpec{
 		ClientName: getClientNameMaskinporten(application.Name, application.Spec.Maskinporten),
 		SecretName: secretName,
 		Scopes:     scopes,
