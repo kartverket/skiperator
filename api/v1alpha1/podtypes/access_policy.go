@@ -1,5 +1,9 @@
 package podtypes
 
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
 // +kubebuilder:object:generate=true
 type AccessPolicy struct {
 	//+kubebuilder:validation:Optional
@@ -27,6 +31,8 @@ type InternalRule struct {
 	Namespace string `json:"namespace,omitempty"`
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
+	//+kubebuilder:validation:Optional
+	NamespacesByLabel *metav1.LabelSelector `json:"namespaceByLabel,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
