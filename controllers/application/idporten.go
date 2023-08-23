@@ -118,7 +118,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 	}
 
 	return nais_io_v1.IDPortenClientSpec{
-		ClientName:             application.Name,
+		ClientName:             getClientNameIdPorten(application.Name, application.Spec.IDPorten),
 		ClientURI:              withFallback(application.Spec.IDPorten.ClientURI, nais_io_v1.IDPortenURI(ingress)),
 		IntegrationType:        integrationType,
 		RedirectURIs:           redirectURIs,
@@ -129,6 +129,14 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (nais_io_v1.ID
 		PostLogoutRedirectURIs: postLogoutRedirectURIs,
 		Scopes:                 scopes,
 	}, nil
+}
+
+func getClientNameIdPorten(applicationName string, idPortenSettings *skiperatorv1alpha1.IDPorten) string {
+	if idPortenSettings.ClientName != nil {
+		return *idPortenSettings.ClientName
+	}
+
+	return applicationName
 }
 
 func getPostLogoutRedirectURIs(postLogoutRedirectURIs *[]nais_io_v1.IDPortenURI, ingress string, postLogoutRedirectPath string) ([]nais_io_v1.IDPortenURI, error) {

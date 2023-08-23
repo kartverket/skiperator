@@ -313,6 +313,11 @@ spec:
                     maximum: 3600
                     minimum: 1
                     type: integer
+                  clientName:
+                    description: The name of the Client as shown in Digitaliseringsdirektoratet's
+                      Samarbeidsportal Meant to be a human-readable name for separating
+                      clients in the portal
+                    type: string
                   clientURI:
                     description: ClientURI is the URL shown to the user at ID-porten
                       when displaying a 'back' button or on errors.
@@ -432,6 +437,11 @@ spec:
               maskinporten:
                 description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
                 properties:
+                  clientName:
+                    description: The name of the Client as shown in Digitaliseringsdirektoratet's
+                      Samarbeidsportal Meant to be a human-readable name for separating
+                      clients in the portal
+                    type: string
                   enabled:
                     description: If enabled, provisions and configures a Maskinporten
                       client with consumed scopes and/or Exposed scopes with DigDir.

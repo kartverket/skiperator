@@ -73,13 +73,22 @@ func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (nais_io_v
 	}
 
 	return nais_io_v1.MaskinportenClientSpec{
+		ClientName: getClientNameMaskinporten(application.Name, application.Spec.Maskinporten),
 		SecretName: secretName,
 		Scopes:     scopes,
 	}, nil
 }
 
-func maskinportenSpecifiedInSpec(mp *skiperatorv1alpha1.Maskinporten) bool {
-	return mp != nil && mp.Enabled
+func getClientNameMaskinporten(applicationName string, maskinportenSettings *skiperatorv1alpha1.Maskinporten) string {
+	if maskinportenSettings.ClientName != nil {
+		return *maskinportenSettings.ClientName
+	}
+
+	return applicationName
+}
+
+func maskinportenSpecifiedInSpec(maskinportenSettings *skiperatorv1alpha1.Maskinporten) bool {
+	return maskinportenSettings != nil && maskinportenSettings.Enabled
 }
 
 func getMaskinportenSecretName(name string) (string, error) {
