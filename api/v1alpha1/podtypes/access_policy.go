@@ -26,6 +26,7 @@ type OutboundPolicy struct {
 	External []ExternalRule `json:"external,omitempty"`
 }
 
+// +kubebuilder:object:generate=true
 type InternalRule struct {
 	//+kubebuilder:validation:Optional
 	Namespace string `json:"namespace,omitempty"`
