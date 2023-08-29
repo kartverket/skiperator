@@ -32,7 +32,7 @@ type InternalRule struct {
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 	//+kubebuilder:validation:Optional
-	NamespacesByLabel *metav1.LabelSelector `json:"namespaceByLabel,omitempty"`
+	NamespacesByLabel *metav1.LabelSelector `json:"namespacesByLabel,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

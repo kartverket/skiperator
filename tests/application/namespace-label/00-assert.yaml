@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-source
+spec:
+  podSelector:
+    matchLabels:
+      app: test-source
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              team: skiptest
+              app: testapp-selsno
+          podSelector:
+            matchLabels:
+              app: test-ext
+      ports:
+        - port: 8080

@@ -56,7 +56,9 @@ func (in *InboundPolicy) DeepCopyInto(out *InboundPolicy) {
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]InternalRule, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 }
 
@@ -76,7 +78,9 @@ func (in *OutboundPolicy) DeepCopyInto(out *OutboundPolicy) {
 	if in.Rules != nil {
 		in, out := &in.Rules, &out.Rules
 		*out = make([]InternalRule, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.External != nil {
 		in, out := &in.External, &out.External
