@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: skipjob-access-policy-job-egress-3a90cb5d70dc06a
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  hosts:
+    - foo.com
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: skipjob-access-policy-job-egress-56cd7aa901014e78
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  hosts:
+    - example.com
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
+  resolution: DNS
