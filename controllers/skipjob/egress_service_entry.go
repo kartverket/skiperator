@@ -20,7 +20,11 @@ func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, ski
 	}
 
 	for _, serviceEntry := range serviceEntries {
+		// CreateOrPatch gets the object (from cache) before the mutating function is run, masquerading actual changes
+		// Restoring the Spec from a copy within the mutating func fixes this
+		desiredServiceEntry := serviceEntry.DeepCopy()
 		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
+			serviceEntry.Spec = desiredServiceEntry.Spec
 			// Set application as owner of the service entry
 			err := ctrlutil.SetControllerReference(skipJob, &serviceEntry, r.GetScheme())
 			if err != nil {
