@@ -6,7 +6,7 @@ go 1.20
 replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.20230127103832-3aa3dfd6613d
 
 require (
-	github.com/cert-manager/cert-manager v1.12.3
+	github.com/cert-manager/cert-manager v1.12.4
 	github.com/go-logr/logr v1.2.4
 	github.com/google/k8s-digester v0.1.10
 	github.com/imdario/mergo v0.3.12
