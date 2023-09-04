@@ -106,8 +106,9 @@ spec:
   # Mounting volumes into the Deployment are done using the filesFrom argument
   # filesFrom supports configmaps, secrets and pvcs. The Application resource
   # assumes these have already been created by you
+  # NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
   filesFrom:
-    - emptyDir: temp-dir
+    - emptyDir: temp-dir              # <-- provided
       mountPath: /tmp
     - configMap: some-configmap
       mountPath: /var/run/configmap
