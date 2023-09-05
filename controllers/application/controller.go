@@ -320,3 +320,37 @@ func (r *ApplicationReconciler) SetLabelsFromApplication(object client.Object, a
 
 	r.setResourceLabelsIfApplies(object, app)
 }
+
+
+func (r *ApplicationReconciler) setPodResourceLabelsIfApplies(obj corev1.PodTemplateSpec, app skiperatorv1alpha1.Application) {
+
+	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
+		resourceLabelGroupKind, present := app.GroupKindFromControllerResource(controllerResource)
+		if present {
+			if strings.EqualFold("core", resourceLabelGroupKind.Group) && strings.EqualFold("Pod", resourceLabelGroupKind.Kind) {
+				objectLabels := obj.GetLabels()
+				if len(objectLabels) == 0 {
+					objectLabels = make(map[string]string)
+				}
+				maps.Copy(objectLabels, resourceLabels)
+				obj.SetLabels(objectLabels)
+			}
+		} else {
+			r.EmitWarningEvent(&app, "MistypedLabel", fmt.Sprintf("could not find according Kind for Resource %v, make sure your resource is spelled correctly", controllerResource))
+		}
+	}
+}
+
+func (r *ApplicationReconciler) SetPodLabelsFromApplication(object corev1.PodTemplateSpec, app skiperatorv1alpha1.Application) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	if app.Spec.Labels != nil {
+		maps.Copy(labels, app.Spec.Labels)
+		object.SetLabels(labels)
+	}
+
+	r.setPodResourceLabelsIfApplies(object, app)
+}
+
