@@ -1,8 +1,8 @@
 package podtypes
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
+//import (
+//	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+//)
 
 // +kubebuilder:object:generate=true
 type AccessPolicy struct {
@@ -26,14 +26,15 @@ type OutboundPolicy struct {
 	External []ExternalRule `json:"external,omitempty"`
 }
 
+// If user adds both Namespace and NamespacesByLabel to an InternalRule, Namespace takes presedence
 // +kubebuilder:object:generate=true
 type InternalRule struct {
-	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace,omitempty"`
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
 	//+kubebuilder:validation:Optional
-	NamespacesByLabel *metav1.LabelSelector `json:"namespacesByLabel,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	//+kubebuilder:validation:Optional
+	NamespacesByLabel map[string]string `json:"namespacesByLabel,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
