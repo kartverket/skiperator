@@ -25,7 +25,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Golang environment
         uses: actions/setup-go@v4
@@ -52,7 +52,7 @@ jobs:
       TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: kartverket/skip-apps
           token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
