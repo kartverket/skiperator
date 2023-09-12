@@ -47,4 +47,5 @@ spec:
             kubernetes.io/metadata.name: grafana-agent
         podSelector:
           matchLabels:
-            app: grafana-agent
+            app.kubernetes.io/instance: grafana-agent
+            app.kubernetes.io/name: grafana-agent

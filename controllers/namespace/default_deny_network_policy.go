@@ -89,7 +89,10 @@ func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Cont
 								MatchLabels: map[string]string{"kubernetes.io/metadata.name": "grafana-agent"},
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: map[string]string{"app": "grafana-agent"},
+								MatchLabels: map[string]string{
+									"app.kubernetes.io/instance": "grafana-agent",
+									"app.kubernetes.io/name":     "grafana-agent",
+								},
 							},
 						},
 					},
