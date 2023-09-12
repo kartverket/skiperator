@@ -7,21 +7,15 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
-	cmapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "instana-networkpolicy-config"}
-	instanaConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, cmapNamespacedName)
-
-	if !util.ErrIsMissingOrNil(r.GetRecorder(), err, "Cannot find configmap named instana-networkpolicy-config in namespace skiperator-system", namespace) {
-		return reconcile.Result{}, err
-	}
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
+	var err error
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set namespace as owner of the network policy
 		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.GetScheme())
@@ -88,13 +82,26 @@ func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Cont
 						},
 					},
 				},
-				// Egress rule for instana-agents
+				// Egress rule for grafana-agent
 				{
 					To: []networkingv1.NetworkPolicyPeer{
 						{
-							IPBlock: &networkingv1.IPBlock{
-								CIDR: instanaConfigMap.Data["cidrBlock"],
+							NamespaceSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"kubernetes.io/metadata.name": "grafana-agent"},
 							},
+							PodSelector: &metav1.LabelSelector{
+								MatchLabels: map[string]string{"app": "grafana-agent"},
+							},
+						},
+					},
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Protocol: util.PointTo(corev1.ProtocolTCP),
+							Port:     util.PointTo(intstr.FromInt(4317)),
+						},
+						{
+							Protocol: util.PointTo(corev1.ProtocolTCP),
+							Port:     util.PointTo(intstr.FromInt(4318)),
 						},
 					},
 				},
