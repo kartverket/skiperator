@@ -15,8 +15,7 @@ import (
 func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Context, namespace *corev1.Namespace) (reconcile.Result, error) {
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: namespace.Name, Name: "default-deny"}}
-	var err error
-	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
+	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 		// Set namespace as owner of the network policy
 		err := ctrlutil.SetControllerReference(namespace, &networkPolicy, r.GetScheme())
 		if err != nil {
