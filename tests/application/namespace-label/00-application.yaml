@@ -9,6 +9,6 @@ spec:
     inbound:
       rules:
         - application: test-ext
-          namespaceByLabel:
+          namespacesByLabel:
             team: skiptest
             app: testapp-selsno
