@@ -97,7 +97,11 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
-	podSpec := corev1.PodTemplateSpec{
+	podForDeploymentTemplate := corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels:      labels,
 			Annotations: generatedSpecAnnotations,
@@ -128,7 +132,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			SchedulerName:                 corev1.DefaultSchedulerName,
 		},
 	}
-	r.SetPodLabelsFromApplication(podSpec, *application)
+
+	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
 
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: labels},
@@ -136,7 +141,10 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
 			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
 		},
-		Template: podSpec,
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: podForDeploymentTemplate.ObjectMeta,
+			Spec:       podForDeploymentTemplate.Spec,
+		},
 		RevisionHistoryLimit:    util.PointTo(int32(2)),
 		ProgressDeadlineSeconds: util.PointTo(int32(600)),
 	}
