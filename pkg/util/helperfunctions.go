@@ -3,8 +3,12 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/mitchellh/hashstructure/v2"
+	"github.com/r3labs/diff/v3"
 	"hash/fnv"
+	"reflect"
 	"regexp"
+	"strings"
 	"unicode"
 
 	"golang.org/x/exp/maps"
@@ -20,6 +24,14 @@ var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
 
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
+}
+
+func GetHashForStructs(obj []interface{}) string {
+	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("%d", hash)
 }
 
 func GenerateHashFromName(name string) uint64 {
@@ -69,7 +81,7 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
-func GetApplicationSelector(applicationName string) map[string]string {
+func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
 
@@ -81,4 +93,23 @@ func HasUpperCaseLetter(word string) bool {
 	}
 
 	return false
+}
+
+func ResourceNameWithKindPostfix(resourceName string, kind string) string {
+	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
+}
+
+func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
+	aKind := reflect.ValueOf(a).Kind()
+	bKind := reflect.ValueOf(b).Kind()
+	if aKind != bKind {
+		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+	}
+	changelog, err := diff.Diff(a, b)
+
+	if len(changelog) == 0 {
+		return nil, err
+	}
+
+	return changelog, nil
 }

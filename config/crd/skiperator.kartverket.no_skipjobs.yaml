@@ -1,0 +1,589 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.12.0
+  name: skipjobs.skiperator.kartverket.no
+spec:
+  group: skiperator.kartverket.no
+  names:
+    kind: SKIPJob
+    listKind: SKIPJobList
+    plural: skipjobs
+    singular: skipjob
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SKIPJob is the Schema for the skipjobs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: "SKIPJobSpec defines the desired state of SKIPJob \n A SKIPJob
+              is either defined as a one-off or a scheduled job. If the Cron field
+              is set for SKIPJob, it may not be removed. If the Cron field is unset,
+              it may not be added. The Container settings of a SKIPJob is also immutable,
+              and may not be changed after creating a SKIPJob."
+            properties:
+              container:
+                description: Settings for the Pods running in the job. Fields are
+                  mostly the same as an Application, and are (probably) better documented
+                  there. Some fields are omitted, but none added. Once set, you may
+                  not change Container without deleting your current SKIPJob
+                properties:
+                  accessPolicy:
+                    properties:
+                      inbound:
+                        properties:
+                          rules:
+                            items:
+                              properties:
+                                application:
+                                  type: string
+                                namespace:
+                                  type: string
+                              required:
+                              - application
+                              type: object
+                            type: array
+                        required:
+                        - rules
+                        type: object
+                      outbound:
+                        properties:
+                          external:
+                            items:
+                              properties:
+                                host:
+                                  type: string
+                                ip:
+                                  type: string
+                                ports:
+                                  items:
+                                    properties:
+                                      name:
+                                        type: string
+                                      port:
+                                        type: integer
+                                      protocol:
+                                        enum:
+                                        - HTTP
+                                        - HTTPS
+                                        - TCP
+                                        type: string
+                                    required:
+                                    - name
+                                    - port
+                                    - protocol
+                                    type: object
+                                  type: array
+                              required:
+                              - host
+                              type: object
+                            type: array
+                          rules:
+                            items:
+                              properties:
+                                application:
+                                  type: string
+                                namespace:
+                                  type: string
+                              required:
+                              - application
+                              type: object
+                            type: array
+                        type: object
+                    type: object
+                  additionalPorts:
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        protocol:
+                          default: TCP
+                          enum:
+                          - TCP
+                          - UDP
+                          - SCTP
+                          type: string
+                      required:
+                      - name
+                      - port
+                      - protocol
+                      type: object
+                    type: array
+                  command:
+                    items:
+                      type: string
+                    type: array
+                  env:
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: 'Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in
+                            the container and any service environment variables. If
+                            a variable cannot be resolved, the reference in the input
+                            string will be unchanged. Double $$ are reduced to a single
+                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless
+                            of whether the variable exists or not. Defaults to "".'
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: 'Selects a field of the pod: supports metadata.name,
+                                metadata.namespace, `metadata.labels[''<KEY>'']`,
+                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
+                                spec.serviceAccountName, status.hostIP, status.podIP,
+                                status.podIPs.'
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: 'Selects a resource of the container: only
+                                resources limits and requests (limits.cpu, limits.memory,
+                                limits.ephemeral-storage, requests.cpu, requests.memory
+                                and requests.ephemeral-storage) are currently supported.'
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  envFrom:
+                    items:
+                      properties:
+                        configMap:
+                          type: string
+                        secret:
+                          type: string
+                      type: object
+                    type: array
+                  filesFrom:
+                    items:
+                      properties:
+                        configMap:
+                          type: string
+                        emptyDir:
+                          type: string
+                        mountPath:
+                          type: string
+                        persistentVolumeClaim:
+                          type: string
+                        secret:
+                          type: string
+                      required:
+                      - mountPath
+                      type: object
+                    type: array
+                  gcp:
+                    properties:
+                      auth:
+                        properties:
+                          serviceAccount:
+                            type: string
+                        required:
+                        - serviceAccount
+                        type: object
+                    required:
+                    - auth
+                    type: object
+                  image:
+                    type: string
+                  liveness:
+                    properties:
+                      failureThreshold:
+                        default: 3
+                        format: int32
+                        type: integer
+                      initialDelay:
+                        default: 0
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      period:
+                        default: 10
+                        format: int32
+                        type: integer
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      successThreshold:
+                        default: 1
+                        format: int32
+                        type: integer
+                      timeout:
+                        default: 1
+                        format: int32
+                        type: integer
+                    required:
+                    - path
+                    - port
+                    type: object
+                  priority:
+                    default: medium
+                    enum:
+                    - low
+                    - medium
+                    - high
+                    type: string
+                  readiness:
+                    properties:
+                      failureThreshold:
+                        default: 3
+                        format: int32
+                        type: integer
+                      initialDelay:
+                        default: 0
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      period:
+                        default: 10
+                        format: int32
+                        type: integer
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      successThreshold:
+                        default: 1
+                        format: int32
+                        type: integer
+                      timeout:
+                        default: 1
+                        format: int32
+                        type: integer
+                    required:
+                    - path
+                    - port
+                    type: object
+                  resources:
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: ResourceList is a set of (resource name, quantity)
+                          pairs.
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: ResourceList is a set of (resource name, quantity)
+                          pairs.
+                        type: object
+                    type: object
+                  restartPolicy:
+                    default: Never
+                    description: RestartPolicy describes how the container should
+                      be restarted. Only one of the following restart policies may
+                      be specified. If none of the following policies is specified,
+                      the default one is RestartPolicyAlways.
+                    enum:
+                    - OnFailure
+                    - Never
+                    type: string
+                  startup:
+                    properties:
+                      failureThreshold:
+                        default: 3
+                        format: int32
+                        type: integer
+                      initialDelay:
+                        default: 0
+                        format: int32
+                        type: integer
+                      path:
+                        type: string
+                      period:
+                        default: 10
+                        format: int32
+                        type: integer
+                      port:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        x-kubernetes-int-or-string: true
+                      successThreshold:
+                        default: 1
+                        format: int32
+                        type: integer
+                      timeout:
+                        default: 1
+                        format: int32
+                        type: integer
+                    required:
+                    - path
+                    - port
+                    type: object
+                required:
+                - image
+                type: object
+                x-kubernetes-validations:
+                - message: The field Container is immutable. Please delete your SKIPJob
+                    to change the containers settings.
+                  rule: self == oldSelf
+              cron:
+                description: Settings for the Job if you are running a scheduled job.
+                  Optional as Jobs may be one-off.
+                properties:
+                  allowConcurrency:
+                    default: Allow
+                    description: Denotes how Kubernetes should react to multiple instances
+                      of the Job being started at the same time. Allow will allow
+                      concurrent jobs. Forbid will not allow this, and instead skip
+                      the newer schedule Job. Replace will replace the current active
+                      Job with the newer scheduled Job.
+                    enum:
+                    - Allow
+                    - Forbid
+                    - Replace
+                    type: string
+                  schedule:
+                    description: 'A CronJob string for denoting the schedule of this
+                      job. See https://crontab.guru/ for help creating CronJob strings.
+                      Kubernetes CronJobs also include the extended "Vixie cron" step
+                      values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.'
+                    type: string
+                  startingDeadlineSeconds:
+                    description: Denotes the deadline in seconds for starting a job
+                      on its schedule, if for some reason the Job's controller was
+                      not ready upon the scheduled time. If unset, Jobs missing their
+                      deadline will be considered failed jobs and will not start.
+                    format: int64
+                    type: integer
+                  suspend:
+                    description: If set to true, this tells Kubernetes to suspend
+                      this Job till the field is set to false. If the Job is active
+                      while this field is set to true, all running Pods will be terminated.
+                    type: boolean
+                required:
+                - schedule
+                type: object
+              job:
+                description: Settings for the actual Job. If you use a scheduled job,
+                  the settings in here will also specify the template of the job.
+                properties:
+                  activeDeadlineSeconds:
+                    description: ActiveDeadlineSeconds denotes a duration in seconds
+                      started from when the job is first active. If the deadline is
+                      reached during the job's workload the job and its Pods are terminated.
+                      If the job is suspended using the Suspend field, this timer
+                      is stopped and reset when unsuspended.
+                    format: int64
+                    type: integer
+                  backoffLimit:
+                    description: Specifies the number of retry attempts before determining
+                      the job as failed. Defaults to 6.
+                    format: int32
+                    type: integer
+                  suspend:
+                    description: If set to true, this tells Kubernetes to suspend
+                      this Job till the field is set to false. If the Job is active
+                      while this field is set to false, all running Pods will be terminated.
+                    type: boolean
+                  ttlSecondsAfterFinished:
+                    description: The number of seconds to wait before removing the
+                      Job after it has finished. If unset, Job will not be cleaned
+                      up. It is recommended to set this to avoid clutter in your resource
+                      tree.
+                    format: int32
+                    type: integer
+                type: object
+            required:
+            - container
+            type: object
+            x-kubernetes-validations:
+            - message: After creation of a SKIPJob you may not remove the Cron field
+                if it was previously present, or add it if it was previously omitted.
+                Please delete the SKIPJob to change its nature from a one-off/scheduled
+                job.
+              rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
+                !has(self.cron))
+          status:
+            description: SKIPJobStatus defines the observed state of SKIPJob
+            properties:
+              conditions:
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    \n type FooStatus struct{ // Represents the observations of a
+                    foo's current state. // Known .status.conditions.type are: \"Available\",
+                    \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
+                    // +listType=map // +listMapKey=type Conditions []metav1.Condition
+                    `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
+                    protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                  properties:
+                    lastTransitionTime:
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

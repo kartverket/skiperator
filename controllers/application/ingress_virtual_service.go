@@ -70,6 +70,9 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 					{
 						Destination: &networkingv1beta1api.Destination{
 							Host: application.Name,
+							Port: &networkingv1beta1api.PortSelector{
+								Number: uint32(application.Spec.Port),
+							},
 						},
 					},
 				},

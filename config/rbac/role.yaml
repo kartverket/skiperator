@@ -2,9 +2,14 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  creationTimestamp: null
   name: skiperator
 rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - get
 - apiGroups:
   - apps
   resources:
@@ -21,6 +26,19 @@ rules:
   - autoscaling
   resources:
   - horizontalpodautoscalers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
   verbs:
   - create
   - delete
@@ -81,7 +99,32 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - pods
+  - pods/ephemeralcontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
   - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
   verbs:
   - create
   - delete
@@ -158,6 +201,16 @@ rules:
   resources:
   - applications
   - applications/status
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - skiperator.kartverket.no
+  resources:
+  - skipjobs
+  - skipjobs/status
   verbs:
   - get
   - list

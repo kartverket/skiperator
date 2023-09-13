@@ -1,0 +1,83 @@
+### example.com resources
+### Also tests contents of gateway/cert
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: test-ingress-multiple-ports-ingress-56cd7aa901014e78
+spec:
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: test-ingress-multiple-ports-ingress-56cd7aa901014e78
+  dnsNames:
+    - example.com
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingress-multiple-ports-ingress-56cd7aa901014e78
+spec:
+  servers:
+    - hosts:
+        - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: test-ingress-multiple-ports-ingress-56cd7aa901014e78
+---
+### test.com resources
+### only checks existance of name
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: test-ingress-multiple-ports-ingress-34888c0b0c2a4a2c
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingress-multiple-ports-ingress-34888c0b0c2a4a2c
+
+### VirtualService, should exist one for both
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ingress-multiple-ports-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - ingress-multiple-ports-ingress-56cd7aa901014e78
+    - ingress-multiple-ports-ingress-34888c0b0c2a4a2c
+  hosts:
+    - example.com
+    - test.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - route:
+        - destination:
+            host: ingress-multiple-ports
+            port:
+              number: 8080
