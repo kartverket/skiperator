@@ -33,9 +33,7 @@ dockers:
   - image_templates:
       - "kartverket/skiperator"
     extra_files:
-      - go.mod
-      - go.sum
-      - Makefile
+      - ./
 
 checksum:
   name_template: "checksums.txt"
