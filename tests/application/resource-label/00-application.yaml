@@ -12,5 +12,7 @@ spec:
       serviceLabel: test
     horizontalpodautoscaler:
       hpaLabel: test
+    Pod:
+      podLabel: test
     thisisnotaresource:
       testLabel: test

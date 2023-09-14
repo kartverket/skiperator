@@ -9,7 +9,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"strings"
 	"time"
 )
 
@@ -336,89 +335,5 @@ func max[T constraints.Ordered](a, b T) T {
 		return a
 	} else {
 		return b
-	}
-}
-
-type ControllerResources string
-
-const (
-	DEPLOYMENT              ControllerResources = "Deployment"
-	SERVICE                 ControllerResources = "Service"
-	SERVICEACCOUNT          ControllerResources = "ServiceAccount"
-	CONFIGMAP               ControllerResources = "ConfigMap"
-	NETWORKPOLICY           ControllerResources = "NetworkPolicy"
-	GATEWAY                 ControllerResources = "Gateway"
-	SERVICEENTRY            ControllerResources = "ServiceEntry"
-	VIRTUALSERVICE          ControllerResources = "VirtualService"
-	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
-	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
-	CERTIFICATE             ControllerResources = "Certificate"
-	AUTHORIZATIONPOLICY     ControllerResources = "AuthorizationPolicy"
-)
-
-func (a *Application) GroupKindFromControllerResource(controllerResource string) (metav1.GroupKind, bool) {
-	switch strings.ToLower(controllerResource) {
-	case "deployment":
-		return metav1.GroupKind{
-			Group: "apps",
-			Kind:  string(DEPLOYMENT),
-		}, true
-	case "service":
-		return metav1.GroupKind{
-			Group: "",
-			Kind:  string(SERVICE),
-		}, true
-	case "serviceaccount":
-		return metav1.GroupKind{
-			Group: "",
-			Kind:  string(SERVICEACCOUNT),
-		}, true
-	case "configmaps":
-		return metav1.GroupKind{
-			Group: "",
-			Kind:  string(CONFIGMAP),
-		}, true
-	case "networkpolicy":
-		return metav1.GroupKind{
-			Group: "networking.k8s.io",
-			Kind:  string(NETWORKPOLICY),
-		}, true
-	case "gateway":
-		return metav1.GroupKind{
-			Group: "networking.istio.io",
-			Kind:  string(GATEWAY),
-		}, true
-	case "serviceentry":
-		return metav1.GroupKind{
-			Group: "networking.istio.io",
-			Kind:  string(SERVICEENTRY),
-		}, true
-	case "virtualservice":
-		return metav1.GroupKind{
-			Group: "networking.istio.io",
-			Kind:  string(VIRTUALSERVICE),
-		}, true
-	case "peerauthentication":
-		return metav1.GroupKind{
-			Group: "security.istio.io",
-			Kind:  string(PEERAUTHENTICATION),
-		}, true
-	case "horizontalpodautoscaler":
-		return metav1.GroupKind{
-			Group: "autoscaling",
-			Kind:  string(HORIZONTALPODAUTOSCALER),
-		}, true
-	case "certificate":
-		return metav1.GroupKind{
-			Group: "cert-manager.io",
-			Kind:  string(CERTIFICATE),
-		}, true
-	case "authorizationpolicy":
-		return metav1.GroupKind{
-			Group: "security.istio.io",
-			Kind:  string(AUTHORIZATIONPOLICY),
-		}, true
-	default:
-		return metav1.GroupKind{}, false
 	}
 }
