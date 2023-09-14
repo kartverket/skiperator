@@ -288,11 +288,84 @@ func (r *ApplicationReconciler) SetControllerFinishedOutcome(context context.Con
 	return r.SetControllerSynced(context, app, controllerName)
 }
 
+type ControllerResources string
+
+const (
+	DEPLOYMENT              ControllerResources = "Deployment"
+	POD                     ControllerResources = "Pod"
+	SERVICE                 ControllerResources = "Service"
+	SERVICEACCOUNT          ControllerResources = "ServiceAccount"
+	CONFIGMAP               ControllerResources = "ConfigMap"
+	NETWORKPOLICY           ControllerResources = "NetworkPolicy"
+	GATEWAY                 ControllerResources = "Gateway"
+	SERVICEENTRY            ControllerResources = "ServiceEntry"
+	VIRTUALSERVICE          ControllerResources = "VirtualService"
+	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
+	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
+	CERTIFICATE             ControllerResources = "Certificate"
+	AUTHORIZATIONPOLICY     ControllerResources = "AuthorizationPolicy"
+)
+
+var GroupKindFromControllerResource = map[string]metav1.GroupKind{
+	"deployment": {
+		Group: "apps",
+		Kind:  string(DEPLOYMENT),
+	},
+	"pod": {
+		Group: "",
+		Kind:  string(POD),
+	},
+	"service": {
+		Group: "",
+		Kind:  string(SERVICE),
+	},
+	"serviceaccount": {
+		Group: "",
+		Kind:  string(SERVICEACCOUNT),
+	},
+	"configmaps": {
+		Group: "",
+		Kind:  string(CONFIGMAP),
+	},
+	"networkpolicy": {
+		Group: "networking.k8s.io",
+		Kind:  string(NETWORKPOLICY),
+	},
+	"gateway": {
+		Group: "networking.istio.io",
+		Kind:  string(GATEWAY),
+	},
+	"serviceentry": {
+		Group: "networking.istio.io",
+		Kind:  string(SERVICEENTRY),
+	},
+	"virtualservice": {
+		Group: "networking.istio.io",
+		Kind:  string(VIRTUALSERVICE),
+	},
+	"peerauthentication": {
+		Group: "security.istio.io",
+		Kind:  string(PEERAUTHENTICATION),
+	},
+	"horizontalpodautoscaler": {
+		Group: "autoscaling",
+		Kind:  string(HORIZONTALPODAUTOSCALER),
+	},
+	"certificate": {
+		Group: "cert-manager.io",
+		Kind:  string(CERTIFICATE),
+	},
+	"authorizationpolicy": {
+		Group: "security.istio.io",
+		Kind:  string(AUTHORIZATIONPOLICY),
+	},
+}
+
 func (r *ApplicationReconciler) setResourceLabelsIfApplies(obj client.Object, app skiperatorv1alpha1.Application) {
 	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
 
 	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
-		resourceLabelGroupKind, present := app.GroupKindFromControllerResource(controllerResource)
+		resourceLabelGroupKind, present := GroupKindFromControllerResource[strings.ToLower(controllerResource)]
 		if present {
 			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
 				objectLabels := obj.GetLabels()

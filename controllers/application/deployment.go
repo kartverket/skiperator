@@ -97,6 +97,44 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
+	podForDeploymentTemplate := corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      labels,
+			Annotations: generatedSpecAnnotations,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				skiperatorContainer,
+			},
+
+			// TODO: Make this as part of operator in a safe way
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
+			SecurityContext: &corev1.PodSecurityContext{
+				SupplementalGroups: []int64{util.SkiperatorUser},
+				FSGroup:            util.PointTo(util.SkiperatorUser),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+			ServiceAccountName: application.Name,
+			// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
+			// to not create a diff for the hash of existing and wanted spec
+			DeprecatedServiceAccount:      application.Name,
+			Volumes:                       podVolumes,
+			PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
+			RestartPolicy:                 corev1.RestartPolicyAlways,
+			TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
+			DNSPolicy:                     corev1.DNSClusterFirst,
+			SchedulerName:                 corev1.DefaultSchedulerName,
+		},
+	}
+
+	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
+
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: labels},
 		Strategy: appsv1.DeploymentStrategy{
@@ -104,35 +142,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
 		},
 		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels:      labels,
-				Annotations: generatedSpecAnnotations,
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					skiperatorContainer,
-				},
-
-				// TODO: Make this as part of operator in a safe way
-				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-				SecurityContext: &corev1.PodSecurityContext{
-					SupplementalGroups: []int64{util.SkiperatorUser},
-					FSGroup:            util.PointTo(util.SkiperatorUser),
-					SeccompProfile: &corev1.SeccompProfile{
-						Type: corev1.SeccompProfileTypeRuntimeDefault,
-					},
-				},
-				ServiceAccountName: application.Name,
-				// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
-				// to not create a diff for the hash of existing and wanted spec
-				DeprecatedServiceAccount:      application.Name,
-				Volumes:                       podVolumes,
-				PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
-				RestartPolicy:                 corev1.RestartPolicyAlways,
-				TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
-				DNSPolicy:                     corev1.DNSClusterFirst,
-				SchedulerName:                 corev1.DefaultSchedulerName,
-			},
+			ObjectMeta: podForDeploymentTemplate.ObjectMeta,
+			Spec:       podForDeploymentTemplate.Spec,
 		},
 		RevisionHistoryLimit:    util.PointTo(int32(2)),
 		ProgressDeadlineSeconds: util.PointTo(int32(600)),

@@ -44,17 +44,9 @@ func (skipJob *SKIPJob) setSkipJobDefaults() error {
 	}
 
 	if skipJob.Spec.Cron != nil {
-		defaults.Spec.Cron = skipJob.Spec.Cron
+		defaults.Spec.Cron = &CronSettings{}
 
-		// Due to an error in mergo, bool values are not merged properly. Temporary workaround
-		// Should only be necessary for spec.cron.suspend as it's the only bool that we add by default and merge using mergo
-		// See: https://github.com/darccio/mergo/issues/237
-		//defaults.Spec.Cron.Suspend = util.PointTo(false)
-		if skipJob.Spec.Cron.Suspend != nil {
-			defaults.Spec.Cron.Suspend = skipJob.Spec.Cron.Suspend
-		} else {
-			defaults.Spec.Cron.Suspend = util.PointTo(DefaultSuspend)
-		}
+		defaults.Spec.Cron.Suspend = util.PointTo(false)
 	}
 
 	return mergo.Merge(skipJob, defaults)
