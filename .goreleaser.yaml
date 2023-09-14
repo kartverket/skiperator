@@ -31,12 +31,9 @@ archives:
 
 dockers:
   - image_templates:
-      - "ghcr.io/kartverket/skiperator"
+      - "kartverket/skiperator"
     extra_files:
       - ./
-
-env_files:
-  github_token: GITHUB_TOKEN
 
 checksum:
   name_template: "checksums.txt"
