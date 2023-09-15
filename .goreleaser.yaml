@@ -33,15 +33,37 @@ archives:
 
 dockers:
   - image_templates:
-      - "ghcr.io/kartverket/skiperator"
+      - "ghcr.io/kartverket/skiperator:{{ .Version }}-amd64"
     extra_files:
       - ./
+    use: buildx
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/amd64"
+  - image_templates:
+      - "ghcr.io/kartverket/skiperator:{{ .Version }}-arm64v8"
+    extra_files:
+      - ./
+    use: buildx
+    goarch: arm64
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--platform=linux/arm64/v8"
+
+docker_manifests:
+  - name_template: "ghcr.io/kartverket/skiperator:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/kartverket/skiperator:{{ .Version }}-amd64"
+      - "ghcr.io/kartverket/skiperator:{{ .Version }}-arm64v8"
 
 signs:
   - cmd: cosign
     signature: "${artifact}.sig"
     args: ["sign-blob", "--oidc-issuer=https://token.actions.githubusercontent.com", "--output-signature=${signature}", "-y", "${artifact}"]
     artifacts: all
+
+sboms:
+  - artifacts: archive
 
 checksum:
   name_template: "checksums.txt"

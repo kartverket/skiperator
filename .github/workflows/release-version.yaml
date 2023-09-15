@@ -34,6 +34,10 @@ jobs:
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.1.2
 
+      - name: Install Syft for SBOM Generation
+        shell: bash
+        run: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
       - name: Release with Goreleaser
         uses: goreleaser/goreleaser-action@v4
         with:
