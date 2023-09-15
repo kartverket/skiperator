@@ -30,7 +30,6 @@ archives:
       - skiperator
     files:
       - README.md
-      - CHANGELOG.md
 
 dockers:
   - image_templates:
