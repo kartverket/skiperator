@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   packages: write
+  id-token: write
 
 jobs:
   goreleaser:
@@ -30,7 +31,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: goreleaser/goreleaser-action@v4
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.2
+
+      - name: Release with Goreleaser
+        uses: goreleaser/goreleaser-action@v4
         with:
           distribution: goreleaser
           version: latest
