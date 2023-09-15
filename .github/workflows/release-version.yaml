@@ -14,7 +14,8 @@ jobs:
   goreleaser:
     runs-on: ubuntu-latest
     env:
-      DOCKER_EXPERIMENTAL: true
+      DOCKER_BUILDKIT: 1
+      DOCKER_EXPERIMENTAL: 1
     steps:
       - uses: actions/checkout@v4
         with:
