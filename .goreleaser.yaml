@@ -22,12 +22,15 @@ builds:
       - osusergo
       - netgo
     main: ./cmd/skiperator/
+    id: skiperator
 
 archives:
-  - id: distribution
+  - id: default
     builds:
-      - cmd/skiperator
-    format: binary
+      - skiperator
+    files:
+      - README.md
+      - CHANGELOG.md
 
 dockers:
   - image_templates:
