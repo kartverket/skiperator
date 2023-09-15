@@ -13,6 +13,8 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    env:
+      DOCKER_EXPERIMENTAL: true
     steps:
       - uses: actions/checkout@v4
         with:
