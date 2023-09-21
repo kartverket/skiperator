@@ -12,3 +12,4 @@ spec:
           namespacesByLabel:
             team: skiptest
             app: testapp-selsno
+          namespace: nytt-ns
