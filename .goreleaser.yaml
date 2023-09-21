@@ -33,28 +33,11 @@ archives:
 
 dockers:
   - image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Version }}-amd64"
+      - "ghcr.io/kartverket/skiperator:{{ .Version }}"
     extra_files:
       - ./
-    use: buildx
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/amd64"
-  - image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Version }}-arm64v8"
-    extra_files:
-      - ./
-    use: buildx
-    goarch: arm64
-    dockerfile: Dockerfile
-    build_flag_templates:
-      - "--platform=linux/arm64/v8"
-
 docker_manifests:
   - name_template: "ghcr.io/kartverket/skiperator:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Version }}-amd64"
-      - "ghcr.io/kartverket/skiperator:{{ .Version }}-arm64v8"
 
 signs:
   - cmd: cosign
