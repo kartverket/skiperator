@@ -33,17 +33,32 @@ archives:
 
 dockers:
   - image_templates:
+      - "ghcr.io/kartverket/skiperator"
+      - "ghcr.io/kartverket/skiperator:latest"
       - "ghcr.io/kartverket/skiperator:{{ .Version }}"
     extra_files:
       - ./
-docker_manifests:
-  - name_template: "ghcr.io/kartverket/skiperator:{{ .Version }}"
+    dockerfile: Dockerfile
+
+docker_signs:
+  - artifacts: all
+    cmd: cosign
+    args:
+      - "sign"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "${artifact}"
+      - "--yes"
 
 signs:
-  - cmd: cosign
+  - artifacts: all
+    cmd: cosign
     signature: "${artifact}.sig"
-    args: ["sign-blob", "--oidc-issuer=https://token.actions.githubusercontent.com", "--output-signature=${signature}", "-y", "${artifact}"]
-    artifacts: all
+    args:
+    - "sign-blob"
+    - "--oidc-issuer=https://token.actions.githubusercontent.com"
+    - "--output-signature=${signature}"
+    - "${artifact}"
+    - "--yes"
 
 sboms:
   - artifacts: archive
