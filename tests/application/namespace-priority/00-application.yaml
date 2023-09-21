@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: test-source
+  name: test-priority
 spec:
   image: image
   port: 8080
@@ -12,3 +12,4 @@ spec:
           namespacesByLabel:
             team: skiptest
             app: testapp-selsno
+          namespace: nytt-ns
