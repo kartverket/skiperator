@@ -25,7 +25,7 @@ builds:
     id: skiperator
 
 archives:
-  - id: default
+  - id: skiperator
     builds:
       - skiperator
     files:
@@ -39,6 +39,8 @@ dockers:
     extra_files:
       - ./
     dockerfile: Dockerfile
+    ids:
+      - skiperator
 
 docker_signs:
   - artifacts: all
