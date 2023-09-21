@@ -3,9 +3,10 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"regexp"
 	"strings"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	policyv1 "k8s.io/api/policy/v1"
 
@@ -53,22 +54,77 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1alpha1.Application{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.Service{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&networkingv1beta1.ServiceEntry{}).
+		For(&skiperatorv1alpha1.Application{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&corev1.Service{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&corev1.ConfigMap{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&networkingv1beta1.ServiceEntry{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
 		)).
-		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		Owns(&networkingv1beta1.VirtualService{}).
-		Owns(&securityv1beta1.PeerAuthentication{}).
-		Owns(&corev1.ServiceAccount{}).
-		Owns(&policyv1.PodDisruptionBudget{}).
-		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&securityv1beta1.AuthorizationPolicy{}).
-		Owns(&pov1.ServiceMonitor{}).
+		Owns(&autoscalingv2.HorizontalPodAutoscaler{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&networkingv1beta1.VirtualService{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&securityv1beta1.PeerAuthentication{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&corev1.ServiceAccount{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&policyv1.PodDisruptionBudget{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&networkingv1.NetworkPolicy{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&securityv1beta1.AuthorizationPolicy{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
+		Owns(&pov1.ServiceMonitor{}, builder.WithPredicates(
+			predicate.Not(
+				util.MatchesPredicate[client.Object](hasIgnoreLabel),
+			),
+		)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)

@@ -134,3 +134,8 @@ func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
 
 	return match
 }
+
+func hasIgnoreLabel(obj client.Object) bool {
+	labels := obj.GetLabels()
+	return labels["skiperator.kartverket.no/ignore"] == "true"
+}
