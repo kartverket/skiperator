@@ -191,6 +191,17 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	deployment := appsv1.Deployment{}
 	deploymentDefinition, err := r.defineDeployment(ctx, application)
 
+	shouldReconcile, err := r.ShouldReconcile(ctx, &deploymentDefinition)
+	if err != nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	if !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, nil
+	}
+
 	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
 	if err != nil {
 		if errors.IsNotFound(err) {

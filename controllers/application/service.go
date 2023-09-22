@@ -24,7 +24,18 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
+	shouldReconcile, err := r.ShouldReconcile(ctx, &service)
+	if err != nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	if !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, nil
+	}
+
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &service, r.GetScheme())
 		if err != nil {

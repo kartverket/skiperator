@@ -28,6 +28,17 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 	var err error
 
 	if len(application.Spec.Ingresses) > 0 {
+		shouldReconcile, err := r.ShouldReconcile(ctx, &virtualService)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, nil
+		}
+
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
 
 			err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
