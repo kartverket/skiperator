@@ -200,15 +200,18 @@ func getNamespaceSelector(rule podtypes.InternalRule) *metav1.LabelSelector {
 		return &metav1.LabelSelector{
 			MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
 		}
-	} else if rule.NamespacesByLabel != nil {
+	}
+
+	if rule.NamespacesByLabel != nil {
 		return &metav1.LabelSelector{
 			MatchLabels: rule.NamespacesByLabel,
 		}
-	} else {
-		return &metav1.LabelSelector{
-			MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
-		}
 	}
+
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
+	}
+
 }
 
 func hasExternalIngress(ingresses []string) bool {
