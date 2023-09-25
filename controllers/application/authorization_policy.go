@@ -22,6 +22,12 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	}
 	defaultDenyAuthPolicy := getDefaultDenyPolicy(application, defaultDenyPaths)
 
+	shouldReconcile, err := r.ShouldReconcile(ctx, &defaultDenyAuthPolicy)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
 	if application.Spec.AuthorizationSettings != nil {
 		if application.Spec.AuthorizationSettings.AllowAll == true {
 			err := r.GetClient().Delete(ctx, &defaultDenyAuthPolicy)
@@ -36,7 +42,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 		}
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &defaultDenyAuthPolicy, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &defaultDenyAuthPolicy, func() error {
 		err := ctrlutil.SetControllerReference(application, &defaultDenyAuthPolicy, r.GetScheme())
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)

@@ -28,7 +28,18 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		// CreateOrPatch gets the object (from cache) before the mutating function is run, masquerading actual changes
 		// Restoring the Spec from a copy within the mutating func fixes this
 		desiredServiceEntry := serviceEntry.DeepCopy()
-		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
+
+		shouldReconcile, err := r.ShouldReconcile(ctx, &serviceEntry)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceEntry, func() error {
 			serviceEntry.Spec = desiredServiceEntry.Spec
 			// Set application as owner of the service entry
 			err := ctrlutil.SetControllerReference(application, &serviceEntry, r.GetScheme())
@@ -57,6 +68,16 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 
 	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, application.Name, serviceEntries)
 	for _, serviceEntry := range serviceEntriesToDelete {
+		shouldReconcile, err := r.ShouldReconcile(ctx, &serviceEntry)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
 		err = r.GetClient().Delete(ctx, &serviceEntry)
 		err = client.IgnoreNotFound(err)
 		if err != nil {

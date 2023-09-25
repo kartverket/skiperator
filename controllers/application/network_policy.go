@@ -30,6 +30,12 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 		},
 	}
 
+	shouldReconcile, err := r.ShouldReconcile(ctx, &networkPolicy)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
 	netpolSpec := networking.CreateNetPolSpec(
 		networking.NetPolOpts{
 			AccessPolicy:     application.Spec.AccessPolicy,

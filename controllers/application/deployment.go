@@ -188,10 +188,21 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	deployment := appsv1.Deployment{}
+	deployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      application.Name,
+			Namespace: application.Namespace,
+		},
+	}
 	deploymentDefinition, err := r.defineDeployment(ctx, application)
 
-	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
+	shouldReconcile, err := r.ShouldReconcile(ctx, &deployment)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	err = r.GetClient().Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.EmitNormalEvent(application, "NotFound", fmt.Sprintf("deployment resource for application %s not found, creating deployment", application.Name))
