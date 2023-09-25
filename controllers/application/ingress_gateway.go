@@ -102,6 +102,16 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	}
 
 	for _, gateway := range gateways.Items {
+		shouldReconcile, err := r.ShouldReconcile(ctx, gateway)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
 		// Skip unrelated gateways
 		if !isIngressGateway(gateway) {
 			continue

@@ -94,6 +94,16 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	// Could we get in trouble with shouldReconcile here? I'm not entirely sure
 	for _, certificate := range certificates.Items {
 
+		shouldReconcile, err := r.ShouldReconcile(ctx, &certificate)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
 		certificateInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
 			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 			return certificate.Name == certificateName

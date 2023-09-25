@@ -68,6 +68,16 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 
 	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, application.Name, serviceEntries)
 	for _, serviceEntry := range serviceEntriesToDelete {
+		shouldReconcile, err := r.ShouldReconcile(ctx, &serviceEntry)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
 		err = r.GetClient().Delete(ctx, &serviceEntry)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
