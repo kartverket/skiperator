@@ -18,14 +18,9 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 
 	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	shouldReconcile, err := r.ShouldReconcile(ctx, &peerAuthentication)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &peerAuthentication, func() error {

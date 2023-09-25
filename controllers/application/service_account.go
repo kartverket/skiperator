@@ -16,13 +16,11 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceAccount)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 
-	if !shouldReconcile {
-		return reconcile.Result{}, nil
+	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceAccount)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceAccount, func() error {

@@ -17,14 +17,9 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	shouldReconcile, err := r.ShouldReconcile(ctx, &horizontalPodAutoscaler)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	if shouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {

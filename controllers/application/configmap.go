@@ -85,14 +85,9 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 	}
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &gcpAuthConfigMap)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return nil
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {

@@ -31,14 +31,9 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	}
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &networkPolicy)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	netpolSpec := networking.CreateNetPolSpec(

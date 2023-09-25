@@ -18,14 +18,9 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	shouldReconcile, err := r.ShouldReconcile(ctx, &pdb)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	if *application.Spec.EnablePDB {

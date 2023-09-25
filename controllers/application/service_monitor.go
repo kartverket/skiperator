@@ -27,14 +27,9 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	}}
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceMonitor)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	if application.Spec.Prometheus == nil {

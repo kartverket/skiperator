@@ -23,14 +23,9 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	defaultDenyAuthPolicy := getDefaultDenyPolicy(application, defaultDenyPaths)
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &defaultDenyAuthPolicy)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	if application.Spec.AuthorizationSettings != nil {

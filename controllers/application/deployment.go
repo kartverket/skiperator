@@ -197,14 +197,9 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	deploymentDefinition, err := r.defineDeployment(ctx, application)
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &deployment)
-	if err != nil {
+	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
-	}
-
-	if !shouldReconcile {
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
 	}
 
 	err = r.GetClient().Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)
