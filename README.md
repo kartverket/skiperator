@@ -226,11 +226,18 @@ spec:
     inbound:
       # The rules list specifies a list of applications. When no namespace is
       # specified it refers to an app in the current namespace. For apps in
-      # other namespaces namespace is required
+      # other namespaces namespace is required. Alternately you can define
+      # namespacesByLabel as a value-map of namespace labels. If both
+      # namespace and namespacesByLabel are defined for an application,
+      # namespacesByLabel is ignored
       rules:
         - application: other-app
         - application: third-app
           namespace: other-namespace
+        - application: fourth-app
+          namespacesByLabel:
+            somelabel: somevalue
+            anotherlabel: anothervalue
     # outbound specifies egress rules. Which apps on the cluster and the
     # internet are the Application allowed to send requests to?
     outbound:
