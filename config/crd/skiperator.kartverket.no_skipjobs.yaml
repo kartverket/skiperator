@@ -50,8 +50,9 @@ spec:
                         properties:
                           rules:
                             items:
-                              description: If user adds both Namespace and NamespacesByLabel
-                                to an InternalRule, Namespace takes presedence
+                              description: If you add both Namespace and NamespacesByLabel
+                                to an InternalRule, Namespace takes presedence and
+                                NamespacesByLabel is omitted.
                               properties:
                                 application:
                                   type: string
@@ -102,8 +103,9 @@ spec:
                             type: array
                           rules:
                             items:
-                              description: If user adds both Namespace and NamespacesByLabel
-                                to an InternalRule, Namespace takes presedence
+                              description: If you add both Namespace and NamespacesByLabel
+                                to an InternalRule, Namespace takes presedence and
+                                NamespacesByLabel is omitted.
                               properties:
                                 application:
                                   type: string

@@ -1,11 +1,11 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-source
+  name: namespace-tests
 spec:
   podSelector:
     matchLabels:
-      app: test-source
+      app: namespace-tests
   policyTypes:
     - Ingress
   ingress:
@@ -13,7 +13,7 @@ spec:
         - namespaceSelector:
             matchLabels:
               team: skiptest
-              app: testapp-selsno
+              app: testapp
           podSelector:
             matchLabels:
               app: test-ext

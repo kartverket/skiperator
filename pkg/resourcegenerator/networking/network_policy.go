@@ -180,12 +180,9 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 	var policyPeers []networkingv1.NetworkPolicyPeer
 
 	for _, inboundRule := range inboundRules {
-		if inboundRule.Namespace == "" && inboundRule.NamespacesByLabel == nil {
-			inboundRule.Namespace = namespace
-		}
 
 		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
-			NamespaceSelector: getNamespaceSelector(inboundRule),
+			NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
 			PodSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": inboundRule.Application},
 			},
@@ -195,7 +192,7 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 	return policyPeers
 }
 
-func getNamespaceSelector(rule podtypes.InternalRule) *metav1.LabelSelector {
+func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.LabelSelector {
 	if rule.Namespace != "" {
 		return &metav1.LabelSelector{
 			MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
@@ -209,7 +206,7 @@ func getNamespaceSelector(rule podtypes.InternalRule) *metav1.LabelSelector {
 	}
 
 	return &metav1.LabelSelector{
-		MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
+		MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespace},
 	}
 
 }

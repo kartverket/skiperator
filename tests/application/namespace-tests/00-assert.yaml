@@ -1,18 +1,18 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: test-priority
+  name: namespace-tests
 spec:
   podSelector:
     matchLabels:
-      app: test-priority
+      app: namespace-tests
   policyTypes:
     - Ingress
   ingress:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: nytt-ns
+              kubernetes.io/metadata.name: test
           podSelector:
             matchLabels:
               app: test-ext
