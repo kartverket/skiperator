@@ -9,13 +9,34 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.27.1
-CONTROLLER_GEN_VERSION = 0.12.0
+CONTROLLER_GEN_VERSION = 0.13.0
+
+
+
+## Location to install dependencies to
+LOCALBIN ?= $(shell pwd)/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+
 
 .PHONY: test-tools
 test-tools:
 	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}-${OS}-${ARCH}.tar.gz" | \
     tar --gzip --extract --strip-components 2 --directory bin
 	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl@v0.15.0
+
+
+.PHONY: setup-envtest
+setup-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: envtest
+envtest: generate setup-envtest ## Run tests.
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) --bin-dir $(LOCALBIN) -p path)" go test -race ./controllers/... -coverprofile cover.out
 
 
 .PHONY: generate

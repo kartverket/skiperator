@@ -24,7 +24,9 @@ func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace
 	configMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "namespace-exclusions"}
 
 	namespaceExclusionCMap, err := util.GetConfigMap(r.GetClient(), ctx, configMapNamespacedName)
-	if err != nil {
+	if errors.IsNotFound(err) {
+		return false
+	} else if err != nil {
 		util.ErrDoPanic(err, "Something went wrong getting namespace-exclusion config map: %v")
 	}
 
@@ -32,7 +34,7 @@ func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace
 
 	exclusion, keyExists := nameSpacesToExclude[namespace]
 
-	return (keyExists && exclusion == "true")
+	return keyExists && exclusion == "true"
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
