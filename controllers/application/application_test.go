@@ -1,7 +1,10 @@
 package applicationcontroller_test
 
 import (
+	"github.com/google/go-cmp/cmp"
+	"github.com/imdario/mergo"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
@@ -10,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -72,6 +76,36 @@ var _ = Describe("Applications", Ordered, func() {
 				}
 				return true
 			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("should have created a service", func() {
+			actual := &corev1.Service{
+				ObjectMeta: application.ObjectMeta,
+			}
+			expected := &corev1.Service{
+				ObjectMeta: application.ObjectMeta,
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name:        "http",
+							Protocol:    "TCP",
+							AppProtocol: util.PointTo("http"),
+							Port:        8080,
+							TargetPort: intstr.IntOrString{
+								IntVal: 8080,
+							},
+						},
+					},
+					Selector: map[string]string{
+						"app": "application",
+					},
+				},
+			}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(actual), actual)).To(Succeed())
+
+			Expect(mergo.Merge(&expected.Spec, &actual.Spec)).To(Succeed())
+
+			Expect(cmp.Equal(actual.Spec, expected.Spec)).To(BeTrue())
 		})
 
 		It("should have created an HPA", func() {
