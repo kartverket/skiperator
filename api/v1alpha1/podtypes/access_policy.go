@@ -30,7 +30,7 @@ type InboundPolicy struct {
 	// specified it refers to an app in the current namespace. For apps in
 	// other namespaces namespace is required
 	//
-	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Required
 	Rules []InternalRule `json:"rules"`
 }
 
