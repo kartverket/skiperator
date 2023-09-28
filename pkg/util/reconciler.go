@@ -125,6 +125,24 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	return exists
 }
 
+func hasIgnoreLabel(obj client.Object) bool {
+	labels := obj.GetLabels()
+	return labels["skiperator.kartverket.no/ignore"] == "true"
+}
+
+func (r *ReconcilerBase) ShouldReconcile(ctx context.Context, obj client.Object) (bool, error) {
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)
+	err = client.IgnoreNotFound(err)
+
+	if err != nil {
+		return false, err
+	}
+
+	shouldReconcile := !hasIgnoreLabel(obj)
+
+	return shouldReconcile, nil
+}
+
 func (r *ReconcilerBase) EmitWarningEvent(object runtime.Object, reason string, message string) {
 	r.GetRecorder().Event(
 		object,
