@@ -26,7 +26,8 @@ env:
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
   RBAC_FILE_PATH: config/rbac/role.yaml
-  CRD_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
   ARTIFACT_NAME: skiperator-artifact
 
 jobs:
@@ -38,10 +39,10 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log into registry ${{ env.REGISTRY }}
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -49,19 +50,26 @@ jobs:
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: type=sha,format=long
+          tags: |
+            # Use sha for tags tags
+            type=sha,format=long
+            # set latest tag for default branch
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         id: build-docker
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           push: ${{ !github.event.pull_request.draft }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Notice of image digest
+        run: echo "${{ steps.build-docker.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
     outputs:
       image_digest: ${{ steps.build-docker.outputs.digest }}
 
@@ -77,9 +85,10 @@ jobs:
       security-events: write
     steps:
       - name: Run Pharos
-        uses: kartverket/pharos@v0.1.1
+        uses: kartverket/pharos@v0.1.4
         with:
           image_url: "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{needs.build.outputs.image_digest}}"
+          tfsec: false
 
   generate:
     if: (!github.event.pull_request.draft)
@@ -89,7 +98,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Golang environment
         uses: actions/setup-go@v4
@@ -105,7 +114,8 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
             ${{ env.RBAC_FILE_PATH }}
-            ${{ env.CRD_FILE_PATH }}
+            ${{ env.CRD_APP_FILE_PATH }}
+            ${{ env.CRD_JOB_FILE_PATH }}
 
   deploy-argo:
     if: github.event_name == 'push' || github.ref == 'refs/heads/main'
@@ -116,7 +126,7 @@ jobs:
       TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: kartverket/skip-apps
           token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
@@ -139,7 +149,8 @@ jobs:
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $CRD_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/skipjob-crd.yaml
           cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
           rm -rf config/
 
@@ -147,5 +158,8 @@ jobs:
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator, commit: ${{ github.event.head_commit.message }}"
+          git commit -aF- <<EOF
+          skiperator ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
+          EOF
+          
           git push

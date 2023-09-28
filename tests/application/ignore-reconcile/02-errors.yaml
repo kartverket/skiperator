@@ -1,0 +1,7 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ignore-reconcile-ingress
+spec:
+  hosts:
+    - test.com

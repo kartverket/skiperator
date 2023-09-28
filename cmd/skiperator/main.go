@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
 	"os"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	policyv1 "k8s.io/api/policy/v1"
@@ -25,7 +27,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
-	"github.com/kartverket/skiperator/pkg/util"
+	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
@@ -46,6 +48,7 @@ func init() {
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 	utilruntime.Must(policyv1.AddToScheme(scheme))
+	utilruntime.Must(pov1.AddToScheme(scheme))
 }
 
 func main() {
@@ -77,6 +80,7 @@ func main() {
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          *leaderElection,
 		LeaderElectionNamespace: *leaderElectionNamespace,
+		MetricsBindAddress:      ":8181",
 		LeaderElectionID:        "skiperator",
 	})
 	if err != nil {
@@ -89,6 +93,14 @@ func main() {
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
+	}
+
+	err = (&skipjobcontroller.SKIPJobReconciler{
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+	}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
 		os.Exit(1)
 	}
 

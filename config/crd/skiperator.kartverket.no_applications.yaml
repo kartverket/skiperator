@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.12.0
   name: applications.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -182,6 +181,26 @@ spec:
                   - protocol
                   type: object
                 type: array
+              authorizationSettings:
+                description: Used for allow listing certain default blocked endpoints,
+                  such as /actuator/ end points
+                properties:
+                  allowAll:
+                    default: false
+                    description: Allows all endpoints by not creating an AuthorizationPolicy,
+                      and ignores the content of AllowList. If field is false, the
+                      contents of AllowList will be used instead if AllowList is set.
+                    type: boolean
+                  allowList:
+                    description: "Allows specific endpoints. Common endpoints one
+                      might want to allow include /actuator/health, /actuator/startup,
+                      /actuator/info. \n Note that endpoints are matched specifically
+                      on the input, so if you allow /actuator/health, you will *not*
+                      allow /actuator/health/"
+                    items:
+                      type: string
+                    type: array
+                type: object
               command:
                 description: Override the command set in the Dockerfile. Usually only
                   used when debugging or running third-party containers where you
@@ -189,6 +208,11 @@ spec:
                 items:
                   type: string
                 type: array
+              enablePDB:
+                default: true
+                description: Whether to enable automatic Pod Disruption Budget creation
+                  for this application.
+                type: boolean
               env:
                 description: Environment variables that will be set inside the Deployment's
                   Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.
@@ -328,7 +352,9 @@ spec:
                   description: "FilesFrom \n Struct representing information needed
                     to mount a Kubernetes resource as a file to a Pod's directory.
                     One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must
-                    be present."
+                    be present, and just represent the name of the resource in question
+                    NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume
+                    at '/tmp'"
                   properties:
                     configMap:
                       type: string
@@ -380,7 +406,7 @@ spec:
                   reachable on the internet. Note that other addresses than skip.statkart.no
                   (also known as pretty hostnames) requires additional DNS setup.
                   The below hostnames will also have TLS certificates issued and be
-                  reachable on both HTTP and HTTPS. \n Ingresses must be lower case,
+                  reachable on both HTTP and HTTPS. \n Ingresses must be lowercase,
                   contain no spaces, be a non-empty string, and have a hostname/domain
                   separated by a period"
                 items:
@@ -404,23 +430,45 @@ spec:
                   definition."
                 properties:
                   failureThreshold:
+                    default: 3
                     description: Minimum consecutive failures for the probe to be
                       considered failed after having succeeded. Defaults to 3. Minimum
                       value is 1
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
                     description: Delay sending the first probe by X seconds. Can be
                       useful for applications that are slow to start.
+                    format: int32
                     type: integer
                   path:
                     description: The path to access on the HTTP server
                     type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
                     description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
                     description: Number of seconds after which the probe times out.
                       Defaults to 1 second. Minimum value is 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -440,6 +488,25 @@ spec:
                 - medium
                 - high
                 type: string
+              prometheus:
+                description: Optional settings for how Prometheus compatible metrics
+                  should be scraped.
+                properties:
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                required:
+                - port
+                type: object
               readiness:
                 description: Readiness probes define a resource that returns 200 OK
                   when the app is running as intended. Kubernetes will wait until
@@ -448,23 +515,45 @@ spec:
                   but when provided, path and port are required
                 properties:
                   failureThreshold:
+                    default: 3
                     description: Minimum consecutive failures for the probe to be
                       considered failed after having succeeded. Defaults to 3. Minimum
                       value is 1
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
                     description: Delay sending the first probe by X seconds. Can be
                       useful for applications that are slow to start.
+                    format: int32
                     type: integer
                   path:
                     description: The path to access on the HTTP server
                     type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
                     description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
                     description: Number of seconds after which the probe times out.
                       Defaults to 1 second. Minimum value is 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -478,27 +567,12 @@ spec:
                   ACME challenge can only be done on port 80.
                 type: boolean
               replicas:
-                description: Configuration used to automatically scale the deployment
-                  based on load. If Replicas is set you must set Replicas.Min.
-                properties:
-                  max:
-                    description: Max represents the maximum number of replicas the
-                      deployment is allowed to scale to
-                    type: integer
-                  min:
-                    description: Min represents the minimum number of replicas when
-                      load is low. Note that the SKIP team recommends that you set
-                      this to at least two, but this is only required for production.
-                    type: integer
-                  targetCpuUtilization:
-                    description: "When the average CPU utilization across all pods
-                      crosses this threshold another replica is started, up to a maximum
-                      of Max \n TargetCpuUtilization is an integer representing a
-                      percentage."
-                    type: integer
-                required:
-                - min
-                type: object
+                description: "The number of replicas can either be specified as a
+                  static number as follows: \n replicas: 2 \n Or by specifying a range
+                  between min and max to enable HorizontalPodAutoscaling. The default
+                  value for replicas is: replicas: min: 2 max: 5 targetCpuUtilization:
+                  80 Using autoscaling is the recommended configuration for replicas."
+                x-kubernetes-preserve-unknown-fields: true
               resourceLabels:
                 additionalProperties:
                   additionalProperties:
@@ -551,23 +625,45 @@ spec:
                   Startup is optional, but when provided, path and port are required
                 properties:
                   failureThreshold:
+                    default: 3
                     description: Minimum consecutive failures for the probe to be
                       considered failed after having succeeded. Defaults to 3. Minimum
                       value is 1
+                    format: int32
                     type: integer
                   initialDelay:
+                    default: 0
                     description: Delay sending the first probe by X seconds. Can be
                       useful for applications that are slow to start.
+                    format: int32
                     type: integer
                   path:
                     description: The path to access on the HTTP server
                     type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
                   port:
+                    anyOf:
+                    - type: integer
+                    - type: string
                     description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
                     type: integer
                   timeout:
+                    default: 1
                     description: Number of seconds after which the probe times out.
                       Defaults to 1 second. Minimum value is 1
+                    format: int32
                     type: integer
                 required:
                 - path
@@ -601,6 +697,7 @@ spec:
               when something went wrong when attempting to create a Deployment."
             properties:
               application:
+                description: Status
                 properties:
                   message:
                     default: hello
@@ -618,6 +715,7 @@ spec:
                 type: object
               controllers:
                 additionalProperties:
+                  description: Status
                   properties:
                     message:
                       default: hello

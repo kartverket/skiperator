@@ -2,12 +2,13 @@ package applicationcontroller
 
 import (
 	"context"
-	"encoding/json"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -30,7 +31,6 @@ var controllerName = "ConfigMap"
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	// Is this an error?
 	if application.Spec.GCP != nil {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
 		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
@@ -50,6 +50,18 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			r.SetControllerError(ctx, application, controllerName, err)
 			return reconcile.Result{}, err
 		}
+	} else {
+		gcpAuthConfigMap := corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: application.Namespace,
+				Name:      gcp.GetGCPConfigMapName(application.Name),
+			},
+		}
+		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &gcpAuthConfigMap))
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
@@ -60,39 +72,32 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 
 func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpIdentityConfigMap corev1.ConfigMap, application *skiperatorv1alpha1.Application) error {
 
-	gcpAuthConfigMapName := application.Name + "-gcp-auth"
-	gcpAuthConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
+	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(application.Name)
+	gcpAuthConfigMap, err := gcp.GetGoogleServiceAccountCredentialsConfigMap(
+		ctx,
+		application.Namespace,
+		gcpAuthConfigMapName,
+		application.Spec.GCP.Auth.ServiceAccount,
+		gcpIdentityConfigMap,
+	)
+	if err != nil {
+		return err
+	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
+	shouldReconcile, err := r.ShouldReconcile(ctx, &gcpAuthConfigMap)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return err
+	}
+
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gcpAuthConfigMap, func() error {
 		// Set application as owner of the configmap
 		err := ctrlutil.SetControllerReference(application, &gcpAuthConfigMap, r.GetScheme())
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
-		r.SetLabelsFromApplication(ctx, &gcpAuthConfigMap, *application)
-		gcpAuthConfigMap.ObjectMeta.Annotations = util.CommonAnnotations
-
-		ConfStruct := Config{
-			Type:                           "external_account",
-			Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
-			ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + ":generateAccessToken",
-			SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
-			TokenUrl:                       "https://sts.googleapis.com/v1/token",
-			CredentialSource: CredentialSource{
-				File: "/var/run/secrets/tokens/gcp-ksa/token",
-			},
-		}
-
-		ConfByte, err := json.Marshal(ConfStruct)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return err
-		}
-
-		gcpAuthConfigMap.Data = map[string]string{
-			"config": string(ConfByte),
-		}
+		r.SetLabelsFromApplication(&gcpAuthConfigMap, *application)
 
 		return nil
 	})

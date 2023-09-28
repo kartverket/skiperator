@@ -1,0 +1,18 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: resourcelabel
+spec:
+  image: image
+  port: 8080
+  resourceLabels:
+    Deployment:
+      deploymentLabel: test
+    Service:
+      serviceLabel: test
+    horizontalpodautoscaler:
+      hpaLabel: test
+    Pod:
+      podLabel: test
+    thisisnotaresource:
+      testLabel: test

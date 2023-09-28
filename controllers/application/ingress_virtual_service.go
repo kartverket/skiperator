@@ -28,6 +28,12 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 	var err error
 
 	if len(application.Spec.Ingresses) > 0 {
+		shouldReconcile, err := r.ShouldReconcile(ctx, &virtualService)
+		if err != nil || !shouldReconcile {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
 
 			err := ctrlutil.SetControllerReference(application, &virtualService, r.GetScheme())
@@ -70,6 +76,9 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 					{
 						Destination: &networkingv1beta1api.Destination{
 							Host: application.Name,
+							Port: &networkingv1beta1api.PortSelector{
+								Number: uint32(application.Spec.Port),
+							},
 						},
 					},
 				},

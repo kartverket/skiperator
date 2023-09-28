@@ -41,6 +41,7 @@ func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(_ context.Context, o
 }
 
 func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+
 	controllerName := "Certificate"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
@@ -49,8 +50,19 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
-		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
-			r.SetLabelsFromApplication(ctx, &certificate, *application)
+
+		shouldReconcile, err := r.ShouldReconcile(ctx, &certificate)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
+			r.SetLabelsFromApplication(&certificate, *application)
 
 			certificate.Spec = certmanagerv1.CertificateSpec{
 				IssuerRef: v1.ObjectReference{
@@ -79,7 +91,18 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		return reconcile.Result{}, err
 	}
 
+	// Could we get in trouble with shouldReconcile here? I'm not entirely sure
 	for _, certificate := range certificates.Items {
+
+		shouldReconcile, err := r.ShouldReconcile(ctx, &certificate)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
 
 		certificateInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
 			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))

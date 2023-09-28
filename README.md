@@ -45,8 +45,10 @@ spec:
   ingresses:
     - testapp.dev.skip.statkart.no
     
+  replicas: 2
+  # or
   replicas:
-    min: 3
+    min: 2
     max: 5
     targetCpuUtilization: 80
     
@@ -71,7 +73,6 @@ spec:
   envFrom:
     - configMap: some-configmap
     - secret: some-secret
-      
   filesFrom:
     - emptyDir: temp-dir
       mountPath: /tmp
@@ -108,6 +109,15 @@ spec:
       labelKeyOne: A value for the one label
       labelKeyTwo: A value for the two label
       
+  prometheus:
+    port: 8181
+    path: "/metrics"
+  authorizationSettings:
+    allowAll: false
+    allowList:
+      - "/actuator/health"
+      - "/actuator/info"
+
   resources:
     limits:
       cpu: 1000m # Avoid using this
@@ -115,6 +125,8 @@ spec:
     requests:
       cpu: 25m
       memory: 250M
+  
+  enablePDB: true
   
   accessPolicy:
     inbound:
@@ -133,6 +145,99 @@ spec:
             - name: smtp
               protocol: TCP
               port: 587
+```
+
+## SKIPJob reference
+
+Below you will find a list of all accepted input parameters to the `SKIPJob`
+custom resource. Only types are shown here. The fields are documented in the API, see [skipjob_types.go](api/v1alpha1/skipjob_types.go)
+
+```yaml
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  namespace: sample
+  name: sample-job
+spec:
+  cron:
+    schedule: "* * * * *"
+    suspend: false 
+    startingDeadlineSeconds: 10
+  
+  job: 
+    activeDeadlineSeconds: 10
+    backoffLimit: 10
+    suspend: false
+    ttlSecondsAfterFinished: 10
+    
+  container:
+    # Pod
+    image: ""
+    command:
+      - ""
+    resources:
+      requests:
+        cpu: 10m
+        memory: 128Mi
+      limits:
+        memory: 256Mi
+    
+    # Networking
+    accessPolicy:
+      inbound:
+        rules:
+          - application: ""
+            namespace: ""
+      outbound:
+        external:
+          - host: ""
+            ip: ""
+            ports:
+              - name: ""
+                port: 10
+                protocol: ""
+    additionalPorts:
+      - name: ""
+        port: 10
+        protocol: ""
+        
+    # Volumes / environment    
+    env:
+      - name: ""
+        value: ""
+    envFrom:
+      - configMap: ""
+      - secret: ""
+    filesFrom:
+      - mountPath: ""
+        # + one of:
+        secret: ""
+        configMap: ""
+        emptyDir: ""
+        persistentVolumeClaim: ""
+      
+    gcp:
+      auth:
+        serviceAccount: ""
+
+    # Probes
+    startup:
+      path: ""
+      port: 0
+      failureThreshold: 0
+      initialDelay: 0
+      period: 0
+      successThreshold: 0
+      timeout: 0
+    # Same as startup
+    liveness:
+      ...
+    readiness:
+      ...
+
+    # Miscellaneous
+    priority: ""    
+    restartPolicy: ""
 ```
 
 ## Developing

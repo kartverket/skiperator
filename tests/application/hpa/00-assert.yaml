@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-hpa
+spec:
+  selector:
+    matchLabels:
+      app: test-deployment-hpa
+  replicas: 1
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-deployment-hpa
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
+  scaleTargetRef:
+    kind: Deployment
+    apiVersion: apps/v1
+    name: test-deployment-hpa

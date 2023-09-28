@@ -2,11 +2,10 @@ package applicationcontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
-	securityv1beta1api "istio.io/api/security/v1beta1"
-	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -18,7 +17,13 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &peerAuthentication, func() error {
+	shouldReconcile, err := r.ShouldReconcile(ctx, &peerAuthentication)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &peerAuthentication, func() error {
 		// Set application as owner of the peer authentication
 		err := ctrlutil.SetControllerReference(application, &peerAuthentication, r.GetScheme())
 		if err != nil {
@@ -26,16 +31,9 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 			return err
 		}
 
-		peerAuthentication.Spec = securityv1beta1api.PeerAuthentication{
-			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetApplicationSelector(application.Name),
-			},
-			Mtls: &securityv1beta1api.PeerAuthentication_MutualTLS{
-				Mode: securityv1beta1api.PeerAuthentication_MutualTLS_STRICT,
-			},
-		}
+		peerAuthentication.Spec = istio.GetPeerAuthentication(application.Name)
 
-		r.SetLabelsFromApplication(ctx, &peerAuthentication, *application)
+		r.SetLabelsFromApplication(&peerAuthentication, *application)
 		util.SetCommonAnnotations(&peerAuthentication)
 
 		return nil
