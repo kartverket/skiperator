@@ -32,11 +32,7 @@ archives:
       - README.md
 
 dockers:
-  - image_templates:
-      - "ghcr.io/kartverket/skiperator"
-      - "ghcr.io/kartverket/skiperator:latest"
-      - "ghcr.io/kartverket/skiperator:{{ .Version }}"
-    extra_files:
+  - extra_files:
       - ./
     dockerfile: Dockerfile
     ids:
