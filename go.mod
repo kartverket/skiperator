@@ -8,6 +8,7 @@ replace github.com/Venafi/vcert/v4 => github.com/jetstack/vcert/v4 v4.9.6-0.2023
 require (
 	github.com/cert-manager/cert-manager v1.12.3
 	github.com/go-logr/logr v1.2.4
+	github.com/google/go-cmp v0.5.9
 	github.com/google/k8s-digester v0.1.10
 	github.com/imdario/mergo v0.3.12
 	github.com/kudobuilder/kuttl v0.15.0
@@ -97,7 +98,6 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-containerregistry v0.12.0 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221019221123-02f47e132cf5 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221017135236-9b4fdd506cdd // indirect
