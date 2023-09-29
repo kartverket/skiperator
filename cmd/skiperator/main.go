@@ -38,6 +38,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	Version = "dev"
+	Commit  = "N/A"
 )
 
 func init() {
@@ -65,6 +68,8 @@ func main() {
 		Development: !*isDeployment,
 		Level:       parsedLogLevel,
 	})))
+
+	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 
