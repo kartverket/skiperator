@@ -45,40 +45,88 @@ spec:
                   not change Container without deleting your current SKIPJob
                 properties:
                   accessPolicy:
+                    description: "AccessPolicy \n Zero trust dictates that only applications
+                      with a reason for being able to access another resource should
+                      be able to reach it. This is set up by default by denying all
+                      ingress and egress traffic from the Pods in the Deployment.
+                      The AccessPolicy field is an allowlist of other applications
+                      and hostnames that are allowed to talk with this Application
+                      and which resources this app can talk to"
                     properties:
                       inbound:
+                        description: Inbound specifies the ingress rules. Which apps
+                          on the cluster can talk to this app?
                         properties:
                           rules:
+                            description: The rules list specifies a list of applications.
+                              When no namespace is specified it refers to an app in
+                              the current namespace. For apps in other namespaces
+                              namespace is required
                             items:
+                              description: "InternalRule \n The rules list specifies
+                                a list of applications. When no namespace is specified
+                                it refers to an app in the current namespace. For
+                                apps in other namespaces namespace is required"
                               properties:
                                 application:
+                                  description: The name of the Application you are
+                                    allowing traffic to/from.
                                   type: string
                                 namespace:
+                                  description: The namespace in which the Application
+                                    you are allowing traffic to/from resides. If unset,
+                                    uses namespace of Application.
                                   type: string
                               required:
                               - application
                               type: object
                             type: array
-                        required:
-                        - rules
                         type: object
                       outbound:
+                        description: Outbound specifies egress rules. Which apps on
+                          the cluster and the internet is the Application allowed
+                          to send requests to?
                         properties:
                           external:
+                            description: External specifies which applications on
+                              the internet the application can reach. Only host is
+                              required unless it is on another port than HTTPS port
+                              443. If other ports or protocols are required then `ports`
+                              must be specified as well
                             items:
+                              description: "ExternalRule \n Describes a rule for allowing
+                                your Application to route traffic to external applications
+                                and hosts."
                               properties:
                                 host:
                                   type: string
                                 ip:
+                                  description: "Non-HTTP requests (i.e. using the
+                                    TCP protocol) need to use IP in addition to hostname
+                                    Only required for TCP requests. \n Note: Hostname
+                                    must always be defined even if IP is set statically"
                                   type: string
                                 ports:
+                                  description: The ports to allow for the above hostname.
+                                    When not specified HTTP and HTTPS on port 80 and
+                                    443 respectively are put into the allowlist
                                   items:
+                                    description: "ExternalPort \n A custom port describing
+                                      an external host"
                                     properties:
                                       name:
+                                        description: Name is required and is an arbitrary
+                                          name. Must be unique within all ExternalRule
+                                          ports.
                                         type: string
                                       port:
+                                        description: The port number of the external
+                                          host
                                         type: integer
                                       protocol:
+                                        description: The protocol to use for communication
+                                          with the host. Only HTTP, HTTPS and TCP
+                                          are supported.
                                         enum:
                                         - HTTP
                                         - HTTPS
@@ -95,11 +143,22 @@ spec:
                               type: object
                             type: array
                           rules:
+                            description: Rules apply the same in-cluster rules as
+                              InboundPolicy
                             items:
+                              description: "InternalRule \n The rules list specifies
+                                a list of applications. When no namespace is specified
+                                it refers to an app in the current namespace. For
+                                apps in other namespaces namespace is required"
                               properties:
                                 application:
+                                  description: The name of the Application you are
+                                    allowing traffic to/from.
                                   type: string
                                 namespace:
+                                  description: The namespace in which the Application
+                                    you are allowing traffic to/from resides. If unset,
+                                    uses namespace of Application.
                                   type: string
                               required:
                               - application
@@ -249,19 +308,33 @@ spec:
                     items:
                       properties:
                         configMap:
+                          description: Name of Kubernetes ConfigMap in which the deployment
+                            should mount environment variables from. Must be in the
+                            same namespace as the Application
                           type: string
                         secret:
+                          description: Name of Kubernetes Secret in which the deployment
+                            should mount environment variables from. Must be in the
+                            same namespace as the Application
                           type: string
                       type: object
                     type: array
                   filesFrom:
                     items:
+                      description: "FilesFrom \n Struct representing information needed
+                        to mount a Kubernetes resource as a file to a Pod's directory.
+                        One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim
+                        must be present, and just represent the name of the resource
+                        in question NB. Out-of-the-box, skiperator provides a writable
+                        'emptyDir'-volume at '/tmp'"
                       properties:
                         configMap:
                           type: string
                         emptyDir:
                           type: string
                         mountPath:
+                          description: The path to mount the file in the Pods directory.
+                            Required.
                           type: string
                         persistentVolumeClaim:
                           type: string
@@ -272,10 +345,17 @@ spec:
                       type: object
                     type: array
                   gcp:
+                    description: "GCP \n Configuration for interacting with Google
+                      Cloud Platform"
                     properties:
                       auth:
+                        description: Configuration for authenticating a Pod with Google
+                          Cloud Platform
                         properties:
                           serviceAccount:
+                            description: Name of the service account in which you
+                              are trying to authenticate your pod with Generally takes
+                              the form of some-name@some-project-id.iam.gserviceaccount.com
                             type: string
                         required:
                         - serviceAccount
@@ -286,32 +366,49 @@ spec:
                   image:
                     type: string
                   liveness:
+                    description: "Probe \n Type configuration for all types of Kubernetes
+                      probes."
                     properties:
                       failureThreshold:
                         default: 3
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1
                         format: int32
                         type: integer
                       initialDelay:
                         default: 0
+                        description: Delay sending the first probe by X seconds. Can
+                          be useful for applications that are slow to start.
                         format: int32
                         type: integer
                       path:
+                        description: The path to access on the HTTP server
                         type: string
                       period:
                         default: 10
+                        description: Number of seconds Kubernetes waits between each
+                          probe. Defaults to 10 seconds.
                         format: int32
                         type: integer
                       port:
                         anyOf:
                         - type: integer
                         - type: string
+                        description: Number of the port to access on the container
                         x-kubernetes-int-or-string: true
                       successThreshold:
                         default: 1
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup Probes. Minimum value
+                          is 1.
                         format: int32
                         type: integer
                       timeout:
                         default: 1
+                        description: Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1
                         format: int32
                         type: integer
                     required:
@@ -326,32 +423,49 @@ spec:
                     - high
                     type: string
                   readiness:
+                    description: "Probe \n Type configuration for all types of Kubernetes
+                      probes."
                     properties:
                       failureThreshold:
                         default: 3
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1
                         format: int32
                         type: integer
                       initialDelay:
                         default: 0
+                        description: Delay sending the first probe by X seconds. Can
+                          be useful for applications that are slow to start.
                         format: int32
                         type: integer
                       path:
+                        description: The path to access on the HTTP server
                         type: string
                       period:
                         default: 10
+                        description: Number of seconds Kubernetes waits between each
+                          probe. Defaults to 10 seconds.
                         format: int32
                         type: integer
                       port:
                         anyOf:
                         - type: integer
                         - type: string
+                        description: Number of the port to access on the container
                         x-kubernetes-int-or-string: true
                       successThreshold:
                         default: 1
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup Probes. Minimum value
+                          is 1.
                         format: int32
                         type: integer
                       timeout:
                         default: 1
+                        description: Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1
                         format: int32
                         type: integer
                     required:
@@ -359,6 +473,10 @@ spec:
                     - port
                     type: object
                   resources:
+                    description: "ResourceRequirements \n A simplified version of
+                      the Kubernetes native ResourceRequirement field, in which only
+                      Limits and Requests are present. For the units used for resources,
+                      see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes"
                     properties:
                       limits:
                         additionalProperties:
@@ -367,8 +485,11 @@ spec:
                           - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
-                        description: ResourceList is a set of (resource name, quantity)
-                          pairs.
+                        description: "Limits set the maximum the app is allowed to
+                          use. Exceeding this limit will make kubernetes kill the
+                          app and restart it. \n Limits can be set on the CPU and
+                          memory, but it is not recommended to put a limit on CPU,
+                          see: https://home.robusta.dev/blog/stop-using-cpu-limits"
                         type: object
                       requests:
                         additionalProperties:
@@ -377,8 +498,10 @@ spec:
                           - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
-                        description: ResourceList is a set of (resource name, quantity)
-                          pairs.
+                        description: "Requests set the initial allocation that is
+                          done for the app and will thus be available to the app on
+                          startup. More is allocated on demand until the limit is
+                          reached. \n Requests can be set on the CPU and memory."
                         type: object
                     type: object
                   restartPolicy:
@@ -392,32 +515,49 @@ spec:
                     - Never
                     type: string
                   startup:
+                    description: "Probe \n Type configuration for all types of Kubernetes
+                      probes."
                     properties:
                       failureThreshold:
                         default: 3
+                        description: Minimum consecutive failures for the probe to
+                          be considered failed after having succeeded. Defaults to
+                          3. Minimum value is 1
                         format: int32
                         type: integer
                       initialDelay:
                         default: 0
+                        description: Delay sending the first probe by X seconds. Can
+                          be useful for applications that are slow to start.
                         format: int32
                         type: integer
                       path:
+                        description: The path to access on the HTTP server
                         type: string
                       period:
                         default: 10
+                        description: Number of seconds Kubernetes waits between each
+                          probe. Defaults to 10 seconds.
                         format: int32
                         type: integer
                       port:
                         anyOf:
                         - type: integer
                         - type: string
+                        description: Number of the port to access on the container
                         x-kubernetes-int-or-string: true
                       successThreshold:
                         default: 1
+                        description: Minimum consecutive successes for the probe to
+                          be considered successful after having failed. Defaults to
+                          1. Must be 1 for liveness and startup Probes. Minimum value
+                          is 1.
                         format: int32
                         type: integer
                       timeout:
                         default: 1
+                        description: Number of seconds after which the probe times
+                          out. Defaults to 1 second. Minimum value is 1
                         format: int32
                         type: integer
                     required:
