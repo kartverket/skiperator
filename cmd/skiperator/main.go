@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/util"
 	"os"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -85,7 +86,7 @@ func main() {
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          *leaderElection,
 		LeaderElectionNamespace: *leaderElectionNamespace,
-		MetricsBindAddress:      ":8181",
+		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
 	})
 	if err != nil {
