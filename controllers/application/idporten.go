@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"net/url"
 	"path"
 
@@ -131,7 +132,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 	}, nil
 }
 
-func getClientNameIdPorten(applicationName string, idPortenSettings *skiperatorv1alpha1.IDPorten) string {
+func getClientNameIdPorten(applicationName string, idPortenSettings *digdirator.IDPorten) string {
 	if idPortenSettings.ClientName != nil {
 		return *idPortenSettings.ClientName
 	}
@@ -206,7 +207,7 @@ func buildURIs(ingresses []string, pathSeg string, fallback string) ([]naisiov1.
 	})
 }
 
-func idportenSpecifiedInSpec(mp *skiperatorv1alpha1.IDPorten) bool {
+func idportenSpecifiedInSpec(mp *digdirator.IDPorten) bool {
 	return mp != nil && mp.Enabled
 }
 

@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -79,7 +80,7 @@ func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.
 	}, nil
 }
 
-func getClientNameMaskinporten(applicationName string, maskinportenSettings *skiperatorv1alpha1.Maskinporten) string {
+func getClientNameMaskinporten(applicationName string, maskinportenSettings *digdirator.Maskinporten) string {
 	if maskinportenSettings.ClientName != nil {
 		return *maskinportenSettings.ClientName
 	}
@@ -87,7 +88,7 @@ func getClientNameMaskinporten(applicationName string, maskinportenSettings *ski
 	return applicationName
 }
 
-func maskinportenSpecifiedInSpec(maskinportenSettings *skiperatorv1alpha1.Maskinporten) bool {
+func maskinportenSpecifiedInSpec(maskinportenSettings *digdirator.Maskinporten) bool {
 	return maskinportenSettings != nil && maskinportenSettings.Enabled
 }
 
