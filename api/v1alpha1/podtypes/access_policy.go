@@ -22,11 +22,8 @@ type OutboundPolicy struct {
 	External []ExternalRule `json:"external,omitempty"`
 }
 
-// Namespace can be left out, but this allows only namespace-internal
-// communication. Inter-namespace communication requires at least Namespace
-// be defined. Alternately you can define NamespacesByLabel with a value-map
-// of namespace labels. If you add both Namespace and NamespacesByLabel
-// to an InternalRule, Namespace takes presedence and NamespacesByLabel is omitted.
+// If you add both Namespace and NamespacesByLabel to an InternalRule,
+// Namespace takes presedence and NamespacesByLabel is omitted.
 // +kubebuilder:object:generate=true
 type InternalRule struct {
 	//+kubebuilder:validation:Required
