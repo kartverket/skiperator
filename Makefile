@@ -9,7 +9,7 @@ export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64";
 
 SKIPERATOR_CONTEXT ?= kind-kind
 KUBERNETES_VERSION = 1.27.1
-CONTROLLER_GEN_VERSION = 0.12.0
+CONTROLLER_GEN_VERSION = 0.13.0
 
 .PHONY: test-tools
 test-tools:
