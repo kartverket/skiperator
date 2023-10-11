@@ -1,11 +1,12 @@
-FROM golang:1.21 as builder
+FROM golang:1.21-alpine as builder
 WORKDIR /build
 
 COPY go.mod go.sum ./
 RUN go mod download
 COPY Makefile ./
-
 COPY . .
+
+RUN apk update && apk add --no-cache bash && apk add --no-cache make
 RUN make
 
 FROM builder as test
