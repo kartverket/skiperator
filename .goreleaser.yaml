@@ -1,0 +1,69 @@
+project_name: skiperator
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    binary: bin/skiperator
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.ShortCommit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: i386
+    tags:
+      - osusergo
+      - netgo
+    main: ./cmd/skiperator/
+    id: skiperator
+
+archives:
+  - id: skiperator
+    builds:
+      - skiperator
+    files:
+      - README.md
+
+dockers:
+  - extra_files:
+      - ./
+    dockerfile: Dockerfile
+    ids:
+      - skiperator
+
+docker_signs:
+  - artifacts: all
+    cmd: cosign
+    args:
+      - "sign"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      - "${artifact}"
+      - "--yes"
+
+signs:
+  - artifacts: all
+    cmd: cosign
+    signature: "${artifact}.sig"
+    args:
+    - "sign-blob"
+    - "--oidc-issuer=https://token.actions.githubusercontent.com"
+    - "--output-signature=${signature}"
+    - "${artifact}"
+    - "--yes"
+
+sboms:
+  - artifacts: archive
+
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ .Tag }}-dev"
+changelog:
+  sort: asc

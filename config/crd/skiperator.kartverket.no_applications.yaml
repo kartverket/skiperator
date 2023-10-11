@@ -23,6 +23,11 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
+        description: "Application \n Root object for Application resource. An application
+          resource is a resource for easily managing a Dockerized container within
+          the context of a Kartverket cluster. This allows product teams to avoid
+          the need to set up networking on the cluster, as well as a lot of out of
+          the box security features."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -39,15 +44,32 @@ spec:
           spec:
             properties:
               accessPolicy:
+                description: The root AccessPolicy for managing zero trust access
+                  to your Application. See AccessPolicy for more information.
                 properties:
                   inbound:
+                    description: Inbound specifies the ingress rules. Which apps on
+                      the cluster can talk to this app?
                     properties:
                       rules:
+                        description: The rules list specifies a list of applications.
+                          When no namespace is specified it refers to an app in the
+                          current namespace. For apps in other namespaces namespace
+                          is required
                         items:
+                          description: "InternalRule \n The rules list specifies a
+                            list of applications. When no namespace is specified it
+                            refers to an app in the current namespace. For apps in
+                            other namespaces namespace is required"
                           properties:
                             application:
+                              description: The name of the Application you are allowing
+                                traffic to/from.
                               type: string
                             namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
                               type: string
                           required:
                           - application
@@ -57,22 +79,49 @@ spec:
                     - rules
                     type: object
                   outbound:
+                    description: Outbound specifies egress rules. Which apps on the
+                      cluster and the internet is the Application allowed to send
+                      requests to?
                     properties:
                       external:
+                        description: External specifies which applications on the
+                          internet the application can reach. Only host is required
+                          unless it is on another port than HTTPS port 443. If other
+                          ports or protocols are required then `ports` must be specified
+                          as well
                         items:
+                          description: "ExternalRule \n Describes a rule for allowing
+                            your Application to route traffic to external applications
+                            and hosts."
                           properties:
                             host:
                               type: string
                             ip:
+                              description: "Non-HTTP requests (i.e. using the TCP
+                                protocol) need to use IP in addition to hostname Only
+                                required for TCP requests. \n Note: Hostname must
+                                always be defined even if IP is set statically"
                               type: string
                             ports:
+                              description: The ports to allow for the above hostname.
+                                When not specified HTTP and HTTPS on port 80 and 443
+                                respectively are put into the allowlist
                               items:
+                                description: "ExternalPort \n A custom port describing
+                                  an external host"
                                 properties:
                                   name:
+                                    description: Name is required and is an arbitrary
+                                      name. Must be unique within all ExternalRule
+                                      ports.
                                     type: string
                                   port:
+                                    description: The port number of the external host
                                     type: integer
                                   protocol:
+                                    description: The protocol to use for communication
+                                      with the host. Only HTTP, HTTPS and TCP are
+                                      supported.
                                     enum:
                                     - HTTP
                                     - HTTPS
@@ -89,11 +138,21 @@ spec:
                           type: object
                         type: array
                       rules:
+                        description: Rules apply the same in-cluster rules as InboundPolicy
                         items:
+                          description: "InternalRule \n The rules list specifies a
+                            list of applications. When no namespace is specified it
+                            refers to an app in the current namespace. For apps in
+                            other namespaces namespace is required"
                           properties:
                             application:
+                              description: The name of the Application you are allowing
+                                traffic to/from.
                               type: string
                             namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
                               type: string
                           required:
                           - application
@@ -102,6 +161,8 @@ spec:
                     type: object
                 type: object
               additionalPorts:
+                description: An optional list of extra port to expose on a pod level
+                  basis, for example so Instana or other APM tools can reach it
                 items:
                   properties:
                     name:
@@ -123,14 +184,8 @@ spec:
                   type: object
                 type: array
               authorizationSettings:
-                description: "AuthorizationSettings Settings for overriding the default
-                  deny of all actuator endpoints. AllowAll will allow any endpoint
-                  to be exposed. Use AllowList to only allow specific endpoints. \n
-                  Please be aware that HTTP endpoints, such as actuator, may expose
-                  information about your application which you do not want to expose.
-                  Before allow listing HTTP endpoints, make note of what these endpoints
-                  will expose, especially if your application is served via an external
-                  ingress."
+                description: Used for allow listing certain default blocked endpoints,
+                  such as /actuator/ end points
                 properties:
                   allowAll:
                     default: false
@@ -149,6 +204,9 @@ spec:
                     type: array
                 type: object
               command:
+                description: Override the command set in the Dockerfile. Usually only
+                  used when debugging or running third-party containers where you
+                  don't have control over the Dockerfile
                 items:
                   type: string
                 type: array
@@ -158,6 +216,8 @@ spec:
                   for this application.
                 type: boolean
               env:
+                description: Environment variables that will be set inside the Deployment's
+                  Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.
                 items:
                   description: EnvVar represents an environment variable present in
                     a Container.
@@ -266,22 +326,45 @@ spec:
                   type: object
                 type: array
               envFrom:
+                description: "Environment variables mounted from files. When specified
+                  all the keys of the resource will be assigned as environment variables.
+                  Supports both configmaps and secrets. \n For mounting as files see
+                  FilesFrom."
                 items:
                   properties:
                     configMap:
+                      description: Name of Kubernetes ConfigMap in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
                       type: string
                     secret:
+                      description: Name of Kubernetes Secret in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
                       type: string
                   type: object
                 type: array
               filesFrom:
+                description: "Mounting volumes into the Deployment are done using
+                  the FilesFrom argument \n FilesFrom supports ConfigMaps, Secrets
+                  and PVCs. The Application resource assumes these have already been
+                  created by you, and will fail if this is not the case. \n For mounting
+                  environment variables see EnvFrom."
                 items:
+                  description: "FilesFrom \n Struct representing information needed
+                    to mount a Kubernetes resource as a file to a Pod's directory.
+                    One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must
+                    be present, and just represent the name of the resource in question
+                    NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume
+                    at '/tmp'"
                   properties:
                     configMap:
                       type: string
                     emptyDir:
                       type: string
                     mountPath:
+                      description: The path to mount the file in the Pods directory.
+                        Required.
                       type: string
                     persistentVolumeClaim:
                       type: string
@@ -292,10 +375,21 @@ spec:
                   type: object
                 type: array
               gcp:
+                description: "For authentication with GCP, to use services like Secret
+                  Manager and/or Pub/Sub we need to set the GCP Service Account Pods
+                  should identify as. To allow this, we need the IAM role iam.workloadIdentityUser
+                  set on a GCP service account and bind this to the Pod's Kubernetes
+                  SA. \n Documentation on how this is done can be found here (Closed
+                  Wiki): https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA"
                 properties:
                   auth:
+                    description: Configuration for authenticating a Pod with Google
+                      Cloud Platform
                     properties:
                       serviceAccount:
+                        description: Name of the service account in which you are
+                          trying to authenticate your pod with Generally takes the
+                          form of some-name@some-project-id.iam.gserviceaccount.com
                         type: string
                     required:
                     - serviceAccount
@@ -390,44 +484,78 @@ spec:
                 - enabled
                 type: object
               image:
+                description: The image the application will run. This image will be
+                  added to a Deployment resource
                 type: string
               ingresses:
-                description: Ingresses must be lower case, contain no spaces, be a
-                  non-empty string, and have a hostname/domain separated by a period
+                description: "Any external hostnames that route to this application.
+                  Using a skip.statkart.no-address will make the application reachable
+                  for kartverket-clients (internal), other addresses make the app
+                  reachable on the internet. Note that other addresses than skip.statkart.no
+                  (also known as pretty hostnames) requires additional DNS setup.
+                  The below hostnames will also have TLS certificates issued and be
+                  reachable on both HTTP and HTTPS. \n Ingresses must be lowercase,
+                  contain no spaces, be a non-empty string, and have a hostname/domain
+                  separated by a period"
                 items:
                   type: string
                 type: array
               labels:
                 additionalProperties:
                   type: string
+                description: Labels can be used if you want every resource created
+                  by your application to have the same labels, including your application.
+                  This could for example be useful for metrics, where a certain label
+                  and the corresponding resources liveliness can be combined. Any
+                  amount of labels can be added as wanted, and they will all cascade
+                  down to all resources.
                 type: object
               liveness:
+                description: "Liveness probes define a resource that returns 200 OK
+                  when the app is running as intended. Returning a non-200 code will
+                  make kubernetes restart the app. Liveness is optional, but when
+                  provided, path and port are required \n See Probe for structure
+                  definition."
                 properties:
                   failureThreshold:
                     default: 3
+                    description: Minimum consecutive failures for the probe to be
+                      considered failed after having succeeded. Defaults to 3. Minimum
+                      value is 1
                     format: int32
                     type: integer
                   initialDelay:
                     default: 0
+                    description: Delay sending the first probe by X seconds. Can be
+                      useful for applications that are slow to start.
                     format: int32
                     type: integer
                   path:
+                    description: The path to access on the HTTP server
                     type: string
                   period:
                     default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
                     format: int32
                     type: integer
                   port:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: Number of the port to access on the container
                     x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
                     format: int32
                     type: integer
                   timeout:
                     default: 1
+                    description: Number of seconds after which the probe times out.
+                      Defaults to 1 second. Minimum value is 1
                     format: int32
                     type: integer
                 required:
@@ -529,17 +657,22 @@ spec:
                 - enabled
                 type: object
               port:
+                description: The port the deployment exposes
                 type: integer
               priority:
                 default: medium
+                description: "An optional priority. Supported values are 'low', 'medium'
+                  and 'high'. The default value is 'medium'. \n Most workloads should
+                  not have to specify this field. If you think you do, please consult
+                  with SKIP beforehand."
                 enum:
                 - low
                 - medium
                 - high
                 type: string
               prometheus:
-                description: PrometheusConfig contains configuration settings instructing
-                  how the app should be scraped.
+                description: Optional settings for how Prometheus compatible metrics
+                  should be scraped.
                 properties:
                   path:
                     default: /metrics
@@ -557,32 +690,51 @@ spec:
                 - port
                 type: object
               readiness:
+                description: Readiness probes define a resource that returns 200 OK
+                  when the app is running as intended. Kubernetes will wait until
+                  the resource returns 200 OK before marking the pod as Running and
+                  progressing with the deployment strategy. Readiness is optional,
+                  but when provided, path and port are required
                 properties:
                   failureThreshold:
                     default: 3
+                    description: Minimum consecutive failures for the probe to be
+                      considered failed after having succeeded. Defaults to 3. Minimum
+                      value is 1
                     format: int32
                     type: integer
                   initialDelay:
                     default: 0
+                    description: Delay sending the first probe by X seconds. Can be
+                      useful for applications that are slow to start.
                     format: int32
                     type: integer
                   path:
+                    description: The path to access on the HTTP server
                     type: string
                   period:
                     default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
                     format: int32
                     type: integer
                   port:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: Number of the port to access on the container
                     x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
                     format: int32
                     type: integer
                   timeout:
                     default: 1
+                    description: Number of seconds after which the probe times out.
+                      Defaults to 1 second. Minimum value is 1
                     format: int32
                     type: integer
                 required:
@@ -597,14 +749,28 @@ spec:
                   ACME challenge can only be done on port 80.
                 type: boolean
               replicas:
+                description: "The number of replicas can either be specified as a
+                  static number as follows: \n replicas: 2 \n Or by specifying a range
+                  between min and max to enable HorizontalPodAutoscaling. The default
+                  value for replicas is: replicas: min: 2 max: 5 targetCpuUtilization:
+                  80 Using autoscaling is the recommended configuration for replicas."
                 x-kubernetes-preserve-unknown-fields: true
               resourceLabels:
                 additionalProperties:
                   additionalProperties:
                     type: string
                   type: object
+                description: ResourceLabels can be used if you want to add a label
+                  to a specific resources created by the application. One such label
+                  could for example be set on a Deployment, such that the deployment
+                  avoids certain rules from Gatekeeper, or similar. Any amount of
+                  labels may be added per ResourceLabels item.
                 type: object
               resources:
+                description: ResourceRequirements to apply to the deployment. It's
+                  common to set some of these to prevent the app from swelling in
+                  resource usage and consuming all the resources of other apps on
+                  the cluster.
                 properties:
                   limits:
                     additionalProperties:
@@ -613,8 +779,10 @@ spec:
                       - type: string
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
-                    description: ResourceList is a set of (resource name, quantity)
-                      pairs.
+                    description: "Limits set the maximum the app is allowed to use.
+                      Exceeding this limit will make kubernetes kill the app and restart
+                      it. \n Limits can be set on the CPU and memory, but it is not
+                      recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits"
                     type: object
                   requests:
                     additionalProperties:
@@ -623,37 +791,60 @@ spec:
                       - type: string
                       pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                       x-kubernetes-int-or-string: true
-                    description: ResourceList is a set of (resource name, quantity)
-                      pairs.
+                    description: "Requests set the initial allocation that is done
+                      for the app and will thus be available to the app on startup.
+                      More is allocated on demand until the limit is reached. \n Requests
+                      can be set on the CPU and memory."
                     type: object
                 type: object
               startup:
+                description: Kubernetes uses startup probes to know when a container
+                  application has started. If such a probe is configured, it disables
+                  liveness and readiness checks until it succeeds, making sure those
+                  probes don't interfere with the application startup. This can be
+                  used to adopt liveness checks on slow starting containers, avoiding
+                  them getting killed by Kubernetes before they are up and running.
+                  Startup is optional, but when provided, path and port are required
                 properties:
                   failureThreshold:
                     default: 3
+                    description: Minimum consecutive failures for the probe to be
+                      considered failed after having succeeded. Defaults to 3. Minimum
+                      value is 1
                     format: int32
                     type: integer
                   initialDelay:
                     default: 0
+                    description: Delay sending the first probe by X seconds. Can be
+                      useful for applications that are slow to start.
                     format: int32
                     type: integer
                   path:
+                    description: The path to access on the HTTP server
                     type: string
                   period:
                     default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
                     format: int32
                     type: integer
                   port:
                     anyOf:
                     - type: integer
                     - type: string
+                    description: Number of the port to access on the container
                     x-kubernetes-int-or-string: true
                   successThreshold:
                     default: 1
+                    description: Minimum consecutive successes for the probe to be
+                      considered successful after having failed. Defaults to 1. Must
+                      be 1 for liveness and startup Probes. Minimum value is 1.
                     format: int32
                     type: integer
                   timeout:
                     default: 1
+                    description: Number of seconds after which the probe times out.
+                      Defaults to 1 second. Minimum value is 1
                     format: int32
                     type: integer
                 required:
@@ -661,9 +852,17 @@ spec:
                 - port
                 type: object
               strategy:
+                description: "Defines an alternative strategy for the Kubernetes deployment.
+                  This is useful when the default strategy, RollingUpdate, is not
+                  usable. Setting type to Recreate will take down all the pods before
+                  starting new pods, whereas the default of RollingUpdate will try
+                  to start the new pods before taking down the old ones. \n Valid
+                  values are: RollingUpdate, Recreate. Default is RollingUpdate"
                 properties:
                   type:
                     default: RollingUpdate
+                    description: 'Valid values are: RollingUpdate, Recreate. Default
+                      is RollingUpdate'
                     enum:
                     - RollingUpdate
                     - Recreate
@@ -674,8 +873,13 @@ spec:
             - port
             type: object
           status:
+            description: "ApplicationStatus \n A status field shown on the Application
+              resource which contains information regarding all controllers present
+              on the Application. Will for example show errors on the Deployment field
+              when something went wrong when attempting to create a Deployment."
             properties:
               application:
+                description: Status
                 properties:
                   message:
                     default: hello
@@ -693,6 +897,7 @@ spec:
                 type: object
               controllers:
                 additionalProperties:
+                  description: Status
                   properties:
                     message:
                       default: hello

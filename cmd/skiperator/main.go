@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/util"
 	"os"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -39,6 +40,9 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+
+	Version = "dev"
+	Commit  = "N/A"
 )
 
 func init() {
@@ -68,6 +72,8 @@ func main() {
 		Level:       parsedLogLevel,
 	})))
 
+	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
+
 	kubeconfig := ctrl.GetConfigOrDie()
 
 	if !*isDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
@@ -82,7 +88,7 @@ func main() {
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          *leaderElection,
 		LeaderElectionNamespace: *leaderElectionNamespace,
-		MetricsBindAddress:      ":8181",
+		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
 	})
 	if err != nil {
