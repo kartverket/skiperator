@@ -311,8 +311,9 @@ func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, vo
 		Name: secretName,
 		VolumeSource: corev1.VolumeSource{
 			Secret: &corev1.SecretVolumeSource{
-				SecretName: secretName,
-				Items:      nil,
+				SecretName:  secretName,
+				Items:       nil,
+				DefaultMode: util.PointTo(int32(420)),
 			},
 		},
 	})
