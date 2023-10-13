@@ -50,7 +50,9 @@ spec:
                         properties:
                           rules:
                             items:
-                              description: If you add both Namespace and NamespacesByLabel
+                              description: If Namespace and NamespacesByLabel is omitted,
+                                then communication will be restricted to the app's
+                                namespace only. If you add both Namespace and NamespacesByLabel
                                 to an InternalRule, Namespace takes presedence and
                                 NamespacesByLabel is omitted.
                               properties:
@@ -103,7 +105,9 @@ spec:
                             type: array
                           rules:
                             items:
-                              description: If you add both Namespace and NamespacesByLabel
+                              description: If Namespace and NamespacesByLabel is omitted,
+                                then communication will be restricted to the app's
+                                namespace only. If you add both Namespace and NamespacesByLabel
                                 to an InternalRule, Namespace takes presedence and
                                 NamespacesByLabel is omitted.
                               properties:

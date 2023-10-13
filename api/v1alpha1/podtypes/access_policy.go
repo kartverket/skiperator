@@ -22,6 +22,8 @@ type OutboundPolicy struct {
 	External []ExternalRule `json:"external,omitempty"`
 }
 
+// If Namespace and NamespacesByLabel are omitted, then communication
+// will be restricted to the app's namespace only.
 // If you add both Namespace and NamespacesByLabel to an InternalRule,
 // Namespace takes presedence and NamespacesByLabel is omitted.
 // +kubebuilder:object:generate=true
