@@ -26,6 +26,12 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 		Labels:    map[string]string{"instance": "primary"},
 	}}
 
+	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceMonitor)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
 	if application.Spec.Prometheus == nil {
 		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
 		if err != nil {
@@ -37,7 +43,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 		return reconcile.Result{}, nil
 	}
 
-	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &serviceMonitor, r.GetScheme())
 		if err != nil {

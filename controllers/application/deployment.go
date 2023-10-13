@@ -28,11 +28,7 @@ const (
 )
 
 var (
-	deploymentLog         = ctrl.Log.WithName("deployment")
-	defaultPodAnnotations = map[string]string{
-		"argocd.argoproj.io/sync-options": "Prune=false",
-		"prometheus.io/scrape":            "true",
-	}
+	deploymentLog = ctrl.Log.WithName("deployment")
 )
 
 func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
@@ -85,7 +81,10 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	labels := util.GetPodAppSelector(application.Name)
 
-	generatedSpecAnnotations := defaultPodAnnotations
+	generatedSpecAnnotations := map[string]string{
+		"argocd.argoproj.io/sync-options": "Prune=false",
+		"prometheus.io/scrape":            "true",
+	}
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
 	//
@@ -98,6 +97,44 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
+	podForDeploymentTemplate := corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Pod",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      labels,
+			Annotations: generatedSpecAnnotations,
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				skiperatorContainer,
+			},
+
+			// TODO: Make this as part of operator in a safe way
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
+			SecurityContext: &corev1.PodSecurityContext{
+				SupplementalGroups: []int64{util.SkiperatorUser},
+				FSGroup:            util.PointTo(util.SkiperatorUser),
+				SeccompProfile: &corev1.SeccompProfile{
+					Type: corev1.SeccompProfileTypeRuntimeDefault,
+				},
+			},
+			ServiceAccountName: application.Name,
+			// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
+			// to not create a diff for the hash of existing and wanted spec
+			DeprecatedServiceAccount:      application.Name,
+			Volumes:                       podVolumes,
+			PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
+			RestartPolicy:                 corev1.RestartPolicyAlways,
+			TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
+			DNSPolicy:                     corev1.DNSClusterFirst,
+			SchedulerName:                 corev1.DefaultSchedulerName,
+		},
+	}
+
+	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
+
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: labels},
 		Strategy: appsv1.DeploymentStrategy{
@@ -105,35 +142,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
 		},
 		Template: corev1.PodTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels:      labels,
-				Annotations: generatedSpecAnnotations,
-			},
-			Spec: corev1.PodSpec{
-				Containers: []corev1.Container{
-					skiperatorContainer,
-				},
-
-				// TODO: Make this as part of operator in a safe way
-				ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-				SecurityContext: &corev1.PodSecurityContext{
-					SupplementalGroups: []int64{util.SkiperatorUser},
-					FSGroup:            util.PointTo(util.SkiperatorUser),
-					SeccompProfile: &corev1.SeccompProfile{
-						Type: corev1.SeccompProfileTypeRuntimeDefault,
-					},
-				},
-				ServiceAccountName: application.Name,
-				// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
-				// to not create a diff for the hash of existing and wanted spec
-				DeprecatedServiceAccount:      application.Name,
-				Volumes:                       podVolumes,
-				PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
-				RestartPolicy:                 corev1.RestartPolicyAlways,
-				TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
-				DNSPolicy:                     corev1.DNSClusterFirst,
-				SchedulerName:                 corev1.DefaultSchedulerName,
-			},
+			ObjectMeta: podForDeploymentTemplate.ObjectMeta,
+			Spec:       podForDeploymentTemplate.Spec,
 		},
 		RevisionHistoryLimit:    util.PointTo(int32(2)),
 		ProgressDeadlineSeconds: util.PointTo(int32(600)),
@@ -178,10 +188,21 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	deployment := appsv1.Deployment{}
+	deployment := appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      application.Name,
+			Namespace: application.Namespace,
+		},
+	}
 	deploymentDefinition, err := r.defineDeployment(ctx, application)
 
-	err = r.GetClient().Get(ctx, types.NamespacedName{Name: application.Name, Namespace: application.Namespace}, &deployment)
+	shouldReconcile, err := r.ShouldReconcile(ctx, &deployment)
+	if err != nil || !shouldReconcile {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	err = r.GetClient().Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			r.EmitNormalEvent(application, "NotFound", fmt.Sprintf("deployment resource for application %s not found, creating deployment", application.Name))

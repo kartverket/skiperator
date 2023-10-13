@@ -13,7 +13,6 @@ commands:
   - command: kubectl apply --filename config/ --recursive
   - script: kubectl create namespace skiperator-system --dry-run=client -o yaml | kubectl apply -f -
   - script: kubectl create configmap gcp-identity-config --from-literal="workloadIdentityPool=testPool" --from-literal="identityProvider=testProvider" -n skiperator-system --dry-run=client -o yaml | kubectl apply -f -
-  - script: kubectl create configmap instana-networkpolicy-config --from-literal=cidrBlock=192.168.1.0/26 -n skiperator-system --dry-run=client -o yaml | kubectl apply -f -
   - script: kubectl create configmap namespace-exclusions --from-literal=kube-system=true -n skiperator-system --dry-run=client -o yaml | kubectl apply -f -
   - script: kubectl create namespace test --dry-run=client -o yaml | kubectl apply -f -
 

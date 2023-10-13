@@ -9,6 +9,13 @@ kind: Deployment
 metadata:
   labels:
     deploymentLabel: test
+
+# Not created due to mocked control plane
+#apiVersion: v1
+#kind: Pod
+#metadata:
+#  labels:
+#    podLabel: test
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

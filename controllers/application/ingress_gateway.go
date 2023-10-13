@@ -26,7 +26,17 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
-		_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
+		shouldReconcile, err := r.ShouldReconcile(ctx, &gateway)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
+		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
 			// Set application as owner of the gateway
 			err := ctrlutil.SetControllerReference(application, &gateway, r.GetScheme())
 			if err != nil {
@@ -92,6 +102,16 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	}
 
 	for _, gateway := range gateways.Items {
+		shouldReconcile, err := r.ShouldReconcile(ctx, gateway)
+		if err != nil {
+			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+			return reconcile.Result{}, err
+		}
+
+		if !shouldReconcile {
+			continue
+		}
+
 		// Skip unrelated gateways
 		if !isIngressGateway(gateway) {
 			continue

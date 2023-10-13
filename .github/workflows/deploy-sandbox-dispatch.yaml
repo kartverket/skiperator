@@ -25,7 +25,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Golang environment
         uses: actions/setup-go@v4
@@ -52,7 +52,7 @@ jobs:
       TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: kartverket/skip-apps
           token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
@@ -84,5 +84,5 @@ jobs:
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "Deploy Skiperator Sandbox ${{github.ref_name}}"
+          git commit -am "deploy skiperator branch: ${{github.ref_name}}"
           git push

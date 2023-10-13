@@ -64,6 +64,7 @@ func GetServiceEntriesToDelete(serviceEntriesInNamespace []*networkingv1beta1.Se
 	var serviceEntriesToDelete []networkingv1beta1.ServiceEntry
 
 	for _, serviceEntry := range serviceEntriesInNamespace {
+
 		ownerIndex := slices.IndexFunc(serviceEntry.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
 			return ownerReference.Name == ownerName
 		})
