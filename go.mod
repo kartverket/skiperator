@@ -17,7 +17,7 @@ require (
 	go.etcd.io/etcd/server/v3 v3.5.9
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
-	istio.io/api v1.19.1-0.20230926180503-81132adb5998
+	istio.io/api v1.19.3
 	istio.io/client-go v1.19.1
 	k8s.io/api v0.28.1
 	k8s.io/apiextensions-apiserver v0.28.1
