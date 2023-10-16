@@ -15,7 +15,7 @@ require (
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.67.1
 	github.com/r3labs/diff/v3 v3.0.1
 	go.etcd.io/etcd/server/v3 v3.5.9
-	go.uber.org/zap v1.25.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 	istio.io/api v1.19.1-0.20230926180503-81132adb5998
 	istio.io/client-go v1.19.1
