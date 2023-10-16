@@ -222,6 +222,14 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				deployment.Spec.Replicas = nil
 			}
 		}
+
+		// The command "kubectl rollout restart" puts an annotation on the deployment template in order to track
+		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
+		// fix is to just remove it from the map before hashing and checking the diff.
+		if _, rolloutIssued := deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"]; rolloutIssued {
+			delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
+		}
+
 		deployment = *r.resolveDigest(ctx, &deployment)
 
 		deploymentHash := util.GetHashForStructs([]interface{}{
