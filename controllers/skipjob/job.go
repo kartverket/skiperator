@@ -162,7 +162,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	for _, job := range jobsToCheckList.Items {
-		if job.Status.CompletionTime == nil {
+		if job.Status.Failed == 0 && job.Status.CompletionTime == nil {
 			jobPods := corev1.PodList{}
 			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
@@ -200,19 +200,19 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				}
 
 				if exitCode, exists := terminatedContainerStatuses[skipJob.KindPostFixedName()]; exists {
+					ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
+					if err != nil {
+						r.EmitWarningEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
+						return reconcile.Result{}, err
+					}
+
+					err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
+					if err != nil {
+						r.EmitWarningEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
+						return reconcile.Result{}, err
+					}
+
 					if exitCode == 0 {
-						ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
-						if err != nil {
-							r.EmitWarningEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
-							return reconcile.Result{}, err
-						}
-
-						err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
-						if err != nil {
-							r.EmitWarningEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
-							return reconcile.Result{}, err
-						}
-
 						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished
 						err = r.SetStatusFinished(ctx, skipJob)
 						if err != nil {
@@ -220,7 +220,9 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 						}
 					} else {
 						err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed with exit code %v", pod.Name, exitCode))
-						return reconcile.Result{}, err
+						if err != nil {
+							return reconcile.Result{}, err
+						}
 					}
 				} else {
 					err := r.SetStatusRunning(ctx, skipJob)
