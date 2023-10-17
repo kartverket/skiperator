@@ -208,7 +208,6 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 	return &metav1.LabelSelector{
 		MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespace},
 	}
-
 }
 
 func hasExternalIngress(ingresses []string) bool {
