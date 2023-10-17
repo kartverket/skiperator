@@ -61,7 +61,7 @@ type OutboundPolicy struct {
 // specified it refers to an app in the current namespace. For apps in
 // other namespaces, namespace is required.
 //
-// +kubebuilder.object.generate=true
+// +kubebuilder:object:generate=true
 type InternalRule struct {
 	// The name of the Application you are allowing traffic to/from.
 	//
