@@ -180,14 +180,9 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 	var policyPeers []networkingv1.NetworkPolicyPeer
 
 	for _, inboundRule := range inboundRules {
-		if inboundRule.Namespace == "" {
-			inboundRule.Namespace = namespace
-		}
 
 		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
-			NamespaceSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"kubernetes.io/metadata.name": inboundRule.Namespace},
-			},
+			NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
 			PodSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": inboundRule.Application},
 			},
@@ -195,6 +190,24 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 	}
 
 	return policyPeers
+}
+
+func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.LabelSelector {
+	if rule.Namespace != "" {
+		return &metav1.LabelSelector{
+			MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
+		}
+	}
+
+	if rule.NamespacesByLabel != nil {
+		return &metav1.LabelSelector{
+			MatchLabels: rule.NamespacesByLabel,
+		}
+	}
+
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespace},
+	}
 }
 
 func hasExternalIngress(ingresses []string) bool {

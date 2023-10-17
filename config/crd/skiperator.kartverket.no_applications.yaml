@@ -60,7 +60,7 @@ spec:
                           description: "InternalRule \n The rules list specifies a
                             list of applications. When no namespace is specified it
                             refers to an app in the current namespace. For apps in
-                            other namespaces namespace is required"
+                            other namespaces, namespace is required."
                           properties:
                             application:
                               description: The name of the Application you are allowing
@@ -71,10 +71,20 @@ spec:
                                 you are allowing traffic to/from resides. If unset,
                                 uses namespace of Application.
                               type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
                           required:
                           - application
                           type: object
                         type: array
+                    required:
+                    - rules
                     type: object
                   outbound:
                     description: Outbound specifies egress rules. Which apps on the
@@ -141,7 +151,7 @@ spec:
                           description: "InternalRule \n The rules list specifies a
                             list of applications. When no namespace is specified it
                             refers to an app in the current namespace. For apps in
-                            other namespaces namespace is required"
+                            other namespaces, namespace is required."
                           properties:
                             application:
                               description: The name of the Application you are allowing
@@ -152,6 +162,14 @@ spec:
                                 you are allowing traffic to/from resides. If unset,
                                 uses namespace of Application.
                               type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
                           required:
                           - application
                           type: object

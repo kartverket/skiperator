@@ -59,19 +59,22 @@ type OutboundPolicy struct {
 //
 // The rules list specifies a list of applications. When no namespace is
 // specified it refers to an app in the current namespace. For apps in
-// other namespaces namespace is required
+// other namespaces, namespace is required.
 //
-// +kubebuilder:validation:Optional
+// +kubebuilder:object:generate=true
 type InternalRule struct {
-	// The namespace in which the Application you are allowing traffic to/from resides. If unset, uses namespace of Application.
-	//
-	//+kubebuilder:validation:Optional
-	Namespace string `json:"namespace,omitempty"`
-
 	// The name of the Application you are allowing traffic to/from.
 	//
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`
+	// The namespace in which the Application you are allowing traffic to/from resides. If unset, uses namespace of Application.
+	//
+	//+kubebuilder:validation:Optional
+	Namespace string `json:"namespace,omitempty"`
+	// Namespace label value-pair in which the Application you are allowing traffic to/from resides. If both namespace and namespacesByLabel are set, namespace takes precedence and namespacesByLabel is omitted.
+	//
+	//+kubebuilder:validation:Optional
+	NamespacesByLabel map[string]string `json:"namespacesByLabel,omitempty"`
 }
 
 // ExternalRule
