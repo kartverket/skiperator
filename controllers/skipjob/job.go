@@ -63,7 +63,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			util.SetCommonAnnotations(&cronJob)
 
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, nil, nil, gcpIdentityConfigMap)
+			cronJob.Spec = getCronJobSpec(skipJob, nil, nil, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -74,7 +74,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{RequeueAfter: 5}, nil
 		} else if err == nil {
 			currentSpec := cronJob.Spec
-			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
+			desiredSpec := getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
 
 			cronJobSpecDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
@@ -109,7 +109,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
-			job.Labels = GetJobLabels(skipJob, job.Name, job.Labels)
+			job.Labels = GetJobLabels(skipJob, job.Labels)
 			job.Spec = desiredSpec
 
 			err := r.GetClient().Create(ctx, &job)
@@ -163,7 +163,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 	for _, job := range jobsToCheckList.Items {
 		if isFailed, failedJobMessage := isFailedJob(job); isFailed {
-			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason %v", job.Name, job.Namespace, &failedJobMessage))
+			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason:  %v", job.Name, job.Namespace, failedJobMessage))
 			continue
 		}
 
@@ -253,14 +253,14 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	return reconcile.Result{}, nil
 }
 
-func isFailedJob(job batchv1.Job) (bool, *string) {
+func isFailedJob(job batchv1.Job) (bool, string) {
 	for _, condition := range job.Status.Conditions {
 		if condition.Type == ConditionFailed && condition.Status == corev1.ConditionTrue {
-			return true, &condition.Message
+			return true, condition.Message
 		}
 	}
 
-	return false, nil
+	return false, ""
 }
 
 func getEphemeralContainerPatch(pod corev1.Pod) ([]byte, error) {
@@ -297,7 +297,7 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 	}
 }
 
-func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
+func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	return batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
@@ -305,7 +305,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 		Suspend:                 skipJob.Spec.Cron.Suspend,
 		JobTemplate: batchv1.JobTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: GetJobLabels(skipJob, jobName, podLabels),
+				Labels: GetJobLabels(skipJob, podLabels),
 			},
 			Spec: getJobSpec(skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
@@ -314,7 +314,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 	}
 }
 
-func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels map[string]string) map[string]string {
+func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) map[string]string {
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
@@ -347,7 +347,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: GetJobLabels(skipJob, skipJob.Name, nil),
+				Labels: GetJobLabels(skipJob, nil),
 			},
 			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
