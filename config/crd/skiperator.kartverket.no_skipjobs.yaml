@@ -587,10 +587,6 @@ spec:
                 required:
                 - image
                 type: object
-                x-kubernetes-validations:
-                - message: The field Container is immutable. Please delete your SKIPJob
-                    to change the containers settings.
-                  rule: self == oldSelf
               cron:
                 description: Settings for the Job if you are running a scheduled job.
                   Optional as Jobs may be one-off.
@@ -668,6 +664,10 @@ spec:
                 job.
               rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
                 !has(self.cron))
+            - message: The field Container is immutable for one-off jobs. Please delete
+                your SKIPJob to change the containers settings.
+              rule: ((!has(self.cron) && (oldSelf.container == self.container)) ||
+                has(self.cron))
           status:
             description: SKIPJobStatus defines the observed state of SKIPJob
             properties:
