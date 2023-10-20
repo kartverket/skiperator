@@ -35,8 +35,9 @@ spec:
             description: "SKIPJobSpec defines the desired state of SKIPJob \n A SKIPJob
               is either defined as a one-off or a scheduled job. If the Cron field
               is set for SKIPJob, it may not be removed. If the Cron field is unset,
-              it may not be added. The Container settings of a SKIPJob is also immutable,
-              and may not be changed after creating a SKIPJob."
+              it may not be added. The Container field of a SKIPJob is only mutable
+              if the Cron field is set. If unset, you must delete your SKIPJob to
+              change container settings."
             properties:
               container:
                 description: Settings for the Pods running in the job. Fields are

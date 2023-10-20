@@ -42,7 +42,7 @@ type SKIPJobList struct {
 // SKIPJobSpec defines the desired state of SKIPJob
 //
 // A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
-// The Container settings of a SKIPJob is also immutable, and may not be changed after creating a SKIPJob.
+// The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
 //
 // +kubebuilder:validation:XValidation:rule="(has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) && !has(self.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
 // +kubebuilder:validation:XValidation:rule="((!has(self.cron) && (oldSelf.container == self.container)) || has(self.cron))", message="The field Container is immutable for one-off jobs. Please delete your SKIPJob to change the containers settings."
