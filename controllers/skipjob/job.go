@@ -24,11 +24,11 @@ import (
 
 var (
 	SKIPJobReferenceLabelKey = "skipJobOwnerName"
-	DefaultPollingRate       = time.Second * 15
+	DefaultPollingRate       = time.Second * 30
 
-	DefaultRequeueForPodsWait = time.Second * 5
+	DefaultRequeueForPodsWait = time.Second * 15
 
-	DefaultAwaitCronJobResourcesWait = time.Second * 5
+	DefaultAwaitCronJobResourcesWait = time.Second * 10
 
 	IstioProxyPodContainerName = "istio-proxy"
 )
@@ -63,7 +63,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			util.SetCommonAnnotations(&cronJob)
 
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
+			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, nil, nil, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -162,7 +162,12 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	for _, job := range jobsToCheckList.Items {
-		if job.Status.Failed == 0 && job.Status.CompletionTime == nil {
+		if isFailed, failedJobMessage := isFailedJob(job); isFailed {
+			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason %v", job.Name, job.Namespace, &failedJobMessage))
+			continue
+		}
+
+		if job.Status.Active > 0 {
 			jobPods := corev1.PodList{}
 			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
 			if err != nil {
@@ -183,8 +188,10 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 					return reconcile.Result{}, err
 				}
 
-				if pod.Status.Phase != corev1.PodRunning {
-					continue
+				if pod.Status.Phase == corev1.PodPending {
+					infoMessage := fmt.Sprintf("pod %v for job %v/%v pending, requeueing in %v seconds", pod.Name, job.Namespace, job.Name, DefaultRequeueForPodsWait.Seconds())
+					log.FromContext(ctx).Info(infoMessage)
+					return reconcile.Result{RequeueAfter: DefaultRequeueForPodsWait}, nil
 				}
 
 				terminatedContainerStatuses := map[string]int32{}
@@ -219,10 +226,14 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 							return reconcile.Result{}, err
 						}
 					} else {
+						// TODO Should we set Failed status here, or rather do it based on the job condition?
 						err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed with exit code %v", pod.Name, exitCode))
 						if err != nil {
 							return reconcile.Result{}, err
 						}
+
+						infoMessage := fmt.Sprintf("pod %v for job %v/%v failed", pod.Name, job.Namespace, job.Name)
+						log.FromContext(ctx).Info(infoMessage)
 					}
 				} else {
 					err := r.SetStatusRunning(ctx, skipJob)
@@ -240,6 +251,16 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	return reconcile.Result{}, nil
+}
+
+func isFailedJob(job batchv1.Job) (bool, *string) {
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == ConditionFailed && condition.Status == corev1.ConditionTrue {
+			return true, &condition.Message
+		}
+	}
+
+	return false, nil
 }
 
 func getEphemeralContainerPatch(pod corev1.Pod) ([]byte, error) {
@@ -297,7 +318,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels ma
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	labels["job-name"] = jobName
+	//labels["job-name"] = jobName
 	labels[SKIPJobReferenceLabelKey] = skipJob.Name
 
 	return labels
@@ -325,6 +346,9 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: GetJobLabels(skipJob, skipJob.Name, nil),
+			},
 			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
