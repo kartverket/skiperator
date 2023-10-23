@@ -15,7 +15,7 @@ resource called `Application`.
 Below you will find a list of all accepted input parameters to the `Application`
 custom resource.
 
-To see explanations and requirements for all inputs, see the documentation under [the API](/api/v1alpha1/application.go).
+To see explanations and requirements for all inputs, see the documentation under [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1).
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -162,7 +162,7 @@ spec:
 ## SKIPJob reference
 
 Below you will find a list of all accepted input parameters to the `SKIPJob`
-custom resource. Only types are shown here. The fields are documented in the API, see [skipjob_types.go](api/v1alpha1/skipjob_types.go)
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1)
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
