@@ -41,7 +41,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := job.Labels[SKIPJobReferenceLabelKey]; exists {
+			if skipJobName, exists := job.Labels["app"]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
@@ -61,7 +61,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := pod.Labels[SKIPJobReferenceLabelKey]; exists {
+			if skipJobName, exists := pod.Labels["app"]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{

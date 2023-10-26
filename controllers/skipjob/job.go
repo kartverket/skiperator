@@ -2,7 +2,6 @@ package skipjobcontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
@@ -14,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -23,8 +21,7 @@ import (
 )
 
 var (
-	SKIPJobReferenceLabelKey = "skipJobOwnerName"
-	DefaultPollingRate       = time.Second * 30
+	DefaultPollingRate = time.Second * 30
 
 	DefaultRequeueForPodsWait = time.Second * 15
 
@@ -150,7 +147,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	jobsToCheckList := batchv1.JobList{}
 
 	err = r.GetClient().List(ctx, &jobsToCheckList, client.MatchingLabels{
-		SKIPJobReferenceLabelKey: skipJob.Name,
+		"app": skipJob.KindPostFixedName(),
 	})
 	if err != nil {
 		return reconcile.Result{}, err
@@ -207,18 +204,6 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				}
 
 				if exitCode, exists := terminatedContainerStatuses[skipJob.KindPostFixedName()]; exists {
-					ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
-					if err != nil {
-						r.EmitWarningEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
-						return reconcile.Result{}, err
-					}
-
-					err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
-					if err != nil {
-						r.EmitWarningEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
-						return reconcile.Result{}, err
-					}
-
 					if exitCode == 0 {
 						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished
 						err = r.SetStatusFinished(ctx, skipJob)
@@ -263,20 +248,6 @@ func isFailedJob(job batchv1.Job) (bool, string) {
 	return false, ""
 }
 
-func getEphemeralContainerPatch(pod corev1.Pod) ([]byte, error) {
-	tempPod, _, err := generateDebugContainer(&pod)
-	if err != nil {
-		return nil, err
-	}
-
-	podJSON, _ := json.Marshal(pod)
-	ecPodJSON, _ := json.Marshal(tempPod)
-
-	patch, err := strategicpatch.CreateTwoWayMergePatch(podJSON, ecPodJSON, pod)
-
-	return patch, err
-}
-
 func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob skiperatorv1alpha1.SKIPJob) (*corev1.ConfigMap, error) {
 	if skipJob.Spec.Container.GCP != nil {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
@@ -318,8 +289,10 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	//labels["job-name"] = jobName
-	labels[SKIPJobReferenceLabelKey] = skipJob.Name
+
+	// Used by hahaha to know that the Pod should be watched for killing sidecars
+	labels["skiperator.kartverket.no/skipjob"] = "true"
+	maps.Copy(labels, util.GetPodAppSelector(skipJob.KindPostFixedName()))
 
 	return labels
 }
@@ -346,10 +319,10 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
+			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: GetJobLabels(skipJob, nil),
 			},
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		CompletionMode:          util.PointTo(batchv1.NonIndexedCompletion),
@@ -367,33 +340,4 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	}
 
 	return jobSpec
-}
-
-func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralContainer, error) {
-	ec := &corev1.EphemeralContainer{
-		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			Name:                     "istio-debugger",
-			Image:                    "istio/base",
-			Command:                  []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
-			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-			SecurityContext: util.PointTo(corev1.SecurityContext{
-				RunAsUser:                util.PointTo(int64(1337)),
-				RunAsGroup:               util.PointTo(int64(1337)),
-				RunAsNonRoot:             util.PointTo(true),
-				ReadOnlyRootFilesystem:   util.PointTo(true),
-				AllowPrivilegeEscalation: util.PointTo(false),
-				SeccompProfile: util.PointTo(corev1.SeccompProfile{
-					Type: corev1.SeccompProfileTypeRuntimeDefault,
-				}),
-			}),
-		},
-		TargetContainerName: IstioProxyPodContainerName,
-	}
-
-	copied := pod.DeepCopy()
-	copied.Spec.EphemeralContainers = append(copied.Spec.EphemeralContainers, *ec)
-
-	ec = &copied.Spec.EphemeralContainers[len(copied.Spec.EphemeralContainers)-1]
-
-	return copied, ec, nil
 }
