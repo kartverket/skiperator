@@ -23,7 +23,7 @@ import (
 var (
 	DefaultAwaitCronJobResourcesWait = time.Second * 10
 
-	SKIPJobOwnerReferenceKey = "skiperator.kartverket.no/skipjobName"
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
 
 	IsSKIPJobKey = "skiperator.kartverket.no/skipjob"
 )
@@ -145,7 +145,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	jobsToCheckList := batchv1.JobList{}
 
 	err = r.GetClient().List(ctx, &jobsToCheckList, client.MatchingLabels{
-		"app": skipJob.KindPostFixedName(),
+		SKIPJobReferenceLabelKey: skipJob.Name,
 	})
 	if err != nil {
 		return reconcile.Result{}, err
@@ -235,7 +235,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 	}
 
 	// Used by hahaha to know that the Pod should be watched for killing sidecars
-	labels[SKIPJobOwnerReferenceKey] = skipJob.Name
+	labels[SKIPJobReferenceLabelKey] = skipJob.Name
 	labels[IsSKIPJobKey] = "true"
 
 	maps.Copy(labels, util.GetPodAppSelector(skipJob.KindPostFixedName()))

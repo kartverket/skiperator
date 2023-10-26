@@ -40,7 +40,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := job.Labels[SKIPJobOwnerReferenceKey]; exists {
+			if skipJobName, exists := job.Labels[SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
