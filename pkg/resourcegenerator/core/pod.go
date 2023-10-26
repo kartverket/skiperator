@@ -66,7 +66,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 	}
 }
 
-func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount) corev1.Container {
+func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount, envVars []corev1.EnvVar) corev1.Container {
 	return corev1.Container{
 		Name:                     skipJob.KindPostFixedName(),
 		Image:                    skipJob.Spec.Container.Image,
@@ -75,7 +75,7 @@ func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []core
 		SecurityContext:          &util.LeastPrivilegeContainerSecurityContext,
 		EnvFrom:                  getEnvFrom(skipJob.Spec.Container.EnvFrom),
 		Resources:                getResourceRequirements(skipJob.Spec.Container.Resources),
-		Env:                      skipJob.Spec.Container.Env,
+		Env:                      envVars,
 		ReadinessProbe:           getProbe(skipJob.Spec.Container.Readiness),
 		LivenessProbe:            getProbe(skipJob.Spec.Container.Liveness),
 		StartupProbe:             getProbe(skipJob.Spec.Container.Startup),
