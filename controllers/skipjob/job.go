@@ -21,13 +21,11 @@ import (
 )
 
 var (
-	DefaultPollingRate = time.Second * 30
-
-	DefaultRequeueForPodsWait = time.Second * 15
-
 	DefaultAwaitCronJobResourcesWait = time.Second * 10
 
-	IstioProxyPodContainerName = "istio-proxy"
+	SKIPJobOwnerReferenceKey = "skiperator.kartverket.no/skipjobName"
+
+	IsSKIPJobKey = "skiperator.kartverket.no/skipjob"
 )
 
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
@@ -161,77 +159,23 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	for _, job := range jobsToCheckList.Items {
 		if isFailed, failedJobMessage := isFailedJob(job); isFailed {
 			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason:  %v", job.Name, job.Namespace, failedJobMessage))
+			if err != nil {
+				return reconcile.Result{}, err
+			}
 			continue
 		}
 
-		if job.Status.Active > 0 {
-			jobPods := corev1.PodList{}
-			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
+		if job.Status.CompletionTime != nil {
+			err = r.SetStatusFinished(ctx, skipJob)
 			if err != nil {
-				r.EmitWarningEvent(skipJob, "CouldNotListPods", fmt.Sprintf("something went wrong when listing Pods of Job %v: %v", job.Name, err))
 				return reconcile.Result{}, err
 			}
+			continue
+		}
 
-			if len(jobPods.Items) == 0 {
-				// In the case that the job has no pods yet, we should requeue the request so that the controller can
-				// check the pods when created.
-				log.FromContext(ctx).Info(fmt.Sprintf("could not find pods for job %v/%v, requeuing reconcile in %v seconds", job.Namespace, job.Name, DefaultRequeueForPodsWait.Seconds()))
-				return reconcile.Result{RequeueAfter: DefaultRequeueForPodsWait}, nil
-			}
-
-			for _, pod := range jobPods.Items {
-				if pod.Status.Phase == corev1.PodFailed {
-					err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed", pod.Name))
-					return reconcile.Result{}, err
-				}
-
-				if pod.Status.Phase == corev1.PodPending {
-					infoMessage := fmt.Sprintf("pod %v for job %v/%v pending, requeueing in %v seconds", pod.Name, job.Namespace, job.Name, DefaultRequeueForPodsWait.Seconds())
-					log.FromContext(ctx).Info(infoMessage)
-					return reconcile.Result{RequeueAfter: DefaultRequeueForPodsWait}, nil
-				}
-
-				terminatedContainerStatuses := map[string]int32{}
-				for _, containerStatus := range pod.Status.ContainerStatuses {
-					if containerStatus.State.Terminated != nil {
-						terminatedContainerStatuses[containerStatus.Name] = containerStatus.State.Terminated.ExitCode
-					}
-				}
-
-				if _, exists := terminatedContainerStatuses[IstioProxyPodContainerName]; exists {
-					// We want to skip all further operations if the istio-proxy is terminated
-					continue
-				}
-
-				if exitCode, exists := terminatedContainerStatuses[skipJob.KindPostFixedName()]; exists {
-					if exitCode == 0 {
-						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished
-						err = r.SetStatusFinished(ctx, skipJob)
-						if err != nil {
-							return reconcile.Result{}, err
-						}
-					} else {
-						// TODO Should we set Failed status here, or rather do it based on the job condition?
-						err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed with exit code %v", pod.Name, exitCode))
-						if err != nil {
-							return reconcile.Result{}, err
-						}
-
-						infoMessage := fmt.Sprintf("pod %v for job %v/%v failed", pod.Name, job.Namespace, job.Name)
-						log.FromContext(ctx).Info(infoMessage)
-					}
-				} else {
-					err := r.SetStatusRunning(ctx, skipJob)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					infoMessage := fmt.Sprintf("job %v/%v not complete, requeueing in %v seconds", job.Namespace, job.Name, DefaultPollingRate.Seconds())
-					log.FromContext(ctx).Info(infoMessage)
-
-					return reconcile.Result{RequeueAfter: DefaultPollingRate}, nil
-				}
-			}
+		err := r.SetStatusRunning(ctx, skipJob)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
@@ -291,7 +235,9 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 	}
 
 	// Used by hahaha to know that the Pod should be watched for killing sidecars
-	labels["skiperator.kartverket.no/skipjob"] = "true"
+	labels[SKIPJobOwnerReferenceKey] = skipJob.Name
+	labels[IsSKIPJobKey] = "true"
+
 	maps.Copy(labels, util.GetPodAppSelector(skipJob.KindPostFixedName()))
 
 	return labels

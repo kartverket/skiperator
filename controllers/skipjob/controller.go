@@ -7,7 +7,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
-	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,31 +40,11 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := job.Labels["app"]; exists {
+			if skipJobName, exists := job.Labels[SKIPJobOwnerReferenceKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
 							Namespace: job.Namespace,
-							Name:      skipJobName,
-						},
-					},
-				}
-			}
-
-			return nil
-		})).
-		Watches(&corev1.Pod{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
-			pod, isPod := object.(*corev1.Pod)
-
-			if !isPod || pod.Status.Phase == corev1.PodFailed {
-				return nil
-			}
-
-			if skipJobName, exists := pod.Labels["app"]; exists {
-				return []reconcile.Request{
-					{
-						types.NamespacedName{
-							Namespace: pod.Namespace,
 							Name:      skipJobName,
 						},
 					},
