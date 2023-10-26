@@ -235,10 +235,11 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 	}
 
 	// Used by hahaha to know that the Pod should be watched for killing sidecars
-	labels[SKIPJobReferenceLabelKey] = skipJob.Name
 	labels[IsSKIPJobKey] = "true"
-
 	maps.Copy(labels, util.GetPodAppSelector(skipJob.KindPostFixedName()))
+
+	// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
+	labels[SKIPJobReferenceLabelKey] = skipJob.Name
 
 	return labels
 }
