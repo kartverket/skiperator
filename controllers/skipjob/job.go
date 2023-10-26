@@ -299,6 +299,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 
 func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
+	envVars := skipJob.Spec.Container.Env
 
 	if skipJob.Spec.Container.GCP != nil {
 		gcpPodVolume := gcp.GetGCPContainerVolume(gcpIdentityConfigMap.Data["workloadIdentityPool"], skipJob.Name)
@@ -307,7 +308,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 		podVolumes = append(podVolumes, gcpPodVolume)
 		containerVolumeMounts = append(containerVolumeMounts, gcpContainerVolumeMount)
-		skipJob.Spec.Container.Env = append(skipJob.Spec.Container.Env, gcpEnvVar)
+		envVars = append(envVars, gcpEnvVar)
 	}
 
 	jobSpec := batchv1.JobSpec{
@@ -319,7 +320,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts, envVars), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: GetJobLabels(skipJob, nil),
 			},
