@@ -344,16 +344,6 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	return jobSpec
 }
 
-func hasGCPEnvVar(env []corev1.EnvVar) bool {
-	for _, env := range env {
-		if env.Name == "GOOGLE_APPLICATION_CREDENTIALS" {
-			return true
-		}
-	}
-
-	return false
-}
-
 func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralContainer, error) {
 	ec := &corev1.EphemeralContainer{
 		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
