@@ -267,7 +267,14 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts, envVars), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(
+				core.CreateJobContainer(skipJob, containerVolumeMounts, envVars),
+				podVolumes,
+				skipJob.KindPostFixedName(),
+				skipJob.Spec.Container.Priority,
+				skipJob.Spec.Container.RestartPolicy,
+				skipJob.Spec.Container.PodSettings,
+			),
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: GetJobLabels(skipJob, nil),
 			},

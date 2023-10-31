@@ -436,6 +436,18 @@ spec:
                     - path
                     - port
                     type: object
+                  podSettings:
+                    description: PodSettings
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      terminationGracePeriodSeconds:
+                        default: 30
+                        format: int64
+                        type: integer
+                    type: object
                   priority:
                     default: medium
                     enum:

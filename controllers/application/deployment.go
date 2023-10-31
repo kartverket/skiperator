@@ -9,6 +9,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/maps"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -97,6 +98,10 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
+	if application.Spec.PodSettings != nil && len(application.Spec.PodSettings.Annotations) > 0 {
+		maps.Copy(generatedSpecAnnotations, application.Spec.PodSettings.Annotations)
+	}
+
 	podForDeploymentTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -106,31 +111,14 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			Labels:      labels,
 			Annotations: generatedSpecAnnotations,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				skiperatorContainer,
-			},
-
-			// TODO: Make this as part of operator in a safe way
-			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-			SecurityContext: &corev1.PodSecurityContext{
-				SupplementalGroups: []int64{util.SkiperatorUser},
-				FSGroup:            util.PointTo(util.SkiperatorUser),
-				SeccompProfile: &corev1.SeccompProfile{
-					Type: corev1.SeccompProfileTypeRuntimeDefault,
-				},
-			},
-			ServiceAccountName: application.Name,
-			// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
-			// to not create a diff for the hash of existing and wanted spec
-			DeprecatedServiceAccount:      application.Name,
-			Volumes:                       podVolumes,
-			PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
-			RestartPolicy:                 corev1.RestartPolicyAlways,
-			TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
-			DNSPolicy:                     corev1.DNSClusterFirst,
-			SchedulerName:                 corev1.DefaultSchedulerName,
-		},
+		Spec: core.CreatePodSpec(
+			skiperatorContainer,
+			podVolumes,
+			application.Name,
+			application.Spec.Priority,
+			util.PointTo(corev1.RestartPolicyAlways),
+			application.Spec.PodSettings,
+		),
 	}
 
 	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
