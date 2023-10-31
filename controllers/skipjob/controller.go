@@ -32,6 +32,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&skiperatorv1alpha1.SKIPJob{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
+		// This is added as the Jobs created by CronJobs are not owned by the SKIPJob directly, but rather through the CronJob
 		Watches(&batchv1.Job{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
 			job, isJob := object.(*batchv1.Job)
 
@@ -39,12 +40,12 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if job.Status.CompletionTime != nil {
+			if skipJobName, exists := job.Labels[SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
 							Namespace: job.Namespace,
-							Name:      job.Labels[SKIPJobReferenceLabelKey],
+							Name:      skipJobName,
 						},
 					},
 				}
