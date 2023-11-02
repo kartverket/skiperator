@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"os"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strings"
@@ -81,6 +84,8 @@ func main() {
 		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 	}
 
+	detectK8sVersion(kubeconfig)
+
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
@@ -134,4 +139,19 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func detectK8sVersion(kubeconfig *rest.Config) {
+	disco, err := discovery.NewDiscoveryClientForConfig(kubeconfig)
+	if err != nil {
+		setupLog.Error(err, "could not get discovery client")
+		os.Exit(1)
+	}
+	ver, err := disco.ServerVersion()
+	if err != nil {
+		setupLog.Error(err, "could not get server version")
+		os.Exit(1)
+	}
+	k8sfeatures.NewVersionInfo(ver)
+	setupLog.Info("detected server version", "version", ver)
 }

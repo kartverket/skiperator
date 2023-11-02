@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,8 +54,11 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 				Selector: &metav1.LabelSelector{
 					MatchLabels: util.GetPodAppSelector(application.Name),
 				},
-				MinAvailable:               determineMinAvailable(minReplicas),
-				UnhealthyPodEvictionPolicy: util.PointTo(policyv1.AlwaysAllow),
+				MinAvailable: determineMinAvailable(minReplicas),
+			}
+
+			if k8sfeatures.EnhancedPDBAvailable() {
+				pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
 			}
 
 			return nil
