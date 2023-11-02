@@ -492,6 +492,21 @@ spec:
                 - path
                 - port
                 type: object
+              podSettings:
+                description: PodSettings are used to apply specific settings to the
+                  Pod Template used by Skiperator to create Deployments. This allows
+                  you to set things like annotations on the Pod to change the behaviour
+                  of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  terminationGracePeriodSeconds:
+                    default: 30
+                    format: int64
+                    type: integer
+                type: object
               port:
                 description: The port the deployment exposes
                 type: integer

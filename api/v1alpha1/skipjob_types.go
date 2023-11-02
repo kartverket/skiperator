@@ -106,6 +106,9 @@ type ContainerSettings struct {
 	// +kubebuilder:default="Never"
 	// +kubebuilder:validation:Optional
 	RestartPolicy *corev1.RestartPolicy `json:"restartPolicy"`
+
+	//+kubebuilder:validation:Optional
+	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
