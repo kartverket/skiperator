@@ -15,9 +15,7 @@ var _ = Describe("AuthorizationPolicy", func() {
 	var application *skiperatorv1alpha1.Application
 
 	const (
-		AppName      = "application"
-		AppNamespace = testNamespace
-
+		AppName  = "application"
 		timeout  = time.Second * 10
 		duration = time.Second * 10
 		interval = time.Millisecond * 250
@@ -26,8 +24,7 @@ var _ = Describe("AuthorizationPolicy", func() {
 	//Set common config
 	application = &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      AppName,
-			Namespace: AppNamespace,
+			Name: AppName,
 		},
 		Spec: skiperatorv1alpha1.ApplicationSpec{
 			Image: "image",
@@ -35,41 +32,28 @@ var _ = Describe("AuthorizationPolicy", func() {
 		},
 	}
 
-	Context("When an application is minimal", Ordered, func() {
-		ap := &v1beta1.AuthorizationPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: application.Namespace,
-				Name:      application.Name + "-deny",
-			},
-		}
+	Context("When an application is minimal", func() {
 
-		BeforeAll(func() {
+		It("Should work", func() {
+			ns := newNamespace()
+			application.Namespace = ns.Name
+			ap := &v1beta1.AuthorizationPolicy{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: ns.Name,
+					Name:      application.Name + "-deny",
+				},
+			}
 			//Set test specific application values
 			Expect(k8sClient.Create(ctx, application)).Should(Succeed())
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(ap), ap)
 				return err == nil
 			}, timeout).Should(BeTrue())
-		})
-
-		AfterAll(func() {
-			Expect(k8sClient.Delete(ctx, application)).Should(Succeed())
-		})
-
-		It("should have action deny", func() {
 			Expect(ap.Spec.Action).Should(Equal(securityapi.AuthorizationPolicy_DENY))
-		})
-
-		It("Should have rule from namespace istio gateways", func() {
 			Expect(ap.Spec.Rules[0].From[0].Source.Namespaces[0]).Should(Equal("istio-gateways"))
-		})
-
-		It("Should have rule to actuator path", func() {
 			Expect(ap.Spec.Rules[0].To[0].Operation.Paths[0]).Should(Equal("/actuator*"))
-		})
-
-		It("Should selector", func() {
 			Expect(ap.Spec.Selector.MatchLabels["app"]).Should(Equal(application.Name))
 		})
+
 	})
 })

@@ -59,11 +59,13 @@ var (
 	testEnv   *envtest.Environment
 	ctx       context.Context
 	cancel    context.CancelFunc
+	n         int
 )
 
 const (
-	testNamespace  = "test"
-	clusterVersion = "1.27.1"
+	testNamespace      = "test"
+	otherTestNamespace = "other"
+	clusterVersion     = "1.27.1"
 )
 
 func TestAPIs(t *testing.T) {
@@ -75,9 +77,7 @@ func TestAPIs(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	Expect(os.Setenv("KUBEBUILDER_ASSETS", fmt.Sprintf("../../bin/k8s/%v-%v-%v", clusterVersion, runtime.GOOS, runtime.GOARCH))).To(Succeed())
-
 	ctx, cancel = context.WithCancel(context.TODO())
-
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{
@@ -112,47 +112,47 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 	komega.SetClient(k8sClient)
+	Expect(err).ToNot(HaveOccurred())
 
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Client: client.Options{Cache: &client.CacheOptions{Unstructured: true}},
 		Scheme: scheme.Scheme,
 	})
-	Expect(err).ToNot(HaveOccurred())
-
-	namespace := &corev1.Namespace{}
-	namespace.Name = testNamespace
-	Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
-
-	fakePullSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "github-auth",
-			Namespace: testNamespace,
-		},
-	}
-	Expect(k8sClient.Create(ctx, fakePullSecret)).To(Succeed())
+	Expect(err).NotTo(HaveOccurred())
 
 	err = (&applicationcontroller.ApplicationReconciler{
-		ReconcilerBase: util.NewFromManager(k8sManager, k8sManager.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(k8sManager)
+		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(ctx)
+		err = mgr.Start(ctx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
 })
 
 var _ = AfterSuite(func() {
-	cancel()
 	By("tearing down the test environment")
+	cancel()
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
-
-	Expect(os.Unsetenv("TEST_ASSET_KUBE_APISERVER")).To(Succeed())
-	Expect(os.Unsetenv("TEST_ASSET_ETCD")).To(Succeed())
-	Expect(os.Unsetenv("TEST_ASSET_KUBECTL")).To(Succeed())
-
-	Expect(err).NotTo(HaveOccurred())
 })
+
+// testEnv doesn't clean up namespaces, so we need a new one for every test
+func newNamespace() *corev1.Namespace {
+	namespace := &corev1.Namespace{}
+	namespace.Name = fmt.Sprintf(`%s-%d`, "test", n)
+	Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
+
+	fakePullSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "github-auth",
+			Namespace: namespace.Name,
+		},
+	}
+	Expect(k8sClient.Create(ctx, fakePullSecret)).To(Succeed())
+	n++
+	return namespace
+}
