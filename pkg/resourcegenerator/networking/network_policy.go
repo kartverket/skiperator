@@ -91,9 +91,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, avail
 						PodSelector: &metav1.LabelSelector{
 							MatchLabels: relatedService.Spec.Selector,
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"kubernetes.io/metadata.name": outboundRule.Namespace},
-						},
+						NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
 					},
 				},
 			}

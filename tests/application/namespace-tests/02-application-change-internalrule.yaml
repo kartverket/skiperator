@@ -13,3 +13,10 @@ spec:
             team: skiptest
             app: testapp
           namespace: nytt-ns
+    outbound:
+      rules:
+        - application: test-ext
+          namespacesByLabel:
+            team: skiptest
+            app: testapp
+          namespace: nytt-ns

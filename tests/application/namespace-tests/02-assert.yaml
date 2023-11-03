@@ -8,6 +8,7 @@ spec:
       app: namespace-tests
   policyTypes:
     - Ingress
+    - Egress
   ingress:
     - from:
         - namespaceSelector:
@@ -18,4 +19,15 @@ spec:
               app: test-ext
       ports:
         - port: 8080
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: nytt-ns
+          podSelector:
+            matchLabels:
+              app: test-ext
+      ports:
+        - port: 8081
           protocol: TCP
