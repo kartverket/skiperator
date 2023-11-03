@@ -218,6 +218,12 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	AuthorizationSettings *AuthorizationSettings `json:"authorizationSettings,omitempty"`
+
+	// PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set
+	// things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
+	//
+	//+kubebuilder:validation:Optional
+	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any

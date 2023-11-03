@@ -12,15 +12,21 @@ type PodOpts struct {
 	IstioEnabled bool
 }
 
-func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy *corev1.RestartPolicy) corev1.PodSpec {
+func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy *corev1.RestartPolicy, podSettings *podtypes.PodSettings) corev1.PodSpec {
+	if podSettings == nil {
+		podSettings = &podtypes.PodSettings{
+			TerminationGracePeriodSeconds: int64(30),
+		}
+	}
+
 	return corev1.PodSpec{
 		Volumes: volumes,
 		Containers: []corev1.Container{
 			container,
 		},
 		RestartPolicy:                 *policy,
-		TerminationGracePeriodSeconds: util.PointTo(int64(30)),
-		DNSPolicy:                     "ClusterFirst",
+		TerminationGracePeriodSeconds: util.PointTo(podSettings.TerminationGracePeriodSeconds),
+		DNSPolicy:                     corev1.DNSClusterFirst,
 		ServiceAccountName:            serviceAccountName,
 		DeprecatedServiceAccount:      serviceAccountName,
 		NodeName:                      "",
@@ -35,7 +41,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 			},
 		},
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
-		SchedulerName:     "default-scheduler",
+		SchedulerName:     corev1.DefaultSchedulerName,
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
 	}
 
@@ -66,7 +72,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 	}
 }
 
-func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount) corev1.Container {
+func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount, envVars []corev1.EnvVar) corev1.Container {
 	return corev1.Container{
 		Name:                     skipJob.KindPostFixedName(),
 		Image:                    skipJob.Spec.Container.Image,
@@ -75,7 +81,7 @@ func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []core
 		SecurityContext:          &util.LeastPrivilegeContainerSecurityContext,
 		EnvFrom:                  getEnvFrom(skipJob.Spec.Container.EnvFrom),
 		Resources:                getResourceRequirements(skipJob.Spec.Container.Resources),
-		Env:                      skipJob.Spec.Container.Env,
+		Env:                      envVars,
 		ReadinessProbe:           getProbe(skipJob.Spec.Container.Readiness),
 		LivenessProbe:            getProbe(skipJob.Spec.Container.Liveness),
 		StartupProbe:             getProbe(skipJob.Spec.Container.Startup),

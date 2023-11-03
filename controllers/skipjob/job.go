@@ -2,7 +2,6 @@ package skipjobcontroller
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
@@ -14,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -23,14 +21,11 @@ import (
 )
 
 var (
-	SKIPJobReferenceLabelKey = "skipJobOwnerName"
-	DefaultPollingRate       = time.Second * 15
+	DefaultAwaitCronJobResourcesWait = time.Second * 10
 
-	DefaultRequeueForPodsWait = time.Second * 5
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
 
-	DefaultAwaitCronJobResourcesWait = time.Second * 5
-
-	IstioProxyPodContainerName = "istio-proxy"
+	IsSKIPJobKey = "skiperator.kartverket.no/skipjob"
 )
 
 func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
@@ -63,7 +58,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			util.SetCommonAnnotations(&cronJob)
 
-			cronJob.Spec = getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
+			cronJob.Spec = getCronJobSpec(skipJob, nil, nil, gcpIdentityConfigMap)
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
@@ -74,7 +69,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			return reconcile.Result{RequeueAfter: 5}, nil
 		} else if err == nil {
 			currentSpec := cronJob.Spec
-			desiredSpec := getCronJobSpec(skipJob, cronJob.Name, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
+			desiredSpec := getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, gcpIdentityConfigMap)
 
 			cronJobSpecDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
@@ -109,7 +104,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			}
 
 			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
-			job.Labels = GetJobLabels(skipJob, job.Name, job.Labels)
+			job.Labels = GetJobLabels(skipJob, job.Labels)
 			job.Spec = desiredSpec
 
 			err := r.GetClient().Create(ctx, &job)
@@ -162,96 +157,39 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	}
 
 	for _, job := range jobsToCheckList.Items {
-		if job.Status.CompletionTime == nil {
-			jobPods := corev1.PodList{}
-			err := r.GetClient().List(ctx, &jobPods, client.MatchingLabels{"job-name": job.Name})
+		if isFailed, failedJobMessage := isFailedJob(job); isFailed {
+			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason:  %v", job.Name, job.Namespace, failedJobMessage))
 			if err != nil {
-				r.EmitWarningEvent(skipJob, "CouldNotListPods", fmt.Sprintf("something went wrong when listing Pods of Job %v: %v", job.Name, err))
 				return reconcile.Result{}, err
 			}
+			continue
+		}
 
-			if len(jobPods.Items) == 0 {
-				// In the case that the job has no pods yet, we should requeue the request so that the controller can
-				// check the pods when created.
-				log.FromContext(ctx).Info(fmt.Sprintf("could not find pods for job %v/%v, requeuing reconcile in %v seconds", job.Namespace, job.Name, DefaultRequeueForPodsWait.Seconds()))
-				return reconcile.Result{RequeueAfter: DefaultRequeueForPodsWait}, nil
+		if job.Status.CompletionTime != nil {
+			err = r.SetStatusFinished(ctx, skipJob)
+			if err != nil {
+				return reconcile.Result{}, err
 			}
+			continue
+		}
 
-			for _, pod := range jobPods.Items {
-				if pod.Status.Phase == corev1.PodFailed {
-					err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed", pod.Name))
-					return reconcile.Result{}, err
-				}
-
-				if pod.Status.Phase != corev1.PodRunning {
-					continue
-				}
-
-				terminatedContainerStatuses := map[string]int32{}
-				for _, containerStatus := range pod.Status.ContainerStatuses {
-					if containerStatus.State.Terminated != nil {
-						terminatedContainerStatuses[containerStatus.Name] = containerStatus.State.Terminated.ExitCode
-					}
-				}
-
-				if _, exists := terminatedContainerStatuses[IstioProxyPodContainerName]; exists {
-					// We want to skip all further operations if the istio-proxy is terminated
-					continue
-				}
-
-				if exitCode, exists := terminatedContainerStatuses[skipJob.KindPostFixedName()]; exists {
-					if exitCode == 0 {
-						ephemeralContainerPatch, err := getEphemeralContainerPatch(pod)
-						if err != nil {
-							r.EmitWarningEvent(skipJob, "CouldNotCreateEphemeralContainer", fmt.Sprintf("something went wrong when creating ephemeral istio killer-container for Job %v: %v", job.Name, err))
-							return reconcile.Result{}, err
-						}
-
-						err = r.GetClient().SubResource("ephemeralcontainers").Patch(ctx, &pod, client.RawPatch(types.StrategicMergePatchType, ephemeralContainerPatch))
-						if err != nil {
-							r.EmitWarningEvent(skipJob, "CouldNotExitContainer", fmt.Sprintf("something went wrong when killing istio container for Job %v: %v", job.Name, err))
-							return reconcile.Result{}, err
-						}
-
-						// Once we know the istio-proxy pod is marked as completed, we can assume the Job is finished
-						err = r.SetStatusFinished(ctx, skipJob)
-						if err != nil {
-							return reconcile.Result{}, err
-						}
-					} else {
-						err := r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("workload container for pod %v failed with exit code %v", pod.Name, exitCode))
-						return reconcile.Result{}, err
-					}
-				} else {
-					err := r.SetStatusRunning(ctx, skipJob)
-					if err != nil {
-						return reconcile.Result{}, err
-					}
-
-					infoMessage := fmt.Sprintf("job %v/%v not complete, requeueing in %v seconds", job.Namespace, job.Name, DefaultPollingRate.Seconds())
-					log.FromContext(ctx).Info(infoMessage)
-
-					return reconcile.Result{RequeueAfter: DefaultPollingRate}, nil
-				}
-			}
+		err := r.SetStatusRunning(ctx, skipJob)
+		if err != nil {
+			return reconcile.Result{}, err
 		}
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func getEphemeralContainerPatch(pod corev1.Pod) ([]byte, error) {
-	tempPod, _, err := generateDebugContainer(&pod)
-	if err != nil {
-		return nil, err
+func isFailedJob(job batchv1.Job) (bool, string) {
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == ConditionFailed && condition.Status == corev1.ConditionTrue {
+			return true, condition.Message
+		}
 	}
 
-	podJSON, _ := json.Marshal(pod)
-	ecPodJSON, _ := json.Marshal(tempPod)
-
-	patch, err := strategicpatch.CreateTwoWayMergePatch(podJSON, ecPodJSON, pod)
-
-	return patch, err
+	return false, ""
 }
 
 func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob skiperatorv1alpha1.SKIPJob) (*corev1.ConfigMap, error) {
@@ -274,7 +212,7 @@ func (r *SKIPJobReconciler) getGCPIdentityConfigMap(ctx context.Context, skipJob
 	}
 }
 
-func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
+func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	return batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
@@ -282,7 +220,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 		Suspend:                 skipJob.Spec.Cron.Suspend,
 		JobTemplate: batchv1.JobTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: GetJobLabels(skipJob, jobName, podLabels),
+				Labels: GetJobLabels(skipJob, podLabels),
 			},
 			Spec: getJobSpec(skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
@@ -291,11 +229,16 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, selecto
 	}
 }
 
-func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels map[string]string) map[string]string {
+func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) map[string]string {
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	labels["job-name"] = jobName
+
+	// Used by hahaha to know that the Pod should be watched for killing sidecars
+	labels[IsSKIPJobKey] = "true"
+	maps.Copy(labels, util.GetPodAppSelector(skipJob.KindPostFixedName()))
+
+	// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
 	labels[SKIPJobReferenceLabelKey] = skipJob.Name
 
 	return labels
@@ -303,6 +246,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, jobName string, labels ma
 
 func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
+	envVars := skipJob.Spec.Container.Env
 
 	if skipJob.Spec.Container.GCP != nil {
 		gcpPodVolume := gcp.GetGCPContainerVolume(gcpIdentityConfigMap.Data["workloadIdentityPool"], skipJob.Name)
@@ -311,7 +255,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 		podVolumes = append(podVolumes, gcpPodVolume)
 		containerVolumeMounts = append(containerVolumeMounts, gcpContainerVolumeMount)
-		skipJob.Spec.Container.Env = append(skipJob.Spec.Container.Env, gcpEnvVar)
+		envVars = append(envVars, gcpEnvVar)
 	}
 
 	jobSpec := batchv1.JobSpec{
@@ -323,7 +267,17 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(core.CreateJobContainer(skipJob, containerVolumeMounts), podVolumes, skipJob.KindPostFixedName(), skipJob.Spec.Container.Priority, skipJob.Spec.Container.RestartPolicy),
+			Spec: core.CreatePodSpec(
+				core.CreateJobContainer(skipJob, containerVolumeMounts, envVars),
+				podVolumes,
+				skipJob.KindPostFixedName(),
+				skipJob.Spec.Container.Priority,
+				skipJob.Spec.Container.RestartPolicy,
+				skipJob.Spec.Container.PodSettings,
+			),
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: GetJobLabels(skipJob, nil),
+			},
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,
 		CompletionMode:          util.PointTo(batchv1.NonIndexedCompletion),
@@ -341,33 +295,4 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	}
 
 	return jobSpec
-}
-
-func generateDebugContainer(pod *corev1.Pod) (*corev1.Pod, *corev1.EphemeralContainer, error) {
-	ec := &corev1.EphemeralContainer{
-		EphemeralContainerCommon: corev1.EphemeralContainerCommon{
-			Name:                     "istio-debugger",
-			Image:                    "istio/base",
-			Command:                  []string{"/bin/sh", "-c", "curl --max-time 2 -s -f -XPOST http://127.0.0.1:15000/quitquitquit"},
-			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
-			SecurityContext: util.PointTo(corev1.SecurityContext{
-				RunAsUser:                util.PointTo(int64(1337)),
-				RunAsGroup:               util.PointTo(int64(1337)),
-				RunAsNonRoot:             util.PointTo(true),
-				ReadOnlyRootFilesystem:   util.PointTo(true),
-				AllowPrivilegeEscalation: util.PointTo(false),
-				SeccompProfile: util.PointTo(corev1.SeccompProfile{
-					Type: corev1.SeccompProfileTypeRuntimeDefault,
-				}),
-			}),
-		},
-		TargetContainerName: IstioProxyPodContainerName,
-	}
-
-	copied := pod.DeepCopy()
-	copied.Spec.EphemeralContainers = append(copied.Spec.EphemeralContainers, *ec)
-
-	ec = &copied.Spec.EphemeralContainers[len(copied.Spec.EphemeralContainers)-1]
-
-	return copied, ec, nil
 }
