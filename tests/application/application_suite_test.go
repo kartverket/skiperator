@@ -14,13 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package applicationcontroller_test
+package application_test
 
 import (
 	"context"
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	"github.com/kartverket/skiperator/pkg/util"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -36,6 +35,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	skiperatorkartverketnov1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	. "github.com/kartverket/skiperator/controllers/application"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -63,9 +64,10 @@ var (
 )
 
 const (
-	testNamespace      = "test"
-	otherTestNamespace = "other"
-	clusterVersion     = "1.27.1"
+	clusterVersion = "1.27.1"
+	timeout        = time.Second * 30
+	duration       = time.Second * 10
+	interval       = time.Millisecond * 250
 )
 
 func TestAPIs(t *testing.T) {
@@ -120,7 +122,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&applicationcontroller.ApplicationReconciler{
+	err = (&ApplicationReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 	}).SetupWithManager(mgr)
 	Expect(err).ToNot(HaveOccurred())

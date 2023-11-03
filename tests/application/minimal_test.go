@@ -1,37 +1,27 @@
-package applicationcontroller_test
+package application_test
 
 import (
-	"context"
 	"github.com/google/go-cmp/cmp"
 	"github.com/imdario/mergo"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	. "github.com/kartverket/skiperator/pkg/util"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	securityapi "istio.io/api/security/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	"istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	k8sv1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 )
 
-var _ = Describe("Applications", func() {
+var _ = Describe("Minimal", func() {
 	var application skiperatorv1alpha1.Application
-	const (
-		timeout  = time.Second * 30
-		duration = time.Second * 10
-		interval = time.Millisecond * 250
-	)
 
-	Context("When an application is minimal", func() {
+	Context("When an application is created", func() {
 		It("should have created required resources", func() {
 			appName := "minimal"
 			ns := newNamespace()
@@ -187,101 +177,6 @@ var _ = Describe("Applications", func() {
 			Expect(ap.Spec.Rules[0].From[0].Source.Namespaces[0]).Should(Equal("istio-gateways"))
 			Expect(ap.Spec.Rules[0].To[0].Operation.Paths[0]).Should(Equal("/actuator*"))
 			Expect(ap.Spec.Selector.MatchLabels["app"]).Should(Equal(application.Name))
-		})
-	})
-
-	Context("When an application has access policies", func() {
-		It("should have created a network policy and service entry", func() {
-			appName := "access-policy"
-			appMinimal := "access-policy-two"
-			appOtherMinimal := "access-policy-other"
-			ns := newNamespace()
-			otherNs := newNamespace()
-			application = skiperatorv1alpha1.Application{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      appName,
-					Namespace: ns.Name,
-				},
-				Spec: skiperatorv1alpha1.ApplicationSpec{
-					Image: "image",
-					Port:  8080,
-				},
-			}
-			application.Namespace = ns.Name
-			applicationMinimal := application
-			applicationOtherMinimal := application
-			applicationOtherMinimal.Name = appOtherMinimal
-			applicationOtherMinimal.Namespace = otherNs.Name
-			applicationMinimal.Name = appMinimal
-			applicationMinimal.Namespace = ns.Name
-			application.Name = appName
-
-			accessPolicy := podtypes.AccessPolicy{
-				Inbound: &podtypes.InboundPolicy{
-					Rules: []podtypes.InternalRule{{
-						Namespace:   otherNs.Name,
-						Application: appOtherMinimal,
-					}},
-				},
-				Outbound: podtypes.OutboundPolicy{
-					Rules: []podtypes.InternalRule{{
-						Namespace:   otherNs.Name,
-						Application: appOtherMinimal,
-					}, {
-						Application: appMinimal,
-					}},
-					External: []podtypes.ExternalRule{{
-						Host: "example.com",
-						Ports: []podtypes.ExternalPort{{
-							Name:     "http",
-							Port:     80,
-							Protocol: "HTTP",
-						}}},
-						{
-							Host: "foo.com",
-						}},
-				},
-			}
-			application.Spec.AccessPolicy = &accessPolicy
-			ctx := context.Background()
-			Eventually(k8sClient.Create(ctx, &applicationMinimal)).ShouldNot(HaveOccurred())
-			Eventually(k8sClient.Create(ctx, &applicationOtherMinimal)).ShouldNot(HaveOccurred())
-			Eventually(k8sClient.Create(ctx, &application)).ShouldNot(HaveOccurred())
-
-			By("Checking network policy")
-			np := &v1.NetworkPolicy{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: application.Namespace,
-					Name:      appName,
-				},
-			}
-
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(np), np)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
-			Expect(np.Spec.PodSelector.MatchLabels["app"]).Should(Equal(appName))
-			Expect(np.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"]).Should(Equal(otherNs.Name))
-			Expect(np.Spec.Ingress[0].From[0].PodSelector.MatchLabels["app"]).Should(Equal(appOtherMinimal))
-			Expect(np.Spec.Egress[0].To[0].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"]).Should(Equal(otherNs.Name))
-			Expect(np.Spec.Egress[0].To[0].PodSelector.MatchLabels["app"]).Should(Equal(appOtherMinimal))
-			Expect(&np.Spec.Egress[0].Ports[0].Port.IntVal).Should(Equal(PointTo(int32(8080))))
-			Expect(np.Spec.Egress[1].To[0].NamespaceSelector.MatchLabels["kubernetes.io/metadata.name"]).Should(Equal(ns.Name))
-			Expect(np.Spec.Egress[1].To[0].PodSelector.MatchLabels["app"]).Should(Equal(appMinimal))
-			Expect(&np.Spec.Egress[1].Ports[0].Port.IntVal).Should(Equal(PointTo(int32(8080))))
-
-			By("Checking service entry")
-			se := &networkingv1beta1.ServiceEntry{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: ns.Name,
-				},
-			}
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, client.ObjectKeyFromObject(se), se)
-				return err == nil
-			}, timeout, interval).Should(BeTrue())
-
 		})
 	})
 })
