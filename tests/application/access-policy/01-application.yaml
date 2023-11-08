@@ -30,3 +30,9 @@ metadata:
 spec:
   image: image
   port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - namespacesByLabel:
+            test: label
+          application: access-policy-other

@@ -8,6 +8,8 @@ kind: Application
 metadata:
   name: access-policy-other
   namespace: other
+  labels:
+    test: label
 spec:
   image: image
   port: 8080

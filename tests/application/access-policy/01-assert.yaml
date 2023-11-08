@@ -39,6 +39,28 @@ spec:
       ports:
         - port: 8080
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-policy-two
+spec:
+  podSelector:
+    matchLabels:
+      app: access-policy-two
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: other #test: label
+          podSelector:
+            matchLabels:
+              app: access-policy-other
+      ports:
+        - port: 8080
+          protocol: TCP
+---
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
