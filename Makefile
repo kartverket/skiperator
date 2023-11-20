@@ -7,16 +7,20 @@ export PATH := $(PATH):$(GOBIN)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
-SKIPERATOR_CONTEXT ?= kind-kind
-KUBERNETES_VERSION = 1.27.1
-CONTROLLER_GEN_VERSION = 0.12.0
+#### TOOLS ####
+TOOLS_DIR                          := $(PWD)/.tools
+KIND                               := $(TOOLS_DIR)/kind
+KIND_VERSION                       := v0.20.0
 
-.PHONY: test-tools
-test-tools:
-	wget --no-verbose --output-document - "https://storage.googleapis.com/kubebuilder-tools/kubebuilder-tools-${KUBERNETES_VERSION}-${OS}-${ARCH}.tar.gz" | \
-    tar --gzip --extract --strip-components 2 --directory bin
-	go install github.com/kudobuilder/kuttl/cmd/kubectl-kuttl@v0.15.0
-
+#### VARS ####
+SKIPERATOR_CONTEXT 		   ?= kind-$(KIND_CLUSTER_NAME)
+KUBERNETES_VERSION 			= 1.27.1
+CONTROLLER_GEN_VERSION 		= 0.12.0
+KIND_IMAGE     			   ?= kindest/node:v$(KUBERNETES_VERSION)
+KIND_CLUSTER_NAME          ?= skiperator
+ISTIO_VERSION 				= 1.19.3
+CERT_MANAGER_VERSION        = 1.13.2
+PROMETHEUS_VERSION          = 0.69.1
 
 .PHONY: generate
 generate:
@@ -32,19 +36,66 @@ build: generate
 	-o ./bin/skiperator \
 	./cmd/skiperator
 
-.PHONY: test
-test: test-tools
-	TEST_ASSET_ETCD=bin/etcd \
-	TEST_ASSET_KUBE_APISERVER=bin/kube-apiserver \
-	DEBUG_LEVEL=warn \
-	kubectl kuttl test \
-	--config tests/config.yaml \
-	--suppress-log=events
-
-.PHONY: build-test
-build-test: build test
-
 .PHONY: run-local
 run-local: build
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator
+
+.PHONY: run-workflow
+run-workflow: build
+	./bin/skiperator > /dev/null 2>&1 &
+
+.PHONY: setup-local
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-skiperator install-chainsaw
+	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
+
+
+#### KIND ####
+
+.PHONY: kind-cluster check-kind
+check-kind:
+	@which kind >/dev/null || (echo "kind not installed, please install it to proceed"; exit 1)
+
+.PHONY: kind-cluster
+kind-cluster: check-kind
+	@echo Create kind cluster... >&2
+	@kind create cluster --image $(KIND_IMAGE) --name ${KIND_CLUSTER_NAME}
+
+
+#### SKIPERATOR DEPENDENCIES ####
+
+.PHONY: install-istio
+install-istio:
+	@echo "Creating istio-gateways namespace..."
+	@kubectl create namespace istio-gateways --context $(SKIPERATOR_CONTEXT) || true
+	@echo "Downloading Istio..."
+	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
+	@echo "Installing Istio on Kubernetes cluster..."
+	@./istio-$(ISTIO_VERSION)/bin/istioctl install -y --context $(SKIPERATOR_CONTEXT)
+	@echo "Istio installation complete."
+
+.PHONY: install-cert-manager
+install-cert-manager:
+	@echo "Installing cert-manager"
+	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --context $(SKIPERATOR_CONTEXT)
+
+.PHONY: install-prometheus-crds
+install-prometheus-crds:
+	@echo "Installing prometheus crds"
+	@kubectl apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v$(PROMETHEUS_VERSION)/stripped-down-crds.yaml --context $(SKIPERATOR_CONTEXT)
+
+.PHONY: install-skiperator
+install-skiperator: generate
+	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
+	@kubectl apply -f samples/ --recursive --context $(SKIPERATOR_CONTEXT) || true
+
+#### TESTS ####
+.PHONY: install-chainsaw
+install-chainsaw:
+	@go install github.com/kyverno/chainsaw@latest
+
+.PHONY: test
+test:
+	@chainsaw test --test-dir $(PWD)/tests/application/ --kube-context $(SKIPERATOR_CONTEXT)
+

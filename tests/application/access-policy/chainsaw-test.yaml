@@ -18,9 +18,6 @@ spec:
     - try:
         - assert:
             file: minimal-assert.yaml
-    # third step
-    # execute error statements against existing resources
-    # in the cluster
     - try:
         - apply:
             file: advanced.yaml
