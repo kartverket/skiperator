@@ -54,7 +54,7 @@ $ kubectl create ns istio-gateways && istioctl install
 Cert-manager (version in link above) must be installed locally on your cluster with
 
 ```
-$ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<VERSION>/cert-manager.yaml
+$ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
 ```
 
 Prometheus Operator CRDs must be installed locally:

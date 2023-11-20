@@ -1,9 +1,17 @@
-apiVersion: kuttl.dev/v1beta1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: TestStep
-delete:
-  - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: Application
-    name: ingresses
-  - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: Application
-    name: ingress-multiple-ports
+metadata:
+  creationTimestamp: null
+  name: delete-application
+spec:
+  timeouts: {}
+  try:
+  - delete:
+      apiVersion: skiperator.kartverket.no/v1alpha1
+      kind: Application
+      name: ingresses
+  - delete:
+      apiVersion: skiperator.kartverket.no/v1alpha1
+      kind: Application
+      name: ingress-multiple-ports

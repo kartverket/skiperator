@@ -1,0 +1,52 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: hpa
+spec:
+  skip: false
+  concurrent: false
+  skipDelete: false
+  # these timeouts are applied per operation
+  timeouts:
+    apply: 10s
+    assert: 10s
+    error: 10s
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+    - try:
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - apply:
+            file: patch-application.yaml
+    - try:
+        - assert:
+            file: patch-application-assert.yaml
+    - try:
+        - error:
+            file: patch-application-errors.yaml
+    - try:
+        - apply:
+            file: patch-application-range-target.yaml
+    - try:
+        - assert:
+            file: patch-application-range-target-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-set-0.yaml
+    - try:
+        - assert:
+            file: patch-application-set-0-assert.yaml
+    - try:
+        - error:
+            file: patch-application-set-0-error.yaml
+    - try:
+        - delete:
+            apiVersion: skiperator.kartverket.no/v1alpha1
+            kind: Application
+            name: test-deployment-hpa
+
+
+

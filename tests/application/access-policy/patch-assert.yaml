@@ -2,6 +2,7 @@ apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
   name: access-policy-egress-56cd7aa901014e78
+  namespace: test1234
 spec:
   exportTo:
     - .
