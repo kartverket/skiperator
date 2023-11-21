@@ -442,9 +442,16 @@ spec:
                       annotations:
                         additionalProperties:
                           type: string
+                        description: Annotations that are set on Pods created by Skiperator.
+                          These annotations can for example be used to change the
+                          behaviour of sidecars and similar.
                         type: object
                       terminationGracePeriodSeconds:
                         default: 30
+                        description: TerminationGracePeriodSeconds determines how
+                          long Kubernetes waits after a SIGTERM signal sent to a Pod
+                          before terminating the pod. If your application uses longer
+                          than 30 seconds to terminate, you should increase TerminationGracePeriodSeconds.
                         format: int64
                         type: integer
                     type: object
