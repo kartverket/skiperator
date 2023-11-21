@@ -6,7 +6,6 @@ spec:
   skip: false
   concurrent: false
   skipDelete: false
-  # these timeouts are applied per operation
   timeouts:
     apply: 10s
     assert: 10s
