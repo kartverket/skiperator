@@ -5,12 +5,12 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   namespace: istio-gateways
-  name: test-ingresses-ingress-56cd7aa901014e78
+  name: ingress-ingresses-ingress-56cd7aa901014e78
 spec:
   issuerRef:
     kind: ClusterIssuer
     name: cluster-issuer
-  secretName: test-ingresses-ingress-56cd7aa901014e78
+  secretName: ingress-ingresses-ingress-56cd7aa901014e78
   dnsNames:
     - example.com
 ---
@@ -34,7 +34,7 @@ spec:
         protocol: HTTPS
       tls:
         mode: SIMPLE
-        credentialName: test-ingresses-ingress-56cd7aa901014e78
+        credentialName: ingress-ingresses-ingress-56cd7aa901014e78
 ---
 ### test.com resources
 ### only checks existance of name
@@ -43,7 +43,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   namespace: istio-gateways
-  name: test-ingresses-ingress-34888c0b0c2a4a2c
+  name: ingress-ingresses-ingress-34888c0b0c2a4a2c
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway

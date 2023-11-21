@@ -4,7 +4,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   namespace: istio-gateways
-  name: test-ingresses-ingress-34888c0b0c2a4a2c
+  name: ingress-ingresses-ingress-34888c0b0c2a4a2c
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
@@ -16,7 +16,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   namespace: istio-gateways
-  name: test-ingresses-ingress-3a90cb5d70dc06a
+  name: ingress-ingresses-ingress-3a90cb5d70dc06a
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
@@ -44,3 +44,4 @@ spec:
     - route:
         - destination:
             host: ingresses
+

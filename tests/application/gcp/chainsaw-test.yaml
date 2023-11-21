@@ -10,11 +10,11 @@ spec:
     apply: 10s
     assert: 10s
     error: 10s
+  namespace: test
   steps:
     - try:
         - create:
             file: application.yaml
-    - try:
         - assert:
             file: application-assert.yaml
     - try:

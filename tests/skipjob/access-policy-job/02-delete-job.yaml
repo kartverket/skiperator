@@ -1,9 +1,17 @@
-apiVersion: kuttl.dev/v1beta1
+---
+apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: TestStep
-delete:
-  - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: Application
-    name: minimal-application
-  - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: SKIPJob
-    name: access-policy-job
+metadata:
+  creationTimestamp: null
+  name: delete-job
+spec:
+  timeouts: {}
+  try:
+  - delete:
+      apiVersion: skiperator.kartverket.no/v1alpha1
+      kind: Application
+      name: minimal-application
+  - delete:
+      apiVersion: skiperator.kartverket.no/v1alpha1
+      kind: SKIPJob
+      name: access-policy-job

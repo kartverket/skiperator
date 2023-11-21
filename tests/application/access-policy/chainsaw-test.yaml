@@ -6,41 +6,36 @@ spec:
   skip: false
   concurrent: false
   skipDelete: false
-  # these timeouts are applied per operation
   timeouts:
     apply: 10s
     assert: 10s
     error: 10s
+  namespace: access-policy-ns
   steps:
     - try:
         - apply:
             file: minimal.yaml
-    - try:
         - assert:
             file: minimal-assert.yaml
     - try:
         - apply:
             file: advanced.yaml
-    - try:
-        - apply:
+        - assert:
             file: advanced-assert.yaml
     - try:
         - apply:
             file: patch.yaml
-    - try:
-        - apply:
+        - assert:
             file: patch-assert.yaml
     - try:
         - delete:
             apiVersion: skiperator.kartverket.no/v1alpha1
             kind: Application
             name: access-policy
-            namespace: test1234
         - delete:
             apiVersion: skiperator.kartverket.no/v1alpha1
             kind: Application
             name: access-policy-two
-            namespace: test1234
         - delete:
             apiVersion: skiperator.kartverket.no/v1alpha1
             kind: Application

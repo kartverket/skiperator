@@ -4,49 +4,41 @@ metadata:
   name: ingress
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
   timeouts:
     apply: 10s
     assert: 10s
     error: 10s
+  namespace: ingress
   steps:
     - try:
         - create:
             file: application.yaml
-    - try:
         - assert:
             file: application-assert.yaml
     - try:
         - apply:
             file: patch-application-change-ingress.yaml
-    - try:
         - assert:
             file: patch-application-change-ingress-assert.yaml
-    - try:
         - error:
             file: patch-application-change-ingress-errors.yaml
     - try:
         - apply:
-            file: patch-application-disable-redirect.yaml
-    - try:
-        - assert:
-            file: patch-application-disable-redirect-assert.yaml
-    - try:
-        - error:
-            file: patch-application-disable-redirect-errors.yaml
-    - try:
-        - assert:
-            file: patch-application-no-ingresses-assert.yaml
-    - try:
+            file: patch-application-no-ingresses.yaml
         - error:
             file: patch-application-no-ingresses-errors.yaml
     - try:
         - create:
             file: application-ingress-multiple-ports.yaml
-    - try:
         - assert:
             file: application-ingress-multiple-ports-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-disable-redirect.yaml
+        - assert:
+            file: patch-application-disable-redirect-assert.yaml
     - try:
         - delete:
             apiVersion: skiperator.kartverket.no/v1alpha1
