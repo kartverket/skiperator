@@ -108,8 +108,14 @@ func getRelatedService(services []corev1.Service, rule podtypes.InternalRule) (c
 	for _, service := range services {
 		if service.Name == rule.Application && service.Namespace == rule.Namespace {
 			return service, true
-
 		}
+
+		for namespaceLabelKey := range rule.NamespacesByLabel {
+			if service.Name == rule.Application && service.Labels != nil {
+				return service, true
+			}
+		}
+
 	}
 
 	return corev1.Service{}, false
