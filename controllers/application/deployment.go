@@ -13,6 +13,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -220,16 +221,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 
 		deployment = *r.resolveDigest(ctx, &deployment)
 
-		deploymentHash := util.GetHashForStructs([]interface{}{
-			&deployment.Spec,
-			&deployment.Labels,
-		})
-		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
-			&deploymentDefinition.Spec,
-			&deploymentDefinition.Labels,
-		})
-
-		if deploymentHash != deploymentDefinitionHash {
+		if diffBetween(deployment, deploymentDefinition) {
 			patch := client.MergeFrom(deployment.DeepCopy())
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
 			if err != nil {
@@ -301,4 +293,19 @@ func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha
 
 	deploymentLog.Error(goerrors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
 	return desiredPortName
+}
+
+func diffBetween(deployment appsv1.Deployment, definition appsv1.Deployment) bool {
+	deploymentHash := util.GetHashForStructs([]interface{}{&deployment.Spec, &deployment.Labels})
+	deploymentDefinitionHash := util.GetHashForStructs([]interface{}{&definition.Spec, &definition.Labels})
+	if deploymentHash != deploymentDefinitionHash {
+		return true
+	}
+
+	// Same mechanism as "pod-template-hash"
+	if apiequality.Semantic.DeepEqual(deployment.DeepCopy().Spec, definition.DeepCopy().Spec) {
+		return false
+	}
+
+	return true
 }

@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: resources-modification
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resources-modification
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: resources-modification
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+      labels:
+        app: resources-modification
+    spec:
+      containers:
+        - name: resources-modification
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+          resources:
+            limits:
+              memory: 20Mi
+            requests:
+              cpu: 200m
+              memory: 10Mi
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: resources-modification
+      volumes:
+        - emptyDir: {}
+          name: tmp
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: resources-modification
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: resources-modification
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: resources-modification
+spec:
+  selector:
+    app: resources-modification
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: resources-modification
+spec:
+  selector:
+    matchLabels:
+      app: resources-modification
+  mtls:
+    mode: STRICT
