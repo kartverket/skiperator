@@ -6,10 +6,6 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
-  timeouts:
-    apply: 10s
-    assert: 10s
-    error: 10s
   namespace: ingress
   steps:
     - try:
@@ -40,14 +36,9 @@ spec:
         - assert:
             file: patch-application-disable-redirect-assert.yaml
     - try:
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: ingresses
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: ingress-multiple-ports
-
+        - apply:
+            file: ingress-validation.yaml
+        - assert:
+            file: ingress-validation-assert.yaml
 
 

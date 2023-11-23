@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: low-priority
+spec:
+  selector:
+    matchLabels:
+      app: low-priority
+  template:
+    spec:
+      priorityClassName: skip-low
+      containers:
+        - name: low-priority
+          image: scratch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medium-priority
+spec:
+  selector:
+    matchLabels:
+      app: medium-priority
+  template:
+    spec:
+      priorityClassName: skip-medium
+      containers:
+        - name: medium-priority
+          image: scratch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: high-priority
+spec:
+  selector:
+    matchLabels:
+      app: high-priority
+  template:
+    spec:
+      priorityClassName: skip-high
+      containers:
+        - name: high-priority
+          image: scratch
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: default-priority
+spec:
+  selector:
+    matchLabels:
+      app: default-priority
+  template:
+    spec:
+      priorityClassName: skip-medium
+      containers:
+        - name: default-priority
+          image: scratch

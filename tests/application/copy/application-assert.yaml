@@ -8,7 +8,7 @@ spec:
   template:
     spec:
       containers:
-        - image: image
+        - image: scratch
           command: [command]
           env:
             - name: name

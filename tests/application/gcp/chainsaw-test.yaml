@@ -4,16 +4,11 @@ metadata:
   name: gcp
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
-  timeouts:
-    apply: 10s
-    assert: 10s
-    error: 10s
-  namespace: test
   steps:
     - try:
-        - create:
+        - apply:
             file: application.yaml
         - assert:
             file: application-assert.yaml

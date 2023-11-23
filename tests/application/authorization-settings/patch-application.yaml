@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: allow-list
 spec:
-  image: image
+  image: scratch
   port: 8080
   authorizationSettings:
     allowList:
@@ -15,5 +15,5 @@ kind: Application
 metadata:
   name: allow-all
 spec:
-  image: image
+  image: scratch
   port: 8080

@@ -1,0 +1,34 @@
+# Due to limitations in the kubernetes client we can't do an assert on the source field, so to circumvent this we can use a script step.
+# Look at the resource-label chainsaw-test.yaml for an example
+
+apiVersion: v1
+kind: Event
+reason: InvalidApplication
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: ingresses-space
+---
+apiVersion: v1
+kind: Event
+reason: InvalidApplication
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: ingresses-empty
+---
+apiVersion: v1
+kind: Event
+reason: InvalidApplication
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: ingresses-capital
+---
+apiVersion: v1
+kind: Event
+reason: InvalidApplication
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: ingresses-no-domain
