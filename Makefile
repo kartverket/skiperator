@@ -97,5 +97,5 @@ install-chainsaw:
 
 .PHONY: test
 test:
-	@chainsaw test --test-dir $(PWD)/tests/application/ --kube-context $(SKIPERATOR_CONTEXT)
+	@chainsaw test --test-dir $(PWD)/tests/application/ --kube-context $(SKIPERATOR_CONTEXT) --config $(PWD)/tests/config.yaml
 

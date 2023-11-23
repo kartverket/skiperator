@@ -4,12 +4,8 @@ metadata:
   name: application-label
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
-  timeouts:
-    apply: 10s
-    assert: 10s
-    error: 10s
   steps:
     - try:
         - apply:

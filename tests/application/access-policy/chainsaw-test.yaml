@@ -6,17 +6,28 @@ spec:
   skip: false
   concurrent: false
   skipDelete: false
-  timeouts:
-    apply: 10s
-    assert: 10s
-    error: 10s
   namespace: access-policy-ns
   steps:
     - try:
-        - apply:
-            file: minimal.yaml
+        - create:
+            file: inbound-rule.yaml
         - assert:
-            file: minimal-assert.yaml
+            file: inbound-rule-assert.yaml
+    - try:
+        - apply:
+            file: inbound-rule-ns-by-label-patch.yaml
+        - assert:
+            file: inbound-rule-ns-by-label-patch-assert.yaml
+    - try:
+        - apply:
+            file: inbound-rule-ns-override-patch.yaml
+        - assert:
+            file: inbound-rule-ns-override-patch-assert.yaml
+    - try:
+        - apply:
+            file: no-policy.yaml
+        - assert:
+            file: no-policy-assert.yaml
     - try:
         - apply:
             file: advanced.yaml
@@ -24,20 +35,9 @@ spec:
             file: advanced-assert.yaml
     - try:
         - apply:
-            file: patch.yaml
+            file: advanced-patch.yaml
         - assert:
-            file: patch-assert.yaml
-    - try:
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: access-policy
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: access-policy-two
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: access-policy-other
-            namespace: other
+            file: advanced-patch-assert.yaml
+
+
+

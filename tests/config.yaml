@@ -3,11 +3,15 @@ kind: Configuration
 metadata:
   name: configuration
 spec:
-  parallel: 10
+  parallel: 30
   testDirs:
   - tests/application
   - tests/namespace
   - tests/skipjob
   timeouts:
-    delete: 45s
-
+    delete: 60s
+    assert: 60s
+    apply: 60s
+    cleanup: 60s
+    error: 60s
+    exec: 60s

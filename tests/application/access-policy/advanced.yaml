@@ -4,7 +4,7 @@ metadata:
   name: access-policy
   namespace: access-policy-ns
 spec:
-  image: image
+  image: scratch
   port: 8080
   accessPolicy:
     inbound:
@@ -30,5 +30,5 @@ metadata:
   name: access-policy-two
   namespace: access-policy-ns
 spec:
-  image: image
+  image: scratch
   port: 8080

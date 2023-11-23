@@ -10,7 +10,7 @@ spec:
     spec:
       containers:
         - name: additional-ports
-          image: image
+          image: scratch
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

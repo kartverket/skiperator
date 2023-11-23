@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: applicationlabel
 spec:
-  image: image
+  image: scratch
   port: 8080
   labels:
     cascadeLabel: test

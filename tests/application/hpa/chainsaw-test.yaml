@@ -4,12 +4,8 @@ metadata:
   name: hpa
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
-  timeouts:
-    apply: 10s
-    assert: 10s
-    error: 10s
   steps:
     - try:
         - create:
@@ -35,11 +31,7 @@ spec:
             file: patch-application-set-0-assert.yaml
         - error:
             file: patch-application-set-0-error.yaml
-    - try:
-        - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: test-deployment-hpa
+
 
 
 
