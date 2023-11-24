@@ -14,7 +14,7 @@ KIND_VERSION                       := v0.20.0
 
 #### VARS ####
 SKIPERATOR_CONTEXT 		   ?= kind-$(KIND_CLUSTER_NAME)
-KUBERNETES_VERSION 			= 1.27.1
+KUBERNETES_VERSION 			= 1.28.0
 CONTROLLER_GEN_VERSION 		= 0.12.0
 KIND_IMAGE     			   ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
@@ -97,5 +97,6 @@ install-chainsaw:
 
 .PHONY: test
 test:
-	@chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config $(PWD)/tests/config.yaml
+	@git branch
+	@chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
 
