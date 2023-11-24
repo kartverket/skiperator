@@ -120,9 +120,9 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 		return false
 	}
 
-	_, exists := namespace.Labels[IstioRevisionLabel]
+	v, exists := namespace.Labels[IstioRevisionLabel]
 
-	return exists
+	return exists && len(v) > 0
 }
 
 func hasIgnoreLabel(obj client.Object) bool {
