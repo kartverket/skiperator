@@ -6,13 +6,30 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
-  namespace: tester
   steps:
     - try:
         - create:
             file: application.yaml
         - assert:
             file: application-assert.yaml
-
+    - try:
+        - apply:
+            file: patch-application.yaml
+        - assert:
+            file: patch-application-assert.yaml
+        - error:
+            file: patch-application-errors.yaml
+    - try:
+        - apply:
+            file: patch-application-range-target.yaml
+        - assert:
+            file: patch-application-range-target-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-set-0.yaml
+        - assert:
+            file: patch-application-set-0-assert.yaml
+        - error:
+            file: patch-application-set-0-error.yaml
 
 

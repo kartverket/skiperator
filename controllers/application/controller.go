@@ -127,19 +127,19 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	/*
+		statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
 
-	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-
-	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
-	// updates to be visible even though the controllerDuties may take some time.
-	if len(statusDiff) > 0 {
-		err := r.GetClient().Status().Update(ctx, application)
-		return reconcile.Result{Requeue: true}, err
-	}
-
+		// If we update the Application initially on applied defaults before starting reconciling resources we allow all
+		// updates to be visible even though the controllerDuties may take some time.
+		if len(statusDiff) > 0 {
+			err := r.GetClient().Status().Update(ctx, application)
+			return reconcile.Result{Requeue: true}, err
+		}
+	*/
 	// Finalizer check is due to a bug when updating using controller-runtime
 	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
 	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
