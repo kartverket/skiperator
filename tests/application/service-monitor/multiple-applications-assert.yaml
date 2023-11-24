@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: some-monitored-app-1
-          image: scratch
+          image: image
           imagePullPolicy: Always
           ports:
             - containerPort: 8080

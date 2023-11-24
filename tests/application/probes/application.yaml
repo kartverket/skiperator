@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: probes
 spec:
-  image: scratch
+  image: image
   port: 8080
   startup:
     initialDelay: 1

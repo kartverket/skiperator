@@ -3,6 +3,6 @@ kind: Application
 metadata:
   name: ingresses
 spec:
-  image: scratch
+  image: image
   port: 8080
   ingresses: []

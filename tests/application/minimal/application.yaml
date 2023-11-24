@@ -3,5 +3,5 @@ kind: Application
 metadata:
   name: minimal
 spec:
-  image: scratch
+  image: image
   port: 8080

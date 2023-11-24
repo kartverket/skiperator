@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: ignore-reconcile
 spec:
-  image: scratch
+  image: image
   port: 8080
   ingresses:
     - example.com

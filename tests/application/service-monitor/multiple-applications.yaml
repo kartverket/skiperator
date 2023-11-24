@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: some-monitored-app-1
 spec:
-  image: scratch
+  image: image
   port: 8080
   additionalPorts:
     - name: metrics
@@ -17,7 +17,7 @@ kind: Application
 metadata:
   name: some-monitored-app-2
 spec:
-  image: scratch
+  image: image
   port: 8080
   additionalPorts:
     - name: metrics
@@ -32,7 +32,7 @@ kind: Application
 metadata:
   name: some-monitored-app-3
 spec:
-  image: scratch
+  image: image
   port: 8080
   additionalPorts:
     - name: metrics

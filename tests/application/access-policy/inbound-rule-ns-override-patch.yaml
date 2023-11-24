@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: namespace-tests
 spec:
-  image: scratch
+  image: image
   port: 8080
   accessPolicy:
     inbound:

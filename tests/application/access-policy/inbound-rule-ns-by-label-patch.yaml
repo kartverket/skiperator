@@ -4,7 +4,7 @@ metadata:
   name: namespace-tests
   namespace: access-policy-ns
 spec:
-  image: scratch
+  image: image
   port: 8080
   accessPolicy:
     inbound:

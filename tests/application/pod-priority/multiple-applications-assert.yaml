@@ -11,7 +11,7 @@ spec:
       priorityClassName: skip-low
       containers:
         - name: low-priority
-          image: scratch
+          image: image
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -26,7 +26,7 @@ spec:
       priorityClassName: skip-medium
       containers:
         - name: medium-priority
-          image: scratch
+          image: image
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,7 +41,7 @@ spec:
       priorityClassName: skip-high
       containers:
         - name: high-priority
-          image: scratch
+          image: image
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -56,4 +56,4 @@ spec:
       priorityClassName: skip-medium
       containers:
         - name: default-priority
-          image: scratch
+          image: image

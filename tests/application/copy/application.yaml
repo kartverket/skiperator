@@ -8,7 +8,7 @@ spec:
     max: 6
   strategy:
     type: Recreate
-  image: scratch
+  image: image
   command: [command]
   env:
     - name: name

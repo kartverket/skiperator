@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: env-from
 spec:
-  image: scratch
+  image: image
   port: 8080
   envFrom:
     - configMap: config-map

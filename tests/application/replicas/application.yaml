@@ -4,6 +4,6 @@ kind: Application
 metadata:
   name: static-replicas
 spec:
-  image: scratch
+  image: image
   port: 8080
   replicas: 2

@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: default
 spec:
-  image: scratch
+  image: image
   port: 8080
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -11,7 +11,7 @@ kind: Application
 metadata:
   name: allow-all
 spec:
-  image: scratch
+  image: image
   port: 8080
   authorizationSettings:
     allowAll: true
@@ -21,7 +21,7 @@ kind: Application
 metadata:
   name: allow-list
 spec:
-  image: scratch
+  image: image
   port: 8080
   authorizationSettings:
     allowList:

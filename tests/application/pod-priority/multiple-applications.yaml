@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: low-priority
 spec:
-  image: scratch
+  image: image
   port: 8080
   priority: low
 ---
@@ -12,7 +12,7 @@ kind: Application
 metadata:
   name: medium-priority
 spec:
-  image: scratch
+  image: image
   port: 8080
   priority: medium
 ---
@@ -21,7 +21,7 @@ kind: Application
 metadata:
   name: high-priority
 spec:
-  image: scratch
+  image: image
   port: 8080
   priority: high
 ---
@@ -30,5 +30,5 @@ kind: Application
 metadata:
   name: default-priority
 spec:
-  image: scratch
+  image: image
   port: 8080

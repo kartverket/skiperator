@@ -9,5 +9,5 @@ metadata:
   name: access-policy-other
   namespace: other
 spec:
-  image: scratch
+  image: image
   port: 8080

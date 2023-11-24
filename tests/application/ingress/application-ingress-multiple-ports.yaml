@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: ingress-multiple-ports
 spec:
-  image: scratch
+  image: image
   port: 8080
   additionalPorts:
     - name: metrics

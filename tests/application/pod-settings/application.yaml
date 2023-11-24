@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: podsettings
 spec:
-  image: scratch
+  image: image
   port: 8080
   podSettings:
     annotations:

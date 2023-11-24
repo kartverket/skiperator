@@ -4,7 +4,7 @@ metadata:
   name: no-disruption-2
 spec:
   enablePDB: false
-  image: scratch
+  image: image
   port: 8080
   replicas:
     min: 10

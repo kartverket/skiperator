@@ -241,11 +241,11 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
-	err := r.GetClient().Status().Update(context, app)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	return reconcile.Result{}, nil
+	//err := r.GetClient().Status().Update(context, app)
+	//if err != nil {
+	//	return reconcile.Result{Requeue: true}, err
+	//}
+	return reconcile.Result{Requeue: true}, nil
 }
 
 func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {

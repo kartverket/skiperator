@@ -3,5 +3,5 @@ kind: Application
 metadata:
   name: authorization-policy
 spec:
-  image: scratch
+  image: image
   port: 8080

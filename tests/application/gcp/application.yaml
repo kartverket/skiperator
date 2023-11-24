@@ -12,7 +12,7 @@ kind: Application
 metadata:
   name: gcp
 spec:
-  image: scratch
+  image: image
   port: 8080
   filesFrom:
     - mountPath: /config-map

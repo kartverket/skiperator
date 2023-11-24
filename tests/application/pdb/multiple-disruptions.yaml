@@ -3,7 +3,7 @@ kind: Application
 metadata:
   name: no-disruption-1
 spec:
-  image: scratch
+  image: image
   port: 8080
   replicas:
     min: 2
@@ -13,7 +13,7 @@ kind: Application
 metadata:
   name: no-disruption-2
 spec:
-  image: scratch
+  image: image
   port: 8080
   replicas:
     min: 10
@@ -23,7 +23,7 @@ kind: Application
 metadata:
   name: yes-disruption
 spec:
-  image: scratch
+  image: image
   port: 8080
   replicas:
     min: 1
@@ -33,7 +33,7 @@ kind: Application
 metadata:
   name: yes-disruption-2
 spec:
-  image: scratch
+  image: image
   port: 8080
   replicas:
     min: 0
