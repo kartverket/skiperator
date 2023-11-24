@@ -1,0 +1,13 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: default-deny
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - assert:
+            file: assert.yaml
+

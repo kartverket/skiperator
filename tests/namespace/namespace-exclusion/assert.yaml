@@ -2,6 +2,5 @@ apiVersion: networking.istio.io/v1beta1
 kind: Sidecar
 metadata:
   name: sidecar
-  namespace: test
 spec:
   outboundTrafficPolicy: {}

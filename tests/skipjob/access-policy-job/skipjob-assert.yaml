@@ -10,7 +10,7 @@ spec:
       to:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: test
+              kubernetes.io/metadata.name: access-policy-job-ns
           podSelector:
             matchLabels:
               app: minimal-application
