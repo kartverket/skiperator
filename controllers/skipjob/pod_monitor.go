@@ -13,7 +13,7 @@ import (
 
 func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	podMonitor := pov1.PodMonitor{ObjectMeta: metav1.ObjectMeta{
-		Name:      skipJob.Name,
+		Name:      skipJob.Name + "-monitor",
 		Namespace: skipJob.Namespace,
 		Labels:    map[string]string{"instance": "primary"},
 	}}
