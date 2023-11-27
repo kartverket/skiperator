@@ -674,6 +674,25 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              prometheus:
+                description: Prometheus settings for pod running in job. Fields are
+                  identical to Application and if set, a monitorngs object is created.
+                properties:
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                required:
+                - port
+                type: object
             required:
             - container
             type: object
