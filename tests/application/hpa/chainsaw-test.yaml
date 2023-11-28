@@ -6,6 +6,7 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
+  namespace: tester
   steps:
     - try:
         - create:

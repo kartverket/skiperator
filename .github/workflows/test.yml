@@ -2,14 +2,12 @@ name: Test
 
 on:
   pull_request:
-    branches: [main]
     paths-ignore:
       - doc/**
       - samples/**
       - README.md
       - CONTRIBUTING.md
   push:
-    branches: [main]
     paths-ignore:
       - doc/**
       - samples/**

@@ -3,7 +3,7 @@ kind: Configuration
 metadata:
   name: configuration
 spec:
-  parallel: 1
+  parallel: 10
   testDirs:
   - tests/application
   - tests/namespace

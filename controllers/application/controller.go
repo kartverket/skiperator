@@ -174,7 +174,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			return res, nil
 		}
 	}
-
+	r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return reconcile.Result{}, err
