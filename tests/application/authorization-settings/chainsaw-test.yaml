@@ -23,15 +23,18 @@ spec:
             file: patch-application-errors.yaml
     - try:
         - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: default
+            ref:
+              apiVersion: skiperator.kartverket.no/v1alpha1
+              kind: Application
+              name: default
         - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: allow-all
+            ref:
+              apiVersion: skiperator.kartverket.no/v1alpha1
+              kind: Application
+              name: allow-all
         - delete:
-            apiVersion: skiperator.kartverket.no/v1alpha1
-            kind: Application
-            name: allow-list
+            ref:
+              apiVersion: skiperator.kartverket.no/v1alpha1
+              kind: Application
+              name: allow-list
 
