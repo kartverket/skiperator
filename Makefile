@@ -41,10 +41,6 @@ run-local: build
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator
 
-.PHONY: run-workflow
-run-workflow: build
-	./bin/skiperator > /dev/null 2>&1 &
-
 .PHONY: setup-local
 setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-skiperator install-chainsaw
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
@@ -99,3 +95,14 @@ install-chainsaw:
 test:
 	@chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
 
+.PHONY: run-test
+run-test: build
+	@echo "Starting skiperator in background..."
+	@LOG_FILE=$$(mktemp -t skiperator-test); \
+	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
+	PID=$$!; \
+	echo "skiperator PID: $$PID"; \
+	echo "Log redirected to file: $$LOG_FILE"; \
+	$(MAKE) test; \
+	echo "Stopping skiperator (PID $$PID)..."; \
+	kill $$PID
