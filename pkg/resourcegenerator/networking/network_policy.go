@@ -118,15 +118,8 @@ func getRelatedService(services []corev1.Service, rule podtypes.InternalRule, na
 			}
 
 			if rule.NamespacesByLabel != nil {
-				for _, namespace := range namespaces.Items {
-					labels := namespace.GetLabels()
-					if labels != nil {
-						for key, value := range labels {
-							if rule.NamespacesByLabel[key] == value {
-								return service, true
-							}
-						}
-					}
+				if namespaceMatchesNamespacesByLabel(rule.NamespacesByLabel, namespaces) {
+					return service, true
 				}
 			}
 
@@ -136,6 +129,20 @@ func getRelatedService(services []corev1.Service, rule podtypes.InternalRule, na
 
 	return corev1.Service{}, false
 
+}
+
+func namespaceMatchesNamespacesByLabel(namespacesByLabel map[string]string, namespaces corev1.NamespaceList) bool {
+	for _, namespace := range namespaces.Items {
+		if namespace.Labels != nil {
+			for key, value := range namespacesByLabel {
+				if namespace.Labels[key] == value {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
