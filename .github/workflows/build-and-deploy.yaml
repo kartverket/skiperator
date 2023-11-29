@@ -1,6 +1,8 @@
 name: Build and Deploy Skiperator
 
 on:
+  schedule:
+    - cron:  '0 0 * * *' # at 12:00 AM every day
   push:
     branches: [main]
     paths-ignore:

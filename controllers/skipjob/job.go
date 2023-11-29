@@ -43,6 +43,17 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	if err != nil {
 		return reconcile.Result{}, err
 	}
+	// By specifying port and path annotations, Istio will scrape metrics from the application
+	// and merge it together with its own metrics.
+	//
+	// See
+	//  - https://superorbital.io/blog/istio-metrics-merging/
+	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
+	if istioEnabled && skipJob.Spec.Prometheus != nil {
+		skipJob.Annotations["prometheus.io/port"] = skipJob.Spec.Prometheus.Port.StrVal
+		skipJob.Annotations["prometheus.io/path"] = skipJob.Spec.Prometheus.Path
+	}
 
 	if skipJob.Spec.Cron != nil {
 		err = r.GetClient().Get(ctx, types.NamespacedName{
