@@ -20,7 +20,6 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 
 	namespaces, err := r.GetNamespaces(ctx, skipJob)
 	if err != nil {
-		//r.SetControllerFinishedOutcome(ctx, skipJob, controllerName, err)
 		return reconcile.Result{}, err
 	}
 
