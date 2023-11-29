@@ -51,10 +51,10 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - test
+      - podmonitor-ns
   podMetricsEndpoints:
-    - targetPort: istio-metrics
-      path: "/stats/prometheus"
+    - targetPort: 8080
+      path: "/metrics"
   selector:
     matchLabels:
       app: podmonitor
