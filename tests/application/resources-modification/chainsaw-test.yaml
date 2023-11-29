@@ -9,9 +9,9 @@ spec:
   steps:
     - try:
         - create:
-            file: applications.yaml
+            file: application.yaml
         - assert:
-            file: applications-assert.yaml
+            file: application-assert.yaml
     - try:
         - apply:
             file: patch-application.yaml

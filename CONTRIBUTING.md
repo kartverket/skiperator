@@ -64,7 +64,7 @@ $ kubectl create ns istio-gateways && istioctl install
 Cert-manager (version in link above) must be installed locally on your cluster with
 
 ```
-$ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+$ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<VERSION>/cert-manager.yaml
 ```
 
 Prometheus Operator CRDs must be installed locally:
@@ -114,7 +114,12 @@ Use the command `make run-local` to do this in a safe way without mixing up kube
 ## Tests
 This project is using [Chainsaw](https://github.com/kyverno/chainsaw/) for testing.     
 To run tests make sure your kind cluster is up and skiperator is running.    
-You can run tests with `make test` or `chainsaw test --test-dir <dir>` 
+You can run tests with `make test` or `chainsaw test --test-dir <dir> `    
+You can find more handy parameters [here](https://kyverno.github.io/chainsaw/latest/commands/chainsaw_test/).
+### Known issues
+Parallel tests can cause some concurrency issues. Try lowering the amount of tests running in parallel if you experience tests that occasionally fail.
+Concurrent tests means a unique namespace for each test. Chainsaw will create a unique namespace, but in some cases 
+you might need to specify a namespace. In that case name your namespace <testname>-ns so we dont get overlapping namespaces.
 
 ## Writing code
 

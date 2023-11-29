@@ -97,6 +97,5 @@ install-chainsaw:
 
 .PHONY: test
 test:
-	@git branch
 	@chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
 
