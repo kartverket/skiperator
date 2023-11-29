@@ -127,19 +127,19 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	/*
-		statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
-		if err != nil {
-			return reconcile.Result{}, err
-		}
 
-		// If we update the Application initially on applied defaults before starting reconciling resources we allow all
-		// updates to be visible even though the controllerDuties may take some time.
-		if len(statusDiff) > 0 {
-			err := r.GetClient().Status().Update(ctx, application)
-			return reconcile.Result{Requeue: true}, err
-		}
-	*/
+	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
+	// updates to be visible even though the controllerDuties may take some time.
+	if len(statusDiff) > 0 {
+		err := r.GetClient().Status().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
 	// Finalizer check is due to a bug when updating using controller-runtime
 	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
 	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
@@ -174,7 +174,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			return res, nil
 		}
 	}
-	r.GetClient().Status().Update(ctx, application)
+	//r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return reconcile.Result{}, err
@@ -241,10 +241,10 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
-	//err := r.GetClient().Status().Update(context, app)
-	//if err != nil {
-	//	return reconcile.Result{Requeue: true}, err
-	//}
+	err := r.GetClient().Status().Update(context, app)
+	if err != nil {
+		return reconcile.Result{Requeue: true}, err
+	}
 	return reconcile.Result{Requeue: true}, nil
 }
 
