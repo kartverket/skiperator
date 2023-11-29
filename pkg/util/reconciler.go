@@ -44,7 +44,7 @@ func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclie
 	}
 }
 
-// NewReconcilerBase is a contruction function to create a new ReconcilerBase.
+// NewReconcilerBase is a construction function to create a new ReconcilerBase.
 func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) ReconcilerBase {
 	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -64,7 +64,7 @@ func (r *ReconcilerBase) GetApiExtensionsClient() *apiextensionsclient.Clientset
 	return r.extensionsClient
 }
 
-// GetRestConfig returns the undelying rest config
+// GetRestConfig returns the underlying rest config
 func (r *ReconcilerBase) GetRestConfig() *rest.Config {
 	return r.restConfig
 }
@@ -88,12 +88,13 @@ func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Obj
 	for _, outboundRule := range accessPolicy.Outbound.Rules {
 		namespaces := []string{}
 
-		if outboundRule.NamespacesByLabel == nil {
+		if outboundRule.Namespace != "" {
+			namespaces = []string{outboundRule.Namespace}
+		} else if outboundRule.NamespacesByLabel == nil {
 			if outboundRule.Namespace == "" {
 				namespaces = []string{owner.GetNamespace()}
-			} else {
-				namespaces = []string{outboundRule.Namespace}
 			}
+
 		} else {
 			namespaceList := corev1.NamespaceList{}
 
