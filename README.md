@@ -186,8 +186,12 @@ spec:
     activeDeadlineSeconds: 10
     backoffLimit: 10
     suspend: false
-    ttlSecondsAfterFinished: 10
+    ttlSecondsAfterFinished: 
     
+  prometheus:
+    path: /metrics
+    port: 8080  
+  
   container:
     # Pod
     image: ""
