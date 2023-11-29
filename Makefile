@@ -7,6 +7,8 @@ export PATH := $(PATH):$(GOBIN)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
+# Extracts the version number for a given dependency found in go.mod.
+# Makes the test setup be in sync with what the operator itself uses.
 extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' ' -f2 | sed 's/^v//')
 
 #### TOOLS ####
@@ -14,16 +16,16 @@ TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
 KIND_VERSION                       := v0.20.0
 CHAINSAW_VERSION                   := $(call extract-version,github.com/kyverno/chainsaw)
+CONTROLLER_GEN_VERSION             := $(call extract-version,sigs.k8s.io/controller-tools)
+CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
+ISTIO_VERSION 				       := $(call extract-version,istio.io/api)
+PROMETHEUS_VERSION 				   := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 
 #### VARS ####
 SKIPERATOR_CONTEXT 		   ?= kind-$(KIND_CLUSTER_NAME)
 KUBERNETES_VERSION 			= 1.28.0
-CONTROLLER_GEN_VERSION 		= 0.12.0
 KIND_IMAGE     			   ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
-ISTIO_VERSION 				= 1.19.3
-CERT_MANAGER_VERSION        = 1.13.2
-PROMETHEUS_VERSION          = 0.69.1
 
 .PHONY: generate
 generate:
