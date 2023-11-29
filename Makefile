@@ -7,10 +7,13 @@ export PATH := $(PATH):$(GOBIN)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
+extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' ' -f2 | sed 's/^v//')
+
 #### TOOLS ####
 TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
 KIND_VERSION                       := v0.20.0
+CHAINSAW_VERSION                   := $(call extract-version,github.com/kyverno/chainsaw)
 
 #### VARS ####
 SKIPERATOR_CONTEXT 		   ?= kind-$(KIND_CLUSTER_NAME)
@@ -42,7 +45,7 @@ run-local: build
 	./bin/skiperator
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-skiperator install-chainsaw
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-skiperator
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
 
 
@@ -86,14 +89,14 @@ install-skiperator: generate
 	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
 	@kubectl apply -f samples/ --recursive --context $(SKIPERATOR_CONTEXT) || true
 
-#### TESTS ####
-.PHONY: install-chainsaw
-install-chainsaw:
-	@go install github.com/kyverno/chainsaw@latest
+.PHONY: install-test-tools
+install-test-tools:
+	go install github.com/kyverno/chainsaw@v${CHAINSAW_VERSION}
 
+#### TESTS ####
 .PHONY: test
-test:
-	@chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
+test: install-test-tools
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
 
 .PHONY: run-test
 run-test: build
