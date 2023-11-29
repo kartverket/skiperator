@@ -96,6 +96,10 @@ install-test-tools:
 	go install github.com/kyverno/chainsaw@v${CHAINSAW_VERSION}
 
 #### TESTS ####
+.PHONY: test-single
+test-single: install-test-tools
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --test-dir $(dir)
+
 .PHONY: test
 test: install-test-tools
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
@@ -108,6 +112,10 @@ run-test: build
 	PID=$$!; \
 	echo "skiperator PID: $$PID"; \
 	echo "Log redirected to file: $$LOG_FILE"; \
-	$(MAKE) test; \
+	if [ -z "$(TEST_DIR)" ]; then \
+		$(MAKE) test; \
+	else \
+		$(MAKE) test-single dir=$(TEST_DIR); \
+	fi; \
 	echo "Stopping skiperator (PID $$PID)..."; \
 	kill $$PID

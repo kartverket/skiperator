@@ -113,8 +113,25 @@ Use the command `make run-local` to do this in a safe way without mixing up kube
 
 ## Tests
 This project is using [Chainsaw](https://github.com/kyverno/chainsaw/) for testing.     
-To run tests make sure your kind cluster is up and skiperator is running.    
-You can run tests with `make test` or `chainsaw test --test-dir <dir> `    
+
+To run tests against your running kind cluster, with skiperator running in your IDE:
+```shell
+# All tests
+make test
+
+# Single test
+make test-single dir=tests/application/hpa
+```
+
+If you want to run tests without running skiperator yourself you can use
+```shell
+# All tests
+make run-test
+
+# Single test
+make run-test TEST_DIR=tests/application/hpa
+```
+
 You can find more handy parameters [here](https://kyverno.github.io/chainsaw/latest/commands/chainsaw_test/).
 ### Known issues
 Parallel tests can cause some concurrency issues. Try lowering the amount of tests running in parallel if you experience tests that occasionally fail.
