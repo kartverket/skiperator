@@ -28,4 +28,4 @@ jobs:
       - name: Create test cluster
         run: make setup-local
       - name: Run tests
-        run: make run-local
+        run: make run-test
