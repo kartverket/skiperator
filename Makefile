@@ -107,7 +107,7 @@ test: install-test-tools
 .PHONY: run-test
 run-test: build
 	@echo "Starting skiperator in background..."
-	@LOG_FILE=$$(mktemp -t skiperator-test); \
+	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
 	PID=$$!; \
 	echo "skiperator PID: $$PID"; \
