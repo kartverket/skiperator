@@ -1,0 +1,34 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: access-policy
+  namespace: access-policy-ns
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    inbound:
+      rules:
+        - namespace: other
+          application: other
+    outbound:
+      rules:
+        - application: access-policy-two
+        - namespace: other
+          application: access-policy-other
+      external:
+        - host: example.com
+          ports:
+            - name: http
+              port: 80
+              protocol: HTTP
+        - host: foo.com
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: access-policy-two
+  namespace: access-policy-ns
+spec:
+  image: image
+  port: 8080

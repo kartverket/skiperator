@@ -1,0 +1,18 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: resource-label
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+# Due to limitations in the kubernetes client we can't do an assert on the source field, so to circumvent this we can use a script step.
+#        - script:
+#            content: |
+#              kubectl get events -n rl-ns -o json | jq -e '.items[] | select(.reason=="MistypedLabel" and .involvedObject.apiVersion=="skiperator.kartverket.no/v1alpha1" and .involvedObject.kind=="Application" and .involvedObject.name=="resourcelabel" and .source.component=="application-controller")' >/dev/null

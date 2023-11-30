@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: subresource-status
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application-synced.yaml
+        - assert:
+            file: application-synced-assert.yaml
+    - try:
+        - create:
+            file: application-error.yaml
+        - assert:
+            file: application-error-assert.yaml

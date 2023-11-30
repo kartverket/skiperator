@@ -1,0 +1,44 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ingress
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: ingress
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-change-ingress.yaml
+        - assert:
+            file: patch-application-change-ingress-assert.yaml
+        - error:
+            file: patch-application-change-ingress-errors.yaml
+    - try:
+        - apply:
+            file: patch-application-no-ingresses.yaml
+        - error:
+            file: patch-application-no-ingresses-errors.yaml
+    - try:
+        - create:
+            file: application-ingress-multiple-ports.yaml
+        - assert:
+            file: application-ingress-multiple-ports-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-disable-redirect.yaml
+        - assert:
+            file: patch-application-disable-redirect-assert.yaml
+    - try:
+        - apply:
+            file: ingress-validation.yaml
+        - assert:
+            file: ingress-validation-assert.yaml
+
+

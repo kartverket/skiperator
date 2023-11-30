@@ -1,0 +1,22 @@
+# 00-assert values should no longer exist, instead using the new hash for test.com
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: ingress-ingresses-ingress-56cd7aa901014e78
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingresses-ingress-56cd7aa901014e78
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ingresses-ingress
+spec:
+  gateways:
+    - ingresses-ingress-56cd7aa901014e78
+  hosts:
+    - example.com

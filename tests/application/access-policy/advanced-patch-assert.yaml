@@ -1,0 +1,17 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: access-policy-egress-56cd7aa901014e78
+  namespace: access-policy-ns
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - example.com
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
