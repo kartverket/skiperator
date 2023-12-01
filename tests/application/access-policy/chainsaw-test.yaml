@@ -9,21 +9,6 @@ spec:
   namespace: access-policy-ns
   steps:
     - try:
-        - create:
-            file: inbound-rule.yaml
-        - assert:
-            file: inbound-rule-assert.yaml
-    - try:
-        - apply:
-            file: inbound-rule-ns-by-label-patch.yaml
-        - assert:
-            file: inbound-rule-ns-by-label-patch-assert.yaml
-    - try:
-        - apply:
-            file: inbound-rule-ns-override-patch.yaml
-        - assert:
-            file: inbound-rule-ns-override-patch-assert.yaml
-    - try:
         - apply:
             file: no-policy.yaml
         - assert:

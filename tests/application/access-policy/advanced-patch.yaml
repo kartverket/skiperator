@@ -9,12 +9,12 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - namespace: other
-          application: other
+        - namespace: access-policy-other
+          application: access-policy-other
     outbound:
       rules:
         - application: access-policy-two
-        - namespace: other
+        - namespace: access-policy-other
           application: access-policy-other
       external:
         - host: example.com
@@ -34,5 +34,5 @@ spec:
   accessPolicy:
     outbound:
       rules:
-        - namespace: other
+        - namespace: access-policy-other
           application: access-policy-other
