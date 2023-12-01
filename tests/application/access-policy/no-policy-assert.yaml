@@ -1,13 +1,15 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: other
+  name: access-policy-other
+  labels:
+    test: label
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
   name: access-policy-other
-  namespace: other
+  namespace: access-policy-other
 spec:
   image: image
   port: 8080

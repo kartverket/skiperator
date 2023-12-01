@@ -9,12 +9,12 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - namespace: other
-          application: other
+        - namespace: access-policy-other
+          application: access-policy-other
     outbound:
       rules:
         - application: access-policy-two
-        - namespace: other
+        - namespace: access-policy-other
           application: access-policy-other
       external:
         - host: example.com
@@ -32,3 +32,9 @@ metadata:
 spec:
   image: image
   port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - namespacesByLabel:
+            test: label
+          application: access-policy-other

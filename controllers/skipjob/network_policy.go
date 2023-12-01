@@ -2,6 +2,7 @@ package skipjobcontroller
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -17,9 +18,15 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		return reconcile.Result{}, err
 	}
 
+	namespaces, err := r.GetNamespaces(ctx, skipJob)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	netpolOpts := networking.NetPolOpts{
 		AccessPolicy:    skipJob.Spec.Container.AccessPolicy,
 		Namespace:       skipJob.Namespace,
+		Namespaces:      &namespaces,
 		Name:            skipJob.Name,
 		RelatedServices: &egressServices,
 	}

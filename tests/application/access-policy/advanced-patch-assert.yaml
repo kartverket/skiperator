@@ -15,3 +15,25 @@ spec:
     - name: https
       number: 443
       protocol: HTTPS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-policy-two
+spec:
+  podSelector:
+    matchLabels:
+      app: access-policy-two
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: access-policy-other
+          podSelector:
+            matchLabels:
+              app: access-policy-other
+      ports:
+        - port: 8080
+          protocol: TCP
