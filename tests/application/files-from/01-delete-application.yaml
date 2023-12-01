@@ -1,6 +1,0 @@
-apiVersion: kuttl.dev/v1beta1
-kind: TestStep
-delete:
-  - apiVersion: skiperator.kartverket.no/v1alpha1
-    kind: Application
-    name: files-from

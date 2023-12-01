@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: namespace-tests
+  namespace: access-policy-ns
+spec:
+  podSelector:
+    matchLabels:
+      app: namespace-tests
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              team: skiptest
+              app: testapp
+          podSelector:
+            matchLabels:
+              app: access-policy-other
+      ports:
+        - port: 8080
+          protocol: TCP

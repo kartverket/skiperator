@@ -1,0 +1,22 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gcp
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - delete:
+            ref:
+              apiVersion: skiperator.kartverket.no/v1alpha1
+              kind: Application
+              name: gcp
+
+
