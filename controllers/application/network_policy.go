@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -18,6 +19,12 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	egressServices, err := r.GetEgressServices(ctx, application, application.Spec.AccessPolicy)
+	if err != nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return reconcile.Result{}, err
+	}
+
+	namespaces, err := r.GetNamespaces(ctx, application)
 	if err != nil {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return reconcile.Result{}, err
@@ -42,6 +49,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			Ingresses:        &application.Spec.Ingresses,
 			Port:             &application.Spec.Port,
 			Namespace:        application.Namespace,
+			Namespaces:       &namespaces,
 			Name:             application.Name,
 			RelatedServices:  &egressServices,
 			PrometheusConfig: application.Spec.Prometheus,

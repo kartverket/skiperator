@@ -63,6 +63,10 @@ type SKIPJobSpec struct {
 	//
 	// +kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
+
+	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
+	// a monitorngs object is created.
+	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

@@ -1,0 +1,28 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: access-policy
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: access-policy-ns
+  steps:
+    - try:
+        - apply:
+            file: no-policy.yaml
+        - assert:
+            file: no-policy-assert.yaml
+    - try:
+        - apply:
+            file: advanced.yaml
+        - assert:
+            file: advanced-assert.yaml
+    - try:
+        - apply:
+            file: advanced-patch.yaml
+        - assert:
+            file: advanced-patch-assert.yaml
+
+
+

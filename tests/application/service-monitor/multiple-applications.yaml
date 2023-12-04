@@ -1,0 +1,42 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: some-monitored-app-1
+spec:
+  image: image
+  port: 8080
+  additionalPorts:
+    - name: metrics
+      port: 8181
+      protocol: TCP
+  prometheus:
+    port: metrics
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: some-monitored-app-2
+spec:
+  image: image
+  port: 8080
+  additionalPorts:
+    - name: metrics
+      port: 8181
+      protocol: TCP
+  prometheus:
+    port: metrics
+    path: /actuator/metrics
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: some-monitored-app-3
+spec:
+  image: image
+  port: 8080
+  additionalPorts:
+    - name: metrics
+      port: 1881
+      protocol: TCP
+  prometheus:
+    port: 1881

@@ -45,6 +45,7 @@ import (
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
 	util.ReconcilerBase
@@ -169,12 +170,14 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	for _, fn := range controllerDuties {
 		res, err := fn(ctx, application)
 		if err != nil {
+			r.GetClient().Status().Update(ctx, application)
 			return res, err
 		} else if res.RequeueAfter > 0 || res.Requeue {
+			r.GetClient().Status().Update(ctx, application)
 			return res, nil
 		}
 	}
-
+	r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return reconcile.Result{}, err
@@ -241,21 +244,12 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
-	err := r.GetClient().Status().Update(context, app)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 	return reconcile.Result{}, nil
 }
 
 func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
-	err := r.GetClient().Status().Update(context, app)
 	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
 	return reconcile.Result{}, issue
 }
 

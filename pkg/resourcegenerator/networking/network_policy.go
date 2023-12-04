@@ -21,6 +21,7 @@ type NetPolOpts struct {
 	Port             *int
 	RelatedServices  *[]corev1.Service
 	Namespace        string
+	Namespaces       *corev1.NamespaceList
 	Name             string
 	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
 	IstioEnabled     bool
@@ -28,7 +29,7 @@ type NetPolOpts struct {
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
 	ingressRules := getIngressRules(opts)
-	egressRules := getEgressRules(opts.AccessPolicy, opts.Namespace, *opts.RelatedServices)
+	egressRules := getEgressRules(opts)
 
 	if len(ingressRules) > 0 || len(egressRules) > 0 {
 		return &networkingv1.NetworkPolicySpec{
@@ -58,8 +59,12 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 	return policyType
 }
 
-func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, availableServices []corev1.Service) []networkingv1.NetworkPolicyEgressRule {
+func getEgressRules(opts NetPolOpts) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
+	accessPolicy := opts.AccessPolicy
+	namespace := opts.Namespace
+	namespaces := *opts.Namespaces
+	availableServices := *opts.RelatedServices
 
 	// Egress rules for internal peers
 	if accessPolicy == nil || availableServices == nil {
@@ -67,11 +72,11 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, avail
 	}
 
 	for _, outboundRule := range (*accessPolicy).Outbound.Rules {
-		if outboundRule.Namespace == "" {
+		if outboundRule.Namespace == "" && outboundRule.NamespacesByLabel == nil {
 			outboundRule.Namespace = namespace
 		}
 
-		relatedService, isApplicationAvailable := getRelatedService(availableServices, outboundRule)
+		relatedService, isApplicationAvailable := getRelatedService(availableServices, outboundRule, namespaces)
 
 		if !isApplicationAvailable {
 			continue
@@ -91,9 +96,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, avail
 						PodSelector: &metav1.LabelSelector{
 							MatchLabels: relatedService.Spec.Selector,
 						},
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"kubernetes.io/metadata.name": outboundRule.Namespace},
-						},
+						NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
 					},
 				},
 			}
@@ -106,15 +109,40 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, namespace string, avail
 	return egressRules
 }
 
-func getRelatedService(services []corev1.Service, rule podtypes.InternalRule) (corev1.Service, bool) {
+func getRelatedService(services []corev1.Service, rule podtypes.InternalRule, namespaces corev1.NamespaceList) (corev1.Service, bool) {
 	for _, service := range services {
-		if service.Name == rule.Application && service.Namespace == rule.Namespace {
-			return service, true
+		if service.Name == rule.Application {
+
+			if service.Namespace == rule.Namespace {
+				return service, true
+			}
+
+			if rule.NamespacesByLabel != nil {
+				if namespaceMatchesNamespacesByLabel(rule.NamespacesByLabel, namespaces) {
+					return service, true
+				}
+			}
 
 		}
+
 	}
 
 	return corev1.Service{}, false
+
+}
+
+func namespaceMatchesNamespacesByLabel(namespacesByLabel map[string]string, namespaces corev1.NamespaceList) bool {
+	for _, namespace := range namespaces.Items {
+		if namespace.Labels != nil {
+			for key, value := range namespacesByLabel {
+				if namespace.Labels[key] == value {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
 
 func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {

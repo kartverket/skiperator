@@ -107,6 +107,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.reconcileEgressServiceEntry,
 		r.reconcileConfigMap,
 		r.reconcileJob,
+		r.reconcilePodMonitor,
 	}
 
 	for _, fn := range controllerDuties {

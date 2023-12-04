@@ -145,9 +145,15 @@ spec:
             somelabel: somevalue
             anotherlabel: anothervalue
     # outbound specifies egress rules. Which apps on the cluster and the
-    # internet are the Application allowed to send requests to?
+    # internet are the Application allowed to send requests to? Alternately
+    # you can define namespacesByLabel as a value-map of namespace labels.
+    # If both namespace and namespacesByLabel are defined for an application,
+    # namespacesByLabel is ignored
     outbound:
       rules:
+        - application: some-app
+          namespacesByLabel:
+            somelabel: somevalue
         - application: other-app
       external:
         - host: nrk.no
@@ -180,8 +186,12 @@ spec:
     activeDeadlineSeconds: 10
     backoffLimit: 10
     suspend: false
-    ttlSecondsAfterFinished: 10
+    ttlSecondsAfterFinished: 
     
+  prometheus:
+    path: /metrics
+    port: 8080  
+  
   container:
     # Pod
     image: ""
