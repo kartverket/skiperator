@@ -10,7 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
+
+const defaultPortName = "http"
 
 var defaultPrometheusPort = corev1.ServicePort{
 	Name:       util.IstioMetricsPortName.StrVal,
@@ -49,7 +52,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		labels["app"] = application.Name
 		service.SetLabels(labels)
 
-		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
 		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
 			ports = append(ports, defaultPrometheusPort)
 		}
@@ -83,18 +86,25 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 	return ports
 }
 
-func getServicePort(applicationPort int) corev1.ServicePort {
-	nameAndProtocol := "http"
+func getServicePort(port int, appProtocol string) corev1.ServicePort {
+	var resolvedProtocol = corev1.ProtocolTCP
+	if strings.ToLower(appProtocol) == "udp" {
+		resolvedProtocol = corev1.ProtocolUDP
+	}
 
-	// TODO: Should not be hardcoded
-	if applicationPort == 5432 {
-		nameAndProtocol = "tcp"
+	var resolvedAppProtocol = appProtocol
+	if len(resolvedAppProtocol) == 0 {
+		resolvedAppProtocol = "http"
+	} else if port == 5432 {
+		// Legacy postgres hack
+		resolvedAppProtocol = "tcp"
 	}
 
 	return corev1.ServicePort{
-		Name:        nameAndProtocol,
-		AppProtocol: &nameAndProtocol,
-		Port:        int32(applicationPort),
-		TargetPort:  intstr.FromInt(applicationPort),
+		Name:        defaultPortName,
+		Protocol:    resolvedProtocol,
+		AppProtocol: &resolvedAppProtocol,
+		Port:        int32(port),
+		TargetPort:  intstr.FromInt(port),
 	}
 }

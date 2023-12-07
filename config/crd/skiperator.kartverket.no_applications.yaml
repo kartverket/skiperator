@@ -199,6 +199,14 @@ spec:
                   - protocol
                   type: object
                 type: array
+              appProtocol:
+                default: http
+                description: Protocol that the application speaks.
+                enum:
+                - http
+                - tcp
+                - udp
+                type: string
               authorizationSettings:
                 description: Used for allow listing certain default blocked endpoints,
                   such as /actuator/ end points

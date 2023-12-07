@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-props-udp
+spec:
+  selector:
+    app: service-props-udp
+  ports:
+    - name: http
+      port: 51820
+      targetPort: 51820
+      protocol: UDP
+      appProtocol: udp
