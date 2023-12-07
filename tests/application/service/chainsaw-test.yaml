@@ -17,3 +17,8 @@ spec:
             file: application-with-postgres.yaml
         - assert:
             file: application-with-postgres-assert.yaml
+    - try:
+        - create:
+            file: application-udp-port.yaml
+        - assert:
+            file: application-udp-port-assert.yaml

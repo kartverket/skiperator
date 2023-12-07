@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 var defaultPrometheusPort = corev1.ServicePort{
@@ -84,6 +85,11 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 }
 
 func getServicePort(spec skiperatorv1alpha1.ApplicationSpec) corev1.ServicePort {
+	var proto = corev1.ProtocolTCP
+	if strings.ToLower(spec.AppProtocol) == "udp" {
+		proto = corev1.ProtocolUDP
+	}
+
 	if len(spec.AppProtocol) == 0 || spec.AppProtocol == "http" {
 		nameAndProtocol := "http"
 		if spec.Port == 5432 {
@@ -92,18 +98,18 @@ func getServicePort(spec skiperatorv1alpha1.ApplicationSpec) corev1.ServicePort 
 
 		return corev1.ServicePort{
 			Name:        nameAndProtocol,
+			Protocol:    proto,
 			AppProtocol: &nameAndProtocol,
 			Port:        int32(spec.Port),
 			TargetPort:  intstr.FromInt(spec.Port),
 		}
 	} else {
-		// TODO: Refactor
 		return corev1.ServicePort{
 			Name:        "main",
+			Protocol:    proto,
 			AppProtocol: &spec.AppProtocol,
 			Port:        int32(spec.Port),
 			TargetPort:  intstr.FromInt(spec.Port),
-			// todo: add udp
 		}
 	}
 }
