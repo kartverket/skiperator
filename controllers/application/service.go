@@ -13,6 +13,8 @@ import (
 	"strings"
 )
 
+const defaultPortName = "http"
+
 var defaultPrometheusPort = corev1.ServicePort{
 	Name:       util.IstioMetricsPortName.StrVal,
 	Protocol:   corev1.ProtocolTCP,
@@ -50,7 +52,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		labels["app"] = application.Name
 		service.SetLabels(labels)
 
-		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec))
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
 		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
 			ports = append(ports, defaultPrometheusPort)
 		}
@@ -84,32 +86,25 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 	return ports
 }
 
-func getServicePort(spec skiperatorv1alpha1.ApplicationSpec) corev1.ServicePort {
-	var proto = corev1.ProtocolTCP
-	if strings.ToLower(spec.AppProtocol) == "udp" {
-		proto = corev1.ProtocolUDP
+func getServicePort(port int, appProtocol string) corev1.ServicePort {
+	var resolvedProtocol = corev1.ProtocolTCP
+	if strings.ToLower(appProtocol) == "udp" {
+		resolvedProtocol = corev1.ProtocolUDP
 	}
 
-	if len(spec.AppProtocol) == 0 || spec.AppProtocol == "http" {
-		nameAndProtocol := "http"
-		if spec.Port == 5432 {
-			nameAndProtocol = "tcp"
-		}
+	var resolvedAppProtocol = appProtocol
+	if len(resolvedAppProtocol) == 0 {
+		resolvedAppProtocol = "http"
+	} else if port == 5432 {
+		// Legacy postgres hack
+		resolvedAppProtocol = "tcp"
+	}
 
-		return corev1.ServicePort{
-			Name:        nameAndProtocol,
-			Protocol:    proto,
-			AppProtocol: &nameAndProtocol,
-			Port:        int32(spec.Port),
-			TargetPort:  intstr.FromInt(spec.Port),
-		}
-	} else {
-		return corev1.ServicePort{
-			Name:        "main",
-			Protocol:    proto,
-			AppProtocol: &spec.AppProtocol,
-			Port:        int32(spec.Port),
-			TargetPort:  intstr.FromInt(spec.Port),
-		}
+	return corev1.ServicePort{
+		Name:        defaultPortName,
+		Protocol:    resolvedProtocol,
+		AppProtocol: &resolvedAppProtocol,
+		Port:        int32(port),
+		TargetPort:  intstr.FromInt(port),
 	}
 }

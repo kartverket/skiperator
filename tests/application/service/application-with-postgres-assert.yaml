@@ -6,7 +6,7 @@ spec:
   selector:
     app: service-props-pg
   ports:
-    - name: tcp
+    - name: http
       port: 5432
       targetPort: 5432
       protocol: TCP

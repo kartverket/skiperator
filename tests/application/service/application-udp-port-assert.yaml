@@ -6,7 +6,7 @@ spec:
   selector:
     app: service-props-udp
   ports:
-    - name: main
+    - name: http
       port: 51820
       targetPort: 51820
       protocol: UDP
