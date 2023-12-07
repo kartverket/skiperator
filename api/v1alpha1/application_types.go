@@ -50,6 +50,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 
+	// Protocol that the application speaks.
+	//
+	//+kubebuilder:validation:Enum=http;tcp;udp
+	//+kubebuilder:default=http
+	AppProtocol string `json:"appProtocol,omitempty"`
+
 	// Any external hostnames that route to this application. Using a skip.statkart.no-address
 	// will make the application reachable for kartverket-clients (internal), other addresses
 	// make the app reachable on the internet. Note that other addresses than skip.statkart.no

@@ -49,7 +49,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		labels["app"] = application.Name
 		service.SetLabels(labels)
 
-		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port))
+		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec))
 		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
 			ports = append(ports, defaultPrometheusPort)
 		}
@@ -83,18 +83,27 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 	return ports
 }
 
-func getServicePort(applicationPort int) corev1.ServicePort {
-	nameAndProtocol := "http"
+func getServicePort(spec skiperatorv1alpha1.ApplicationSpec) corev1.ServicePort {
+	if len(spec.AppProtocol) == 0 || spec.AppProtocol == "http" {
+		nameAndProtocol := "http"
+		if spec.Port == 5432 {
+			nameAndProtocol = "tcp"
+		}
 
-	// TODO: Should not be hardcoded
-	if applicationPort == 5432 {
-		nameAndProtocol = "tcp"
-	}
-
-	return corev1.ServicePort{
-		Name:        nameAndProtocol,
-		AppProtocol: &nameAndProtocol,
-		Port:        int32(applicationPort),
-		TargetPort:  intstr.FromInt(applicationPort),
+		return corev1.ServicePort{
+			Name:        nameAndProtocol,
+			AppProtocol: &nameAndProtocol,
+			Port:        int32(spec.Port),
+			TargetPort:  intstr.FromInt(spec.Port),
+		}
+	} else {
+		// TODO: Refactor
+		return corev1.ServicePort{
+			Name:        "main",
+			AppProtocol: &spec.AppProtocol,
+			Port:        int32(spec.Port),
+			TargetPort:  intstr.FromInt(spec.Port),
+			// todo: add udp
+		}
 	}
 }
