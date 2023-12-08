@@ -5,10 +5,10 @@ go 1.21.1
 toolchain go1.21.4
 
 require (
+	dario.cat/mergo v1.0.0
 	github.com/cert-manager/cert-manager v1.13.2
 	github.com/go-logr/logr v1.3.0
 	github.com/google/k8s-digester v0.1.13
-	github.com/imdario/mergo v0.3.16
 	github.com/kyverno/chainsaw v0.0.8
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.70.0
@@ -118,6 +118,7 @@ require (
 	github.com/hashicorp/go-safetemp v1.0.0 // indirect
 	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
+	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jmespath-community/go-jmespath v1.1.2-0.20231123142750-72f7c13d265e // indirect
@@ -142,7 +143,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.17.0 // indirect
 	github.com/prometheus/client_model v0.4.1-0.20230718164431-9a2bf3000d16 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
