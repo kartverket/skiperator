@@ -116,7 +116,7 @@ jobs:
             ${{ env.CRD_JOB_FILE_PATH }}
 
   deploy-argo:
-    if: github.event_name == 'push' || github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [build, generate]
     runs-on: ubuntu-latest
     env:
