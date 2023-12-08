@@ -4,10 +4,6 @@ metadata:
   name: configuration
 spec:
   parallel: 10
-  testDirs:
-  - tests/application
-  - tests/namespace
-  - tests/skipjob
   timeouts:
     delete: 60s
     assert: 60s

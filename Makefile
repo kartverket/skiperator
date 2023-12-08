@@ -98,11 +98,11 @@ install-test-tools:
 #### TESTS ####
 .PHONY: test-single
 test-single: install-test-tools
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --test-dir $(dir)
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir)
 
 .PHONY: test
 test: install-test-tools
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/
 
 .PHONY: run-test
 run-test: build
