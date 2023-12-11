@@ -1,6 +1,7 @@
 name: Build and Deploy Skiperator
 
 on:
+  workflow_dispatch:
   schedule:
     - cron:  '0 0 * * *' # at 12:00 AM every day
   push:
@@ -116,7 +117,7 @@ jobs:
             ${{ env.CRD_JOB_FILE_PATH }}
 
   deploy-argo:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch')
     needs: [build, generate]
     runs-on: ubuntu-latest
     env:
