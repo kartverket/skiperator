@@ -28,7 +28,7 @@ var LeastPrivilegeContainerSecurityContext = corev1.SecurityContext{
 	Capabilities: PointTo(corev1.Capabilities{
 		Add: []corev1.Capability{},
 		Drop: []corev1.Capability{
-			"all",
+			"ALL",
 		},
 	}),
 	Privileged:               PointTo(false),

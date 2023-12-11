@@ -31,6 +31,10 @@ spec:
             readOnlyRootFilesystem: true
             runAsGroup: 150
             runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
       imagePullSecrets:
         - name: github-auth
       priorityClassName: skip-medium

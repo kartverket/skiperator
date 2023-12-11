@@ -34,6 +34,10 @@ spec:
             readOnlyRootFilesystem: true
             runAsGroup: 150
             runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           volumeMounts:
             - mountPath: /tmp
               name: tmp
