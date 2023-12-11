@@ -59,6 +59,10 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 			ReadOnlyRootFilesystem:   util.PointTo(true),
 			RunAsUser:                util.PointTo(util.SkiperatorUser),
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
+			RunAsNonRoot:             util.PointTo(true),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			},
 		},
 		Ports:                    getContainerPorts(application, opts),
 		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
