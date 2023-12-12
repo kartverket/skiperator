@@ -98,11 +98,13 @@ install-test-tools:
 #### TESTS ####
 .PHONY: test-single
 test-single: install-test-tools
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir)
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir) && \
+    echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: test
 test: install-test-tools
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/
+	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
+    echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: run-test
 run-test: build
@@ -112,10 +114,11 @@ run-test: build
 	PID=$$!; \
 	echo "skiperator PID: $$PID"; \
 	echo "Log redirected to file: $$LOG_FILE"; \
-	if [ -z "$(TEST_DIR)" ]; then \
-		$(MAKE) test; \
-	else \
-		$(MAKE) test-single dir=$(TEST_DIR); \
-	fi; \
-	echo "Stopping skiperator (PID $$PID)..."; \
-	kill $$PID
+	( \
+		if [ -z "$(TEST_DIR)" ]; then \
+			$(MAKE) test; \
+		else \
+			$(MAKE) test-single dir=$(TEST_DIR); \
+		fi; \
+	) && \
+	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)
