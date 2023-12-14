@@ -15,7 +15,7 @@ resource called `Application`.
 Below you will find a list of all accepted input parameters to the `Application`
 custom resource.
 
-To see explanations and requirements for all inputs, see the documentation under [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1).
+To see explanations and requirements for all inputs, see the documentation under [the API documentation](https://doc.crds.dev/github.com/kartverket/skiperator).
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
