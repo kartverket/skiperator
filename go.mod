@@ -9,7 +9,7 @@ require (
 	github.com/cert-manager/cert-manager v1.13.3
 	github.com/go-logr/logr v1.3.0
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.0.9
+	github.com/kyverno/chainsaw v0.1.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.70.0
 	github.com/r3labs/diff/v3 v3.0.1
