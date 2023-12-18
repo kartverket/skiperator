@@ -61,6 +61,9 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 			RunAsGroup:               util.PointTo(util.SkiperatorUser),
 			RunAsNonRoot:             util.PointTo(true),
 			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{
+					"NET_BIND_SERVICE",
+				},
 				Drop: []corev1.Capability{"ALL"},
 			},
 		},
