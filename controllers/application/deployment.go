@@ -81,11 +81,11 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-	var labels map[string]string
+	var podTemplateLabels map[string]string
 	if len(application.Spec.Team) > 0 {
-		labels = util.GetPodAppAndTeamSelector(application.Name, application.Spec.Team)
+		podTemplateLabels = util.GetPodAppAndTeamSelector(application.Name, application.Spec.Team)
 	} else {
-		labels = util.GetPodAppSelector(application.Name)
+		podTemplateLabels = util.GetPodAppSelector(application.Name)
 	}
 
 	generatedSpecAnnotations := map[string]string{
@@ -114,7 +114,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      labels,
+			Labels:      podTemplateLabels,
 			Annotations: generatedSpecAnnotations,
 		},
 		Spec: core.CreatePodSpec(
@@ -130,7 +130,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
 
 	deployment.Spec = appsv1.DeploymentSpec{
-		Selector: &metav1.LabelSelector{MatchLabels: labels},
+		Selector: &metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
 		Strategy: appsv1.DeploymentStrategy{
 			Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
 			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
