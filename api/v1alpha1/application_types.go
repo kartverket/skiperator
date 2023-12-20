@@ -78,6 +78,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:default=medium
 	Priority string `json:"priority,omitempty"`
 
+	// Team specifies the team who owns this particular app.
+	// Usually sourced from the namespace label.
+	//
+	//+kubebuilder:validation:Optional
+	Team string `json:"team,omitempty"`
+
 	// Override the command set in the Dockerfile. Usually only used when debugging
 	// or running third-party containers where you don't have control over the Dockerfile
 	//

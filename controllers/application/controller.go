@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"regexp"
 	"strings"
 
@@ -122,6 +123,13 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		application.Labels = aggregateLabels
 	}
 
+	// Add team label
+	if len(application.Spec.Team) == 0 {
+		if name, err := r.teamNameForNamespace(ctx, application); err == nil {
+			application.Spec.Team = name
+		}
+	}
+
 	application.FillDefaultsStatus()
 
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
@@ -181,6 +189,20 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return util.RequeueWithError(err)
+}
+
+func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
+	ns := &corev1.Namespace{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
+		return "", err
+	}
+
+	teamValue := ns.Labels["team"]
+	if len(teamValue) > 0 {
+		return teamValue, nil
+	}
+
+	return "", fmt.Errorf("missing value for team label")
 }
 
 func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {

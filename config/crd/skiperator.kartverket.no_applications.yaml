@@ -734,6 +734,10 @@ spec:
                     - Recreate
                     type: string
                 type: object
+              team:
+                description: Team specifies the team who owns this particular app.
+                  Usually sourced from the namespace label.
+                type: string
             required:
             - image
             - port
