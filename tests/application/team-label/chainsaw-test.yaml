@@ -19,3 +19,12 @@ spec:
             file: application-with-fixed-team.yaml
         - assert:
             file: application-with-fixed-team-assert.yaml
+    - try:
+        - create:
+            file: namespace-no-team.yaml
+        - create:
+            file: application-no-team.yaml
+        - assert:
+            file: application-no-team-assert.yaml
+        - error:
+            file: application-no-team-error-assert.yaml

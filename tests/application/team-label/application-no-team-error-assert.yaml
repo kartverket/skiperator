@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: chainsaw-no-team-label
+  name: team-label-missing
+spec:
+  selector:
+    matchLabels:
+      app: team-label-missing
+  template:
+    metadata:
+      labels:
+        app: team-label-missing
+        team: some-team

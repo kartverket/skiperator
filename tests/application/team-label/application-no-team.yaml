@@ -1,0 +1,8 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: team-label-missing
+  namespace: chainsaw-no-team-label
+spec:
+  image: image
+  port: 8080
