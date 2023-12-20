@@ -27,5 +27,5 @@ func (r *SKIPJobReconciler) reconcileServiceAccount(ctx context.Context, skipJob
 		return nil
 	})
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

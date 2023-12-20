@@ -42,13 +42,13 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 			application,
 		) {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		err = r.setupGCPAuthConfigMap(ctx, gcpIdentityConfigMap, application)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	} else {
 		gcpAuthConfigMap := corev1.ConfigMap{
@@ -59,14 +59,14 @@ func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, applicat
 		}
 		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &gcpAuthConfigMap))
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
 
-	return reconcile.Result{}, nil
+	return util.DoNotRequeue()
 
 }
 

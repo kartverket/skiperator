@@ -30,7 +30,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 	shouldReconcile, err := r.ShouldReconcile(ctx, &service)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &service, func() error {
@@ -68,7 +68,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.ServicePort {

@@ -54,7 +54,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		shouldReconcile, err := r.ShouldReconcile(ctx, &certificate)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -79,7 +79,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		})
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
@@ -88,7 +88,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	// Could we get in trouble with shouldReconcile here? I'm not entirely sure
@@ -97,7 +97,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		shouldReconcile, err := r.ShouldReconcile(ctx, &certificate)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -124,13 +124,13 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func getLabels(certificate certmanagerv1.Certificate, application *skiperatorv1alpha1.Application) map[string]string {

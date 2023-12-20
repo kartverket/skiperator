@@ -20,7 +20,7 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceAccount)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceAccount, func() error {
@@ -39,5 +39,5 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

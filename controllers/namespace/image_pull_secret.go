@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/kartverket/skiperator/pkg/util"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +41,7 @@ func (r *NamespaceReconciler) reconcileImagePullSecret(ctx context.Context, name
 
 		return nil
 	})
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 // Filter for secrets named github-auth

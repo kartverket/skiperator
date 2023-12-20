@@ -24,12 +24,12 @@ func (r *SKIPJobReconciler) reconcileConfigMap(ctx context.Context, skipJob *ski
 			fmt.Sprintf("cannot find configmap named %v in namespace %v", gcpIdentityConfigMapNamespacedName.Name, gcpIdentityConfigMapNamespacedName.Namespace),
 			skipJob,
 		) {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		err = r.setupGCPAuthConfigMap(ctx, gcpIdentityConfigMap, skipJob)
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	} else {
 		gcpAuthConfigMap := corev1.ConfigMap{
@@ -40,11 +40,11 @@ func (r *SKIPJobReconciler) reconcileConfigMap(ctx context.Context, skipJob *ski
 		}
 		err := r.DeleteObjectIfExists(ctx, &gcpAuthConfigMap)
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 	}
-	return reconcile.Result{}, nil
+	return util.DoNotRequeue()
 
 }
 

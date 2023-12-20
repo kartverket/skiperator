@@ -188,7 +188,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	shouldReconcile, err := r.ShouldReconcile(ctx, &deployment)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	err = r.GetClient().Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)
@@ -198,11 +198,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			err = r.GetClient().Create(ctx, &deploymentDefinition)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 		} else {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	} else {
 		if !shouldScaleToZero(application.Spec.Replicas) && skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
@@ -226,14 +226,14 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {

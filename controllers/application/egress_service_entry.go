@@ -21,7 +21,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	if err != nil {
 		r.EmitWarningEvent(application, "ServiceEntryError", fmt.Sprintf("something went wrong when fetching service entries: %v", err.Error()))
 
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	for _, serviceEntry := range serviceEntries {
@@ -32,7 +32,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		shouldReconcile, err := r.ShouldReconcile(ctx, &serviceEntry)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -55,7 +55,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
@@ -63,7 +63,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 	err = r.GetClient().List(ctx, &serviceEntriesInNamespace, client.InNamespace(application.Namespace))
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, application.Name, serviceEntries)
@@ -71,7 +71,7 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		shouldReconcile, err := r.ShouldReconcile(ctx, &serviceEntry)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -82,11 +82,11 @@ func (r *ApplicationReconciler) reconcileEgressServiceEntry(ctx context.Context,
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

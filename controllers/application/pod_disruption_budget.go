@@ -21,7 +21,7 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 	shouldReconcile, err := r.ShouldReconcile(ctx, &pdb)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if *application.Spec.EnablePDB {
@@ -65,17 +65,17 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 		})
 
 		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	} else {
 		err := r.GetClient().Delete(ctx, &pdb)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 }
 

@@ -15,12 +15,12 @@ import (
 func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	egressServices, err := r.GetEgressServices(ctx, skipJob, skipJob.Spec.Container.AccessPolicy)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	namespaces, err := r.GetNamespaces(ctx, skipJob)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	netpolOpts := networking.NetPolOpts{
@@ -34,7 +34,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 	netpolSpec := networking.CreateNetPolSpec(netpolOpts)
 
 	if netpolSpec == nil {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
@@ -51,5 +51,5 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		return nil
 	})
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

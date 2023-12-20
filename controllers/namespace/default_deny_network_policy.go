@@ -112,5 +112,5 @@ func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Cont
 
 		return nil
 	})
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
