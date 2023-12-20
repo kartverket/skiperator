@@ -16,7 +16,7 @@ func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, ski
 	serviceEntries, err := istio.GetServiceEntries(skipJob.Spec.Container.AccessPolicy, skipJob)
 	if err != nil {
 		r.EmitWarningEvent(skipJob, "ServiceEntryError", fmt.Sprintf("something went wrong when fetching service entries: %v", err.Error()))
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	for _, serviceEntry := range serviceEntries {
@@ -36,23 +36,23 @@ func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, ski
 		})
 
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	serviceEntriesInNamespace := networkingv1beta1.ServiceEntryList{}
 	err = r.GetClient().List(ctx, &serviceEntriesInNamespace, client.InNamespace(skipJob.Namespace))
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, skipJob.Name, serviceEntries)
 	for _, serviceEntry := range serviceEntriesToDelete {
 		err = r.DeleteObjectIfExists(ctx, &serviceEntry)
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

@@ -81,10 +81,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	err := r.GetClient().Get(ctx, req.NamespacedName, application)
 
 	if errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(application, "ReconcileStartFail", "something went wrong fetching the application, it might have been deleted")
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
@@ -105,7 +105,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	err = r.validateApplicationSpec(application)
 	if err != nil {
 		r.EmitNormalEvent(application, "InvalidApplication", fmt.Sprintf("Application %v failed validation and was rejected, error: %s", application.Name, err.Error()))
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	tmpApplication := application.DeepCopy()
@@ -126,12 +126,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
@@ -180,7 +180,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
@@ -244,13 +244,13 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
-	return reconcile.Result{}, nil
+	return util.DoNotRequeue()
 }
 
 func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
 	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
-	return reconcile.Result{}, issue
+	return util.RequeueWithError(issue)
 }
 
 func (r *ApplicationReconciler) SetControllerPending(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {

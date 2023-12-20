@@ -41,7 +41,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 	gcpIdentityConfigMap, err := r.getGCPIdentityConfigMap(ctx, *skipJob)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
@@ -64,7 +64,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		if errors.IsNotFound(err) {
 			err := ctrlutil.SetControllerReference(skipJob, &cronJob, r.GetScheme())
 			if err != nil {
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			util.SetCommonAnnotations(&cronJob)
@@ -73,7 +73,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			err = r.GetClient().Create(ctx, &cronJob)
 			if err != nil {
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			log.FromContext(ctx).Info(fmt.Sprintf("cronjob %v/%v created, requeuing reconcile in %v seconds to await subresource creation", cronJob.Namespace, cronJob.Name, DefaultAwaitCronJobResourcesWait.Seconds()))
@@ -85,7 +85,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			cronJobSpecDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
 				r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			if len(cronJobSpecDiff) > 0 {
@@ -93,12 +93,12 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				err = r.GetClient().Update(ctx, &cronJob)
 				if err != nil {
 					r.EmitWarningEvent(skipJob, "CouldNotUpdateCronJob", fmt.Sprintf("something went wrong when updating the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
-					return reconcile.Result{}, err
+					return util.RequeueWithError(err)
 				}
 			}
 		} else if err != nil {
 			r.EmitWarningEvent(skipJob, "CouldNotGetCronJob", fmt.Sprintf("something went wrong when getting the CronJob subresource of SKIPJob %v: %v", skipJob.Name, err))
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	} else {
 		err = r.GetClient().Get(ctx, types.NamespacedName{
@@ -111,7 +111,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 
 			err = ctrlutil.SetControllerReference(skipJob, &job, r.GetScheme())
 			if err != nil {
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
@@ -121,12 +121,12 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			err := r.GetClient().Create(ctx, &job)
 			if err != nil {
 				r.EmitWarningEvent(skipJob, "CouldNotCreateJob", fmt.Sprintf("something went wrong when creating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			err = r.SetStatusRunning(ctx, skipJob)
 
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		} else if err == nil {
 			currentSpec := job.Spec
 			desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, gcpIdentityConfigMap)
@@ -134,7 +134,7 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 			jobDiff, err := util.GetObjectDiff(currentSpec, desiredSpec)
 			if err != nil {
 				r.EmitWarningEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			if len(jobDiff) > 0 {
@@ -142,14 +142,14 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 				err := r.GetClient().Update(ctx, &job)
 				if err != nil {
 					r.EmitWarningEvent(skipJob, "CouldNotUpdateJob", fmt.Sprintf("something went wrong when updating the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
-					return reconcile.Result{}, err
+					return util.RequeueWithError(err)
 				}
 
-				return reconcile.Result{}, nil
+				return util.DoNotRequeue()
 			}
 		} else if err != nil {
 			r.EmitWarningEvent(skipJob, "CouldNotGetJob", fmt.Sprintf("something went wrong when getting the Job subresource of SKIPJob %v: %v", skipJob.Name, err))
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
@@ -159,19 +159,19 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		SKIPJobReferenceLabelKey: skipJob.Name,
 	})
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if len(jobsToCheckList.Items) == 0 {
 		log.FromContext(ctx).Info(fmt.Sprintf("could not find any jobs related to SKIPJob %v/%v, skipping job checks", skipJob.Namespace, skipJob.Name))
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	for _, job := range jobsToCheckList.Items {
 		if isFailed, failedJobMessage := isFailedJob(job); isFailed {
 			err = r.SetStatusFailed(ctx, skipJob, fmt.Sprintf("job %v/%v failed, reason:  %v", job.Name, job.Namespace, failedJobMessage))
 			if err != nil {
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 			continue
 		}
@@ -179,18 +179,18 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 		if job.Status.CompletionTime != nil {
 			err = r.SetStatusFinished(ctx, skipJob)
 			if err != nil {
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 			continue
 		}
 
 		err := r.SetStatusRunning(ctx, skipJob)
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
-	return reconcile.Result{}, nil
+	return util.DoNotRequeue()
 }
 
 func isFailedJob(job batchv1.Job) (bool, string) {

@@ -54,15 +54,15 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	namespace := &corev1.Namespace{}
 	err := r.GetClient().Get(ctx, req.NamespacedName, namespace)
 	if errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(namespace, "ReconcileStartFail", "something went wrong fetching the namespace, it might have been deleted")
 
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if r.isExcludedNamespace(ctx, namespace.Name) {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
@@ -75,11 +75,11 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	for _, fn := range controllerDuties {
 		if _, err := fn(ctx, namespace); err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	r.EmitNormalEvent(namespace, "ReconcileEnd", fmt.Sprintf("Namespace %v has finished reconciliation loop", namespace.Name))
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

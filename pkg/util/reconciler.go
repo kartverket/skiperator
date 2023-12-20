@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
@@ -207,4 +208,12 @@ func (r *ReconcilerBase) DeleteObjectIfExists(ctx context.Context, object client
 	}
 
 	return nil
+}
+
+func DoNotRequeue() (reconcile.Result, error) {
+	return reconcile.Result{}, nil
+}
+
+func RequeueWithError(err error) (reconcile.Result, error) {
+	return reconcile.Result{}, err
 }

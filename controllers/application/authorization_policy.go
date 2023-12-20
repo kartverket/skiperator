@@ -25,7 +25,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 	shouldReconcile, err := r.ShouldReconcile(ctx, &defaultDenyAuthPolicy)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if application.Spec.AuthorizationSettings != nil {
@@ -34,11 +34,11 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 			err = client.IgnoreNotFound(err)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-			return reconcile.Result{}, nil
+			return util.DoNotRequeue()
 		}
 	}
 
@@ -71,7 +71,7 @@ func (r *ApplicationReconciler) reconcileAuthorizationPolicy(ctx context.Context
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func getGeneralFromRule() []*securityv1beta1api.Rule_From {

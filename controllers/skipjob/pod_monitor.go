@@ -20,15 +20,15 @@ func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *sk
 
 	shouldReconcile, err := r.ShouldReconcile(ctx, &podMonitor)
 	if err != nil || !shouldReconcile {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if skipJob.Spec.Prometheus == nil {
 		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &podMonitor))
 		if err != nil {
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &podMonitor, func() error {
@@ -47,7 +47,7 @@ func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *sk
 		}
 		return nil
 	})
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *SKIPJobReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.SKIPJob) []pov1.PodMetricsEndpoint {

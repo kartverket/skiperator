@@ -29,7 +29,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		shouldReconcile, err := r.ShouldReconcile(ctx, &gateway)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -88,7 +88,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		})
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
@@ -98,14 +98,14 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	for _, gateway := range gateways.Items {
 		shouldReconcile, err := r.ShouldReconcile(ctx, gateway)
 		if err != nil {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		if !shouldReconcile {
@@ -139,13 +139,13 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 // Filter for gateways named like *-ingress-*

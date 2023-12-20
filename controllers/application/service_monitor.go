@@ -17,7 +17,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 
 	if !r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com") {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	serviceMonitor := pov1.ServiceMonitor{ObjectMeta: metav1.ObjectMeta{
@@ -29,18 +29,18 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceMonitor)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if application.Spec.Prometheus == nil {
 		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
@@ -69,7 +69,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *ApplicationReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.Application) []pov1.Endpoint {
