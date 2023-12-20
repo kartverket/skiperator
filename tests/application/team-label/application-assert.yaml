@@ -1,0 +1,107 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  namespace: chainsaw-team-label
+  name: team-label
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: chainsaw-team-label
+  name: team-label
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: team-label
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+      labels:
+        app: team-label
+        team: some-team
+    spec:
+      containers:
+        - name: team-label
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: team-label
+      volumes:
+        - emptyDir: {}
+          name: tmp
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  namespace: chainsaw-team-label
+  name: team-label
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: team-label
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: chainsaw-team-label
+  name: team-label
+spec:
+  selector:
+    app: team-label
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  namespace: chainsaw-team-label
+  name: team-label
+spec:
+  selector:
+    matchLabels:
+      app: team-label
+  mtls:
+    mode: STRICT

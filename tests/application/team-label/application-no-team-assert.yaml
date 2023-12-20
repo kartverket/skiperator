@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: chainsaw-no-team-label
+  name: team-label-missing
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: team-label-missing
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+      labels:
+        app: team-label-missing
+    spec:
+      containers:
+        - name: team-label-missing
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: team-label-missing
+      volumes:
+        - emptyDir: {}
+          name: tmp

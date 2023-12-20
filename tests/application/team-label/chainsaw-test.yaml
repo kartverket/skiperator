@@ -1,0 +1,30 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: team-label
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: namespace.yaml
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - create:
+            file: application-with-fixed-team.yaml
+        - assert:
+            file: application-with-fixed-team-assert.yaml
+    - try:
+        - create:
+            file: namespace-no-team.yaml
+        - create:
+            file: application-no-team.yaml
+        - assert:
+            file: application-no-team-assert.yaml
+        - error:
+            file: application-no-team-error-assert.yaml

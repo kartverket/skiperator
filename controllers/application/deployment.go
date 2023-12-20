@@ -81,7 +81,12 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-	labels := util.GetPodAppSelector(application.Name)
+	var labels map[string]string
+	if len(application.Spec.Team) > 0 {
+		labels = util.GetPodAppAndTeamSelector(application.Name, application.Spec.Team)
+	} else {
+		labels = util.GetPodAppSelector(application.Name)
+	}
 
 	generatedSpecAnnotations := map[string]string{
 		"argocd.argoproj.io/sync-options": "Prune=false",
