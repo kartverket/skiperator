@@ -17,10 +17,10 @@ require (
 	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
 	istio.io/api v1.20.0
 	istio.io/client-go v1.20.0
-	k8s.io/api v0.28.4
+	k8s.io/api v0.29.0
 	k8s.io/apiextensions-apiserver v0.28.4
-	k8s.io/apimachinery v0.28.4
-	k8s.io/client-go v0.28.4
+	k8s.io/apimachinery v0.29.0
+	k8s.io/client-go v0.29.0
 	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kustomize/kyaml v0.16.0
@@ -196,7 +196,7 @@ require (
 	k8s.io/apiserver v0.28.4 // indirect
 	k8s.io/component-base v0.28.4 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
-	k8s.io/kube-openapi v0.0.0-20230905202853-d090da108d2f // indirect
+	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.1.4 // indirect
 	sigs.k8s.io/gateway-api v0.8.0 // indirect
