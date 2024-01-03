@@ -131,7 +131,7 @@ jobs:
           token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/
