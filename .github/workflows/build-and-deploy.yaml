@@ -27,7 +27,7 @@ env:
   RBAC_FILE_PATH: config/rbac/role.yaml
   CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
   CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
-  ARTIFACT_NAME: skiperator-artifact
+  ARTIFACT_NAME: skiperator-artifact-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   build:
@@ -108,7 +108,7 @@ jobs:
         run: make generate
 
       - name: Upload CRD and ClusterRole
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
