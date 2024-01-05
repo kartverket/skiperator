@@ -18,7 +18,7 @@ KIND_VERSION                       := v0.20.0
 CHAINSAW_VERSION                   := $(call extract-version,github.com/kyverno/chainsaw)
 CONTROLLER_GEN_VERSION             := $(call extract-version,sigs.k8s.io/controller-tools)
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
-ISTIO_VERSION                      := $(call extract-version,istio.io/api)
+ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 
 #### VARS ####
