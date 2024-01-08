@@ -7,16 +7,16 @@ toolchain go1.21.4
 require (
 	dario.cat/mergo v1.0.0
 	github.com/cert-manager/cert-manager v1.13.3
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.1.1
+	github.com/kyverno/chainsaw v0.1.2
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.70.0
 	github.com/r3labs/diff/v3 v3.0.1
 	go.uber.org/zap v1.26.0
-	golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb
-	istio.io/api v1.20.0
-	istio.io/client-go v1.20.0
+	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
+	istio.io/api v1.20.1
+	istio.io/client-go v1.20.1
 	k8s.io/api v0.29.0
 	k8s.io/apiextensions-apiserver v0.29.0
 	k8s.io/apimachinery v0.29.0

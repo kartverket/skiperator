@@ -368,6 +368,8 @@ github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbV
 github.com/go-logr/logr v1.2.4/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
 github.com/go-logr/logr v1.3.0 h1:2y3SDp0ZXuc6/cjLSZ+Q3ir+QB9T/iG5yYRXqsagWSY=
 github.com/go-logr/logr v1.3.0/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/go-logr/logr v1.4.1 h1:pKouT5E8xu9zeFC39JXRDukb6JFQPXM5p5I91188VAQ=
+github.com/go-logr/logr v1.4.1/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/go-logr/zapr v1.2.4 h1:QHVo+6stLbfJmYGkQ7uGHUCu5hnAFAj6mDe6Ea0SeOo=
@@ -585,6 +587,7 @@ github.com/kudobuilder/kuttl v0.15.0 h1:OmCbpY3ebn+myJaatD+IT1AL1OTz34+Cv6ettiXd
 github.com/kudobuilder/kuttl v0.15.0/go.mod h1:UtAOt+GE8HQZFveEN8p1fk3j+H1Cp5Fk1eMdQkXPqH0=
 github.com/kyverno/chainsaw v0.1.1 h1:21LRPTmQloPECfGqPruXFtY+ucSOXWt5U8Bo9Z2NVDI=
 github.com/kyverno/chainsaw v0.1.1/go.mod h1:I8Th5q3ym3NpTdANA3yhjxX66jL836y3ZNWDHlZETYY=
+github.com/kyverno/chainsaw v0.1.2/go.mod h1:x9lXE42ckMbHjdE4lOdK2+gClgyz+T302sjBkBaay5o=
 github.com/kyverno/kyverno v1.5.0-rc1.0.20231030172702-fb530626ba01 h1:iT3OcLl6IheQF39GS7shfymQZWpPJN2g44U84O5Eg0o=
 github.com/kyverno/kyverno v1.5.0-rc1.0.20231030172702-fb530626ba01/go.mod h1:7xUP44fM7wqxoOzj42QejrGplnQewM5rB41SNkbfOfQ=
 github.com/kyverno/kyverno-json v0.0.2-0.20231128224626-82b3f33592ac h1:toqnCAXjs+Ex3QYoQXU0OMC69M98d746Een7Os5TT0Y=
@@ -797,6 +800,8 @@ golang.org/x/exp v0.0.0-20200207192155-f17229e696bd/go.mod h1:J/WKrq2StrnmMY6+EH
 golang.org/x/exp v0.0.0-20200224162631-6cc2880d07d6/go.mod h1:3jZMyOhIsHpP37uCMkUooju7aAi5cS1Q23tOzKc+0MU=
 golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb h1:c0vyKkb6yr3KR7jEfJaOSv4lG7xPkbN6r52aJz1d8a8=
 golang.org/x/exp v0.0.0-20231206192017-f3f8817b8deb/go.mod h1:iRJReGqOEeBhDZGkGbynYwcHlctCvnjTYIamk7uXpHI=
+golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc h1:ao2WRsKSzW6KuUY9IWPwWahcHCgR0s52IfwutMfEbdM=
+golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc/go.mod h1:iRJReGqOEeBhDZGkGbynYwcHlctCvnjTYIamk7uXpHI=
 golang.org/x/image v0.0.0-20190227222117-0694c2d4d067/go.mod h1:kZ7UVZpmo3dzQBMxlp+ypCbDeSB+sBbTgSJuh5dn5js=
 golang.org/x/image v0.0.0-20190802002840-cff245a6509b/go.mod h1:FeLwcggjj3mMvU+oOTbSwawSJRM1uh48EjtB4UJZlP0=
 golang.org/x/lint v0.0.0-20181026193005-c67002cb31c3/go.mod h1:UVdnD1Gm6xHRNCYTkRU2/jEulfH38KcIWyp/GAMgvoE=
@@ -1339,8 +1344,12 @@ honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9
 honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 istio.io/api v1.20.0 h1:heE1eQoMsuZlwWOf7Xm8TKqKLNKVs11G/zMe5QyR1u4=
 istio.io/api v1.20.0/go.mod h1:hm1PE/mGdIAsjCDkTIAplP53H7TjO5LUQCiVvF26SVg=
+istio.io/api v1.20.1 h1:Itku+LK5FwNzkKJY+5BGRCTRimVA5gShwFXdNNXtAHk=
+istio.io/api v1.20.1/go.mod h1:hm1PE/mGdIAsjCDkTIAplP53H7TjO5LUQCiVvF26SVg=
 istio.io/client-go v1.20.0 h1:TSSv6A4sYvuBtoKOwyuRmBmPwSb4s++lWlh7RB7+7gY=
 istio.io/client-go v1.20.0/go.mod h1:6D76gZsdjz8JtVeIarUYdOn3WA8Zh+j8fIv2+2K3M+Q=
+istio.io/client-go v1.20.1 h1:0kObqt2b6mJ1lM+PEOWQ9/MQbhJFMBZ2K7krAz/Qrto=
+istio.io/client-go v1.20.1/go.mod h1:5Je53KEbCFhBedeu1wIf02ekK2v7bAQEAfR9e0/u1LI=
 k8s.io/api v0.29.0 h1:NiCdQMY1QOp1H8lfRyeEf8eOwV6+0xA6XEE44ohDX2A=
 k8s.io/api v0.29.0/go.mod h1:sdVmXoz2Bo/cb77Pxi71IPTSErEW32xa4aXwKH7gfBA=
 k8s.io/apiextensions-apiserver v0.28.4 h1:AZpKY/7wQ8n+ZYDtNHbAJBb+N4AXXJvyZx6ww6yAJvU=
