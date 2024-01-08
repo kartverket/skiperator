@@ -7,7 +7,7 @@ toolchain go1.21.4
 require (
 	dario.cat/mergo v1.0.0
 	github.com/cert-manager/cert-manager v1.13.3
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
 	github.com/kyverno/chainsaw v0.1.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
