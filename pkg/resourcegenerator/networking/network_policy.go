@@ -158,8 +158,8 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 		}
 	}
 
-	// If Prometheus metrics are exposed, allow grafana-agent to scrape
-	if opts.PrometheusConfig != nil {
+	// Allow grafana-agent to scrape
+	if opts.IstioEnabled {
 		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -176,7 +176,7 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 			},
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: determinePrometheusScrapePort(opts.PrometheusConfig, opts.IstioEnabled),
+					Port: util.PointTo(util.IstioMetricsPortName),
 				},
 			},
 		}
@@ -286,11 +286,4 @@ func getIngressGatewayLabel(isInternal bool) map[string]string {
 	} else {
 		return map[string]string{"app": "istio-ingress-external"}
 	}
-}
-
-func determinePrometheusScrapePort(prometheusConfig *skiperatorv1alpha1.PrometheusConfig, istioEnabled bool) *intstr.IntOrString {
-	if istioEnabled {
-		return util.PointTo(util.IstioMetricsPortName)
-	}
-	return util.PointTo(prometheusConfig.Port)
 }

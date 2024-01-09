@@ -43,24 +43,14 @@ func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *sk
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{skipJob.Namespace},
 			},
-			PodMetricsEndpoints: r.determineEndpoint(ctx, skipJob),
+			PodMetricsEndpoints: []pov1.PodMetricsEndpoint{
+				{
+					Path:       util.IstioMetricsPath,
+					TargetPort: &util.IstioMetricsPortName,
+				},
+			},
 		}
 		return nil
 	})
 	return util.RequeueWithError(err)
-}
-
-func (r *SKIPJobReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.SKIPJob) []pov1.PodMetricsEndpoint {
-	ep := pov1.PodMetricsEndpoint{
-		Path: util.IstioMetricsPath, TargetPort: &util.IstioMetricsPortName,
-	}
-	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
-		return []pov1.PodMetricsEndpoint{ep}
-	}
-	return []pov1.PodMetricsEndpoint{
-		{
-			Path:       application.Spec.Prometheus.Path,
-			TargetPort: &application.Spec.Prometheus.Port,
-		},
-	}
 }

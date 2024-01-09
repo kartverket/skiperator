@@ -6,7 +6,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -32,17 +31,6 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 		return util.RequeueWithError(err)
 	}
 
-	if application.Spec.Prometheus == nil {
-		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return util.RequeueWithError(err)
-		}
-
-		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-		return util.DoNotRequeue()
-	}
-
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
 		// Set application as owner of the service
 		err := ctrlutil.SetControllerReference(application, &serviceMonitor, r.GetScheme())
@@ -61,7 +49,12 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{application.Namespace},
 			},
-			Endpoints: r.determineEndpoint(ctx, application),
+			Endpoints: []pov1.Endpoint{
+				{
+					Path:       util.IstioMetricsPath,
+					TargetPort: &util.IstioMetricsPortName,
+				},
+			},
 		}
 
 		return nil
@@ -70,21 +63,4 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return util.RequeueWithError(err)
-}
-
-func (r *ApplicationReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.Application) []pov1.Endpoint {
-	ep := pov1.Endpoint{
-		Path: util.IstioMetricsPath, TargetPort: &util.IstioMetricsPortName,
-	}
-
-	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
-		return []pov1.Endpoint{ep}
-	}
-
-	return []pov1.Endpoint{
-		{
-			Path:       application.Spec.Prometheus.Path,
-			TargetPort: &application.Spec.Prometheus.Port,
-		},
-	}
 }

@@ -15,7 +15,7 @@ var CommonAnnotations = map[string]string{
 const SkiperatorUser = int64(150)
 
 var (
-	IstioMetricsPortNumber = intstr.FromInt(15020)
+	IstioMetricsPortNumber = intstr.FromInt32(15020)
 	IstioMetricsPortName   = intstr.FromString("istio-metrics")
 	IstioMetricsPath       = "/stats/prometheus"
 

@@ -10,18 +10,6 @@ spec:
   steps:
     - try:
         - create:
-            file: multiple-applications.yaml
-        - assert:
-            file: multiple-applications-assert.yaml
-    - try:
-        - apply:
-            file: patch-single-application.yaml
-        - assert:
-            file: patch-single-application-assert.yaml
-        - error:
-            file: patch-single-application-error.yaml
-    - try:
-        - create:
             file: application-istio.yaml
         - assert:
             file: application-istio-assert.yaml
