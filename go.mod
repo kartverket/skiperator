@@ -16,7 +16,7 @@ require (
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 	istio.io/api v1.20.2
-	istio.io/client-go v1.20.1
+	istio.io/client-go v1.20.2
 	k8s.io/api v0.29.0
 	k8s.io/apiextensions-apiserver v0.29.0
 	k8s.io/apimachinery v0.29.0
