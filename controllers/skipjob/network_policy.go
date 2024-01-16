@@ -27,7 +27,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		AccessPolicy:    skipJob.Spec.Container.AccessPolicy,
 		Namespace:       skipJob.Namespace,
 		Namespaces:      &namespaces,
-		Name:            skipJob.Name,
+		Name:            skipJob.KindPostFixedName(),
 		RelatedServices: &egressServices,
 	}
 

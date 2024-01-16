@@ -63,7 +63,8 @@ type OutboundPolicy struct {
 //
 // +kubebuilder:object:generate=true
 type InternalRule struct {
-	// The name of the Application you are allowing traffic to/from.
+	// The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
+	// be suffixed with -skipjob
 	//
 	//+kubebuilder:validation:Required
 	Application string `json:"application"`

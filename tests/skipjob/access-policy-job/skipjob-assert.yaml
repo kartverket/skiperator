@@ -16,7 +16,7 @@ spec:
               app: minimal-application
   podSelector:
     matchLabels:
-      app: access-policy-job
+      app: access-policy-job-skipjob
   policyTypes:
     - Egress
 ---
