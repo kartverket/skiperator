@@ -4,6 +4,8 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"strings"
+
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
@@ -22,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 const (
@@ -88,9 +89,13 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		podTemplateLabels = util.GetPodAppSelector(application.Name)
 	}
 
+	// Add annotations to pod template, safe-to-evict added due to issues
+	// with cluster-autoscaler and unable to evict pods with local volumes
+	// https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md
 	generatedSpecAnnotations := map[string]string{
-		"argocd.argoproj.io/sync-options": "Prune=false",
-		"prometheus.io/scrape":            "true",
+		"argocd.argoproj.io/sync-options":                "Prune=false",
+		"prometheus.io/scrape":                           "true",
+		"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
 	}
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
