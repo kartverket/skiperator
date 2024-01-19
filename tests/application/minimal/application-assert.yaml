@@ -18,6 +18,7 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         argocd.argoproj.io/sync-options: "Prune=false"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
       labels:
         app: minimal
     spec:
