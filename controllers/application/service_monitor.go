@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -29,6 +30,17 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 		return util.RequeueWithError(err)
+	}
+
+	if !r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
+		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return util.RequeueWithError(err)
+		}
+
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
+		return util.DoNotRequeue()
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceMonitor, func() error {
