@@ -32,7 +32,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 		return util.RequeueWithError(err)
 	}
 
-	if application.Spec.Prometheus == nil {
+	if !r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
 		err := client.IgnoreNotFound(r.GetClient().Delete(ctx, &serviceMonitor))
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
@@ -61,7 +61,12 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 			NamespaceSelector: pov1.NamespaceSelector{
 				MatchNames: []string{application.Namespace},
 			},
-			Endpoints: r.determineEndpoint(ctx, application),
+			Endpoints: []pov1.Endpoint{
+				{
+					Path:       util.IstioMetricsPath,
+					TargetPort: &util.IstioMetricsPortName,
+				},
+			},
 		}
 
 		return nil
@@ -70,21 +75,4 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return util.RequeueWithError(err)
-}
-
-func (r *ApplicationReconciler) determineEndpoint(ctx context.Context, application *skiperatorv1alpha1.Application) []pov1.Endpoint {
-	ep := pov1.Endpoint{
-		Path: util.IstioMetricsPath, TargetPort: &util.IstioMetricsPortName,
-	}
-
-	if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
-		return []pov1.Endpoint{ep}
-	}
-
-	return []pov1.Endpoint{
-		{
-			Path:       application.Spec.Prometheus.Path,
-			TargetPort: &application.Spec.Prometheus.Port,
-		},
-	}
 }

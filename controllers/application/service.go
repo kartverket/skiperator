@@ -53,7 +53,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, applicatio
 		service.SetLabels(labels)
 
 		ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
-		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) && application.Spec.Prometheus != nil {
+		if r.IsIstioEnabledForNamespace(ctx, application.Namespace) {
 			ports = append(ports, defaultPrometheusPort)
 		}
 

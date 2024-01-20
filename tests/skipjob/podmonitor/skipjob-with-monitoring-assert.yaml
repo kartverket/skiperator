@@ -53,8 +53,8 @@ spec:
     matchNames:
       - podmonitor-ns
   podMetricsEndpoints:
-    - targetPort: 8080
-      path: "/metrics"
+    - targetPort: istio-metrics
+      path: "/stats/prometheus"
   selector:
     matchLabels:
       app: podmonitor

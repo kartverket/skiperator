@@ -29,6 +29,7 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		Namespaces:      &namespaces,
 		Name:            skipJob.KindPostFixedName(),
 		RelatedServices: &egressServices,
+		IstioEnabled:    r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace),
 	}
 
 	netpolSpec := networking.CreateNetPolSpec(netpolOpts)

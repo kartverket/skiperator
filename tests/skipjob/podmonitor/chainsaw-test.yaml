@@ -18,8 +18,3 @@ spec:
               apiVersion: skiperator.kartverket.no/v1alpha1
               kind: SKIPJob
               name: podmonitor
-    - try:
-        - apply:
-            file: skipjob-with-monitoring-istio.yaml
-        - assert:
-            file: skipjob-with-monitoring-istio-assert.yaml
