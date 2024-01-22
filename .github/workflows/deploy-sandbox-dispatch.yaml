@@ -47,8 +47,10 @@ jobs:
   deploy-argo:
     needs: [generate]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        base_dir: [./sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
     env:
-      BASE_DIR: ./sandbox/skiperator-system
       TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
@@ -66,18 +68,18 @@ jobs:
       - name: Patch Image Digest
         run: |
           kubectl patch --type=merge --local \
-            -f $BASE_DIR/kustomization.yaml \
+            -f ${{ matrix.base_dir }}/kustomization.yaml \
             -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{ github.event.inputs.image_digest }}"}]}' \
-            -o yaml > $BASE_DIR/$TMP_FILE
+            -o yaml > ${{ matrix.base_dir }}/$TMP_FILE
 
-          rm $BASE_DIR/kustomization.yaml
-          mv $BASE_DIR/$TMP_FILE $BASE_DIR/kustomization.yaml
+          rm ${{ matrix.base_dir }}/kustomization.yaml
+          mv ${{ matrix.base_dir }}/$TMP_FILE ${{ matrix.base_dir }}/kustomization.yaml
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/patches/crd.yaml
-          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/patches/skipjob-crd.yaml
-          cp -f -v $RBAC_FILE_PATH $BASE_DIR/patches/clusterrole.yaml
+          cp -f -v $CRD_APP_FILE_PATH ${{ matrix.base_dir }}/patches/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH ${{ matrix.base_dir }}/patches/skipjob-crd.yaml
+          cp -f -v $RBAC_FILE_PATH ${{ matrix.base_dir }}/patches/clusterrole.yaml
           rm -rf config/
 
       - name: Commit Changes to Repo
