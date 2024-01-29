@@ -11,7 +11,7 @@ require (
 	github.com/google/k8s-digester v0.1.13
 	github.com/kyverno/chainsaw v0.1.2
 	github.com/mitchellh/hashstructure/v2 v2.0.2
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.2
 	github.com/r3labs/diff/v3 v3.0.1
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
