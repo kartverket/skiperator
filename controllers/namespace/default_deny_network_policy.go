@@ -28,9 +28,15 @@ func (r *NamespaceReconciler) reconcileDefaultDenyNetworkPolicy(ctx context.Cont
 				networkingv1.PolicyTypeEgress,
 			},
 			Egress: []networkingv1.NetworkPolicyEgressRule{
-				// Egress rule for Internet
 				{
 					To: []networkingv1.NetworkPolicyPeer{
+						// Egress rule for parts of internal server network
+						{
+							IPBlock: &networkingv1.IPBlock{
+								CIDR: "10.40.0.0/16",
+							},
+						},
+						// Egress rule for Internet
 						{
 							IPBlock: &networkingv1.IPBlock{
 								CIDR:   "0.0.0.0/0",
