@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: skipjobs.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -35,8 +35,9 @@ spec:
             description: "SKIPJobSpec defines the desired state of SKIPJob \n A SKIPJob
               is either defined as a one-off or a scheduled job. If the Cron field
               is set for SKIPJob, it may not be removed. If the Cron field is unset,
-              it may not be added. The Container settings of a SKIPJob is also immutable,
-              and may not be changed after creating a SKIPJob."
+              it may not be added. The Container field of a SKIPJob is only mutable
+              if the Cron field is set. If unset, you must delete your SKIPJob to
+              change container settings."
             properties:
               container:
                 description: Settings for the Pods running in the job. Fields are
@@ -66,7 +67,7 @@ spec:
                               description: "InternalRule \n The rules list specifies
                                 a list of applications. When no namespace is specified
                                 it refers to an app in the current namespace. For
-                                apps in other namespaces namespace is required"
+                                apps in other namespaces, namespace is required."
                               properties:
                                 application:
                                   description: The name of the Application you are
@@ -77,6 +78,15 @@ spec:
                                     you are allowing traffic to/from resides. If unset,
                                     uses namespace of Application.
                                   type: string
+                                namespacesByLabel:
+                                  additionalProperties:
+                                    type: string
+                                  description: Namespace label value-pair in which
+                                    the Application you are allowing traffic to/from
+                                    resides. If both namespace and namespacesByLabel
+                                    are set, namespace takes precedence and namespacesByLabel
+                                    is omitted.
+                                  type: object
                               required:
                               - application
                               type: object
@@ -151,7 +161,7 @@ spec:
                               description: "InternalRule \n The rules list specifies
                                 a list of applications. When no namespace is specified
                                 it refers to an app in the current namespace. For
-                                apps in other namespaces namespace is required"
+                                apps in other namespaces, namespace is required."
                               properties:
                                 application:
                                   description: The name of the Application you are
@@ -162,6 +172,15 @@ spec:
                                     you are allowing traffic to/from resides. If unset,
                                     uses namespace of Application.
                                   type: string
+                                namespacesByLabel:
+                                  additionalProperties:
+                                    type: string
+                                  description: Namespace label value-pair in which
+                                    the Application you are allowing traffic to/from
+                                    resides. If both namespace and namespacesByLabel
+                                    are set, namespace takes precedence and namespacesByLabel
+                                    is omitted.
+                                  type: object
                               required:
                               - application
                               type: object
@@ -417,6 +436,25 @@ spec:
                     - path
                     - port
                     type: object
+                  podSettings:
+                    description: PodSettings
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: Annotations that are set on Pods created by Skiperator.
+                          These annotations can for example be used to change the
+                          behaviour of sidecars and similar.
+                        type: object
+                      terminationGracePeriodSeconds:
+                        default: 30
+                        description: TerminationGracePeriodSeconds determines how
+                          long Kubernetes waits after a SIGTERM signal sent to a Pod
+                          before terminating the pod. If your application uses longer
+                          than 30 seconds to terminate, you should increase TerminationGracePeriodSeconds.
+                        format: int64
+                        type: integer
+                    type: object
                   priority:
                     default: medium
                     enum:
@@ -569,10 +607,6 @@ spec:
                 required:
                 - image
                 type: object
-                x-kubernetes-validations:
-                - message: The field Container is immutable. Please delete your SKIPJob
-                    to change the containers settings.
-                  rule: self == oldSelf
               cron:
                 description: Settings for the Job if you are running a scheduled job.
                   Optional as Jobs may be one-off.
@@ -640,6 +674,25 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              prometheus:
+                description: Prometheus settings for pod running in job. Fields are
+                  identical to Application and if set, a monitorngs object is created.
+                properties:
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                required:
+                - port
+                type: object
             required:
             - container
             type: object
@@ -650,6 +703,10 @@ spec:
                 job.
               rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
                 !has(self.cron))
+            - message: The field Container is immutable for one-off jobs. Please delete
+                your SKIPJob to change the containers settings.
+              rule: ((!has(self.cron) && (oldSelf.container == self.container)) ||
+                has(self.cron))
           status:
             description: SKIPJobStatus defines the observed state of SKIPJob
             properties:

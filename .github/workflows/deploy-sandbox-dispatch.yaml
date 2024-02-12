@@ -15,7 +15,7 @@ env:
   RBAC_FILE_PATH: config/rbac/role.yaml
   CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
   CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
-  ARTIFACT_NAME: skiperator-artifact
+  ARTIFACT_NAME: skiperator-artifact-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
   generate:
@@ -28,15 +28,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Golang environment
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.20"
+          go-version: '1.21.4'
 
       - name: Generate CRD and ClusterRole
         run: make generate
 
       - name: Upload CRD and ClusterRole
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -47,8 +47,10 @@ jobs:
   deploy-argo:
     needs: [generate]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        base_dir: [./sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
     env:
-      BASE_DIR: ./sandbox/skiperator-system
       TMP_FILE: tmp_kustomization.yaml
     steps:
       - name: Checkout apps repo
@@ -58,7 +60,7 @@ jobs:
           token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/
@@ -66,18 +68,18 @@ jobs:
       - name: Patch Image Digest
         run: |
           kubectl patch --type=merge --local \
-            -f $BASE_DIR/kustomization.yaml \
+            -f ${{ matrix.base_dir }}/kustomization.yaml \
             -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{ github.event.inputs.image_digest }}"}]}' \
-            -o yaml > $BASE_DIR/$TMP_FILE
+            -o yaml > ${{ matrix.base_dir }}/$TMP_FILE
 
-          rm $BASE_DIR/kustomization.yaml
-          mv $BASE_DIR/$TMP_FILE $BASE_DIR/kustomization.yaml
+          rm ${{ matrix.base_dir }}/kustomization.yaml
+          mv ${{ matrix.base_dir }}/$TMP_FILE ${{ matrix.base_dir }}/kustomization.yaml
 
       - name: Update CRD and Role
         run: |
-          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/patches/crd.yaml
-          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/patches/skipjob-crd.yaml
-          cp -f -v $RBAC_FILE_PATH $BASE_DIR/patches/clusterrole.yaml
+          cp -f -v $CRD_APP_FILE_PATH ${{ matrix.base_dir }}/patches/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH ${{ matrix.base_dir }}/patches/skipjob-crd.yaml
+          cp -f -v $RBAC_FILE_PATH ${{ matrix.base_dir }}/patches/clusterrole.yaml
           rm -rf config/
 
       - name: Commit Changes to Repo
@@ -85,4 +87,4 @@ jobs:
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
           git commit -am "deploy skiperator branch: ${{github.ref_name}}"
-          git push
+          git pull --rebase && git push

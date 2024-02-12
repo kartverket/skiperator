@@ -16,7 +16,7 @@ func ResolveImageTags(ctx context.Context, log logr.Logger, config *rest.Config,
 		return nil, err
 	}
 
-	if err = resolve.ImageTags(ctx, log, config, n); err != nil {
+	if err = resolve.ImageTags(ctx, log, config, n, []string{}); err != nil {
 		return nil, err
 	}
 

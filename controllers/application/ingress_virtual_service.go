@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
 	"hash/fnv"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -31,7 +32,7 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		shouldReconcile, err := r.ShouldReconcile(ctx, &virtualService)
 		if err != nil || !shouldReconcile {
 			r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &virtualService, func() error {
@@ -92,18 +93,18 @@ func (r *ApplicationReconciler) reconcileIngressVirtualService(ctx context.Conte
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	}
 
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *ApplicationReconciler) getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []string {

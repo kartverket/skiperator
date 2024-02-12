@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +21,7 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 	shouldReconcile, err := r.ShouldReconcile(ctx, &pdb)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if *application.Spec.EnablePDB {
@@ -56,21 +57,25 @@ func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context
 				MinAvailable: determineMinAvailable(minReplicas),
 			}
 
+			if k8sfeatures.EnhancedPDBAvailable() {
+				pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
+			}
+
 			return nil
 		})
 
 		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	} else {
 		err := r.GetClient().Delete(ctx, &pdb)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 
 		_, _ = r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 }
 

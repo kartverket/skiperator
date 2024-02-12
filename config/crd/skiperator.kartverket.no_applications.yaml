@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.12.0
+    controller-gen.kubebuilder.io/version: v0.13.0
   name: applications.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -60,7 +60,7 @@ spec:
                           description: "InternalRule \n The rules list specifies a
                             list of applications. When no namespace is specified it
                             refers to an app in the current namespace. For apps in
-                            other namespaces namespace is required"
+                            other namespaces, namespace is required."
                           properties:
                             application:
                               description: The name of the Application you are allowing
@@ -71,6 +71,14 @@ spec:
                                 you are allowing traffic to/from resides. If unset,
                                 uses namespace of Application.
                               type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
                           required:
                           - application
                           type: object
@@ -143,7 +151,7 @@ spec:
                           description: "InternalRule \n The rules list specifies a
                             list of applications. When no namespace is specified it
                             refers to an app in the current namespace. For apps in
-                            other namespaces namespace is required"
+                            other namespaces, namespace is required."
                           properties:
                             application:
                               description: The name of the Application you are allowing
@@ -154,6 +162,14 @@ spec:
                                 you are allowing traffic to/from resides. If unset,
                                 uses namespace of Application.
                               type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
                           required:
                           - application
                           type: object
@@ -183,6 +199,14 @@ spec:
                   - protocol
                   type: object
                 type: array
+              appProtocol:
+                default: http
+                description: Protocol that the application speaks.
+                enum:
+                - http
+                - tcp
+                - udp
+                type: string
               authorizationSettings:
                 description: Used for allow listing certain default blocked endpoints,
                   such as /actuator/ end points
@@ -562,6 +586,28 @@ spec:
                 - path
                 - port
                 type: object
+              podSettings:
+                description: PodSettings are used to apply specific settings to the
+                  Pod Template used by Skiperator to create Deployments. This allows
+                  you to set things like annotations on the Pod to change the behaviour
+                  of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations that are set on Pods created by Skiperator.
+                      These annotations can for example be used to change the behaviour
+                      of sidecars and similar.
+                    type: object
+                  terminationGracePeriodSeconds:
+                    default: 30
+                    description: TerminationGracePeriodSeconds determines how long
+                      Kubernetes waits after a SIGTERM signal sent to a Pod before
+                      terminating the pod. If your application uses longer than 30
+                      seconds to terminate, you should increase TerminationGracePeriodSeconds.
+                    format: int64
+                    type: integer
+                type: object
               maskinporten:
                 description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
                 properties:
@@ -868,6 +914,10 @@ spec:
                     - Recreate
                     type: string
                 type: object
+              team:
+                description: Team specifies the team who owns this particular app.
+                  Usually sourced from the namespace label.
+                type: string
             required:
             - image
             - port

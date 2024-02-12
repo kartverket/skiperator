@@ -15,7 +15,7 @@ resource called `Application`.
 Below you will find a list of all accepted input parameters to the `Application`
 custom resource.
 
-To see explanations and requirements for all inputs, see the documentation under [the API](/api/v1alpha1/application.go).
+To see explanations and requirements for all inputs, see the documentation under [the API documentation](https://doc.crds.dev/github.com/kartverket/skiperator).
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -130,12 +130,30 @@ spec:
   
   accessPolicy:
     inbound:
+      # The rules list specifies a list of applications. When no namespace is
+      # specified it refers to an app in the current namespace. For apps in
+      # other namespaces, namespace is required. Alternately you can define
+      # namespacesByLabel as a value-map of namespace labels. If both
+      # namespace and namespacesByLabel are defined for an application,
+      # namespacesByLabel is ignored
       rules:
         - application: other-app
         - application: third-app
           namespace: other-namespace
+        - application: fourth-app
+          namespacesByLabel:
+            somelabel: somevalue
+            anotherlabel: anothervalue
+    # outbound specifies egress rules. Which apps on the cluster and the
+    # internet are the Application allowed to send requests to? Alternately
+    # you can define namespacesByLabel as a value-map of namespace labels.
+    # If both namespace and namespacesByLabel are defined for an application,
+    # namespacesByLabel is ignored
     outbound:
       rules:
+        - application: some-app
+          namespacesByLabel:
+            somelabel: somevalue
         - application: other-app
       external:
         - host: nrk.no
@@ -150,7 +168,7 @@ spec:
 ## SKIPJob reference
 
 Below you will find a list of all accepted input parameters to the `SKIPJob`
-custom resource. Only types are shown here. The fields are documented in the API, see [skipjob_types.go](api/v1alpha1/skipjob_types.go)
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1)
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -168,8 +186,12 @@ spec:
     activeDeadlineSeconds: 10
     backoffLimit: 10
     suspend: false
-    ttlSecondsAfterFinished: 10
+    ttlSecondsAfterFinished: 
     
+  prometheus:
+    path: /metrics
+    port: 8080  
+  
   container:
     # Pod
     image: ""

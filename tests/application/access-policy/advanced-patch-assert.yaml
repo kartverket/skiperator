@@ -1,0 +1,39 @@
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: access-policy-egress-56cd7aa901014e78
+  namespace: access-policy-ns
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - example.com
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-policy-two
+spec:
+  podSelector:
+    matchLabels:
+      app: access-policy-two
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: access-policy-other
+          podSelector:
+            matchLabels:
+              app: access-policy-other
+      ports:
+        - port: 8080
+          protocol: TCP

@@ -84,6 +84,24 @@ func PointTo[T any](x T) *T {
 func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
+
+func GetPodAppAndTeamSelector(applicationName string, teamName string) map[string]string {
+	return map[string]string{
+		"app":  applicationName,
+		"team": teamName,
+	}
+}
+
+func HasUpperCaseLetter(word string) bool {
+	for _, letter := range word {
+		if unicode.IsUpper(letter) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
 }

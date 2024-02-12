@@ -1,0 +1,20 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: access-policy-job
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: access-policy-job-ns
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml

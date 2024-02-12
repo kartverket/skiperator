@@ -2,6 +2,7 @@ package applicationcontroller
 
 import (
 	"context"
+
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,7 +21,13 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	egressServices, err := r.GetEgressServices(ctx, application, application.Spec.AccessPolicy)
 	if err != nil {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
+	}
+
+	namespaces, err := r.GetNamespaces(ctx, application)
+	if err != nil {
+		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+		return util.RequeueWithError(err)
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{
@@ -33,7 +40,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	shouldReconcile, err := r.ShouldReconcile(ctx, &networkPolicy)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	netpolSpec := networking.CreateNetPolSpec(
@@ -42,6 +49,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 			Ingresses:        &application.Spec.Ingresses,
 			Port:             &application.Spec.Port,
 			Namespace:        application.Namespace,
+			Namespaces:       &namespaces,
 			Name:             application.Name,
 			RelatedServices:  &egressServices,
 			PrometheusConfig: application.Spec.Prometheus,
@@ -52,7 +60,7 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 	if netpolSpec == nil {
 		err = client.IgnoreNotFound(r.GetClient().Delete(ctx, &networkPolicy))
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
@@ -73,5 +81,5 @@ func (r *ApplicationReconciler) reconcileNetworkPolicy(ctx context.Context, appl
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

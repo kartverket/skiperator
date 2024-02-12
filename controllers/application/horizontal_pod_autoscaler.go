@@ -19,7 +19,7 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 	shouldReconcile, err := r.ShouldReconcile(ctx, &horizontalPodAutoscaler)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	if shouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
@@ -27,10 +27,10 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 		err = client.IgnoreNotFound(err)
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, nil)
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &horizontalPodAutoscaler, func() error {
@@ -77,5 +77,5 @@ func (r *ApplicationReconciler) reconcileHorizontalPodAutoscaler(ctx context.Con
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

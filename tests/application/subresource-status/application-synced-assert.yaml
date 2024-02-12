@@ -1,0 +1,65 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  finalizers:
+    - skip.statkart.no/finalizer
+  name: working
+spec:
+  enablePDB: true
+  image: image
+  port: 8080
+  priority: medium
+  redirectToHTTPS: true
+  replicas:
+    max: 5
+    min: 2
+    targetCpuUtilization: 80
+  strategy:
+    type: RollingUpdate
+status:
+  application:
+    message: All controllers synced
+    status: Synced
+  controllers:
+    AuthorizationPolicy:
+      message: AuthorizationPolicy has finished synchronizing
+      status: Synced
+    Certificate:
+      message: Certificate has finished synchronizing
+      status: Synced
+    ConfigMap:
+      message: ConfigMap has finished synchronizing
+      status: Synced
+    Deployment:
+      message: Deployment has finished synchronizing
+      status: Synced
+    EgressServiceEntry:
+      message: EgressServiceEntry has finished synchronizing
+      status: Synced
+    HorizontalPodAutoScaler:
+      message: HorizontalPodAutoScaler has finished synchronizing
+      status: Synced
+    IngressGateway:
+      message: IngressGateway has finished synchronizing
+      status: Synced
+    IngressVirtualService:
+      message: IngressVirtualService has finished synchronizing
+      status: Synced
+    NetworkPolicy:
+      message: NetworkPolicy has finished synchronizing
+      status: Synced
+    PeerAuthentication:
+      message: PeerAuthentication has finished synchronizing
+      status: Synced
+    PodDisruptionBudget:
+      message: PodDisruptionBudget has finished synchronizing
+      status: Synced
+    Service:
+      message: Service has finished synchronizing
+      status: Synced
+    ServiceAccount:
+      message: ServiceAccount has finished synchronizing
+      status: Synced
+    ServiceMonitor:
+      message: ServiceMonitor has finished synchronizing
+      status: Synced

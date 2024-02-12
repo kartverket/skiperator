@@ -50,6 +50,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 
+	// Protocol that the application speaks.
+	//
+	//+kubebuilder:validation:Enum=http;tcp;udp
+	//+kubebuilder:default=http
+	AppProtocol string `json:"appProtocol,omitempty"`
+
 	// Any external hostnames that route to this application. Using a skip.statkart.no-address
 	// will make the application reachable for kartverket-clients (internal), other addresses
 	// make the app reachable on the internet. Note that other addresses than skip.statkart.no
@@ -71,6 +77,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Enum=low;medium;high
 	//+kubebuilder:default=medium
 	Priority string `json:"priority,omitempty"`
+
+	// Team specifies the team who owns this particular app.
+	// Usually sourced from the namespace label.
+	//
+	//+kubebuilder:validation:Optional
+	Team string `json:"team,omitempty"`
 
 	// Override the command set in the Dockerfile. Usually only used when debugging
 	// or running third-party containers where you don't have control over the Dockerfile
@@ -228,6 +240,12 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	AuthorizationSettings *AuthorizationSettings `json:"authorizationSettings,omitempty"`
+
+	// PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set
+	// things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
+	//
+	//+kubebuilder:validation:Optional
+	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any

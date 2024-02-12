@@ -2,6 +2,7 @@ package skipjobcontroller
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networking"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -14,20 +15,27 @@ import (
 func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 	egressServices, err := r.GetEgressServices(ctx, skipJob, skipJob.Spec.Container.AccessPolicy)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
+	}
+
+	namespaces, err := r.GetNamespaces(ctx, skipJob)
+	if err != nil {
+		return util.RequeueWithError(err)
 	}
 
 	netpolOpts := networking.NetPolOpts{
 		AccessPolicy:    skipJob.Spec.Container.AccessPolicy,
 		Namespace:       skipJob.Namespace,
-		Name:            skipJob.Name,
+		Namespaces:      &namespaces,
+		Name:            skipJob.KindPostFixedName(),
 		RelatedServices: &egressServices,
+		IstioEnabled:    r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace),
 	}
 
 	netpolSpec := networking.CreateNetPolSpec(netpolOpts)
 
 	if netpolSpec == nil {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
@@ -44,5 +52,5 @@ func (r *SKIPJobReconciler) reconcileNetworkPolicy(ctx context.Context, skipJob 
 		return nil
 	})
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

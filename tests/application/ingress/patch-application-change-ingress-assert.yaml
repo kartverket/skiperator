@@ -1,0 +1,54 @@
+### test.com resources
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: ingress-ingresses-ingress-34888c0b0c2a4a2c
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingresses-ingress-34888c0b0c2a4a2c
+---
+### foo.com resources
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: ingress-ingresses-ingress-3a90cb5d70dc06a
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: ingresses-ingress-3a90cb5d70dc06a
+---
+### Common resources
+
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: ingresses-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - ingresses-ingress-34888c0b0c2a4a2c
+    - ingresses-ingress-3a90cb5d70dc06a
+  hosts:
+    - test.com
+    - foo.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - route:
+        - destination:
+            host: ingresses

@@ -3,6 +3,7 @@ package applicationcontroller
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"regexp"
 	"strings"
 
@@ -46,6 +47,7 @@ import (
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
@@ -84,10 +86,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	err := r.GetClient().Get(ctx, req.NamespacedName, application)
 
 	if errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(application, "ReconcileStartFail", "something went wrong fetching the application, it might have been deleted")
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
@@ -108,7 +110,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	err = r.validateApplicationSpec(application)
 	if err != nil {
 		r.EmitNormalEvent(application, "InvalidApplication", fmt.Sprintf("Application %v failed validation and was rejected, error: %s", application.Name, err.Error()))
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	tmpApplication := application.DeepCopy()
@@ -125,16 +127,23 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		application.Labels = aggregateLabels
 	}
 
+	// Add team label
+	if len(application.Spec.Team) == 0 {
+		if name, err := r.teamNameForNamespace(ctx, application); err == nil {
+			application.Spec.Team = name
+		}
+	}
+
 	application.FillDefaultsStatus()
 
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
@@ -175,15 +184,31 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	for _, fn := range controllerDuties {
 		res, err := fn(ctx, application)
 		if err != nil {
+			r.GetClient().Status().Update(ctx, application)
 			return res, err
 		} else if res.RequeueAfter > 0 || res.Requeue {
+			r.GetClient().Status().Update(ctx, application)
 			return res, nil
 		}
 	}
-
+	r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
+}
+
+func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
+	ns := &corev1.Namespace{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
+		return "", err
+	}
+
+	teamValue := ns.Labels["team"]
+	if len(teamValue) > 0 {
+		return teamValue, nil
+	}
+
+	return "", fmt.Errorf("missing value for team label")
 }
 
 func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
@@ -247,22 +272,13 @@ func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, message, statusName)
-	err := r.GetClient().Status().Update(context, app)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	return reconcile.Result{}, nil
+	return util.DoNotRequeue()
 }
 
 func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
 	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
-	err := r.GetClient().Status().Update(context, app)
 	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
-
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	return reconcile.Result{}, issue
+	return util.RequeueWithError(issue)
 }
 
 func (r *ApplicationReconciler) SetControllerPending(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {

@@ -1,0 +1,15 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: service-monitor
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: service-monitor-ns
+  steps:
+    - try:
+        - create:
+            file: application-istio.yaml
+        - assert:
+            file: application-istio-assert.yaml

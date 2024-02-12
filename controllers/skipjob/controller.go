@@ -32,6 +32,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&skiperatorv1alpha1.SKIPJob{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Owns(&batchv1.CronJob{}).
 		Owns(&batchv1.Job{}).
+		// This is added as the Jobs created by CronJobs are not owned by the SKIPJob directly, but rather through the CronJob
 		Watches(&batchv1.Job{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
 			job, isJob := object.(*batchv1.Job)
 
@@ -39,12 +40,12 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if job.Status.CompletionTime != nil {
+			if skipJobName, exists := job.Labels[SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
 							Namespace: job.Namespace,
-							Name:      job.Labels[SKIPJobReferenceLabelKey],
+							Name:      skipJobName,
 						},
 					},
 				}
@@ -65,25 +66,25 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	err := r.GetClient().Get(ctx, req.NamespacedName, skipJob)
 
 	if errors.IsNotFound(err) {
-		return reconcile.Result{}, nil
+		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	tmpSkipJob := skipJob.DeepCopy()
 	err = skipJob.ApplyDefaults()
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	specDiff, err := util.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 	statusDiff, err := util.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
 	if err != nil {
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
@@ -106,6 +107,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.reconcileEgressServiceEntry,
 		r.reconcileConfigMap,
 		r.reconcileJob,
+		r.reconcilePodMonitor,
 	}
 
 	for _, fn := range controllerDuties {
@@ -120,7 +122,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	r.EmitNormalEvent(skipJob, "ReconcileEnd", fmt.Sprintf("SKIPJob %v has finished reconciliation loop", skipJob.Name))
 
 	err = r.GetClient().Update(ctx, skipJob)
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {

@@ -20,7 +20,7 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 	shouldReconcile, err := r.ShouldReconcile(ctx, &peerAuthentication)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &peerAuthentication, func() error {
@@ -41,5 +41,5 @@ func (r *ApplicationReconciler) reconcilePeerAuthentication(ctx context.Context,
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }

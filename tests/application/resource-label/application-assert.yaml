@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    serviceLabel: test
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    deploymentLabel: test
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    podLabel: test
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    hpaLabel: test
+---
+apiVersion: v1
+kind: Event
+reason: MistypedLabel
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: resourcelabel

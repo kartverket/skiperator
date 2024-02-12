@@ -3,6 +3,8 @@ package util
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -43,7 +45,7 @@ func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclie
 	}
 }
 
-// NewReconcilerBase is a contruction function to create a new ReconcilerBase.
+// NewReconcilerBase is a construction function to create a new ReconcilerBase.
 func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) ReconcilerBase {
 	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -63,7 +65,7 @@ func (r *ReconcilerBase) GetApiExtensionsClient() *apiextensionsclient.Clientset
 	return r.extensionsClient
 }
 
-// GetRestConfig returns the undelying rest config
+// GetRestConfig returns the underlying rest config
 func (r *ReconcilerBase) GetRestConfig() *rest.Config {
 	return r.restConfig
 }
@@ -85,27 +87,67 @@ func (r *ReconcilerBase) GetEgressServices(ctx context.Context, owner client.Obj
 	}
 
 	for _, outboundRule := range accessPolicy.Outbound.Rules {
-		if outboundRule.Namespace == "" {
-			outboundRule.Namespace = owner.GetNamespace()
+		namespaces := []string{}
+
+		if outboundRule.Namespace != "" {
+			namespaces = []string{outboundRule.Namespace}
+		} else if outboundRule.NamespacesByLabel == nil {
+			if outboundRule.Namespace == "" {
+				namespaces = []string{owner.GetNamespace()}
+			}
+
+		} else {
+			namespaceList := corev1.NamespaceList{}
+
+			err := r.GetClient().List(ctx, &namespaceList, client.MatchingLabels(outboundRule.NamespacesByLabel))
+
+			if errors.IsNotFound(err) {
+				r.EmitWarningEvent(owner, "NoNamespaces", fmt.Sprintf("cannot find any namespaces"))
+				return egressServices, err
+			} else if err != nil {
+				return egressServices, err
+			}
+
+			for _, namespace := range namespaceList.Items {
+				namespaces = append(namespaces, namespace.Name)
+			}
+
 		}
 
-		service := corev1.Service{}
+		for _, namespace := range namespaces {
+			service := corev1.Service{}
 
-		err := r.GetClient().Get(ctx, client.ObjectKey{
-			Namespace: outboundRule.Namespace,
-			Name:      outboundRule.Application,
-		}, &service)
-		if errors.IsNotFound(err) {
-			r.EmitWarningEvent(owner, "MissingApplication", fmt.Sprintf("cannot find Application named %s in Namespace %s, egress rule will not be added", outboundRule.Application, outboundRule.Namespace))
-			continue
-		} else if err != nil {
-			return egressServices, err
+			err := r.GetClient().Get(ctx, client.ObjectKey{
+				Namespace: namespace,
+				Name:      outboundRule.Application,
+			}, &service)
+			if errors.IsNotFound(err) {
+				r.EmitWarningEvent(owner, "MissingApplication", fmt.Sprintf("cannot find Application named %s in Namespace %s, egress rule will not be added", outboundRule.Application, outboundRule.Namespace))
+				continue
+			} else if err != nil {
+				return egressServices, err
+			}
+
+			egressServices = append(egressServices, service)
 		}
-
-		egressServices = append(egressServices, service)
 	}
 
 	return egressServices, nil
+}
+
+func (r *ReconcilerBase) GetNamespaces(ctx context.Context, owner client.Object) (corev1.NamespaceList, error) {
+	namespaces := corev1.NamespaceList{}
+
+	err := r.GetClient().List(ctx, &namespaces)
+
+	if errors.IsNotFound(err) {
+		r.EmitWarningEvent(owner, "NoNamespaces", fmt.Sprintf("cannot find any namespaces"))
+		return namespaces, err
+	} else if err != nil {
+		return namespaces, err
+	}
+
+	return namespaces, nil
 }
 
 func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
@@ -120,9 +162,9 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 		return false
 	}
 
-	_, exists := namespace.Labels[IstioRevisionLabel]
+	v, exists := namespace.Labels[IstioRevisionLabel]
 
-	return exists
+	return exists && len(v) > 0
 }
 
 func hasIgnoreLabel(obj client.Object) bool {
@@ -166,4 +208,12 @@ func (r *ReconcilerBase) DeleteObjectIfExists(ctx context.Context, object client
 	}
 
 	return nil
+}
+
+func DoNotRequeue() (reconcile.Result, error) {
+	return reconcile.Result{}, nil
+}
+
+func RequeueWithError(err error) (reconcile.Result, error) {
+	return reconcile.Result{}, err
 }

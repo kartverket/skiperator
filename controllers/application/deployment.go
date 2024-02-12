@@ -11,9 +11,11 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/maps"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -112,11 +114,20 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
-	labels := util.GetPodAppSelector(application.Name)
+	var podTemplateLabels map[string]string
+	if len(application.Spec.Team) > 0 {
+		podTemplateLabels = util.GetPodAppAndTeamSelector(application.Name, application.Spec.Team)
+	} else {
+		podTemplateLabels = util.GetPodAppSelector(application.Name)
+	}
 
+	// Add annotations to pod template, safe-to-evict added due to issues
+	// with cluster-autoscaler and unable to evict pods with local volumes
+	// https://github.com/kubernetes/autoscaler/blob/master/cluster-autoscaler/FAQ.md
 	generatedSpecAnnotations := map[string]string{
-		"argocd.argoproj.io/sync-options": "Prune=false",
-		"prometheus.io/scrape":            "true",
+		"argocd.argoproj.io/sync-options":                "Prune=false",
+		"prometheus.io/scrape":                           "true",
+		"cluster-autoscaler.kubernetes.io/safe-to-evict": "true",
 	}
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
@@ -130,46 +141,33 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 	}
 
+	if application.Spec.PodSettings != nil && len(application.Spec.PodSettings.Annotations) > 0 {
+		maps.Copy(generatedSpecAnnotations, application.Spec.PodSettings.Annotations)
+	}
+
 	podForDeploymentTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      labels,
+			Labels:      podTemplateLabels,
 			Annotations: generatedSpecAnnotations,
 		},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				skiperatorContainer,
-			},
-
-			// TODO: Make this as part of operator in a safe way
-			ImagePullSecrets: []corev1.LocalObjectReference{{Name: "github-auth"}},
-			SecurityContext: &corev1.PodSecurityContext{
-				SupplementalGroups: []int64{util.SkiperatorUser},
-				FSGroup:            util.PointTo(util.SkiperatorUser),
-				SeccompProfile: &corev1.SeccompProfile{
-					Type: corev1.SeccompProfileTypeRuntimeDefault,
-				},
-			},
-			ServiceAccountName: application.Name,
-			// The resulting kubernetes object includes the ServiceAccount field, and thus it's required in order
-			// to not create a diff for the hash of existing and wanted spec
-			DeprecatedServiceAccount:      application.Name,
-			Volumes:                       podVolumes,
-			PriorityClassName:             fmt.Sprintf("skip-%s", application.Spec.Priority),
-			RestartPolicy:                 corev1.RestartPolicyAlways,
-			TerminationGracePeriodSeconds: util.PointTo(int64(corev1.DefaultTerminationGracePeriodSeconds)),
-			DNSPolicy:                     corev1.DNSClusterFirst,
-			SchedulerName:                 corev1.DefaultSchedulerName,
-		},
+		Spec: core.CreatePodSpec(
+			skiperatorContainer,
+			podVolumes,
+			application.Name,
+			application.Spec.Priority,
+			util.PointTo(corev1.RestartPolicyAlways),
+			application.Spec.PodSettings,
+		),
 	}
 
 	r.SetLabelsFromApplication(&podForDeploymentTemplate, *application)
 
 	deployment.Spec = appsv1.DeploymentSpec{
-		Selector: &metav1.LabelSelector{MatchLabels: labels},
+		Selector: &metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
 		Strategy: appsv1.DeploymentStrategy{
 			Type:          appsv1.DeploymentStrategyType(application.Spec.Strategy.Type),
 			RollingUpdate: getRollingUpdateStrategy(application.Spec.Strategy.Type),
@@ -232,7 +230,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	shouldReconcile, err := r.ShouldReconcile(ctx, &deployment)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-		return reconcile.Result{}, err
+		return util.RequeueWithError(err)
 	}
 
 	err = r.GetClient().Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)
@@ -242,11 +240,11 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 			err = r.GetClient().Create(ctx, &deploymentDefinition)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 		} else {
 			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
+			return util.RequeueWithError(err)
 		}
 	} else {
 		if !shouldScaleToZero(application.Spec.Replicas) && skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
@@ -255,30 +253,29 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 				deployment.Spec.Replicas = nil
 			}
 		}
+
+		// The command "kubectl rollout restart" puts an annotation on the deployment template in order to track
+		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
+		// fix is to just remove it from the map before hashing and checking the diff.
+		if _, rolloutIssued := deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"]; rolloutIssued {
+			delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
+		}
+
 		deployment = *r.resolveDigest(ctx, &deployment)
 
-		deploymentHash := util.GetHashForStructs([]interface{}{
-			&deployment.Spec,
-			&deployment.Labels,
-		})
-		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{
-			&deploymentDefinition.Spec,
-			&deploymentDefinition.Labels,
-		})
-
-		if deploymentHash != deploymentDefinitionHash {
+		if diffBetween(deployment, deploymentDefinition) {
 			patch := client.MergeFrom(deployment.DeepCopy())
 			err = r.GetClient().Patch(ctx, &deploymentDefinition, patch)
 			if err != nil {
 				r.SetControllerError(ctx, application, controllerName, err)
-				return reconcile.Result{}, err
+				return util.RequeueWithError(err)
 			}
 		}
 	}
 
 	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
 
 func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
@@ -364,4 +361,19 @@ func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha
 
 	deploymentLog.Error(goerrors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
 	return desiredPortName
+}
+
+func diffBetween(deployment appsv1.Deployment, definition appsv1.Deployment) bool {
+	deploymentHash := util.GetHashForStructs([]interface{}{&deployment.Spec, &deployment.Labels})
+	deploymentDefinitionHash := util.GetHashForStructs([]interface{}{&definition.Spec, &definition.Labels})
+	if deploymentHash != deploymentDefinitionHash {
+		return true
+	}
+
+	// Same mechanism as "pod-template-hash"
+	if apiequality.Semantic.DeepEqual(deployment.DeepCopy().Spec, definition.DeepCopy().Spec) {
+		return false
+	}
+
+	return true
 }

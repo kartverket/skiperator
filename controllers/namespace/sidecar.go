@@ -2,6 +2,7 @@ package namespacecontroller
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/pkg/util"
 
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -28,5 +29,5 @@ func (r *NamespaceReconciler) reconcileSidecar(ctx context.Context, namespace *c
 
 		return nil
 	})
-	return reconcile.Result{}, err
+	return util.RequeueWithError(err)
 }
