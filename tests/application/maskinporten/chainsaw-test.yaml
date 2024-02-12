@@ -1,0 +1,23 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: maskinporten
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-maskinporten-assert.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - apply:
+            file: patch-application.yaml
+        - assert:
+            file: patch-application-assert.yaml
+        - error:
+            file: patch-application-maskinporten-errors.yaml
