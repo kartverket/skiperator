@@ -9,6 +9,8 @@ spec:
   egress:
   - to:
     - ipBlock:
+        cidr: 10.40.0.0/16
+    - ipBlock:
         cidr: 0.0.0.0/0
         except:
         - 10.0.0.0/8
