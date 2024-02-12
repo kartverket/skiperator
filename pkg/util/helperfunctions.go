@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
+	"unicode"
 )
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
