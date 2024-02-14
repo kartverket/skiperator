@@ -27,7 +27,9 @@ import (
 )
 
 const (
-	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
+	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
+	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
+	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 )
 
 var (
@@ -78,6 +80,36 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		podVolumes = append(podVolumes, gcpPodVolume)
 		containerVolumeMounts = append(containerVolumeMounts, gcpContainerVolumeMount)
 		skiperatorContainer.Env = append(skiperatorContainer.Env, gcpEnvVar)
+	}
+
+	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
+		secretName, err := getIDPortenSecretName(application.Name)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
+		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+			&skiperatorContainer,
+			containerVolumeMounts,
+			podVolumes,
+			secretName,
+			DefaultDigdiratorIDportenMountPath,
+		)
+	}
+
+	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
+		secretName, err := getMaskinportenSecretName(application.Name)
+		if err != nil {
+			r.SetControllerError(ctx, application, controllerName, err)
+			return deployment, err
+		}
+		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+			&skiperatorContainer,
+			containerVolumeMounts,
+			podVolumes,
+			secretName,
+			DefaultDigdiratorMaskinportenMountPath,
+		)
 	}
 
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
@@ -258,6 +290,32 @@ func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1
 	// FIXME: Consider setting imagePullPolicy=IfNotPresent when the image has been resolved to
 	// a digest in order to reduce registry usage and spin-up times.
 	return res
+}
+func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName string, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {
+	skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: secretName,
+			},
+		},
+	})
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      secretName,
+		MountPath: mountPath,
+		ReadOnly:  true,
+	})
+	volumes = append(volumes, corev1.Volume{
+		Name: secretName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  secretName,
+				Items:       nil,
+				DefaultMode: util.PointTo(int32(420)),
+			},
+		},
+	})
+
+	return volumes, volumeMounts
 }
 
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {

@@ -4,20 +4,21 @@ import (
 	"context"
 	"fmt"
 	"github.com/mitchellh/hashstructure/v2"
+	"github.com/nais/liberator/pkg/namegen"
 	"github.com/r3labs/diff/v3"
-	"hash/fnv"
-	"reflect"
-	"regexp"
-	"strings"
-	"unicode"
-
 	"golang.org/x/exp/maps"
+	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
+	"reflect"
+	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"unicode"
 )
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
@@ -104,6 +105,20 @@ func HasUpperCaseLetter(word string) bool {
 
 func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
+}
+
+func GetSecretName(prefix string, name string) (string, error) {
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170
+	secretName, err := namegen.ShortName(fmt.Sprintf("%s-%s", prefix, name), validation.DNS1035LabelMaxLength)
+	return secretName, err
+}
+
+func EnsurePrefix(s string, prefix string) string {
+	if !strings.HasPrefix(s, prefix) {
+		return prefix + s
+	}
+	return s
 }
 
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {

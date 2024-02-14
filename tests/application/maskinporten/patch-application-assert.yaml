@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maskinporten-test-client
+spec:
+  selector:
+    matchLabels:
+      app: maskinporten-test-client
+  template:
+    spec:
+      containers:
+        - name: maskinporten-test-client
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      volumes:
+        - emptyDir: {}
+          name: tmp

@@ -2,8 +2,8 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"golang.org/x/exp/constraints"
 	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -177,6 +177,16 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	Startup *podtypes.Probe `json:"startup,omitempty"`
+
+	// Settings for Maskinporten integration with Digitaliseringsdirektoratet
+	//
+	//+kubebuilder:validation:Optional
+	Maskinporten *digdirator.Maskinporten `json:"maskinporten,omitempty"`
+
+	// Settings for IDPorten integration with Digitaliseringsdirektoratet
+	//
+	//+kubebuilder:validation:Optional
+	IDPorten *digdirator.IDPorten `json:"idporten,omitempty"`
 
 	// Optional settings for how Prometheus compatible metrics should be scraped.
 	//
@@ -489,12 +499,4 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
-}
-
-func max[T constraints.Ordered](a, b T) T {
-	if a > b {
-		return a
-	} else {
-		return b
-	}
 }

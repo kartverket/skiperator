@@ -455,6 +455,98 @@ spec:
                 required:
                 - auth
                 type: object
+              idporten:
+                description: Settings for IDPorten integration with Digitaliseringsdirektoratet
+                properties:
+                  accessTokenLifetime:
+                    description: |-
+                      AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
+
+
+                      If unspecified, defaults to `3600` seconds (1 hour).
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal
+                    type: string
+                  clientURI:
+                    description: ClientURI is the URL shown to the user at ID-porten
+                      when displaying a 'back' button or on errors.
+                    pattern: ^https:\/\/.+$
+                    type: string
+                  enabled:
+                    description: |-
+                      Whether to enable provisioning of an ID-porten client.
+                      If enabled, an ID-porten client be provisioned.
+                    type: boolean
+                  frontchannelLogoutPath:
+                    description: |-
+                      FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
+                      initiated a logout elsewhere as part of a single logout (front channel logout) process.
+                    pattern: ^\/.*$
+                    type: string
+                  integrationType:
+                    description: |-
+                      IntegrationType is used to make sensible choices for your client.
+                      Which type of integration you choose will provide guidance on which scopes you can use with the client.
+                      A client can only have one integration type.
+
+
+                      NB! It is not possible to change the integration type after creation.
+                    enum:
+                    - krr
+                    - idporten
+                    - api_klient
+                    type: string
+                  postLogoutRedirectPath:
+                    description: |-
+                      PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
+                      that will be appended to the ingress
+                    pattern: ^\/.*$
+                    type: string
+                  postLogoutRedirectURIs:
+                    description: |-
+                      PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
+                      has been initiated and performed by the application.
+                    items:
+                      pattern: ^https:\/\/.+$
+                      type: string
+                    type: array
+                  redirectPath:
+                    description: RedirectPath is a valid path that ID-porten redirects
+                      back to after a successful authorization request.
+                    pattern: ^\/.*$
+                    type: string
+                  scopes:
+                    description: |-
+                      Register different oauth2 Scopes on your client.
+                      You will not be able to add a scope to your client that conflicts with the client's IntegrationType.
+                      For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.
+
+
+                      Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
+                      Default for IntegrationType `idporten` = ("openid", "profile")
+                      IntegrationType `api_klient` have no Default, checkout Digdir documentation.
+                    items:
+                      type: string
+                    type: array
+                  sessionLifetime:
+                    description: |-
+                      SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
+                      The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
+
+
+                      If unspecified, defaults to `7200` seconds (2 hours).
+                      Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.
+                    maximum: 7200
+                    minimum: 3600
+                    type: integer
+                required:
+                - enabled
+                type: object
               image:
                 description: The image the application will run. This image will be
                   added to a Deployment resource
@@ -537,6 +629,102 @@ spec:
                 required:
                 - path
                 - port
+                type: object
+              maskinporten:
+                description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
+                properties:
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal
+                    type: string
+                  enabled:
+                    description: If enabled, provisions and configures a Maskinporten
+                      client with consumed scopes and/or Exposed scopes with DigDir.
+                    type: boolean
+                  scopes:
+                    description: Schema to configure Maskinporten clients with consumed
+                      scopes and/or exposed scopes.
+                    properties:
+                      consumes:
+                        description: |-
+                          This is the Schema for the consumes and exposes API.
+                          `consumes` is a list of scopes that your client can request access to.
+                        items:
+                          properties:
+                            name:
+                              description: |-
+                                The scope consumed by the application to gain access to an external organization API.
+                                Ensure that the NAV organization has been granted access to the scope prior to requesting access.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      exposes:
+                        description: '`exposes` is a list of scopes your application
+                          want to expose to other organization where access to the
+                          scope is based on organization number.'
+                        items:
+                          properties:
+                            allowedIntegrations:
+                              description: |-
+                                Whitelisting of integration's allowed.
+                                Default is `maskinporten`
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            atMaxAge:
+                              description: |-
+                                Max time in seconds for a issued access_token.
+                                Default is `30` sec.
+                              maximum: 680
+                              minimum: 30
+                              type: integer
+                            consumers:
+                              description: External consumers granted access to this
+                                scope and able to request access_token.
+                              items:
+                                properties:
+                                  name:
+                                    description: This is a describing field intended
+                                      for clarity not used for any other purpose.
+                                    type: string
+                                  orgno:
+                                    description: The external business/organization
+                                      number.
+                                    pattern: ^\d{9}$
+                                    type: string
+                                required:
+                                - orgno
+                                type: object
+                              type: array
+                            enabled:
+                              description: If Enabled the configured scope is available
+                                to be used and consumed by organizations granted access.
+                              type: boolean
+                            name:
+                              description: |-
+                                The actual subscope combined with `Product`.
+                                Ensure that `<Product><Name>` matches `Pattern`.
+                              pattern: ^([a-zæøå0-9]+\/?)+(\:[a-zæøå0-9]+)*[a-zæøå0-9]+(\.[a-zæøå0-9]+)*$
+                              type: string
+                            product:
+                              description: |-
+                                The product-area your application belongs to e.g. arbeid, helse ...
+                                This will be included in the final scope `nav:<Product><Name>`.
+                              pattern: ^[a-z0-9]+$
+                              type: string
+                          required:
+                          - enabled
+                          - name
+                          - product
+                          type: object
+                        type: array
+                    type: object
+                required:
+                - enabled
                 type: object
               podSettings:
                 description: |-
