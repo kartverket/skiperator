@@ -9,7 +9,7 @@ require (
 	github.com/cert-manager/cert-manager v1.14.2
 	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.1.3
+	github.com/kyverno/chainsaw v0.1.4
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240205235323-12c61f35fea5
 	github.com/nais/liberator v0.0.0-20240212082757-45987246fc06
@@ -132,8 +132,8 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/kudobuilder/kuttl v0.15.0 // indirect
-	github.com/kyverno/kyverno v1.5.0-rc1.0.20240126184307-f01f0d6dc42d // indirect
-	github.com/kyverno/kyverno-json v0.0.3-0.20240119091546-116aba0b311e // indirect
+	github.com/kyverno/kyverno v1.5.0-rc1.0.20240202083228-5f0d53fe3482 // indirect
+	github.com/kyverno/kyverno-json v0.0.3-0.20240213143849-163ee1b575d9 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -151,6 +151,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0-rc6 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.18.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/common v0.46.0 // indirect
