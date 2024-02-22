@@ -49,6 +49,14 @@ func GetConfigMap(client client.Client, ctx context.Context, namespacedName type
 	return configMap, err
 }
 
+func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {
+	service := corev1.Service{}
+
+	err := client.Get(ctx, namespacedName, &service)
+
+	return service, err
+}
+
 func ErrIsMissingOrNil(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
 	if errors.IsNotFound(err) {
 		recorder.Eventf(
@@ -80,6 +88,10 @@ func SetCommonAnnotations(object client.Object) {
 
 func PointTo[T any](x T) *T {
 	return &x
+}
+
+func GetIstioGatewaySelector() map[string]string {
+	return map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
 }
 
 func GetPodAppSelector(applicationName string) map[string]string {
