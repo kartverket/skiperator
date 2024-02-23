@@ -73,7 +73,7 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 				return err
 			}
 
-			virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
+			httpRoute := &networkingv1beta1api.HTTPRoute{
 				Name: route.TargetApp,
 				Match: []*networkingv1beta1api.HTTPMatchRequest{
 					{
@@ -95,7 +95,15 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 						},
 					},
 				},
-			})
+			}
+
+			if route.RewriteUri {
+				httpRoute.Rewrite = &networkingv1beta1api.HTTPRewrite{
+					Uri: "/",
+				}
+			}
+
+			virtualService.Spec.Http = append(virtualService.Spec.Http, httpRoute)
 		}
 		return nil
 	})

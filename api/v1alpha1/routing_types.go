@@ -44,6 +44,9 @@ type Route struct {
 	TargetApp string `json:"targetApp"`
 	//+kubebuilder:validation:Required
 	PathPrefix string `json:"pathPrefix"`
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	RewriteUri bool `json:"rewriteUri,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
