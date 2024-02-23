@@ -29,15 +29,7 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 		//r.SetLabelsFromApplication(&gateway, *application)
 		util.SetCommonAnnotations(&gateway)
 
-		internalSelector := map[string]string{"app": "istio-ingress-internal"}
-		externalSelector := map[string]string{"app": "istio-ingress-external"}
-
-		if util.IsInternal(routing.Spec.Hostname) {
-			gateway.Spec.Selector = internalSelector
-		} else {
-			gateway.Spec.Selector = externalSelector
-		}
-
+		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(routing.Spec.Hostname)
 		gateway.Spec.Servers = []*networkingv1beta1api.Server{
 			{
 				Hosts: []string{routing.Spec.Hostname},

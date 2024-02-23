@@ -36,6 +36,7 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 				Name:      netpolName,
 			},
 		}
+
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 			var err error
 			applicationNamespacedName := types.NamespacedName{Namespace: routing.Namespace, Name: route.TargetApp}
@@ -64,7 +65,7 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 									MatchLabels: util.GetIstioGatewaySelector(),
 								},
 								PodSelector: &metav1.LabelSelector{
-									MatchLabels: util.GetPodAppSelector(route.TargetApp),
+									MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
 								},
 							},
 						},

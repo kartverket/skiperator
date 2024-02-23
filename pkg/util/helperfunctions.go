@@ -27,6 +27,14 @@ func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
 
+func GetIstioGatewayLabelSelector(hostname string) map[string]string {
+	if IsInternal(hostname) {
+		return map[string]string{"app": "istio-ingress-internal"}
+	}
+	return map[string]string{"app": "istio-ingress-external"}
+
+}
+
 func GetHashForStructs(obj []interface{}) string {
 	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
 	if err != nil {
