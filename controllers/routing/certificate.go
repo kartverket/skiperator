@@ -1,0 +1,104 @@
+package routingcontroller
+
+import (
+	"context"
+	"fmt"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const IstioGatewayNamespace = "istio-gateways"
+
+func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
+	certificate, isCert := obj.(*certmanagerv1.Certificate)
+
+	if !isCert {
+		return nil
+	}
+
+	isSkiperatorRoutingOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator" &&
+		certificate.Labels["skiperator.kartverket.no/controller"] == "routing"
+
+	requests := make([]reconcile.Request, 0)
+
+	if isSkiperatorRoutingOwned {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: certificate.Labels["application.skiperator.no/app-namespace"],
+				Name:      certificate.Labels["application.skiperator.no/app-name"],
+			},
+		})
+	}
+
+	return requests
+}
+
+func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
+
+	var err error
+	//controllerName := "Certificate"
+	//r.SetControllerProgressing(ctx, routing, controllerName)
+	certificateName := fmt.Sprintf("%s-%s-ingress", routing.Namespace, routing.Name)
+	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
+
+	//_, err := r.ShouldReconcile(ctx, &certificate)
+	//if err != nil {
+	//	//r.SetControllerFinishedOutcome(ctx, routing, controllerName, err)
+	//	return util.RequeueWithError(err)
+	//}
+
+	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
+		//r.SetLabelsFromApplication(&certificate, *routing)
+
+		certificate.Spec = certmanagerv1.CertificateSpec{
+			IssuerRef: certmanagermetav1.ObjectReference{
+				Kind: "ClusterIssuer",
+				Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
+			},
+			DNSNames:   []string{routing.Spec.Hostname},
+			SecretName: util.GetGatewaySecretName(routing.Namespace, routing.Name),
+		}
+
+		certificate.Labels = getLabels(certificate, routing)
+
+		return nil
+	})
+	if err != nil {
+		//r.SetControllerError(ctx, routing, controllerName, err)
+		return util.RequeueWithError(err)
+	}
+
+	//r.SetControllerFinishedOutcome(ctx, routing, controllerName, err)
+
+	return util.RequeueWithError(err)
+}
+
+func getLabels(certificate certmanagerv1.Certificate, routing *skiperatorv1alpha1.Routing) map[string]string {
+	certLabels := certificate.Labels
+	if len(certLabels) == 0 {
+		certLabels = make(map[string]string)
+	}
+	certLabels["app.kubernetes.io/managed-by"] = "skiperator"
+
+	certLabels["skiperator.kartverket.no/controller"] = "routing"
+	certLabels["skiperator.kartverket.no/source-namespace"] = routing.Namespace
+
+	return certLabels
+}
+
+func (r *RoutingReconciler) GetSkiperatorRoutingCertificates(context context.Context) (certmanagerv1.CertificateList, error) {
+	certificates := certmanagerv1.CertificateList{}
+	err := r.GetClient().List(context, &certificates, client.MatchingLabels{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "routing",
+	})
+
+	return certificates, err
+}

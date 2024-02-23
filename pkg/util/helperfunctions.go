@@ -119,6 +119,10 @@ func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
 }
 
+func GetGatewaySecretName(namespace string, name string) string {
+	return fmt.Sprintf("%s-%s-gateway", namespace, name)
+}
+
 func GetSecretName(prefix string, name string) (string, error) {
 	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
 	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170

@@ -10,6 +10,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -27,10 +29,11 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// GenerationChangedPredicate is now only applied to the SkipJob itself to allow status changes on Jobs/CronJobs to affect reconcile loops
 		For(&skiperatorv1alpha1.Routing{}).
-		Owns(&certmanagerv1.Certificate{}).
 		Owns(&istionetworkingv1beta1.Gateway{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1beta1.VirtualService{}).
+		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorRoutingCertRequests)).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
 
@@ -50,6 +53,8 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Routing) (reconcile.Result, error){
 		r.reconcileNetworkPolicy,
 		r.reconcileVirtualService,
+		r.reconcileGateway,
+		r.reconcileCertificate,
 	}
 
 	for _, fn := range controllerDuties {
