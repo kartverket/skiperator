@@ -11,4 +11,4 @@ spec:
         - apply:
             file: application.yaml
         - assert:
-            file: netpol.yaml
+            file: netpol-assert.yaml
