@@ -10,7 +10,7 @@ spec:
               kubernetes.io/metadata.name: istio-gateways
           podSelector:
             matchLabels:
-              app: netpol-app-1
+              app: istio-ingress-external
       ports:
         - port: 8081
           protocol: TCP
@@ -33,7 +33,7 @@ spec:
               kubernetes.io/metadata.name: istio-gateways
           podSelector:
             matchLabels:
-              app: netpol-app-2
+              app: istio-ingress-external
       ports:
         - port: 9000
           protocol: TCP

@@ -10,5 +10,7 @@ spec:
     - try:
         - apply:
             file: application.yaml
+        - apply:
+            file: routing.yaml
         - assert:
             file: certificate-assert.yaml

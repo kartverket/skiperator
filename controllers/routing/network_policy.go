@@ -27,6 +27,7 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 	//}
 	var err error
 
+	// TODO extract set of unique targetApps to avoid duplicate network policies
 	for _, route := range routing.Spec.Routes {
 		netpolName := route.TargetApp + "-istio-route"
 
