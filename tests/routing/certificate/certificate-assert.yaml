@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: routing
+    skiperator.kartverket.no/source-namespace: default
+  name: default-certificate-routing-ingress
+  namespace: istio-gateways
+spec:
+  dnsNames:
+    - example.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: default-certificate-routing-gateway
