@@ -15,7 +15,7 @@ require (
 	github.com/nais/liberator v0.0.0-20240212082757-45987246fc06
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.71.2
 	github.com/r3labs/diff/v3 v3.0.1
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240205201215-2c58cdc269a3
 	istio.io/api v1.20.2
 	istio.io/client-go v1.20.2
