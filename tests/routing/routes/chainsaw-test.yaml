@@ -14,10 +14,26 @@ spec:
         - apply:
             file: routing.yaml
         - assert:
-            file: netpol-assert.yaml
+            file: routing-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-change-port.yaml
         - assert:
-            file: gateway-assert.yaml
+            file: patch-application-change-port-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-change-path.yaml
         - assert:
-            file: certificate-assert.yaml
+            file: patch-routing-change-path-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-change-hostname.yaml
         - assert:
-            file: virtualservice-assert.yaml
+            file: patch-routing-change-hostname-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-remove-path.yaml
+        - assert:
+            file: patch-routing-remove-path-assert.yaml
+        - error:
+            file: patch-routing-remove-path-error.yaml

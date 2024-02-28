@@ -1,14 +1,14 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: app-routing-ingress
+  name: path-routing-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - app-routing-gateway
+    - path-routing-ingress
   hosts:
     - example.com
   http:
@@ -25,19 +25,33 @@ spec:
         - port: 443
           uri:
             prefix: /app1
+      rewrite:
+        uri: /
       name: app-1
       route:
         - destination:
             host: app-1
             port:
-              number: 8081
+              number: 8000
     - match:
         - port: 443
           uri:
-            prefix: /app2
+            prefix: /new-path
+      rewrite:
+        uri: /
       name: app-2
       route:
         - destination:
             host: app-2
             port:
               number: 9000
+    - match:
+        - port: 443
+          uri:
+            prefix: /
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8000

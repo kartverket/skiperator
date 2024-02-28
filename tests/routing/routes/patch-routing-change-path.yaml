@@ -7,5 +7,9 @@ spec:
   routes:
     - pathPrefix: /app1
       targetApp: app-1
-    - pathPrefix: /app2
+      rewriteUri: true
+    - pathPrefix: /new-path
       targetApp: app-2
+      rewriteUri: true
+    - pathPrefix: /
+      targetApp: app-1

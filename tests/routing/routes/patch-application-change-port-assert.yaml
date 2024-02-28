@@ -1,0 +1,89 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: path-routing-app-1-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 8000
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-1
+  policyTypes:
+    - Ingress
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: path-routing-app-2-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 9000
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-2
+  policyTypes:
+    - Ingress
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: path-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - path-routing-ingress
+  hosts:
+    - example.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /app1
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8000
+    - match:
+        - port: 443
+          uri:
+            prefix: /app2
+      name: app-2
+      route:
+        - destination:
+            host: app-2
+            port:
+              number: 9000

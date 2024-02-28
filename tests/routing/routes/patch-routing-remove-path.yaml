@@ -3,9 +3,7 @@ kind: Routing
 metadata:
   name: path-routing
 spec:
-  hostname: example.com
+  hostname: new-example.com
   routes:
-    - pathPrefix: /app1
+    - pathPrefix: /
       targetApp: app-1
-    - pathPrefix: /app2
-      targetApp: app-2
