@@ -41,6 +41,7 @@ func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj
 }
 
 func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
+	// TODO: Fix controllerProgressing
 
 	var err error
 	//controllerName := "Certificate"
@@ -75,6 +76,7 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 		return util.RequeueWithError(err)
 	}
 
+	// TODO: Fix controllerFinished
 	//r.SetControllerFinishedOutcome(ctx, routing, controllerName, err)
 
 	return util.RequeueWithError(err)

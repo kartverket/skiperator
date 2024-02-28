@@ -14,6 +14,7 @@ import (
 )
 
 func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
+	// TODO: Fix controllerProgressing
 	//controllerName := "VirtualService"
 	//r.SetControllerProgressing(ctx, routing, controllerName)
 
@@ -36,7 +37,7 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 		virtualService.Spec = networkingv1beta1api.VirtualService{
 			ExportTo: []string{".", "istio-system", "istio-gateways"},
 			Gateways: []string{
-				routing.Name + "-gateway",
+				routing.Name + "-ingress",
 			},
 			Hosts: []string{
 				routing.Spec.Hostname,
@@ -113,6 +114,7 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 		return util.RequeueWithError(err)
 	}
 
+	// TODO: Fix controllerFinishedOutcome
 	//r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
 
 	return util.RequeueWithError(err)

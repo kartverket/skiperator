@@ -2,6 +2,7 @@ package routingcontroller
 
 import (
 	"context"
+	"fmt"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -15,21 +16,16 @@ import (
 )
 
 func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
-	// Set up networkpolicy to allow traffic from istio gateways to each of the services defined by the applications
-	//egressServices, err := r.GetEgressServices(ctx, skipJob, skipJob.Spec.Container.AccessPolicy)
-	//if err != nil {
-	//	return util.RequeueWithError(err)
-	//}
-
-	//namespaces, err := r.GetNamespaces(ctx, routing)
-	//if err != nil {
-	//	return util.RequeueWithError(err)
-	//}
+	// TODO: Fix controllerProgressing
 	var err error
 
-	// TODO extract set of unique targetApps to avoid duplicate network policies
+	// TODO: Delete removed routes
+	uniqueTargetApps := make(map[string]bool)
 	for _, route := range routing.Spec.Routes {
-		netpolName := route.TargetApp + "-istio-route"
+		uniqueTargetApps[route.TargetApp] = true
+	}
+	for targetApp := range uniqueTargetApps {
+		netpolName := fmt.Sprintf("%s-%s-istio-ingress", routing.Name, targetApp)
 
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -40,9 +36,10 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
 			var err error
-			applicationNamespacedName := types.NamespacedName{Namespace: routing.Namespace, Name: route.TargetApp}
+			applicationNamespacedName := types.NamespacedName{Namespace: routing.Namespace, Name: targetApp}
 			targetApplication, err := getApplication(r.GetClient(), ctx, applicationNamespacedName)
 			if err != nil {
+				// TODO Fix logging?
 				return err
 			}
 
@@ -53,7 +50,7 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 
 			networkPolicy.Spec = networkingv1.NetworkPolicySpec{
 				PodSelector: metav1.LabelSelector{
-					MatchLabels: util.GetPodAppSelector(route.TargetApp),
+					MatchLabels: util.GetPodAppSelector(targetApp),
 				},
 				PolicyTypes: []networkingv1.PolicyType{
 					networkingv1.PolicyTypeIngress,

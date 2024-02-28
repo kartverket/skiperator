@@ -9,7 +9,9 @@ import (
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -27,12 +29,14 @@ type RoutingReconciler struct {
 
 func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		// GenerationChangedPredicate is now only applied to the SkipJob itself to allow status changes on Jobs/CronJobs to affect reconcile loops
 		For(&skiperatorv1alpha1.Routing{}).
 		Owns(&istionetworkingv1beta1.Gateway{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1beta1.VirtualService{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorRoutingCertRequests)).
+		Watches(
+			&skiperatorv1alpha1.Application{},
+			handler.EnqueueRequestsFromMapFunc(r.SkiperatorApplicationsChanges)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
@@ -44,7 +48,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if errors.IsNotFound(err) {
 		return util.DoNotRequeue()
 	} else if err != nil {
-		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
+		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
 		return util.RequeueWithError(err)
 	}
 
@@ -70,4 +74,31 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	err = r.GetClient().Update(ctx, routing)
 	return util.RequeueWithError(err)
+}
+
+func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
+	application, isApplication := obj.(*skiperatorv1alpha1.Application)
+
+	if !isApplication {
+		return nil
+	}
+
+	// List all routings in the same namespace as the application
+	routesList := &skiperatorv1alpha1.RoutingList{}
+	if err := r.GetClient().List(context, routesList, &client.ListOptions{Namespace: application.Namespace}); err != nil {
+		return nil
+	}
+
+	// Create a list of reconcile.Requests for each Routing in the same namespace as the application
+	requests := make([]reconcile.Request, 0)
+	for _, route := range routesList.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: route.Namespace,
+				Name:      route.Name,
+			},
+		})
+	}
+
+	return requests
 }

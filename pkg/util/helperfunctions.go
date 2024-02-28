@@ -128,7 +128,7 @@ func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 }
 
 func GetGatewaySecretName(namespace string, name string) string {
-	return fmt.Sprintf("%s-%s-gateway", namespace, name)
+	return fmt.Sprintf("%s-%s-ingress", namespace, name)
 }
 
 func GetSecretName(prefix string, name string) (string, error) {

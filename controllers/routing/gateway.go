@@ -15,16 +15,16 @@ import (
 func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
 	var err error
 
-	name := routing.Name + "-gateway"
+	name := routing.Name + "-ingress"
 	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: name}}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
 		// Set application as owner of the gateway
-		//err := ctrlutil.SetControllerReference(application, &gateway, r.GetScheme())
-		//if err != nil {
-		//	r.SetControllerError(ctx, application, controllerName, err)
-		//	return err
-		//}
+		err := ctrlutil.SetControllerReference(routing, &gateway, r.GetScheme())
+		if err != nil {
+			//r.SetControllerError(ctx, application, controllerName, err)
+			return err
+		}
 
 		//r.SetLabelsFromApplication(&gateway, *application)
 		util.SetCommonAnnotations(&gateway)
