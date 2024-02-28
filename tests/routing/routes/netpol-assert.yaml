@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: netpol-app-1-istio-route
+  name: app-1-istio-route
 spec:
   ingress:
     - from:
@@ -16,7 +16,7 @@ spec:
           protocol: TCP
   podSelector:
     matchLabels:
-      app: netpol-app-1
+      app: app-1
   policyTypes:
     - Ingress
 
@@ -24,7 +24,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: netpol-app-2-istio-route
+  name: app-2-istio-route
 spec:
   ingress:
     - from:
@@ -39,6 +39,6 @@ spec:
           protocol: TCP
   podSelector:
     matchLabels:
-      app: netpol-app-2
+      app: app-2
   policyTypes:
     - Ingress

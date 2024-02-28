@@ -1,11 +1,12 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: netpol
+  name: routes
 spec:
   skip: false
   concurrent: true
   skipDelete: false
+  namespace: chainsaw-routing-routes
   steps:
     - try:
         - apply:
@@ -13,4 +14,10 @@ spec:
         - apply:
             file: routing.yaml
         - assert:
+            file: netpol-assert.yaml
+        - assert:
+            file: gateway-assert.yaml
+        - assert:
             file: certificate-assert.yaml
+        - assert:
+            file: virtualservice-assert.yaml

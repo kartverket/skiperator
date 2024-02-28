@@ -4,8 +4,8 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: skiperator
     skiperator.kartverket.no/controller: routing
-    skiperator.kartverket.no/source-namespace: default
-  name: default-certificate-routing-ingress
+    skiperator.kartverket.no/source-namespace: chainsaw-routing-routes
+  name: chainsaw-routing-routes-app-routing-ingress
   namespace: istio-gateways
 spec:
   dnsNames:
@@ -13,4 +13,4 @@ spec:
   issuerRef:
     kind: ClusterIssuer
     name: cluster-issuer
-  secretName: default-certificate-routing-gateway
+  secretName: chainsaw-routing-routes-app-routing-gateway

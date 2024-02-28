@@ -1,0 +1,43 @@
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - app-routing-gateway
+  hosts:
+    - example.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /app1
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8081
+    - match:
+        - port: 443
+          uri:
+            prefix: /app2
+      name: app-2
+      route:
+        - destination:
+            host: app-2
+            port:
+              number: 9000

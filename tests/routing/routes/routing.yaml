@@ -1,11 +1,11 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Routing
 metadata:
-  name: netpol-routing
+  name: app-routing
 spec:
   hostname: example.com
   routes:
     - pathPrefix: /app1
-      targetApp: netpol-app-1
+      targetApp: app-1
     - pathPrefix: /app2
-      targetApp: netpol-app-2
+      targetApp: app-2

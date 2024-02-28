@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: certificate-app-1
+  name: app-1
 spec:
   image: gcr.io/google-samples/istio/helloserver:v0.0.1
   port: 8081
@@ -9,7 +9,7 @@ spec:
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: certificate-app-2
+  name: app-2
 spec:
   image: gcr.io/google-samples/istio/helloserver:v0.0.1
   port: 9000
