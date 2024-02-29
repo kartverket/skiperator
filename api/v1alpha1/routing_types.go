@@ -4,7 +4,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 //+kubebuilder:object:root=true
 
-// SKIPJobList contains a list of SKIPJob
+// RoutingList contains a list of Routing
 type RoutingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
