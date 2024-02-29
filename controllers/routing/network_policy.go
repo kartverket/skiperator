@@ -3,29 +3,29 @@ package routingcontroller
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"slices"
 )
 
 func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
 	// TODO: Fix controllerProgressing
 	var err error
 
-	// TODO: Delete removed routes
-	uniqueTargetApps := make(map[string]bool)
+	// Get map of unique network policies: map[networkPolicyName]targetApp
+	uniqueTargetApps := make(map[string]string)
 	for _, route := range routing.Spec.Routes {
-		uniqueTargetApps[route.TargetApp] = true
+		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route.TargetApp
 	}
-	for targetApp := range uniqueTargetApps {
-		netpolName := fmt.Sprintf("%s-%s-istio-ingress", routing.Name, targetApp)
+
+	for netpolName, targetApp := range uniqueTargetApps {
 
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -80,7 +80,44 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 		})
 	}
 
+	// Delete network policies that are not defined by routing resource anymore
+	networPolicyInNamespace := networkingv1.NetworkPolicyList{}
+	err = r.GetClient().List(ctx, &networPolicyInNamespace, client.InNamespace(routing.Namespace))
+	if err != nil {
+		return util.RequeueWithError(err)
+	}
+
+	var networkPoliciesToDelete []networkingv1.NetworkPolicy
+	for _, networkPolicy := range networPolicyInNamespace.Items {
+		ownerIndex := slices.IndexFunc(networkPolicy.GetOwnerReferences(), func(ownerReference metav1.OwnerReference) bool {
+			return ownerReference.Name == routing.Name
+		})
+		networkPolicyOwnedByThisApplication := ownerIndex != -1
+		if !networkPolicyOwnedByThisApplication {
+			continue
+		}
+
+		_, ok := uniqueTargetApps[networkPolicy.Name]
+		if ok {
+			continue
+		}
+
+		networkPoliciesToDelete = append(networkPoliciesToDelete, networkPolicy)
+	}
+
+	for _, networkPolicy := range networkPoliciesToDelete {
+		err = r.GetClient().Delete(ctx, &networkPolicy)
+		err = client.IgnoreNotFound(err)
+		if err != nil {
+			return util.RequeueWithError(err)
+		}
+	}
+
 	return util.RequeueWithError(err)
+}
+
+func getNetworkPolicyName(routing *skiperatorv1alpha1.Routing, targetApp string) string {
+	return fmt.Sprintf("%s-%s-istio-ingress", routing.Name, targetApp)
 }
 
 func getApplication(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (skiperatorv1alpha1.Application, error) {
