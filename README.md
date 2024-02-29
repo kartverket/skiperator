@@ -265,7 +265,7 @@ spec:
 ## Routing reference
 
 Below you will find a list of all accepted input parameters to the `Routing`
-custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1)
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://doc.crds.dev/github.com/kartverket/skiperator)
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Routing
@@ -274,7 +274,6 @@ metadata:
   namespace: sample
 spec:
   hostname: app.example.com
-  redirectToHTTPS: true
   routes:
   - pathPrefix: /api
     rewriteUri: true
