@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type PodOpts struct {
@@ -43,6 +44,14 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
 		SchedulerName:     corev1.DefaultSchedulerName,
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
+		Affinity: &corev1.Affinity{
+			PodAntiAffinity: &corev1.PodAntiAffinity{
+				PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+					affinityTermForAppAndKey(container.Name, Hostname),
+					affinityTermForAppAndKey(container.Name, OnPremFailureDomain),
+				},
+			},
+		},
 	}
 
 }
@@ -201,4 +210,22 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	}
 
 	return containerPorts
+}
+
+func affinityTermForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.WeightedPodAffinityTerm {
+	return corev1.WeightedPodAffinityTerm{
+		Weight: 100,
+		PodAffinityTerm: corev1.PodAffinityTerm{
+			LabelSelector: &v1.LabelSelector{
+				MatchExpressions: []v1.LabelSelectorRequirement{
+					{
+						Key:      "app",
+						Operator: v1.LabelSelectorOpIn,
+						Values:   []string{appName},
+					},
+				},
+			},
+			TopologyKey: string(key),
+		},
+	}
 }

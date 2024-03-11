@@ -56,6 +56,27 @@ spec:
       volumes:
         - emptyDir: {}
           name: tmp
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - minimal
+                topologyKey: "kubernetes.io/hostname"
+              weight: 100
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - minimal
+                topologyKey: "onprem.gke.io/failure-domain-name"
+              weight: 100
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
