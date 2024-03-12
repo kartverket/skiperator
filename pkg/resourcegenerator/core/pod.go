@@ -20,7 +20,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		}
 	}
 
-	return corev1.PodSpec{
+	p := corev1.PodSpec{
 		Volumes: volumes,
 		Containers: []corev1.Container{
 			container,
@@ -44,16 +44,16 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		ImagePullSecrets:  []corev1.LocalObjectReference{{Name: "github-auth"}},
 		SchedulerName:     corev1.DefaultSchedulerName,
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
-		Affinity: &corev1.Affinity{
-			PodAntiAffinity: &corev1.PodAntiAffinity{
-				PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
-					affinityTermForAppAndKey(container.Name, Hostname),
-					affinityTermForAppAndKey(container.Name, OnPremFailureDomain),
-				},
-			},
-		},
 	}
 
+	if !podSettings.DisablePodSpreadTopologyConstraints {
+		p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
+			spreadConstraintForAppAndKey(container.Name, Hostname),
+			spreadConstraintForAppAndKey(container.Name, OnPremFailureDomain),
+		}
+	}
+
+	return p
 }
 
 func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
@@ -212,20 +212,19 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	return containerPorts
 }
 
-func affinityTermForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.WeightedPodAffinityTerm {
-	return corev1.WeightedPodAffinityTerm{
-		Weight: 100,
-		PodAffinityTerm: corev1.PodAffinityTerm{
-			LabelSelector: &v1.LabelSelector{
-				MatchExpressions: []v1.LabelSelectorRequirement{
-					{
-						Key:      "app",
-						Operator: v1.LabelSelectorOpIn,
-						Values:   []string{appName},
-					},
+func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
+	return corev1.TopologySpreadConstraint{
+		MaxSkew:           1,
+		TopologyKey:       string(key),
+		WhenUnsatisfiable: corev1.ScheduleAnyway,
+		LabelSelector: &v1.LabelSelector{
+			MatchExpressions: []v1.LabelSelectorRequirement{
+				{
+					Key:      "app",
+					Operator: v1.LabelSelectorOpIn,
+					Values:   []string{appName},
 				},
 			},
-			TopologyKey: string(key),
 		},
 	}
 }

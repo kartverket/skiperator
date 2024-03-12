@@ -15,4 +15,11 @@ type PodSettings struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=30
 	TerminationGracePeriodSeconds int64 `json:"terminationGracePeriodSeconds,omitempty"`
+
+	// DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
+	// a given pod.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	DisablePodSpreadTopologyConstraints bool `json:"disablePodSpreadTopologyConstraints,omitempty"`
 }
