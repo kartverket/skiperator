@@ -4,6 +4,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,10 +47,14 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
 	}
 
-	if !podSettings.DisablePodSpreadTopologyConstraints {
-		p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-			spreadConstraintForAppAndKey(container.Name, Hostname),
-			spreadConstraintForAppAndKey(container.Name, OnPremFailureDomain),
+	// Global feature flag
+	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
+		// Allow override per application
+		if !podSettings.DisablePodSpreadTopologyConstraints {
+			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
+				spreadConstraintForAppAndKey(container.Name, Hostname),
+				spreadConstraintForAppAndKey(container.Name, OnPremFailureDomain),
+			}
 		}
 	}
 

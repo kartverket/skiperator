@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/flags"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -32,6 +33,7 @@ type ReconcilerBase struct {
 	scheme           *runtime.Scheme
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
+	features         *flags.Features
 }
 
 func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclient.Clientset, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder, apireader client.Reader) ReconcilerBase {
@@ -42,6 +44,7 @@ func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclie
 		scheme:           scheme,
 		restConfig:       restConfig,
 		recorder:         recorder,
+		features:         flags.FeatureFlags,
 	}
 }
 
