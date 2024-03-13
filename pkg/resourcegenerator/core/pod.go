@@ -231,5 +231,8 @@ func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) cor
 				},
 			},
 		},
+		// Beta from K8s 1.27, enabled by default
+		// See https://medium.com/wise-engineering/avoiding-kubernetes-pod-topology-spread-constraint-pitfalls-d369bb04689e
+		MatchLabelKeys: []string{"pod-template-hash"},
 	}
 }
