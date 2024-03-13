@@ -66,6 +66,8 @@ spec:
                 operator: In
                 values:
                   - minimal
+          matchLabelKeys:
+            - pod-template-hash
         - maxSkew: 1
           topologyKey: "onprem.gke.io/failure-domain-name"
           whenUnsatisfiable: ScheduleAnyway
@@ -75,6 +77,8 @@ spec:
                 operator: In
                 values:
                   - minimal
+          matchLabelKeys:
+            - pod-template-hash
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
