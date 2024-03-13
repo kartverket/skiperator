@@ -738,6 +738,12 @@ spec:
                       These annotations can for example be used to change the behaviour
                       of sidecars and similar.
                     type: object
+                  disablePodSpreadTopologyConstraints:
+                    default: false
+                    description: |-
+                      DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
+                      a given pod.
+                    type: boolean
                   terminationGracePeriodSeconds:
                     default: 30
                     description: |-

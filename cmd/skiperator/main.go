@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
 	"k8s.io/client-go/discovery"
@@ -135,6 +136,11 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
+
+	if flags.FeatureFlags == nil {
+		panic("something is wrong with the go runtime, panicing")
+	}
+	setupLog.Info("initializing skiperator with feature flags", "features", flags.FeatureFlags)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
