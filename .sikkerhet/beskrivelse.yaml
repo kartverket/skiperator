@@ -1,2 +1,5 @@
-version: 1.0
-organisasjon: IT
+version: 2.0
+organization: IT
+product: Skiperator
+repo_types: [Service]
+platforms: [SKIP]
