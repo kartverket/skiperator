@@ -9,7 +9,7 @@ require (
 	github.com/cert-manager/cert-manager v1.14.4
 	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.1.8
+	github.com/kyverno/chainsaw v0.1.9
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240205235323-12c61f35fea5
 	github.com/nais/liberator v0.0.0-20240212082757-45987246fc06
