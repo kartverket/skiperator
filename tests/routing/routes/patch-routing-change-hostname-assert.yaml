@@ -1,0 +1,100 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: routing
+    skiperator.kartverket.no/source-namespace: chainsaw-routing-routes
+  name: chainsaw-routing-routes-path-routing-ingress
+  namespace: istio-gateways
+spec:
+  dnsNames:
+    - new-example.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: chainsaw-routing-routes-path-routing-ingress
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: path-routing-ingress
+spec:
+  selector:
+    app: istio-ingress-external
+  servers:
+    - hosts:
+        - new-example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - new-example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: chainsaw-routing-routes-path-routing-ingress
+        mode: SIMPLE
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: path-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - path-routing-ingress
+  hosts:
+    - new-example.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /app1
+      rewrite:
+        uri: /
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8000
+    - match:
+        - port: 443
+          uri:
+            prefix: /new-path
+      rewrite:
+        uri: /
+      name: app-2
+      route:
+        - destination:
+            host: app-2
+            port:
+              number: 9000
+    - match:
+        - port: 443
+          uri:
+            prefix: /
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8000

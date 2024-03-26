@@ -24,7 +24,8 @@ func (r *ApplicationReconciler) SkiperatorOwnedCertRequests(_ context.Context, o
 		return nil
 	}
 
-	isSkiperatorOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator"
+	isSkiperatorOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator" &&
+		certificate.Labels["skiperator.skiperator.no/controller"] == "application"
 
 	requests := make([]reconcile.Request, 0)
 
@@ -141,6 +142,7 @@ func getLabels(certificate certmanagerv1.Certificate, application *skiperatorv1a
 	certLabels["app.kubernetes.io/managed-by"] = "skiperator"
 
 	// TODO Find better label names here
+	certLabels["skiperator.skiperator.no/controller"] = "application"
 	certLabels["application.skiperator.no/app-name"] = application.Name
 	certLabels["application.skiperator.no/app-namespace"] = application.Namespace
 

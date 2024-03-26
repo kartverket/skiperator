@@ -262,6 +262,27 @@ spec:
     restartPolicy: ""
 ```
 
+## Routing reference
+
+Below you will find a list of all accepted input parameters to the `Routing`
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://doc.crds.dev/github.com/kartverket/skiperator)
+```yaml
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: sample-routing
+  namespace: sample
+spec:
+  hostname: app.example.com
+  routes:
+  - pathPrefix: /api
+    rewriteUri: true
+    targetApp: backend-app
+  - pathPrefix: /
+    rewriteUri: false
+    targetApp: frontend-app
+```
+
 ## Developing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for information on how to develop the
