@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: some-simple-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  selector:
+    matchLabels:
+      app: some-simple-monitored-app-1
+  template:
+    metadata:
+      annotations:
+        argocd.argoproj.io/sync-options: Prune=false
+    spec:
+      containers:
+        - name: some-simple-monitored-app-1
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: main
+              protocol: TCP
+            # Will actually redirect to istio-proxy
+            - name: istio-metrics
+              containerPort: 15020
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: some-simple-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  selector:
+    app: some-simple-monitored-app-1
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+    # Will be used for Prometheus scraping instead of custom port
+    - name: istio-metrics
+      protocol: TCP
+      port: 15020
+      targetPort: 15020
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    instance: primary
+  name: some-simple-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  endpoints:
+    - targetPort: istio-metrics
+      path: /stats/prometheus
+      metricRelabelings:
+      - action: drop
+        regex: istio_request_bytes_bucket|istio_response_bytes_bucket|istio_request_duration_milliseconds_bucket
+        sourceLabels:
+        - __name__
+  selector:
+    matchLabels:
+      app: some-simple-monitored-app-1
+  namespaceSelector:
+    matchNames:
+      - sm-istio-ns
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: some-simple-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  podSelector:
+    matchLabels:
+      app: some-simple-monitored-app-1
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-agent
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: grafana-agent
+              app.kubernetes.io/name: grafana-agent
+      ports:
+        - port: istio-metrics
