@@ -65,7 +65,7 @@ type SKIPJobSpec struct {
 	Container ContainerSettings `json:"container"`
 
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
-	// a monitorngs object is created.
+	// a podmonitoring object is created.
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
 }
 

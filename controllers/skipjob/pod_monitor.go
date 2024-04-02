@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
@@ -49,6 +50,15 @@ func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *sk
 					TargetPort: &util.IstioMetricsPortName,
 				},
 			},
+		}
+		if !skipJob.Spec.Prometheus.AllowAllMetrics {
+			podMonitor.Spec.PodMetricsEndpoints[0].MetricRelabelConfigs = []*pov1.RelabelConfig{
+				{
+					Action:       "drop",
+					Regex:        strings.Join(util.DefaultMetricDropList, "|"),
+					SourceLabels: []pov1.LabelName{"__name__"},
+				},
+			}
 		}
 		return nil
 	})

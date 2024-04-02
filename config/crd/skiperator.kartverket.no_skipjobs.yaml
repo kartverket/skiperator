@@ -721,6 +721,12 @@ spec:
                   Prometheus settings for pod running in job. Fields are identical to Application and if set,
                   a monitorngs object is created.
                 properties:
+                  allowAllMetrics:
+                    default: false
+                    description: |-
+                      Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
+                      metrics will be dropped by default. See util/constants.go for the default list.
+                    type: boolean
                   path:
                     default: /metrics
                     description: The HTTP path where Prometheus compatible metrics

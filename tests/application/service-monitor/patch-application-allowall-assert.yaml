@@ -1,0 +1,17 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    instance: primary
+  name: some-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  endpoints:
+    - targetPort: istio-metrics
+      path: /stats/prometheus
+  selector:
+    matchLabels:
+      app: some-monitored-app-1
+  namespaceSelector:
+    matchNames:
+      - sm-istio-ns

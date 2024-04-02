@@ -321,6 +321,13 @@ type PrometheusConfig struct {
 	//+kubebuilder:default:=/metrics
 	//+kubebuilder:validation:Optional
 	Path string `json:"path,omitempty"`
+
+	// Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
+	// metrics will be dropped by default. See util/constants.go for the default list.
+	//
+	//+kubebuilder:default:=false
+	//+kubebuilder:validation:Optional
+	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 }
 
 // ApplicationStatus
