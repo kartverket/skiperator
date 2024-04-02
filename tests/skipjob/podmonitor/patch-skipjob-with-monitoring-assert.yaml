@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  labels:
+    instance: primary
+  name: podmonitor-monitor
+spec:
+  namespaceSelector:
+    matchNames:
+      - podmonitor-ns
+  podMetricsEndpoints:
+    - targetPort: istio-metrics
+      path: "/stats/prometheus"
+  selector:
+    matchLabels:
+      app: podmonitor

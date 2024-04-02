@@ -9,6 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
@@ -67,6 +68,16 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 					TargetPort: &util.IstioMetricsPortName,
 				},
 			},
+		}
+
+		if !application.Spec.Prometheus.AllowAllMetrics {
+			serviceMonitor.Spec.Endpoints[0].MetricRelabelConfigs = []*pov1.RelabelConfig{
+				{
+					Action:       "drop",
+					Regex:        strings.Join(util.DefaultMetricDropList, "|"),
+					SourceLabels: []pov1.LabelName{"__name__"},
+				},
+			}
 		}
 
 		return nil

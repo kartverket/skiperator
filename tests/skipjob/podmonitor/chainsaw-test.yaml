@@ -13,6 +13,11 @@ spec:
             file: skipjob-with-monitoring.yaml
         - assert:
             file: skipjob-with-monitoring-assert.yaml
+    - try:
+        - patch:
+            file: patch-skipjob-with-monitoring.yaml
+        - assert:
+            file: patch-skipjob-with-monitoring-assert.yaml
         - delete:
             ref:
               apiVersion: skiperator.kartverket.no/v1alpha1

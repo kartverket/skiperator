@@ -1,0 +1,15 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: some-monitored-app-1
+  namespace: sm-istio-ns
+spec:
+  image: image
+  port: 8080
+  additionalPorts:
+    - name: metrics
+      port: 8181
+      protocol: TCP
+  prometheus:
+    port: metrics
+    allowAllMetrics: true

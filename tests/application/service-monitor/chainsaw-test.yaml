@@ -13,3 +13,8 @@ spec:
             file: application-istio.yaml
         - assert:
             file: application-istio-assert.yaml
+    - try:
+        - patch:
+            file: patch-application-allowall.yaml
+        - assert:
+            file: patch-application-allowall-assert.yaml
