@@ -17,8 +17,8 @@ require (
 	github.com/r3labs/diff/v3 v3.0.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
-	istio.io/api v1.20.2
-	istio.io/client-go v1.20.2
+	istio.io/api v1.21.0-rc.0.0.20240306012220-bd9313120ef9
+	istio.io/client-go v1.21.0
 	k8s.io/api v0.29.3
 	k8s.io/apiextensions-apiserver v0.29.3
 	k8s.io/apimachinery v0.29.3
