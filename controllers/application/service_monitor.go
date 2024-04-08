@@ -66,18 +66,20 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 				{
 					Path:       util.IstioMetricsPath,
 					TargetPort: &util.IstioMetricsPortName,
+					MetricRelabelConfigs: []*pov1.RelabelConfig{
+						{
+							Action:       "drop",
+							Regex:        strings.Join(util.DefaultMetricDropList, "|"),
+							SourceLabels: []pov1.LabelName{"__name__"},
+						},
+					},
 				},
 			},
 		}
 
-		if !application.Spec.Prometheus.AllowAllMetrics {
-			serviceMonitor.Spec.Endpoints[0].MetricRelabelConfigs = []*pov1.RelabelConfig{
-				{
-					Action:       "drop",
-					Regex:        strings.Join(util.DefaultMetricDropList, "|"),
-					SourceLabels: []pov1.LabelName{"__name__"},
-				},
-			}
+		// Remove MetricRelabelConfigs if AllowAllMetrics is set to true
+		if application.Spec.Prometheus != nil && application.Spec.Prometheus.AllowAllMetrics {
+			serviceMonitor.Spec.Endpoints[0].MetricRelabelConfigs = nil
 		}
 
 		return nil
