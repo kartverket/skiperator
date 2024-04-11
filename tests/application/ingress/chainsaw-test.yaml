@@ -8,37 +8,50 @@ spec:
   skipDelete: false
   namespace: ingress
   steps:
+    #- try:
+    #    - create:
+    #        file: application.yaml
+    #    - assert:
+    #        file: application-assert.yaml
+    #- try:
+    #    - apply:
+    #        file: patch-application-change-ingress.yaml
+    #    - assert:
+    #        file: patch-application-change-ingress-assert.yaml
+    #    - error:
+    #        file: patch-application-change-ingress-errors.yaml
+    #- try:
+    #    - apply:
+    #        file: patch-application-no-ingresses.yaml
+    #    - error:
+    #        file: patch-application-no-ingresses-errors.yaml
+    #- try:
+    #    - create:
+    #        file: application-ingress-multiple-ports.yaml
+    #    - assert:
+    #        file: application-ingress-multiple-ports-assert.yaml
+    #- try:
+    #    - apply:
+    #        file: patch-application-disable-redirect.yaml
+    #    - assert:
+    #        file: patch-application-disable-redirect-assert.yaml
+    #- try:
+    #    - apply:
+    #        file: ingress-validation.yaml
+    #    - assert:
+    #        file: ingress-validation-assert.yaml
     - try:
         - create:
-            file: application.yaml
+            file: application-is-internal.yaml    
         - assert:
-            file: application-assert.yaml
-    - try:
-        - apply:
-            file: patch-application-change-ingress.yaml
-        - assert:
-            file: patch-application-change-ingress-assert.yaml
-        - error:
-            file: patch-application-change-ingress-errors.yaml
-    - try:
-        - apply:
-            file: patch-application-no-ingresses.yaml
-        - error:
-            file: patch-application-no-ingresses-errors.yaml
-    - try:
-        - create:
-            file: application-ingress-multiple-ports.yaml
-        - assert:
-            file: application-ingress-multiple-ports-assert.yaml
-    - try:
-        - apply:
-            file: patch-application-disable-redirect.yaml
-        - assert:
-            file: patch-application-disable-redirect-assert.yaml
-    - try:
-        - apply:
-            file: ingress-validation.yaml
-        - assert:
-            file: ingress-validation-assert.yaml
-
-
+            file: application-is-internal-assert.yaml
+    #- try:
+    #    - create:
+    #        file: application-is-external.yaml    
+    #    - assert:
+    #        file: application-is-external-assert.yaml
+    #- try:
+    #    - create:
+    #        file: application-is-ext-int.yaml    
+    #    - assert:
+    #        file: application-is-ext-int-assert.yaml
