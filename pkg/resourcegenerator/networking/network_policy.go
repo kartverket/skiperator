@@ -25,6 +25,7 @@ type NetPolOpts struct {
 	Name             string
 	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
 	IstioEnabled     bool
+	IsInternal       bool
 }
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
@@ -149,11 +150,11 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if opts.Ingresses != nil && opts.Port != nil && len(*opts.Ingresses) > 0 {
-		if hasInternalIngress(*opts.Ingresses) {
+		if hasInternalIngress(opts.IsInternal, *opts.Ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
 		}
 
-		if hasExternalIngress(*opts.Ingresses) {
+		if hasExternalIngress(opts.IsInternal, *opts.Ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
 		}
 	}
@@ -238,9 +239,9 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 	}
 }
 
-func hasExternalIngress(ingresses []string) bool {
+func hasExternalIngress(internal bool, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if !util.IsInternal(hostname) {
+		if (!util.IsInternal(hostname) || !internal) {
 			return true
 		}
 	}
@@ -248,9 +249,9 @@ func hasExternalIngress(ingresses []string) bool {
 	return false
 }
 
-func hasInternalIngress(ingresses []string) bool {
+func hasInternalIngress(internal bool, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if util.IsInternal(hostname) {
+		if (util.IsInternal(hostname) && internal) {
 			return true
 		}
 	}
@@ -281,6 +282,7 @@ func getGatewayIngressRule(port int, isInternal bool) networkingv1.NetworkPolicy
 }
 
 func getIngressGatewayLabel(isInternal bool) map[string]string {
+	
 	if isInternal {
 		return map[string]string{"app": "istio-ingress-internal"}
 	} else {

@@ -68,6 +68,13 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
+	// If the application is external, and uses statkart.no or kartverket.cloud name, set this to false. This will 
+	// make the application reachable only from the internet. This is to override the default behaviour of 
+	// setting kartverket.cloud or statkart.no applications as internal. Default is true.
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=true
+	IsInternal bool `json:"isInternal,omitempty"`
+
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
 	//
