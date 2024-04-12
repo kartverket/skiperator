@@ -67,7 +67,7 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 				Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			},
 			DNSNames:   []string{routing.Spec.Hostname},
-			SecretName: util.GetGatewaySecretName(routing.Namespace, routing.Name),
+			SecretName: certificateName,
 		}
 
 		certificate.Labels = getLabels(certificate, routing)
