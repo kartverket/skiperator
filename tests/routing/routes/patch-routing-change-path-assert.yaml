@@ -1,14 +1,14 @@
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: path-routing-ingress
+  name: app-paths-routing-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - path-routing-ingress
+    - app-paths-routing-ingress
   hosts:
     - example.com
   http:

@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: path-routing-app-1-istio-ingress
+  name:  app-paths-app-1-istio-ingress
 spec:
   ingress:
     - from:
@@ -24,7 +24,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: path-routing-app-2-istio-ingress
+  name: app-paths-app-2-istio-ingress
 spec:
   ingress:
     - from:
@@ -47,14 +47,14 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: path-routing-ingress
+  name: app-paths-routing-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - path-routing-ingress
+    - app-paths-routing-ingress
   hosts:
     - example.com
   http:

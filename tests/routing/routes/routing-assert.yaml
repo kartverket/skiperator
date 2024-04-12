@@ -5,7 +5,7 @@ metadata:
     app.kubernetes.io/managed-by: skiperator
     skiperator.kartverket.no/controller: routing
     skiperator.kartverket.no/source-namespace: chainsaw-routing-routes
-  name: chainsaw-routing-routes-path-routing-ingress
+  name: chainsaw-routing-routes-app-paths-routing-ingress-b1dffede
   namespace: istio-gateways
 spec:
   dnsNames:
@@ -13,13 +13,13 @@ spec:
   issuerRef:
     kind: ClusterIssuer
     name: cluster-issuer
-  secretName: chainsaw-routing-routes-path-routing-ingress
+  secretName: chainsaw-routing-routes-app-paths-routing-ingress-b1dffede
 
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: path-routing-ingress
+  name: app-paths-routing-ingress
 spec:
   selector:
     app: istio-ingress-external
@@ -37,14 +37,14 @@ spec:
         number: 443
         protocol: HTTPS
       tls:
-        credentialName: chainsaw-routing-routes-path-routing-ingress
+        credentialName: chainsaw-routing-routes-app-paths-routing-ingress-b1dffede
         mode: SIMPLE
 
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: path-routing-app-1-istio-ingress
+  name: app-paths-app-1-istio-ingress
 spec:
   ingress:
     - from:
@@ -67,7 +67,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: path-routing-app-2-istio-ingress
+  name: app-paths-app-2-istio-ingress
 spec:
   ingress:
     - from:
@@ -90,14 +90,14 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: path-routing-ingress
+  name: app-paths-routing-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - path-routing-ingress
+    - app-paths-routing-ingress
   hosts:
     - example.com
   http:

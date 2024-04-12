@@ -20,7 +20,7 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 
 	virtualService := networkingv1beta1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      routing.Name + "-ingress",
+			Name:      routing.GetVirtualServiceName(),
 			Namespace: routing.Namespace,
 		},
 	}
@@ -37,7 +37,7 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 		virtualService.Spec = networkingv1beta1api.VirtualService{
 			ExportTo: []string{".", "istio-system", "istio-gateways"},
 			Gateways: []string{
-				routing.Name + "-ingress",
+				routing.GetGatewayName(),
 			},
 			Hosts: []string{
 				routing.Spec.Hostname,

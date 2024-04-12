@@ -15,8 +15,12 @@ import (
 func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
 	var err error
 
-	name := routing.Name + "-ingress"
-	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: name}}
+	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: routing.GetGatewayName()}}
+
+	secretName, err := routing.GetCertificateName()
+	if err != nil {
+		return util.RequeueWithError(err)
+	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
 		// Set application as owner of the gateway
@@ -48,7 +52,7 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 				},
 				Tls: &networkingv1beta1api.ServerTLSSettings{
 					Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
-					CredentialName: util.GetGatewaySecretName(routing.Namespace, routing.Name),
+					CredentialName: secretName,
 				},
 			},
 		}

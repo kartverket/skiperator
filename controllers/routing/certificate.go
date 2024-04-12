@@ -2,7 +2,6 @@ package routingcontroller
 
 import (
 	"context"
-	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -46,7 +45,11 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 	var err error
 	//controllerName := "Certificate"
 	//r.SetControllerProgressing(ctx, routing, controllerName)
-	certificateName := fmt.Sprintf("%s-%s-ingress", routing.Namespace, routing.Name)
+
+	certificateName, err := routing.GetCertificateName()
+	if err != nil {
+		return util.RequeueWithError(err)
+	}
 	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
 
 	//_, err := r.ShouldReconcile(ctx, &certificate)

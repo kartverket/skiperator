@@ -1,6 +1,10 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 //+kubebuilder:object:root=true
 
@@ -61,4 +65,17 @@ func (in *Routing) GetRedirectToHTTPS() bool {
 		return *in.Spec.RedirectToHTTPS
 	}
 	return true
+}
+
+func (in *Routing) GetGatewayName() string {
+	return fmt.Sprintf("%s-routing-ingress", in.Name)
+}
+
+func (in *Routing) GetVirtualServiceName() string {
+	return fmt.Sprintf("%s-routing-ingress", in.Name)
+}
+
+func (in *Routing) GetCertificateName() (string, error) {
+	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
+	return util.GetSecretName(namePrefix, "routing-ingress")
 }
