@@ -474,6 +474,12 @@ spec:
                           These annotations can for example be used to change the
                           behaviour of sidecars and similar.
                         type: object
+                      disablePodSpreadTopologyConstraints:
+                        default: false
+                        description: |-
+                          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
+                          a given pod.
+                        type: boolean
                       terminationGracePeriodSeconds:
                         default: 30
                         description: |-
@@ -713,8 +719,14 @@ spec:
               prometheus:
                 description: |-
                   Prometheus settings for pod running in job. Fields are identical to Application and if set,
-                  a monitorngs object is created.
+                  a podmonitoring object is created.
                 properties:
+                  allowAllMetrics:
+                    default: false
+                    description: |-
+                      Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
+                      metrics will be dropped by default. See util/constants.go for the default list.
+                    type: boolean
                   path:
                     default: /metrics
                     description: The HTTP path where Prometheus compatible metrics

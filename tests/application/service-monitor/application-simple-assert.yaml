@@ -1,32 +1,24 @@
-# 1
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: some-monitored-app-1
+  name: some-simple-monitored-app-1
   namespace: sm-istio-ns
 spec:
   selector:
     matchLabels:
-      app: some-monitored-app-1
+      app: some-simple-monitored-app-1
   template:
     metadata:
       annotations:
         argocd.argoproj.io/sync-options: Prune=false
-        prometheus.io/scrape: 'true'
-        # Needed for Prometheus metrics merging
-        prometheus.io/path: /metrics
-        prometheus.io/port: "8181"
     spec:
       containers:
-        - name: some-monitored-app-1
+        - name: some-simple-monitored-app-1
           image: image
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
               name: main
-              protocol: TCP
-            - containerPort: 8181
-              name: metrics
               protocol: TCP
             # Will actually redirect to istio-proxy
             - name: istio-metrics
@@ -36,16 +28,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: some-monitored-app-1
+  name: some-simple-monitored-app-1
   namespace: sm-istio-ns
 spec:
   selector:
-    app: some-monitored-app-1
+    app: some-simple-monitored-app-1
   ports:
-    - name: metrics
-      port: 8181
-      targetPort: 8181
-      protocol: TCP
     - name: http
       port: 8080
       targetPort: 8080
@@ -62,7 +50,7 @@ kind: ServiceMonitor
 metadata:
   labels:
     instance: primary
-  name: some-monitored-app-1
+  name: some-simple-monitored-app-1
   namespace: sm-istio-ns
 spec:
   endpoints:
@@ -75,7 +63,7 @@ spec:
         - __name__
   selector:
     matchLabels:
-      app: some-monitored-app-1
+      app: some-simple-monitored-app-1
   namespaceSelector:
     matchNames:
       - sm-istio-ns
@@ -83,12 +71,12 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: some-monitored-app-1
+  name: some-simple-monitored-app-1
   namespace: sm-istio-ns
 spec:
   podSelector:
     matchLabels:
-      app: some-monitored-app-1
+      app: some-simple-monitored-app-1
   policyTypes:
     - Ingress
   ingress:

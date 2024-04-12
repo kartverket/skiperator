@@ -9,7 +9,17 @@ spec:
   namespace: service-monitor-ns
   steps:
     - try:
+        - apply:
+            file: application-simple.yaml
+        - assert:
+            file: application-simple-assert.yaml
+    - try:
         - create:
             file: application-istio.yaml
         - assert:
             file: application-istio-assert.yaml
+    - try:
+        - patch:
+            file: patch-application-allowall.yaml
+        - assert:
+            file: patch-application-allowall-assert.yaml

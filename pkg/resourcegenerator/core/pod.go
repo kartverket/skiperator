@@ -4,8 +4,10 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type PodOpts struct {
@@ -19,7 +21,7 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		}
 	}
 
-	return corev1.PodSpec{
+	p := corev1.PodSpec{
 		Volumes: volumes,
 		Containers: []corev1.Container{
 			container,
@@ -45,6 +47,18 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
 	}
 
+	// Global feature flag
+	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
+		// Allow override per application
+		if !podSettings.DisablePodSpreadTopologyConstraints {
+			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
+				spreadConstraintForAppAndKey(container.Name, Hostname),
+				spreadConstraintForAppAndKey(container.Name, OnPremFailureDomain),
+			}
+		}
+	}
+
+	return p
 }
 
 func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
@@ -201,4 +215,24 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	}
 
 	return containerPorts
+}
+
+func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
+	return corev1.TopologySpreadConstraint{
+		MaxSkew:           1,
+		TopologyKey:       string(key),
+		WhenUnsatisfiable: corev1.ScheduleAnyway,
+		LabelSelector: &v1.LabelSelector{
+			MatchExpressions: []v1.LabelSelectorRequirement{
+				{
+					Key:      "app",
+					Operator: v1.LabelSelectorOpIn,
+					Values:   []string{appName},
+				},
+			},
+		},
+		// Beta from K8s 1.27, enabled by default
+		// See https://medium.com/wise-engineering/avoiding-kubernetes-pod-topology-spread-constraint-pitfalls-d369bb04689e
+		MatchLabelKeys: []string{"pod-template-hash"},
+	}
 }

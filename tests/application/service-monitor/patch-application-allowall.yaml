@@ -12,3 +12,4 @@ spec:
       protocol: TCP
   prometheus:
     port: metrics
+    allowAllMetrics: true
