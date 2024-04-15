@@ -150,14 +150,18 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if opts.Ingresses != nil && opts.Port != nil && len(*opts.Ingresses) > 0 {
-		if hasInternalIngress(opts.IsInternal, *opts.Ingresses) {
+		if opts.IsInternal {
 			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
-		}
+		} else {
+			if hasInternalIngress(opts.IsInternal, *opts.Ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
+			}
 
-		if hasExternalIngress(opts.IsInternal, *opts.Ingresses) {
+			if hasExternalIngress(opts.IsInternal, *opts.Ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
-		}
+			}
 	}
+}
 
 	// Allow grafana-agent to scrape
 	if opts.IstioEnabled {
@@ -241,7 +245,7 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 
 func hasExternalIngress(internal bool, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if (!util.IsInternal(hostname) || !internal) {
+		if (!util.IsInternal(hostname)) {
 			return true
 		}
 	}
@@ -251,7 +255,7 @@ func hasExternalIngress(internal bool, ingresses []string) bool {
 
 func hasInternalIngress(internal bool, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if (util.IsInternal(hostname) && internal) {
+		if (internal || util.IsInternal(hostname)) {
 			return true
 		}
 	}
