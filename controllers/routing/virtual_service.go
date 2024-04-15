@@ -2,22 +2,17 @@ package routingcontroller
 
 import (
 	"context"
-	"github.com/kartverket/skiperator/pkg/util"
-	"k8s.io/apimachinery/pkg/types"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
-	// TODO: Fix controllerProgressing
-	//controllerName := "VirtualService"
-	//r.SetControllerProgressing(ctx, routing, controllerName)
-
 	virtualService := networkingv1beta1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      routing.GetVirtualServiceName(),
@@ -31,7 +26,6 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 
 		err := ctrlutil.SetControllerReference(routing, &virtualService, r.GetScheme())
 		if err != nil {
-			//r.SetControllerError(ctx, routing, controllerName, err)
 			return err
 		}
 		virtualService.Spec = networkingv1beta1api.VirtualService{
@@ -106,16 +100,14 @@ func (r *RoutingReconciler) reconcileVirtualService(ctx context.Context, routing
 
 			virtualService.Spec.Http = append(virtualService.Spec.Http, httpRoute)
 		}
-		return nil
+		return err
 	})
 
 	if err != nil {
-		//r.SetControllerError(ctx, application, controllerName, err)
+		err = r.setConditionVirtualServiceSynced(ctx, routing, ConditionStatusFalse, err.Error())
 		return util.RequeueWithError(err)
 	}
 
-	// TODO: Fix controllerFinishedOutcome
-	//r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
+	err = r.setConditionVirtualServiceSynced(ctx, routing, ConditionStatusTrue, ConditionMessageVirtualServiceSynced)
 	return util.RequeueWithError(err)
 }

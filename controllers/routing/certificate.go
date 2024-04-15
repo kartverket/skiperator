@@ -40,27 +40,14 @@ func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj
 }
 
 func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
-	// TODO: Fix controllerProgressing
-
-	var err error
-	//controllerName := "Certificate"
-	//r.SetControllerProgressing(ctx, routing, controllerName)
-
 	certificateName, err := routing.GetCertificateName()
 	if err != nil {
+		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
 		return util.RequeueWithError(err)
 	}
 	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
 
-	//_, err := r.ShouldReconcile(ctx, &certificate)
-	//if err != nil {
-	//	//r.SetControllerFinishedOutcome(ctx, routing, controllerName, err)
-	//	return util.RequeueWithError(err)
-	//}
-
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
-		//r.SetLabelsFromApplication(&certificate, *routing)
-
 		certificate.Spec = certmanagerv1.CertificateSpec{
 			IssuerRef: certmanagermetav1.ObjectReference{
 				Kind: "ClusterIssuer",
@@ -75,13 +62,11 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 		return nil
 	})
 	if err != nil {
-		//r.SetControllerError(ctx, routing, controllerName, err)
+		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
 		return util.RequeueWithError(err)
 	}
 
-	// TODO: Fix controllerFinished
-	//r.SetControllerFinishedOutcome(ctx, routing, controllerName, err)
-
+	err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusTrue, ConditionMessageCertificateSynced)
 	return util.RequeueWithError(err)
 }
 

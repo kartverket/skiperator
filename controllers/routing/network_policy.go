@@ -16,7 +16,6 @@ import (
 )
 
 func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
-	// TODO: Fix controllerProgressing
 	var err error
 
 	// Get map of unique network policies: map[networkPolicyName]targetApp
@@ -26,7 +25,6 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 	}
 
 	for netpolName, targetApp := range uniqueTargetApps {
-
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: routing.Namespace,
@@ -35,11 +33,9 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 		}
 
 		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &networkPolicy, func() error {
-			var err error
 			applicationNamespacedName := types.NamespacedName{Namespace: routing.Namespace, Name: targetApp}
 			targetApplication, err := getApplication(r.GetClient(), ctx, applicationNamespacedName)
 			if err != nil {
-				// TODO Fix logging?
 				return err
 			}
 
@@ -79,6 +75,10 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 			return nil
 		})
 	}
+	if err != nil {
+		err = r.setConditionNetworkPolicySynced(ctx, routing, ConditionStatusFalse, err.Error())
+		return util.RequeueWithError(err)
+	}
 
 	// Delete network policies that are not defined by routing resource anymore
 	networPolicyInNamespace := networkingv1.NetworkPolicyList{}
@@ -109,10 +109,12 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 		err = r.GetClient().Delete(ctx, &networkPolicy)
 		err = client.IgnoreNotFound(err)
 		if err != nil {
+			err = r.setConditionNetworkPolicySynced(ctx, routing, ConditionStatusFalse, err.Error())
 			return util.RequeueWithError(err)
 		}
 	}
 
+	err = r.setConditionNetworkPolicySynced(ctx, routing, ConditionStatusTrue, ConditionMessageNetworkPolicySynced)
 	return util.RequeueWithError(err)
 }
 

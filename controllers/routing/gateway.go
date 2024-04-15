@@ -7,7 +7,6 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -19,18 +18,16 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 
 	secretName, err := routing.GetCertificateName()
 	if err != nil {
+		err = r.setConditionGatewaySynced(ctx, routing, ConditionStatusFalse, err.Error())
 		return util.RequeueWithError(err)
 	}
 
 	_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &gateway, func() error {
-		// Set application as owner of the gateway
 		err := ctrlutil.SetControllerReference(routing, &gateway, r.GetScheme())
 		if err != nil {
-			//r.SetControllerError(ctx, application, controllerName, err)
 			return err
 		}
 
-		//r.SetLabelsFromApplication(&gateway, *application)
 		util.SetCommonAnnotations(&gateway)
 
 		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(routing.Spec.Hostname)
@@ -60,10 +57,11 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 		return nil
 	})
 	if err != nil {
-		//r.SetControllerError(ctx, application, controllerName, err)
+		err = r.setConditionGatewaySynced(ctx, routing, ConditionStatusFalse, err.Error())
 		return util.RequeueWithError(err)
 	}
 
-	return ctrl.Result{}, nil
+	err = r.setConditionGatewaySynced(ctx, routing, ConditionStatusTrue, ConditionMessageGatewaySynced)
+	return util.RequeueWithError(err)
 
 }

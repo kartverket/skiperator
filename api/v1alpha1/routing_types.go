@@ -23,9 +23,7 @@ type Routing struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Spec RoutingSpec `json:"spec,omitempty"`
-
-	//+kubebuilder:validation:Optional
+	Spec   RoutingSpec   `json:"spec,omitempty"`
 	Status RoutingStatus `json:"status,omitempty"`
 }
 
@@ -78,4 +76,12 @@ func (in *Routing) GetVirtualServiceName() string {
 func (in *Routing) GetCertificateName() (string, error) {
 	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
 	return util.GetSecretName(namePrefix, "routing-ingress")
+}
+
+func (in *Routing) GetConditions() []metav1.Condition {
+	return in.Status.Conditions
+}
+
+func (in *Routing) SetConditions(conditions []metav1.Condition) {
+	in.Status.Conditions = conditions
 }
