@@ -1,0 +1,39 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routes
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: chainsaw-routing-routes
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - apply:
+            file: routing.yaml
+        - assert:
+            file: routing-assert.yaml
+    - try:
+        - apply:
+            file: patch-application-change-port.yaml
+        - assert:
+            file: patch-application-change-port-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-change-path.yaml
+        - assert:
+            file: patch-routing-change-path-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-change-hostname.yaml
+        - assert:
+            file: patch-routing-change-hostname-assert.yaml
+    - try:
+        - apply:
+            file: patch-routing-remove-path.yaml
+        - assert:
+            file: patch-routing-remove-path-assert.yaml
+        - error:
+            file: patch-routing-remove-path-error.yaml

@@ -1,0 +1,9 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: app-paths
+spec:
+  hostname: new-example.com
+  routes:
+    - pathPrefix: /
+      targetApp: app-1
