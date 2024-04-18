@@ -566,11 +566,10 @@ spec:
                   type: string
                 type: array
               isInternal:
-                default: true
                 description: |-
                   If the application is external, and uses statkart.no or kartverket.cloud name, set this to false. This will
                   make the application reachable only from the internet. This is to override the default behaviour of
-                  setting kartverket.cloud or statkart.no applications as internal. Default is true.
+                  setting kartverket.cloud or statkart.no applications as internal.
                 type: boolean
               labels:
                 additionalProperties:

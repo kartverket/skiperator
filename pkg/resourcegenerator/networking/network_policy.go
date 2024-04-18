@@ -25,7 +25,7 @@ type NetPolOpts struct {
 	Name             string
 	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
 	IstioEnabled     bool
-	IsInternal       *bool
+	IsInternal       bool
 }
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
@@ -242,7 +242,7 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 
 func hasExternalIngress(opts NetPolOpts, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if !*opts.IsInternal || !util.IsInternal(hostname) {
+		if !opts.IsInternal || !util.IsInternal(hostname) {
 			return true
 		}
 	}
@@ -251,7 +251,7 @@ func hasExternalIngress(opts NetPolOpts, ingresses []string) bool {
 
 func hasInternalIngress(opts NetPolOpts, ingresses []string) bool {
 	for _, hostname := range ingresses {	
-		if *opts.IsInternal && util.IsInternal(hostname) {
+		if opts.IsInternal && util.IsInternal(hostname) {
 			return true
 		}
 	}

@@ -50,7 +50,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			internalSelector := map[string]string{"app": "istio-ingress-internal"}
 			externalSelector := map[string]string{"app": "istio-ingress-external"}
 		
-			if *application.Spec.IsInternal && util.IsInternal(hostname) {
+			if application.GetIsInternal() && util.IsInternal(hostname) {
 				gateway.Spec.Selector = internalSelector
 			} else {
 				gateway.Spec.Selector = externalSelector
