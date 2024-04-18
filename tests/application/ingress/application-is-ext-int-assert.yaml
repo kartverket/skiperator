@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: isinteext-ingress-9d69b0860e1ec343
+  name: isintext-ingress-9d69b0860e1ec343
 spec:
   selector:
     app: istio-ingress-external
@@ -9,7 +9,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: isinteext
+  name: isintext
 spec:
   ingress:
   - from:
@@ -21,4 +21,4 @@ spec:
           app: istio-ingress-external
   podSelector:
     matchLabels:
-      app: isinteext
+      app: isintext
