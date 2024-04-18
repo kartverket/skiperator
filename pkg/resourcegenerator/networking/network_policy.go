@@ -25,7 +25,7 @@ type NetPolOpts struct {
 	Name             string
 	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
 	IstioEnabled     bool
-	IsInternal       bool
+	IsInternal       *bool
 }
 
 func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
@@ -150,17 +150,14 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if opts.Ingresses != nil && opts.Port != nil && len(*opts.Ingresses) > 0 {
-		if opts.IsInternal {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
-		} else {
-			if hasInternalIngress(opts.IsInternal, *opts.Ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
-			}
+		
+		if hasInternalIngress(opts, *opts.Ingresses) {
+		ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
+		}
 
-			if hasExternalIngress(opts.IsInternal, *opts.Ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
-			}
-	}
+		if hasExternalIngress(opts, *opts.Ingresses) {
+		ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
+		}
 }
 
 	// Allow grafana-agent to scrape
@@ -243,23 +240,21 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 	}
 }
 
-func hasExternalIngress(internal bool, ingresses []string) bool {
+func hasExternalIngress(opts NetPolOpts, ingresses []string) bool {
 	for _, hostname := range ingresses {
-		if (!util.IsInternal(hostname)) {
+		if !*opts.IsInternal || !util.IsInternal(hostname) {
 			return true
 		}
 	}
-
 	return false
 }
 
-func hasInternalIngress(internal bool, ingresses []string) bool {
-	for _, hostname := range ingresses {
-		if (internal || util.IsInternal(hostname)) {
+func hasInternalIngress(opts NetPolOpts, ingresses []string) bool {
+	for _, hostname := range ingresses {	
+		if *opts.IsInternal && util.IsInternal(hostname) {
 			return true
 		}
 	}
-
 	return false
 }
 

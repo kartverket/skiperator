@@ -80,6 +80,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.IsInternal != nil {
+		in, out := &in.IsInternal, &out.IsInternal
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))

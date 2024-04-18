@@ -73,7 +73,7 @@ type ApplicationSpec struct {
 	// setting kartverket.cloud or statkart.no applications as internal. Default is true.
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=true
-	IsInternal bool `json:"isInternal,omitempty"`
+	IsInternal *bool `json:"isInternal,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
