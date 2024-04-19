@@ -44,7 +44,8 @@ spec:
      
   ingresses:
     - testapp.dev.skip.statkart.no
-    
+  # Can be used to force external ingress with internal addresses.
+  isInternal: true
   replicas: 2
   # or
   replicas:
@@ -284,6 +285,8 @@ spec:
   - pathPrefix: /
     rewriteUri: false
     targetApp: frontend-app
+  # Can be used to force external ingress with internal addresses.
+  isInternal: false
 ```
 
 ## Developing
