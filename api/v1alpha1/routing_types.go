@@ -32,6 +32,9 @@ type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`
 
+	//+kubebuilder:validation:Optional
+	IsInternal *bool `json:"isInternal,omitempty"`
+
 	//+kubebuilder:validation:Required
 	Routes []Route `json:"routes"`
 
@@ -84,4 +87,11 @@ func (in *Routing) GetConditions() []metav1.Condition {
 
 func (in *Routing) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
+}
+
+func (in *Routing) GetIsInternal() bool {
+	if in.Spec.IsInternal == nil {
+		return true
+	}
+	return *in.Spec.IsInternal
 }

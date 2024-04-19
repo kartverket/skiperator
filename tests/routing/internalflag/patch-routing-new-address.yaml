@@ -1,0 +1,11 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: app-paths
+spec:
+  hostname: test.skip.statkart.no
+  routes:
+    - pathPrefix: /app1
+      targetApp: app-1
+    - pathPrefix: /app2
+      targetApp: app-2

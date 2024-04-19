@@ -1,0 +1,132 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: routing
+    skiperator.kartverket.no/source-namespace: chainsaw-routing-internalflag
+  name: chainsaw-routing-internalflag-app-paths-routing-ingres-9f854df2
+  namespace: istio-gateways
+spec:
+  dnsNames:
+    - example.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: chainsaw-routing-internalflag-app-paths-routing-ingres-9f854df2
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: app-paths-routing-ingress
+spec:
+  selector:
+    app: istio-ingress-external
+  servers:
+    - hosts:
+        - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: chainsaw-routing-internalflag-app-paths-routing-ingres-9f854df2
+        mode: SIMPLE
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-paths-app-1-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 8081
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-1
+  policyTypes:
+    - Ingress
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-paths-app-2-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 9000
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-2
+  policyTypes:
+    - Ingress
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-paths-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - app-paths-routing-ingress
+  hosts:
+    - example.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /app1
+      name: app-1
+      route:
+        - destination:
+            host: app-1
+            port:
+              number: 8081
+    - match:
+        - port: 443
+          uri:
+            prefix: /app2
+      name: app-2
+      route:
+        - destination:
+            host: app-2
+            port:
+              number: 9000

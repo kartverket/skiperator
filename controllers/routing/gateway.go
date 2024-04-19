@@ -30,7 +30,7 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 
 		util.SetCommonAnnotations(&gateway)
 
-		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(routing.Spec.Hostname)
+		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(routing.GetIsInternal(), routing.Spec.Hostname)
 		gateway.Spec.Servers = []*networkingv1beta1api.Server{
 			{
 				Hosts: []string{routing.Spec.Hostname},

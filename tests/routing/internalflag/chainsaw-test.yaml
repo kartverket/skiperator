@@ -1,0 +1,27 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: internalsflag
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: chainsaw-routing-internalflag
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - apply:
+            file: routing.yaml
+        - assert:
+            file: routing-assert.yaml
+    - try:
+        - patch:
+            file: patch-routing-new-address.yaml
+        - assert:
+            file: patch-routing-new-address-assert.yaml
+    - try:
+        - patch:
+            file: patch-routing-new-extint-address.yaml
+        - assert:
+            file: patch-routing-new-extint-address-assert.yaml

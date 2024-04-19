@@ -27,8 +27,8 @@ func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
 
-func GetIstioGatewayLabelSelector(hostname string) map[string]string {
-	if IsInternal(hostname) {
+func GetIstioGatewayLabelSelector(internal bool, hostname string) map[string]string {
+	if IsInternal(hostname) && internal {
 		return map[string]string{"app": "istio-ingress-internal"}
 	}
 	return map[string]string{"app": "istio-ingress-external"}

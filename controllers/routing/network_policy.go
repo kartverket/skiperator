@@ -59,7 +59,7 @@ func (r *RoutingReconciler) reconcileNetworkPolicy(ctx context.Context, routing 
 									MatchLabels: util.GetIstioGatewaySelector(),
 								},
 								PodSelector: &metav1.LabelSelector{
-									MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
+									MatchLabels: util.GetIstioGatewayLabelSelector(routing.GetIsInternal(), routing.Spec.Hostname),
 								},
 							},
 						},
