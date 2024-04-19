@@ -32,7 +32,6 @@ func GetIstioGatewayLabelSelector(internal bool, hostname string) map[string]str
 		return map[string]string{"app": "istio-ingress-internal"}
 	}
 	return map[string]string{"app": "istio-ingress-external"}
-
 }
 
 func GetHashForStructs(obj []interface{}) string {
