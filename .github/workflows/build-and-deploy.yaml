@@ -27,6 +27,7 @@ env:
   RBAC_FILE_PATH: config/rbac/role.yaml
   CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
   CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
+  CRD_ROUTING_FILE_PATH: config/crd/skiperator.kartverket.no_routings.yaml
   ARTIFACT_NAME: skiperator-artifact-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
@@ -115,6 +116,7 @@ jobs:
             ${{ env.RBAC_FILE_PATH }}
             ${{ env.CRD_APP_FILE_PATH }}
             ${{ env.CRD_JOB_FILE_PATH }}
+            ${{ env.CRD_ROUTING_FILE_PATH }}
 
   deploy-argo:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch')
@@ -150,6 +152,7 @@ jobs:
         run: |
           cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/crd.yaml
           cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/skipjob-crd.yaml
+          cp -f -v $CRD_ROUTING_FILE_PATH $BASE_DIR/routing-crd.yaml
           cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
           rm -rf config/
 
