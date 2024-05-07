@@ -7,5 +7,6 @@ spec:
   port: 8080
   cloudSql:
     enabled: true
-    connectionName: skip-prod-bda1:europe-north1:skip-pg-01-prod
+    connectionName: test-project-bda1:europe-north1:pg-01-test
+    serviceAccount: grafana@test-project-bda1.iam.gserviceaccount.com
 

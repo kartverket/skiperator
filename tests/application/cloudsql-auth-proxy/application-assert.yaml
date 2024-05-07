@@ -2,6 +2,8 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: randomapp
+  annotations:
+    iam.gke.io/gcp-service-account: "grafana@test-project-bda1.iam.gserviceaccount.com"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,7 +52,7 @@ spec:
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
-            - "skip-prod-bda1:europe-north1:skip-pg-01-prod"
+            - "test-project-bda1:europe-north1:pg-01-test"
           securityContext:
             runAsNonRoot: true
             privileged: false

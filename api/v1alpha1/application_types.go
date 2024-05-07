@@ -261,10 +261,15 @@ type CloudSQLSettings struct {
 	//+kubebuilder:default:=false
 	Enabled bool `json:"enabled,omitempty"`
 
-	// Connection name for the CloudSQL instance. Found in the Google Cloud Console.
-
+	// Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+	// The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Pattern=`^[^:]+:[^:]+:[^:]+$`
 	ConnectionName string `json:"connectionName"`
+
+	// Service account used by cloudsql auth proxy. This service account must have the roles/cloudsql.client role.
+	//+kubebuilder:validation:Required
+	ServiceAccount string `json:"serviceAccount"`
 
 	// Image version for the CloudSQL proxy sidecar.
 	//+kubebuilder:validation:Optional

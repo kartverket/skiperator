@@ -17,6 +17,12 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
+	if application.Spec.CloudSQL != nil && application.Spec.CloudSQL.Enabled {
+		serviceAccount.Annotations = map[string]string{
+			"iam.gke.io/gcp-service-account": application.Spec.CloudSQL.ServiceAccount,
+		}
+	}
+
 	shouldReconcile, err := r.ShouldReconcile(ctx, &serviceAccount)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)

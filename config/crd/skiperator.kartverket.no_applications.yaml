@@ -254,16 +254,25 @@ spec:
                   This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
                 properties:
                   connectionName:
+                    description: |-
+                      Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+                      The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
+                    pattern: ^[^:]+:[^:]+:[^:]+$
                     type: string
                   enabled:
                     default: false
                     type: boolean
+                  serviceAccount:
+                    description: Service account used by cloudsql auth proxy. This
+                      service account must have the roles/cloudsql.client role.
+                    type: string
                   version:
                     default: 2.8.0
                     description: Image version for the CloudSQL proxy sidecar.
                     type: string
                 required:
                 - connectionName
+                - serviceAccount
                 type: object
               command:
                 description: |-

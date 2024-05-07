@@ -17,3 +17,8 @@ spec:
             file: cloudsql-but-not-enabled.yaml
         - assert:
             file: cloudsql-but-not-enabled-assert.yaml
+    - try:
+        - create:
+            file: set-version.yaml
+        - assert:
+            file: set-version.yaml
