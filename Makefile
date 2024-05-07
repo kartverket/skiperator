@@ -42,7 +42,7 @@ build: generate
 	./cmd/skiperator
 
 .PHONY: run-local
-run-local: build
+run-local: build install-skiperator
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator
 
@@ -103,12 +103,12 @@ install-test-tools:
 
 #### TESTS ####
 .PHONY: test-single
-test-single: install-test-tools
+test-single: install-test-tools install-skiperator
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir) && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: test
-test: install-test-tools
+test: install-test-tools install-skiperator
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 

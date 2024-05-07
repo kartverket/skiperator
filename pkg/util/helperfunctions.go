@@ -98,6 +98,10 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
+func PointToInt64(n int64) *int64 {
+	return &n
+}
+
 func GetIstioGatewaySelector() map[string]string {
 	return map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
 }

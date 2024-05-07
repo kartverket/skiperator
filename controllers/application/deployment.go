@@ -145,6 +145,14 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		maps.Copy(generatedSpecAnnotations, application.Spec.PodSettings.Annotations)
 	}
 
+	var containers []corev1.Container
+	containers = append(containers, skiperatorContainer)
+
+	if application.Spec.CloudSQL != nil && application.Spec.CloudSQL.Enabled {
+		cloudSqlProxyContainer := core.CreateCloudSqlProxyContainer(application.Spec.CloudSQL)
+		containers = append(containers, cloudSqlProxyContainer)
+	}
+
 	podForDeploymentTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -155,12 +163,13 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			Annotations: generatedSpecAnnotations,
 		},
 		Spec: core.CreatePodSpec(
-			skiperatorContainer,
+			containers,
 			podVolumes,
 			application.Name,
 			application.Spec.Priority,
 			util.PointTo(corev1.RestartPolicyAlways),
 			application.Spec.PodSettings,
+			application.Name,
 		),
 	}
 

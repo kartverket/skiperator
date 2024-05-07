@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -14,7 +15,9 @@ type PodOpts struct {
 	IstioEnabled bool
 }
 
-func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string, policy *corev1.RestartPolicy, podSettings *podtypes.PodSettings) corev1.PodSpec {
+func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string,
+	policy *corev1.RestartPolicy, podSettings *podtypes.PodSettings, serviceName string) corev1.PodSpec {
+
 	if podSettings == nil {
 		podSettings = &podtypes.PodSettings{
 			TerminationGracePeriodSeconds: int64(30),
@@ -22,10 +25,8 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 	}
 
 	p := corev1.PodSpec{
-		Volumes: volumes,
-		Containers: []corev1.Container{
-			container,
-		},
+		Volumes:                       volumes,
+		Containers:                    containers,
 		RestartPolicy:                 *policy,
 		TerminationGracePeriodSeconds: util.PointTo(podSettings.TerminationGracePeriodSeconds),
 		DNSPolicy:                     corev1.DNSClusterFirst,
@@ -52,8 +53,8 @@ func CreatePodSpec(container corev1.Container, volumes []corev1.Volume, serviceA
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
 			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-				spreadConstraintForAppAndKey(container.Name, Hostname),
-				spreadConstraintForAppAndKey(container.Name, OnPremFailureDomain),
+				spreadConstraintForAppAndKey(serviceName, Hostname),
+				spreadConstraintForAppAndKey(serviceName, OnPremFailureDomain),
 			}
 		}
 	}
@@ -90,6 +91,36 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 		StartupProbe:             getProbe(application.Spec.Startup),
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+	}
+}
+
+func CreateCloudSqlProxyContainer(cs *skiperatorv1alpha1.CloudSQLSettings) corev1.Container {
+	return corev1.Container{
+		Name:  "cloud-sql-proxy",
+		Image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
+		Args: []string{
+			"--auto-iam-authn",
+			"--structured-logs",
+			"--port=5432",
+			cs.ConnectionName,
+		},
+		SecurityContext: &corev1.SecurityContext{
+			RunAsNonRoot:             util.PointTo(true),
+			Privileged:               util.PointTo(false),
+			RunAsUser:                util.PointToInt64(200),
+			RunAsGroup:               util.PointToInt64(200),
+			ReadOnlyRootFilesystem:   util.PointTo(true),
+			AllowPrivilegeEscalation: util.PointTo(false),
+			SeccompProfile: &corev1.SeccompProfile{
+				Type: "RuntimeDefault",
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceMemory: resource.MustParse("64Mi"),
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+			},
+		},
 	}
 }
 

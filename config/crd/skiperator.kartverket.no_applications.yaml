@@ -248,6 +248,23 @@ spec:
                       type: string
                     type: array
                 type: object
+              cloudSql:
+                description: |-
+                  CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+                  This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+                properties:
+                  connectionName:
+                    type: string
+                  enabled:
+                    default: false
+                    type: boolean
+                  version:
+                    default: 2.8.0
+                    description: Image version for the CloudSQL proxy sidecar.
+                    type: string
+                required:
+                - connectionName
+                type: object
               command:
                 description: |-
                   Override the command set in the Dockerfile. Usually only used when debugging

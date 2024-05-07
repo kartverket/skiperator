@@ -246,6 +246,30 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
+
+	// CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+	// This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+	//
+	//+kubebuilder:validation:Optional
+	CloudSQL *CloudSQLSettings `json:"cloudSql,omitempty"`
+}
+
+type CloudSQLSettings struct {
+	// Enables the sidecar for CloudSQL proxy
+
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	Enabled bool `json:"enabled,omitempty"`
+
+	// Connection name for the CloudSQL instance. Found in the Google Cloud Console.
+
+	//+kubebuilder:validation:Required
+	ConnectionName string `json:"connectionName"`
+
+	// Image version for the CloudSQL proxy sidecar.
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:="2.8.0"
+	Version string `json:"version"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any

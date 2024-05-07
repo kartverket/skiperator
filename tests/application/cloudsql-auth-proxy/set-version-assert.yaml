@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: randomapp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: randomapp
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: randomapp
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app: randomapp
+    spec:
+      containers:
+        - name: randomapp
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.12
+          args:
+            - "--auto-iam-authn"
+            - "--structured-logs"
+            - "--port=5432"
+            - "skip-prod-bda1:europe-north1:skip-pg-01-prod"
+          securityContext:
+            runAsNonRoot: true
+            privileged: false
+            runAsUser: 200
+            runAsGroup: 200
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: "RuntimeDefault"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: randomapp
+      volumes:
+        - emptyDir: {}
+          name: tmp
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: "kubernetes.io/hostname"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - randomapp
+          matchLabelKeys:
+            - pod-template-hash
+        - maxSkew: 1
+          topologyKey: "onprem.gke.io/failure-domain-name"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - randomapp
+          matchLabelKeys:
+            - pod-template-hash
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: randomapp
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: randomapp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: randomapp
+spec:
+  selector:
+    app: randomapp
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+      appProtocol: http
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: randomapp
+spec:
+  selector:
+    matchLabels:
+      app: randomapp
+  mtls:
+    mode: STRICT
