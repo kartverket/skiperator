@@ -14,6 +14,11 @@ import (
 func (r *SKIPJobReconciler) reconcileServiceAccount(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error) {
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
+	if skipJob.Spec.CloudSQL != nil && skipJob.Spec.CloudSQL.Enabled {
+		serviceAccount.Annotations = map[string]string{
+			"iam.gke.io/gcp-service-account": skipJob.Spec.CloudSQL.ServiceAccount,
+		}
+	}
 
 	_, err := ctrlutil.CreateOrPatch(ctx, r.GetClient(), &serviceAccount, func() error {
 		// Set application as owner of the sidecar

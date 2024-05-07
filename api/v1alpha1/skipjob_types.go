@@ -67,6 +67,12 @@ type SKIPJobSpec struct {
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
+
+	// CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+	// This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+	//
+	//+kubebuilder:validation:Optional
+	CloudSQL *CloudSQLSettings `json:"cloudSql,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

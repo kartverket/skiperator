@@ -44,6 +44,32 @@ spec:
               A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
               The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
             properties:
+              cloudSql:
+                description: |-
+                  CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+                  This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+                properties:
+                  connectionName:
+                    description: |-
+                      Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+                      The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
+                    pattern: ^[^:]+:[^:]+:[^:]+$
+                    type: string
+                  enabled:
+                    default: false
+                    type: boolean
+                  serviceAccount:
+                    description: Service account used by cloudsql auth proxy. This
+                      service account must have the roles/cloudsql.client role.
+                    type: string
+                  version:
+                    default: 2.8.0
+                    description: Image version for the CloudSQL proxy sidecar.
+                    type: string
+                required:
+                - connectionName
+                - serviceAccount
+                type: object
               container:
                 description: |-
                   Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.

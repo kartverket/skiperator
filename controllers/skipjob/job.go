@@ -276,6 +276,11 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 	containers = append(containers, skipJobContainer)
 
+	if skipJob.Spec.CloudSQL != nil && skipJob.Spec.CloudSQL.Enabled {
+		cloudSqlProxyContainer := core.CreateCloudSqlProxyContainer(skipJob.Spec.CloudSQL)
+		containers = append(containers, cloudSqlProxyContainer)
+	}
+
 	jobSpec := batchv1.JobSpec{
 		Parallelism:           util.PointTo(int32(1)),
 		Completions:           util.PointTo(int32(1)),
