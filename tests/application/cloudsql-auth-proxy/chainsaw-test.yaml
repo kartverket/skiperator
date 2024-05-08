@@ -22,3 +22,12 @@ spec:
             file: set-version.yaml
         - assert:
             file: set-version.yaml
+    - try:
+        - create:
+            file: application-no-cloudsql.yaml
+        - assert:
+            file: application-no-cloudsql-assert.yaml
+        - patch:
+            file: application-no-cloudsql-patch.yaml
+        - assert:
+            file: application-no-cloudsql-patch-assert.yaml
