@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/cert-manager/cert-manager v1.14.4
+	github.com/cert-manager/cert-manager v1.14.5
 	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
 	github.com/kyverno/chainsaw v0.1.9
