@@ -94,7 +94,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 	}
 }
 
-func CreateCloudSqlProxyContainer(cs *skiperatorv1alpha1.CloudSQLSettings) corev1.Container {
+func CreateCloudSqlProxyContainer(cs podtypes.CloudSQLProxySettings) corev1.Container {
 	return corev1.Container{
 		Name:  "cloud-sql-proxy",
 		Image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,

@@ -211,12 +211,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
-	// For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-	// to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-	// service account and bind this to the Pod's Kubernetes SA.
-	//
-	// Documentation on how this is done can be found here (Closed Wiki):
-	// https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+	// GCP is used to configure Google Cloud Platform specific settings for the application.
 	//
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`
@@ -246,35 +241,6 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
-
-	// CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
-	// This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
-	//
-	//+kubebuilder:validation:Optional
-	CloudSQL *CloudSQLSettings `json:"cloudSql,omitempty"`
-}
-
-type CloudSQLSettings struct {
-	// Enables the sidecar for CloudSQL proxy
-
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
-	Enabled bool `json:"enabled,omitempty"`
-
-	// Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
-	// The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
-	//+kubebuilder:validation:Required
-	//+kubebuilder:validation:Pattern=`^[^:]+:[^:]+:[^:]+$`
-	ConnectionName string `json:"connectionName"`
-
-	// Service account used by cloudsql auth proxy. This service account must have the roles/cloudsql.client role.
-	//+kubebuilder:validation:Required
-	ServiceAccount string `json:"serviceAccount"`
-
-	// Image version for the CloudSQL proxy sidecar.
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:="2.8.0"
-	Version string `json:"version"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any

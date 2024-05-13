@@ -58,7 +58,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 
 	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
 
-	if application.Spec.GCP != nil {
+	if util.IsGCPAuthEnabled(application.Spec.GCP) {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
 		gcpIdentityConfigMap := corev1.ConfigMap{}
 
@@ -148,8 +148,8 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	var containers []corev1.Container
 	containers = append(containers, skiperatorContainer)
 
-	if application.Spec.CloudSQL != nil && application.Spec.CloudSQL.Enabled {
-		cloudSqlProxyContainer := core.CreateCloudSqlProxyContainer(application.Spec.CloudSQL)
+	if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
+		cloudSqlProxyContainer := core.CreateCloudSqlProxyContainer(application.Spec.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 

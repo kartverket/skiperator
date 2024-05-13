@@ -31,9 +31,7 @@ func (r *ApplicationReconciler) reconcileServiceAccount(ctx context.Context, app
 			return err
 		}
 
-		isCloudSqlEnabled := application.Spec.CloudSQL != nil && application.Spec.CloudSQL.Enabled
-
-		if isCloudSqlEnabled {
+		if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
 			setCloudSqlAnnotations(&serviceAccount, application)
 		}
 
@@ -54,7 +52,7 @@ func setCloudSqlAnnotations(serviceAccount *corev1.ServiceAccount, application *
 		annotations = make(map[string]string)
 	}
 	maps.Copy(annotations, map[string]string{
-		"iam.gke.io/gcp-service-account": application.Spec.CloudSQL.ServiceAccount,
+		"iam.gke.io/gcp-service-account": application.Spec.GCP.CloudSQLProxy.ServiceAccount,
 	})
 	serviceAccount.SetAnnotations(annotations)
 }

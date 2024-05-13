@@ -5,9 +5,10 @@ metadata:
 spec:
   image: image
   port: 8080
-  cloudSql:
-    enabled: true
-    connectionName: test-project-bda1:europe-north1:pg-01-test
-    serviceAccount: grafana@test-project-bda1.iam.gserviceaccount.com
-
+  gcp:
+    cloudSqlProxy:
+      enabled: true
+      connectionName: test-project-bda1:europe-north1:pg-01-test
+      serviceAccount: grafana@test-project-bda1.iam.gserviceaccount.com
+      ip: 10.0.0.1
 

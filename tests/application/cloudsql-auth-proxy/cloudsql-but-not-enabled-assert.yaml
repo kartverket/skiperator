@@ -123,3 +123,4 @@ spec:
       app: lazyconfigapp
   mtls:
     mode: STRICT
+

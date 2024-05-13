@@ -31,7 +31,7 @@ var controllerName = "ConfigMap"
 func (r *ApplicationReconciler) reconcileConfigMap(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	r.SetControllerProgressing(ctx, application, controllerName)
 
-	if application.Spec.GCP != nil {
+	if util.IsGCPAuthEnabled(application.Spec.GCP) {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
 		gcpIdentityConfigMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
 

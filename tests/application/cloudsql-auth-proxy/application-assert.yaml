@@ -145,3 +145,24 @@ spec:
       app: randomapp
   mtls:
     mode: STRICT
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: randomapp-egress-710b4e4fee5fcef8
+spec:
+  addresses:
+    - 10.0.0.1
+  endpoints:
+    - address: 10.0.0.1
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  hosts:
+    - 322c7bf7167d5bd9.cloudsql
+  ports:
+    - name: cloudsqlproxy
+      number: 3307
+      protocol: TCP
+  resolution: STATIC
