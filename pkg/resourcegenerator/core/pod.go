@@ -96,8 +96,9 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 
 func CreateCloudSqlProxyContainer(cs podtypes.CloudSQLProxySettings) corev1.Container {
 	return corev1.Container{
-		Name:  "cloud-sql-proxy",
-		Image: "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
+		Name:            "cloud-sql-proxy",
+		Image:           "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
+		ImagePullPolicy: corev1.PullAlways,
 		Args: []string{
 			"--auto-iam-authn",
 			"--structured-logs",
@@ -121,6 +122,8 @@ func CreateCloudSqlProxyContainer(cs podtypes.CloudSQLProxySettings) corev1.Cont
 				corev1.ResourceCPU:    resource.MustParse("100m"),
 			},
 		},
+		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
 }
 
