@@ -500,7 +500,7 @@ spec:
                   clientURI:
                     description: ClientURI is the URL shown to the user at ID-porten
                       when displaying a 'back' button or on errors.
-                    pattern: ^https:\/\/.+$
+                    pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
                     type: string
                   enabled:
                     description: |-
@@ -537,7 +537,7 @@ spec:
                       PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
                       has been initiated and performed by the application.
                     items:
-                      pattern: ^https:\/\/.+$
+                      pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
                       type: string
                     type: array
                   redirectPath:
@@ -692,6 +692,9 @@ spec:
                           scope is based on organization number.'
                         items:
                           properties:
+                            accessibleForAll:
+                              description: Allow any organization to access the scope.
+                              type: boolean
                             allowedIntegrations:
                               description: |-
                                 Whitelisting of integration's allowed.
@@ -725,6 +728,12 @@ spec:
                                 - orgno
                                 type: object
                               type: array
+                            delegationSource:
+                              description: Delegation source for the scope. Default
+                                is empty, which means no delegation is allowed.
+                              enum:
+                              - altinn
+                              type: string
                             enabled:
                               description: If Enabled the configured scope is available
                                 to be used and consumed by organizations granted access.
@@ -740,6 +749,16 @@ spec:
                                 The product-area your application belongs to e.g. arbeid, helse ...
                                 This will be included in the final scope `nav:<Product><Name>`.
                               pattern: ^[a-z0-9]+$
+                              type: string
+                            separator:
+                              description: |-
+                                Separator is the character that separates `product` and `name` in the final scope:
+                                `scope := <prefix>:<product><separator><name>`
+                                This overrides the default separator.
+                                The default separator is `:`. If `name` contains `/`, the default separator is instead `/`.
+                              maxLength: 1
+                              minLength: 1
+                              pattern: ^[\/:]$
                               type: string
                           required:
                           - enabled
