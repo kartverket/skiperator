@@ -211,12 +211,7 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
 
-	// For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-	// to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-	// service account and bind this to the Pod's Kubernetes SA.
-	//
-	// Documentation on how this is done can be found here (Closed Wiki):
-	// https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+	// GCP is used to configure Google Cloud Platform specific settings for the application.
 	//
 	//+kubebuilder:validation:Optional
 	GCP *podtypes.GCP `json:"gcp,omitempty"`

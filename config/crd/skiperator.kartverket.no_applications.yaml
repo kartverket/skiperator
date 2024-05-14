@@ -431,18 +431,17 @@ spec:
                   type: object
                 type: array
               gcp:
-                description: |-
-                  For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-                  to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-                  service account and bind this to the Pod's Kubernetes SA.
-
-
-                  Documentation on how this is done can be found here (Closed Wiki):
-                  https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+                description: GCP is used to configure Google Cloud Platform specific
+                  settings for the application.
                 properties:
                   auth:
-                    description: Configuration for authenticating a Pod with Google
-                      Cloud Platform
+                    description: |-
+                      Configuration for authenticating a Pod with Google Cloud Platform
+                      For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
+                      to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
+                      service account and bind this to the Pod's Kubernetes SA.
+                      Documentation on how this is done can be found here (Closed Wiki):
+                      https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
                     properties:
                       serviceAccount:
                         description: |-
@@ -452,8 +451,34 @@ spec:
                     required:
                     - serviceAccount
                     type: object
-                required:
-                - auth
+                  cloudSqlProxy:
+                    description: |-
+                      CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+                      This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+                    properties:
+                      connectionName:
+                        description: |-
+                          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+                          The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
+                        pattern: ^[^:]+:[^:]+:[^:]+$
+                        type: string
+                      enabled:
+                        default: false
+                        type: boolean
+                      ip:
+                        description: The IP address of the CloudSQL instance. This
+                          is used to create a serviceentry for the CloudSQL proxy.
+                        type: string
+                      serviceAccount:
+                        description: Service account used by cloudsql auth proxy.
+                          This service account must have the roles/cloudsql.client
+                          role.
+                        type: string
+                      version:
+                        default: 2.8.0
+                        description: Image version for the CloudSQL proxy sidecar.
+                        type: string
+                    type: object
                 type: object
               idporten:
                 description: Settings for IDPorten integration with Digitaliseringsdirektoratet

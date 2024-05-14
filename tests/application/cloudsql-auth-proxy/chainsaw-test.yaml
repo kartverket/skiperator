@@ -1,0 +1,33 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: cloudsql-auth-proxy
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - create:
+            file: cloudsql-but-not-enabled.yaml
+        - assert:
+            file: cloudsql-but-not-enabled-assert.yaml
+    - try:
+        - create:
+            file: set-version.yaml
+        - assert:
+            file: set-version.yaml
+    - try:
+        - create:
+            file: application-no-cloudsql.yaml
+        - assert:
+            file: application-no-cloudsql-assert.yaml
+        - patch:
+            file: application-no-cloudsql-patch.yaml
+        - assert:
+            file: application-no-cloudsql-patch-assert.yaml

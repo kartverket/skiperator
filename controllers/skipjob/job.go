@@ -269,6 +269,13 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		envVars = append(envVars, gcpEnvVar)
 	}
 
+	var skipJobContainer corev1.Container
+	skipJobContainer = core.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
+
+	var containers []corev1.Container
+
+	containers = append(containers, skipJobContainer)
+
 	jobSpec := batchv1.JobSpec{
 		Parallelism:           util.PointTo(int32(1)),
 		Completions:           util.PointTo(int32(1)),
@@ -279,12 +286,13 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
 			Spec: core.CreatePodSpec(
-				core.CreateJobContainer(skipJob, containerVolumeMounts, envVars),
+				containers,
 				podVolumes,
 				skipJob.KindPostFixedName(),
 				skipJob.Spec.Container.Priority,
 				skipJob.Spec.Container.RestartPolicy,
 				skipJob.Spec.Container.PodSettings,
+				skipJob.Name,
 			),
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: GetJobLabels(skipJob, nil),

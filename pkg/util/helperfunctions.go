@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/nais/liberator/pkg/namegen"
 	"github.com/r3labs/diff/v3"
@@ -98,6 +99,10 @@ func PointTo[T any](x T) *T {
 	return &x
 }
 
+func PointToInt64(n int64) *int64 {
+	return &n
+}
+
 func GetIstioGatewaySelector() map[string]string {
 	return map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
 }
@@ -158,4 +163,12 @@ func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
 	}
 
 	return changelog, nil
+}
+
+func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
+	return gcp != nil && gcp.CloudSQLProxy.Enabled
+}
+
+func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
+	return gcp != nil && gcp.Auth.ServiceAccount != ""
 }
