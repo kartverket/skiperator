@@ -149,7 +149,7 @@ spec:
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
-  name: randomapp-egress-710b4e4fee5fcef8
+  name: randomapp-egress-8c1a523efec2f763
 spec:
   addresses:
     - 10.0.0.1
@@ -160,7 +160,7 @@ spec:
     - istio-system
     - istio-gateways
   hosts:
-    - 322c7bf7167d5bd9.cloudsql
+    - randomapp-a0921a82f8f8e22c.cloudsql
   ports:
     - name: cloudsqlproxy
       number: 3307

@@ -28,8 +28,10 @@ func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) 
 		return nil, errors.New("cloud sql proxy IP is not set")
 	}
 
+	// The istio validation webhook will reject the service entry if the host is not a valid DNS name, such as an IP address.
+	// So we generate something that will not crash with other apps in the same namespace.
 	externalRule := &podtypes.ExternalRule{
-		Host:  fmt.Sprintf("%x.cloudsql", util.GenerateHashFromName(application.GetName())),
+		Host:  fmt.Sprintf("%s-%x.cloudsql", application.Name, util.GenerateHashFromName(application.Spec.Image)),
 		Ip:    application.Spec.GCP.CloudSQLProxy.IP,
 		Ports: []podtypes.ExternalPort{{Name: "cloudsqlproxy", Port: 3307, Protocol: "TCP"}},
 	}
