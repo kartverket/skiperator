@@ -7,14 +7,14 @@ require (
 	github.com/cert-manager/cert-manager v1.14.5
 	github.com/go-logr/logr v1.4.1
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.1.9
+	github.com/kyverno/chainsaw v0.2.1
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240506233537-528bc394abb7
 	github.com/nais/liberator v0.0.0-20240502125953-a5b5e9b735ba
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.73.2
 	github.com/r3labs/diff/v3 v3.0.1
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f
 	istio.io/api v1.21.2
 	istio.io/client-go v1.21.2
 	k8s.io/api v0.30.0
@@ -32,7 +32,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.2 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/iam v1.1.7 // indirect
-	cloud.google.com/go/storage v1.39.1 // indirect
+	cloud.google.com/go/storage v1.40.0 // indirect
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
 	github.com/Azure/go-autorest/autorest v0.11.29 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect
 	github.com/aquilax/truncate v1.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
-	github.com/aws/aws-sdk-go v1.50.20 // indirect
+	github.com/aws/aws-sdk-go v1.51.28 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.24.1 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.26.6 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.16.16 // indirect
@@ -70,8 +70,8 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
 	github.com/coreos/go-semver v0.3.1 // indirect
@@ -83,11 +83,11 @@ require (
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v25.0.5+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
-	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2 // indirect
+	github.com/dustinkirkland/golang-petname v0.0.0-20240422154211-76c06c4bde6b // indirect
 	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
-	github.com/fatih/color v1.16.0 // indirect
+	github.com/fatih/color v1.17.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
@@ -109,7 +109,6 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20240129192428-8dadbe76ff8c // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20240129192428-8dadbe76ff8c // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -129,13 +128,12 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jmespath-community/go-jmespath v1.1.2-0.20240117150817-e430401a2172 // indirect
 	github.com/jmespath/go-jmespath v0.4.1-0.20220621161143-b0104c826a24 // indirect
-	github.com/jonboulle/clockwork v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.6 // indirect
-	github.com/kudobuilder/kuttl v0.15.0 // indirect
-	github.com/kyverno/kyverno v1.5.0-rc1.0.20240202083228-5f0d53fe3482 // indirect
-	github.com/kyverno/kyverno-json v0.0.3-0.20240220200359-acadce6af3e8 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
+	github.com/kudobuilder/kuttl v0.16.0 // indirect
+	github.com/kyverno/kyverno-json v0.0.3-alpha.2.0.20240418134117-384bc5db5ad7 // indirect
+	github.com/kyverno/pkg/ext v0.0.0-20240418121121-df8add26c55c // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -149,6 +147,7 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc6 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
@@ -170,7 +169,7 @@ require (
 	github.com/spf13/viper v1.18.2 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/ulikunitz/xz v0.5.11 // indirect
+	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/vbatts/tar-split v0.11.5 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
@@ -223,7 +222,7 @@ require (
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
 	sigs.k8s.io/gateway-api v1.0.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kubectl-validate v0.0.2-0.20240102223437-fe143bcde89f // indirect
+	sigs.k8s.io/kubectl-validate v0.0.4-0.20240426230744-57b5e376ebde // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
