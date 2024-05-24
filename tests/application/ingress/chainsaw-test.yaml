@@ -40,5 +40,13 @@ spec:
             file: ingress-validation.yaml
         - assert:
             file: ingress-validation-assert.yaml
-
-
+    - try:
+        - create:
+            file: application-is-internal.yaml    
+        - assert:
+            file: application-is-internal-assert.yaml
+    - try:
+        - create:
+            file: application-is-external.yaml    
+        - assert:
+            file: application-is-external-assert.yaml

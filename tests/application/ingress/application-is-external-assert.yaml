@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: isexternal-ingress-34888c0b0c2a4a2c
+spec:
+  selector:
+    app: istio-ingress-external
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isexternal
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-gateways
+      podSelector:
+        matchLabels:
+          app: istio-ingress-external
+  podSelector:
+    matchLabels:
+      app: isexternal
