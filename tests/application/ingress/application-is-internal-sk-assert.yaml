@@ -1,0 +1,24 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: isinternalsk-ingress-3f47f7531608b94c
+spec:
+  selector:
+    app: istio-ingress-internal
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isinternalsk
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: istio-gateways
+      podSelector:
+        matchLabels:
+          app: istio-ingress-internal
+  podSelector:
+    matchLabels:
+      app: isinternalsk

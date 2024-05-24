@@ -47,6 +47,11 @@ spec:
             file: application-is-internal-assert.yaml
     - try:
         - create:
+            file: application-is-internal-sk.yaml    
+        - assert:
+            file: application-is-internal-sk-assert.yaml
+    - try:
+        - create:
             file: application-is-external.yaml    
         - assert:
             file: application-is-external-assert.yaml
