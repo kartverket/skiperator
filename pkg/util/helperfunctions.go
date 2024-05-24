@@ -21,7 +21,7 @@ import (
 	"unicode"
 )
 
-var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no`)
+var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
 
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
