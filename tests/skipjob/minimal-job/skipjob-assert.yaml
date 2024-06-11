@@ -6,6 +6,8 @@ metadata:
 apiVersion: batch/v1
 kind: Job
 metadata:
+  annotations:
+    prometheus.istio.io/merge-metrics: "false"
   name: minimal-job
   labels:
     app: minimal-job-skipjob
