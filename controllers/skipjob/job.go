@@ -50,16 +50,9 @@ func (r *SKIPJobReconciler) reconcileJob(ctx context.Context, skipJob *skiperato
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
-	if istioEnabled {
-		if skipJob.Spec.Prometheus != nil {
-			skipJob.Annotations["prometheus.io/port"] = skipJob.Spec.Prometheus.Port.StrVal
-			skipJob.Annotations["prometheus.io/path"] = skipJob.Spec.Prometheus.Path
-		} else {
-			// The job doesn't have any custom metrics exposed so we'll disable metrics merging
-			// This will ensure that we don't see any messages like this in istio-proxy:
-			// "failed scraping job metrics: error scraping http://localhost:80/metrics"
-			skipJob.Annotations["prometheus.istio.io/merge-metrics"] = "false"
-		}
+	if istioEnabled && skipJob.Spec.Prometheus != nil {
+		skipJob.Annotations["prometheus.io/port"] = skipJob.Spec.Prometheus.Port.StrVal
+		skipJob.Annotations["prometheus.io/path"] = skipJob.Spec.Prometheus.Path
 	}
 
 	if skipJob.Spec.Cron != nil {
