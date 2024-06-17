@@ -136,9 +136,17 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
-	if istioEnabled && application.Spec.Prometheus != nil {
-		generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
-		generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
+	if istioEnabled {
+		if application.Spec.Prometheus != nil {
+			// If the application has exposed metrics
+			generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application)
+			generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
+		} else {
+			// The application doesn't have any custom metrics exposed so we'll disable metrics merging
+			// This will ensure that we don't see any messages like this in istio-proxy:
+			// "failed scraping application metrics: error scraping http://localhost:80/metrics"
+			generatedSpecAnnotations["prometheus.istio.io/merge-metrics"] = "false"
+		}
 	}
 
 	if application.Spec.PodSettings != nil && len(application.Spec.PodSettings.Annotations) > 0 {

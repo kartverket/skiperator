@@ -11,6 +11,7 @@ spec:
     metadata:
       annotations:
         argocd.argoproj.io/sync-options: Prune=false
+        prometheus.istio.io/merge-metrics: "false"
     spec:
       containers:
         - name: some-simple-monitored-app-1
