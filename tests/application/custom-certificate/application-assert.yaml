@@ -81,7 +81,7 @@ kind: Secret
 metadata:
   name: some-cert
   namespace: istio-gateways
-type: kubernets.io/tls
+type: kubernetes.io/tls
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
