@@ -52,7 +52,7 @@ func (r *SKIPJobReconciler) reconcilePodMonitor(ctx context.Context, skipJob *sk
 			},
 		}
 		if !skipJob.Spec.Prometheus.AllowAllMetrics {
-			podMonitor.Spec.PodMetricsEndpoints[0].MetricRelabelConfigs = []*pov1.RelabelConfig{
+			podMonitor.Spec.PodMetricsEndpoints[0].MetricRelabelConfigs = []pov1.RelabelConfig{
 				{
 					Action:       "drop",
 					Regex:        strings.Join(util.DefaultMetricDropList, "|"),
