@@ -1,0 +1,5 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: ($namespace)-custom-cert-ingress-dc2b250f77a411ad
+  namespace: istio-gateways

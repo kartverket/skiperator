@@ -61,23 +61,37 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		if !shouldReconcile {
 			continue
 		}
+		if len(application.Spec.CustomCertificate) == 0 {
+			_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
+				r.SetLabelsFromApplication(&certificate, *application)
 
-		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
-			r.SetLabelsFromApplication(&certificate, *application)
+				certificate.Spec = certmanagerv1.CertificateSpec{
+					IssuerRef: v1.ObjectReference{
+						Kind: "ClusterIssuer",
+						Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
+					},
+					DNSNames:   []string{hostname},
+					SecretName: certificateName,
+				}
 
-			certificate.Spec = certmanagerv1.CertificateSpec{
-				IssuerRef: v1.ObjectReference{
-					Kind: "ClusterIssuer",
-					Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
-				},
-				DNSNames:   []string{hostname},
-				SecretName: certificateName,
+				certificate.Labels = getLabels(certificate, application)
+
+				return nil
+			})
+		} else {
+			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{ Namespace: "istio-gateways", Name: application.Spec.CustomCertificate })
+			if err != nil {
+				fmt.Errorf("Failed to get secret %s", application.Spec.CustomCertificate)
+				r.SetControllerError(ctx, application, controllerName, err)
+				return util.DoNotRequeue()
 			}
+			if secret.Type != "kubernetes.io/tls" {
+				err = fmt.Errorf("Secret %s is not of type TLS", application.Spec.CustomCertificate)
+				r.SetControllerError(ctx, application, controllerName, err)
+				return util.DoNotRequeue()
+			}
+		}
 
-			certificate.Labels = getLabels(certificate, application)
-
-			return nil
-		})
 		if err != nil {
 			r.SetControllerError(ctx, application, controllerName, err)
 			return util.RequeueWithError(err)
