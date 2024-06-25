@@ -61,8 +61,8 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 			
 			determinedCredentialName := application.Namespace + "-" + name
-			if len(application.Spec.CustomCertificate) > 0 {
-				determinedCredentialName = application.Spec.CustomCertificate
+			if len(application.Spec.CustomCertificateSecret) > 0 {
+				determinedCredentialName = application.Spec.CustomCertificateSecret
 			}
 			
 			httpsGatewayServer := &networkingv1beta1api.Server{
