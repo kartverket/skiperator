@@ -84,6 +84,8 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 		return err
 	}
 
+	credentialsBytes := gcpAuthConfigMap.Data["config"]
+
 	shouldReconcile, err := r.ShouldReconcile(ctx, &gcpAuthConfigMap)
 	if err != nil || !shouldReconcile {
 		r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
@@ -98,7 +100,7 @@ func (r *ApplicationReconciler) setupGCPAuthConfigMap(ctx context.Context, gcpId
 			return err
 		}
 		r.SetLabelsFromApplication(&gcpAuthConfigMap, *application)
-
+		gcpAuthConfigMap.Data["config"] = credentialsBytes
 		return nil
 	})
 
