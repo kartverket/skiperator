@@ -61,7 +61,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		if !shouldReconcile {
 			continue
 		}
-		if len(application.Spec.CustomCertificate) == 0 {
+		if len(application.Spec.CustomCertificateSecret) == 0 {
 			_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
 				r.SetLabelsFromApplication(&certificate, *application)
 
@@ -79,14 +79,14 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 				return nil
 			})
 		} else {
-			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{ Namespace: "istio-gateways", Name: application.Spec.CustomCertificate })
+			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{ Namespace: "istio-gateways", Name: application.Spec.CustomCertificateSecret })
 			if err != nil {
-				fmt.Errorf("Failed to get secret %s", application.Spec.CustomCertificate)
+				fmt.Errorf("Failed to get secret %s", application.Spec.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
 			}
 			if secret.Type != "kubernetes.io/tls" {
-				err = fmt.Errorf("Secret %s is not of type TLS", application.Spec.CustomCertificate)
+				err = fmt.Errorf("Secret %s is not of type TLS", application.Spec.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
 			}
