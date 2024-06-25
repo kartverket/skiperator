@@ -59,7 +59,12 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 					Protocol: "HTTP",
 				},
 			}
-
+			
+			determinedCredentialName := application.Namespace + "-" + name
+			if len(application.Spec.CustomCertificate) > 0 {
+				determinedCredentialName = application.Spec.CustomCertificate
+			}
+			
 			httpsGatewayServer := &networkingv1beta1api.Server{
 				Hosts: []string{hostname},
 				Port: &networkingv1beta1api.Port{
@@ -69,7 +74,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 				},
 				Tls: &networkingv1beta1api.ServerTLSSettings{
 					Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
-					CredentialName: application.Namespace + "-" + name,
+					CredentialName: determinedCredentialName,
 				},
 			}
 

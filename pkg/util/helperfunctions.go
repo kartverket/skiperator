@@ -58,6 +58,14 @@ func GetConfigMap(client client.Client, ctx context.Context, namespacedName type
 	return configMap, err
 }
 
+func GetSecret(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Secret, error) {
+	secret := corev1.Secret{}
+
+	err := client.Get(ctx, namespacedName, &secret)
+
+	return secret, err
+}
+
 func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {
 	service := corev1.Service{}
 

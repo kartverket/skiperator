@@ -255,6 +255,12 @@ spec:
                 items:
                   type: string
                 type: array
+              customCertificate:
+                description: |-
+                  CustomCertificate is used to specify a custom certificate for the application. This is useful when you want to use a
+                  certificate that is not issued by Let's Encrypt. The certificate should be stored as a TLS secret in the istio-gateways
+                  namespace.
+                type: string
               enablePDB:
                 default: true
                 description: Whether to enable automatic Pod Disruption Budget creation

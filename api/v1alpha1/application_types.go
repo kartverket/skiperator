@@ -68,6 +68,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
+	// CustomCertificate is used to specify a custom certificate for the application. This is useful when you want to use a
+	// certificate that is not issued by Let's Encrypt. The certificate should be stored as a TLS secret in the istio-gateways
+	// namespace.
+	//+kubebuilder:validation:Optional
+	CustomCertificate string `json:"customCertificate,omitempty"`
+
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
 	//
