@@ -176,14 +176,15 @@ func hasIgnoreLabel(obj client.Object) bool {
 }
 
 func (r *ReconcilerBase) ShouldReconcile(ctx context.Context, obj client.Object) (bool, error) {
-	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(obj), obj)
+	copyObj := obj.DeepCopyObject().(client.Object)
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(copyObj), copyObj)
 	err = client.IgnoreNotFound(err)
 
 	if err != nil {
 		return false, err
 	}
 
-	shouldReconcile := !hasIgnoreLabel(obj)
+	shouldReconcile := !hasIgnoreLabel(copyObj)
 
 	return shouldReconcile, nil
 }
