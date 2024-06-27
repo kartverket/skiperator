@@ -10,6 +10,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/slices"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,13 +80,13 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 				return nil
 			})
 		} else {
-			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{ Namespace: "istio-gateways", Name: application.Spec.CustomCertificateSecret })
+			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{Namespace: "istio-gateways", Name: application.Spec.CustomCertificateSecret})
 			if err != nil {
 				fmt.Errorf("Failed to get secret %s", application.Spec.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
 			}
-			if secret.Type != "kubernetes.io/tls" {
+			if secret.Type != corev1.SecretTypeTLS {
 				err = fmt.Errorf("Secret %s is not of type TLS", application.Spec.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
