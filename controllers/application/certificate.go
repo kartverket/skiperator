@@ -48,8 +48,14 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Generate separate gateway for each ingress
-	for _, hostname := range application.Spec.Ingresses {
-		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
+	hosts, err := application.Spec.Ingresses()
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return util.DoNotRequeue()
+	}
+
+	for _, h := range hosts {
+		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(h.Hostname))
 
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
 
@@ -62,7 +68,8 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		if !shouldReconcile {
 			continue
 		}
-		if len(application.Spec.CustomCertificateSecret) == 0 {
+
+		if h.CustomCertificateSecret == nil {
 			_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
 				r.SetLabelsFromApplication(&certificate, *application)
 
@@ -71,7 +78,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 						Kind: "ClusterIssuer",
 						Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 					},
-					DNSNames:   []string{hostname},
+					DNSNames:   []string{h.Hostname},
 					SecretName: certificateName,
 				}
 
@@ -80,14 +87,14 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 				return nil
 			})
 		} else {
-			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{Namespace: "istio-gateways", Name: application.Spec.CustomCertificateSecret})
+			secret, err := util.GetSecret(r.GetClient(), ctx, types.NamespacedName{Namespace: "istio-gateways", Name: *h.CustomCertificateSecret})
 			if err != nil {
-				fmt.Errorf("Failed to get secret %s", application.Spec.CustomCertificateSecret)
+				fmt.Errorf("Failed to get secret %s", *h.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
 			}
 			if secret.Type != corev1.SecretTypeTLS {
-				err = fmt.Errorf("Secret %s is not of type TLS", application.Spec.CustomCertificateSecret)
+				err = fmt.Errorf("Secret %s is not of type TLS", *h.CustomCertificateSecret)
 				r.SetControllerError(ctx, application, controllerName, err)
 				return util.DoNotRequeue()
 			}
@@ -120,8 +127,11 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 			continue
 		}
 
-		certificateInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
-			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
+		certificateInApplicationSpecIndex := slices.IndexFunc(hosts, func(h Host) bool {
+			if h.CustomCertificateSecret != nil {
+				return false
+			}
+			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(h.Hostname))
 			return certificate.Name == certificateName
 		})
 		certificateInApplicationSpec := certificateInApplicationSpecIndex != -1
