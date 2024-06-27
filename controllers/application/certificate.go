@@ -48,7 +48,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Generate separate gateway for each ingress
-	hosts, err := application.Spec.Ingresses()
+	hosts, err := application.Spec.Hosts()
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
 		return util.DoNotRequeue()
@@ -127,7 +127,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 			continue
 		}
 
-		certificateInApplicationSpecIndex := slices.IndexFunc(hosts, func(h Host) bool {
+		certificateInApplicationSpecIndex := slices.IndexFunc(hosts, func(h skiperatorv1alpha1.Host) bool {
 			if h.CustomCertificateSecret != nil {
 				return false
 			}

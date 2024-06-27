@@ -21,9 +21,16 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 	r.SetControllerProgressing(ctx, application, controllerName)
 
 	// Generate separate gateway for each ingress
-	for _, hostname := range application.Spec.Ingresses {
-		
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		r.SetControllerError(ctx, application, controllerName, err)
+		return util.DoNotRequeue()
+	}
+
+	// Generate separate gateway for each ingress
+	for _, h := range hosts {
+
+		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 		shouldReconcile, err := r.ShouldReconcile(ctx, &gateway)
@@ -47,26 +54,26 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			r.SetLabelsFromApplication(&gateway, *application)
 			util.SetCommonAnnotations(&gateway)
 
-			gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(hostname)
+			gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)
 
 			gatewayServersToAdd := []*networkingv1beta1api.Server{}
 
 			baseHttpGatewayServer := &networkingv1beta1api.Server{
-				Hosts: []string{hostname},
+				Hosts: []string{h.Hostname},
 				Port: &networkingv1beta1api.Port{
 					Number:   80,
 					Name:     "http",
 					Protocol: "HTTP",
 				},
 			}
-			
+
 			determinedCredentialName := application.Namespace + "-" + name
-			if len(application.Spec.CustomCertificateSecret) > 0 {
-				determinedCredentialName = application.Spec.CustomCertificateSecret
+			if h.CustomCertificateSecret != nil {
+				determinedCredentialName = *h.CustomCertificateSecret
 			}
-			
+
 			httpsGatewayServer := &networkingv1beta1api.Server{
-				Hosts: []string{hostname},
+				Hosts: []string{h.Hostname},
 				Port: &networkingv1beta1api.Port{
 					Number:   443,
 					Name:     "https",
@@ -92,7 +99,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 
 	// Clear out unused gateways
 	gateways := networkingv1beta1.GatewayList{}
-	err := r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
+	err = r.GetClient().List(ctx, &gateways, client.InNamespace(application.Namespace))
 
 	if err != nil {
 		r.SetControllerError(ctx, application, controllerName, err)
@@ -123,8 +130,8 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			continue
 		}
 
-		ingressGatewayInApplicationSpecIndex := slices.IndexFunc(application.Spec.Ingresses, func(hostname string) bool {
-			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
+		ingressGatewayInApplicationSpecIndex := slices.IndexFunc(hosts, func(h skiperatorv1alpha1.Host) bool {
+			ingressName := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
 			return gateway.Name == ingressName
 		})
 		ingressGatewayInApplicationSpec := ingressGatewayInApplicationSpecIndex != -1
