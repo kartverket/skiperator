@@ -2,6 +2,10 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/slices"
@@ -9,7 +13,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"time"
+	"github.com/chmike/domain"
 )
 
 // +kubebuilder:object:root=true
@@ -67,12 +71,6 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
-
-	// CustomCertificateSecret is used to specify a custom certificate for the application. This is useful when you want to use a
-	// certificate that is not managed by cert-manager, or a wildcard certificate managed by a certificate resource not managed by skiperator. 
-	//The certificate should be stored as a TLS secret in the istio-gateways namespace.
-	//+kubebuilder:validation:Optional
-	CustomCertificateSecret string `json:"customCertificateSecret,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
@@ -507,4 +505,40 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
+}
+
+type Host struct {
+	Hostname                 string
+	CustomCertificateSecret *string
+}
+
+func (s *ApplicationSpec) Ingresses() ([]Host, error) {
+	var hosts []Host
+	for _, ingress := range s.Ingresses {
+		if len(ingress) == 0 {
+			return nil, fmt.Errorf("ingress cannot be empty")
+		}
+
+		var h Host
+		// If hostname is separated by +, the user wants to use a custom certificate
+		results := strings.Split(ingress, "+")
+		
+		if len(results) > 2 {
+			return nil, fmt.Errorf("ingress %s is not valid, contains multiple '+' characters", ingress)
+		}
+
+		if len(results) == 1 {
+			h = Host{Hostname: results[0], CustomCertificateSecret: nil}
+		} else if len(results) == 2 {
+			h = Host{Hostname: results[0], CustomCertificateSecret: &results[1]}
+		}
+
+		// Verify that the hostname is an actual valid DNS name.
+		if err := domain.Check(h.Hostname); err != nil {
+			return nil, fmt.Errorf("hostname '%s' failed validation: %w", h.Hostname, err)
+		}
+		
+		hosts = append(hosts, h)
+	}
+	return hosts, nil
 }

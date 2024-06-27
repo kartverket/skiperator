@@ -22,7 +22,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
-
+		
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(hostname))
 
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
