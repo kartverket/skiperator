@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   name: applications.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -593,10 +593,12 @@ spec:
                   make the app reachable on the internet. Note that other addresses than skip.statkart.no
                   (also known as pretty hostnames) requires additional DNS setup.
                   The below hostnames will also have TLS certificates issued and be reachable on both
-                  HTTP and HTTPS. Adding a + to add certificate for the hostname.
+                  HTTP and HTTPS.
 
 
                   Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
+                  They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
+                  E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
                 items:
                   type: string
                 type: array

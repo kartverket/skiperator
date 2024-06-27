@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/chmike/domain"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/slices"
@@ -13,7 +14,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"github.com/chmike/domain"
 )
 
 // +kubebuilder:object:root=true
@@ -68,6 +68,8 @@ type ApplicationSpec struct {
 	// HTTP and HTTPS.
 	//
 	// Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
+	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
+	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
@@ -508,11 +510,11 @@ func allSameStatus(a []string) bool {
 }
 
 type Host struct {
-	Hostname                 string
+	Hostname                string
 	CustomCertificateSecret *string
 }
 
-func (s *ApplicationSpec) Ingresses() ([]Host, error) {
+func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
 	for _, ingress := range s.Ingresses {
 		if len(ingress) == 0 {
@@ -522,22 +524,29 @@ func (s *ApplicationSpec) Ingresses() ([]Host, error) {
 		var h Host
 		// If hostname is separated by +, the user wants to use a custom certificate
 		results := strings.Split(ingress, "+")
-		
-		if len(results) > 2 {
-			return nil, fmt.Errorf("ingress %s is not valid, contains multiple '+' characters", ingress)
-		}
 
-		if len(results) == 1 {
+		switch len(results) {
+		// No custom cert present
+		case 1:
 			h = Host{Hostname: results[0], CustomCertificateSecret: nil}
-		} else if len(results) == 2 {
-			h = Host{Hostname: results[0], CustomCertificateSecret: &results[1]}
+		// Custom cert present
+		case 2:
+			secret := results[1]
+			if len(secret) == 0 {
+				return nil, fmt.Errorf("ingress %s is not valid, custom secret cannot be empty", ingress)
+			}
+
+			h = Host{Hostname: results[0], CustomCertificateSecret: &secret}
+		// More than one '+' characters present
+		default:
+			return nil, fmt.Errorf("ingress %s is not valid, contains multiple '+' characters", ingress)
 		}
 
 		// Verify that the hostname is an actual valid DNS name.
 		if err := domain.Check(h.Hostname); err != nil {
 			return nil, fmt.Errorf("hostname '%s' failed validation: %w", h.Hostname, err)
 		}
-		
+
 		hosts = append(hosts, h)
 	}
 	return hosts, nil

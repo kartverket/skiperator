@@ -15,6 +15,5 @@ metadata:
 spec:
   image: image
   port: 8080
-  customCertificateSecret: some-cert
   ingresses:
-    - test.kartverket.no
+    - test.kartverket.no+some-cert
