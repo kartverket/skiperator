@@ -2,11 +2,8 @@ package v1alpha1
 
 import (
 	"encoding/json"
-	"fmt"
-	"strings"
 	"time"
 
-	"github.com/chmike/domain"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/slices"
@@ -509,45 +506,15 @@ func allSameStatus(a []string) bool {
 	return true
 }
 
-type Host struct {
-	Hostname                string
-	CustomCertificateSecret *string
-}
-
 func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
 	for _, ingress := range s.Ingresses {
-		if len(ingress) == 0 {
-			return nil, fmt.Errorf("ingress cannot be empty")
+		h, err := NewHost(ingress)
+		if err != nil {
+			return nil, err
 		}
 
-		var h Host
-		// If hostname is separated by +, the user wants to use a custom certificate
-		results := strings.Split(ingress, "+")
-
-		switch len(results) {
-		// No custom cert present
-		case 1:
-			h = Host{Hostname: results[0], CustomCertificateSecret: nil}
-		// Custom cert present
-		case 2:
-			secret := results[1]
-			if len(secret) == 0 {
-				return nil, fmt.Errorf("ingress %s is not valid, custom secret cannot be empty", ingress)
-			}
-
-			h = Host{Hostname: results[0], CustomCertificateSecret: &secret}
-		// More than one '+' characters present
-		default:
-			return nil, fmt.Errorf("ingress %s is not valid, contains multiple '+' characters", ingress)
-		}
-
-		// Verify that the hostname is an actual valid DNS name.
-		if err := domain.Check(h.Hostname); err != nil {
-			return nil, fmt.Errorf("hostname '%s' failed validation: %w", h.Hostname, err)
-		}
-
-		hosts = append(hosts, h)
+		hosts = append(hosts, *h)
 	}
 	return hosts, nil
 }
