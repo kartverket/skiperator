@@ -85,3 +85,7 @@ func (in *Routing) GetConditions() []metav1.Condition {
 func (in *Routing) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
 }
+
+func (in *RoutingSpec) GetHost() (*Host, error) {
+	return NewHost(in.Hostname)
+}

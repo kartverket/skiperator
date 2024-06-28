@@ -13,13 +13,15 @@ const (
 	ConditionStatusFalse   = "False"
 	ConditionStatusUnknown = "Unknown"
 
-	ConditionTypeCertificateSynced    = "CertificateSynced"
-	ConditionReasonCertificateSynced  = "CertificateSynced"
-	ConditionMessageCertificateSynced = "Certificate has been synced"
+	ConditionTypeCertificateSynced     = "CertificateSynced"
+	ConditionReasonCertificateSynced   = "CertificateSynced"
+	ConditionMessageCertificateSynced  = "Certificate has been synced"
+	ConditionMessageCertificateSkipped = "Certificate has been skipped (custom certificate secret in use)"
 
-	ConditionTypeGatewaySynced    = "GatewaySynced"
-	ConditionReasonGatewaySynced  = "GatewaySynced"
-	ConditionMessageGatewaySynced = "Gateway has been synced"
+	ConditionTypeGatewaySynced                     = "GatewaySynced"
+	ConditionReasonGatewaySynced                   = "GatewaySynced"
+	ConditionMessageGatewaySynced                  = "Gateway has been synced"
+	ConditionMessageGatewaySyncedCustomCertificate = "Gateway has been synced (using a custom certificate)"
 
 	ConditionTypeVirtualServiceSynced    = "VirtualServiceSynced"
 	CoditionReasonVirtualServiceSynced   = "VirtualServiceSynced"
