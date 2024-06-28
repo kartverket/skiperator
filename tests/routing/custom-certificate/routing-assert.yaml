@@ -1,0 +1,40 @@
+#apiVersion: cert-manager.io/v1
+#kind: Certificate
+#metadata:
+#  labels:
+#    app.kubernetes.io/managed-by: skiperator
+#    skiperator.kartverket.no/controller: routing
+#    skiperator.kartverket.no/source-namespace: chainsaw-routing-routes
+#  name: chainsaw-routing-routes-some-routing-routing-ingress-b1dffede
+#  namespace: istio-gateways
+#spec:
+#  dnsNames:
+#    - example.com
+#  issuerRef:
+#    kind: ClusterIssuer
+#    name: cluster-issuer
+#  secretName: chainsaw-routing-routes-some-routing-routing-ingress-b1dffede
+#---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: some-routing-routing-ingress
+spec:
+  selector:
+    app: istio-ingress-external
+  servers:
+    - hosts:
+        - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: some-cert
+        mode: SIMPLE
