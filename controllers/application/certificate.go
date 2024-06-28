@@ -69,7 +69,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 			continue
 		}
 
-		if h.CustomCertificateSecret == nil {
+		if !h.UsesCustomCert() {
 			_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &certificate, func() error {
 				r.SetLabelsFromApplication(&certificate, *application)
 
@@ -128,7 +128,7 @@ func (r *ApplicationReconciler) reconcileCertificate(ctx context.Context, applic
 		}
 
 		certificateInApplicationSpecIndex := slices.IndexFunc(hosts, func(h skiperatorv1alpha1.Host) bool {
-			if h.CustomCertificateSecret != nil {
+			if h.UsesCustomCert() {
 				return false
 			}
 			certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(h.Hostname))

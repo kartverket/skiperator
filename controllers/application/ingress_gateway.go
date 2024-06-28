@@ -68,7 +68,7 @@ func (r *ApplicationReconciler) reconcileIngressGateway(ctx context.Context, app
 			}
 
 			determinedCredentialName := application.Namespace + "-" + name
-			if h.CustomCertificateSecret != nil {
+			if h.UsesCustomCert() {
 				determinedCredentialName = *h.CustomCertificateSecret
 			}
 

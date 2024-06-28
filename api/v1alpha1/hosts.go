@@ -48,3 +48,7 @@ func NewHost(hostname string) (*Host, error) {
 
 	return &h, nil
 }
+
+func (h *Host) UsesCustomCert() bool {
+	return h.CustomCertificateSecret != nil
+}

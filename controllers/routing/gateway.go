@@ -21,7 +21,7 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: routing.GetGatewayName()}}
 
 	var determinedCredentialName string
-	if h.CustomCertificateSecret != nil {
+	if h.UsesCustomCert() {
 		determinedCredentialName = *h.CustomCertificateSecret
 	} else {
 		determinedCredentialName, err = routing.GetCertificateName()
@@ -71,7 +71,7 @@ func (r *RoutingReconciler) reconcileGateway(ctx context.Context, routing *skipe
 	}
 
 	m := ConditionMessageGatewaySynced
-	if h.CustomCertificateSecret != nil {
+	if h.UsesCustomCert() {
 		m = ConditionMessageGatewaySyncedCustomCertificate
 	}
 	err = r.setConditionGatewaySynced(ctx, routing, ConditionStatusTrue, m)
