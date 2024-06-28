@@ -48,7 +48,7 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 	}
 
 	// Do not create a new certificate when a custom certificate secret is specified
-	if h.CustomCertificateSecret != nil {
+	if h.UsesCustomCert() {
 		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusTrue, ConditionMessageCertificateSkipped)
 		return util.RequeueWithError(err)
 	}
