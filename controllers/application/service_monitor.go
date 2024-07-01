@@ -66,7 +66,7 @@ func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, app
 				{
 					Path:       util.IstioMetricsPath,
 					TargetPort: &util.IstioMetricsPortName,
-					MetricRelabelConfigs: []*pov1.RelabelConfig{
+					MetricRelabelConfigs: []pov1.RelabelConfig{
 						{
 							Action:       "drop",
 							Regex:        strings.Join(util.DefaultMetricDropList, "|"),
