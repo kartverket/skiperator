@@ -1,0 +1,108 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-cert
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+spec:
+  selector:
+    matchLabels:
+      app: custom-cert
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app: custom-cert
+    spec:
+      containers:
+        - name: custom-cert
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: custom-cert
+      volumes:
+        - emptyDir: {}
+          name: tmp
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: "kubernetes.io/hostname"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - custom-cert
+          matchLabelKeys:
+            - pod-template-hash
+        - maxSkew: 1
+          topologyKey: "onprem.gke.io/failure-domain-name"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - custom-cert
+          matchLabelKeys:
+            - pod-template-hash
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: some-cert
+  namespace: istio-gateways
+type: kubernetes.io/tls
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: custom-cert-ingress-dc2b250f77a411ad
+spec:
+  selector:
+    app: istio-ingress-external
+  servers:
+  - hosts:
+    - test.kartverket.no
+    port:
+      name: http
+      number: 80
+      protocol: HTTP
+  - hosts:
+    - test.kartverket.no
+    port:
+      name: https
+      number: 443
+      protocol: HTTPS
+    tls:
+      credentialName: some-cert
+      mode: SIMPLE
