@@ -3,7 +3,7 @@ SHELL = bash
 
 $(shell mkdir -p bin)
 export GOBIN = $(realpath bin)
-export PATH := $(PATH):$(GOBIN)
+export PATH := $(GOBIN):$(PATH)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
