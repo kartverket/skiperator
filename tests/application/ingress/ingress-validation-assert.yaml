@@ -1,9 +1,8 @@
-# Due to limitations in the kubernetes client we can't do an assert on the source field, so to circumvent this we can use a script step.
-# Look at the resource-label chainsaw-test.yaml for an example
-
 apiVersion: v1
 kind: Event
 reason: InvalidApplication
+source:
+  component: application-controller
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
@@ -12,6 +11,8 @@ involvedObject:
 apiVersion: v1
 kind: Event
 reason: InvalidApplication
+source:
+  component: application-controller
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
@@ -20,6 +21,8 @@ involvedObject:
 apiVersion: v1
 kind: Event
 reason: InvalidApplication
+source:
+  component: application-controller
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
@@ -28,6 +31,8 @@ involvedObject:
 apiVersion: v1
 kind: Event
 reason: InvalidApplication
+source:
+  component: application-controller
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application

@@ -26,6 +26,8 @@ metadata:
 apiVersion: v1
 kind: Event
 reason: MistypedLabel
+source:
+  component: application-controller
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
