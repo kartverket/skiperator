@@ -43,7 +43,6 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 	h, err := routing.Spec.GetHost()
 	if err != nil {
 		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
-		// TODO: Should we return RequeueWithError(err) here?
 		return util.DoNotRequeue()
 	}
 

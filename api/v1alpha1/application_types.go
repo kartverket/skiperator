@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
@@ -508,13 +509,20 @@ func allSameStatus(a []string) bool {
 
 func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
+	var errorsFound []error
 	for _, ingress := range s.Ingresses {
 		h, err := NewHost(ingress)
 		if err != nil {
-			return nil, err
+			errorsFound = append(errorsFound, err)
+			continue
 		}
 
 		hosts = append(hosts, *h)
 	}
-	return hosts, nil
+
+	return hosts, errors.Join(errorsFound...)
+}
+
+type MultiErr interface {
+	Unwrap() []error
 }
