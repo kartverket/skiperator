@@ -40,6 +40,18 @@ func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj
 }
 
 func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
+	h, err := routing.Spec.GetHost()
+	if err != nil {
+		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
+		return util.DoNotRequeue()
+	}
+
+	// Do not create a new certificate when a custom certificate secret is specified
+	if h.UsesCustomCert() {
+		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusTrue, ConditionMessageCertificateSkipped)
+		return util.RequeueWithError(err)
+	}
+
 	certificateName, err := routing.GetCertificateName()
 	if err != nil {
 		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
@@ -53,7 +65,7 @@ func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *s
 				Kind: "ClusterIssuer",
 				Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			},
-			DNSNames:   []string{routing.Spec.Hostname},
+			DNSNames:   []string{h.Hostname},
 			SecretName: certificateName,
 		}
 

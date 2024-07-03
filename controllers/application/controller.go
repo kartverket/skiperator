@@ -56,6 +56,8 @@ type ApplicationReconciler struct {
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
+var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
+
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -257,10 +259,16 @@ func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) b
 }
 
 func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
-	matchExpression, _ := regexp.Compile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
-	for _, ingress := range application.Spec.Ingresses {
-		if !matchExpression.MatchString(ingress) {
-			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", ingress)
+	var err error
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Remove/rewrite?
+	for _, h := range hosts {
+		if !hostMatchExpression.MatchString(h.Hostname) {
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", h.Hostname)
 			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
 				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
 			})

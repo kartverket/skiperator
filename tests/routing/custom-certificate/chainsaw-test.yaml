@@ -1,0 +1,23 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routes-custom-cert
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: chainsaw-routing-custom-cert
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - apply:
+            file: routing.yaml
+        - assert:
+            file: routing-assert.yaml
+        - error:
+            file: generated-cert.yaml
+        - script:
+            content: kubectl get secrets -nistio-gateways
+        - script:
+            content: kubectl get certificates -nistio-gateways
