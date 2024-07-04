@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/maps"
 	batchv1 "k8s.io/api/batch/v1"
@@ -256,7 +257,7 @@ func GetJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string)
 }
 
 func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
-	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
+	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
 	envVars := skipJob.Spec.Container.Env
 
 	if skipJob.Spec.Container.GCP != nil {
@@ -270,7 +271,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	}
 
 	var skipJobContainer corev1.Container
-	skipJobContainer = core.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
+	skipJobContainer = pod.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
 
 	var containers []corev1.Container
 
@@ -285,7 +286,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Selector:              nil,
 		ManualSelector:        nil,
 		Template: corev1.PodTemplateSpec{
-			Spec: core.CreatePodSpec(
+			Spec: pod.CreatePodSpec(
 				containers,
 				podVolumes,
 				skipJob.KindPostFixedName(),

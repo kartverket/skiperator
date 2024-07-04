@@ -1,13 +1,14 @@
 package networking
 
 import (
+	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
-	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
@@ -15,34 +16,35 @@ const (
 	GrafanaAgentNamespace = GrafanaAgentName
 )
 
-type NetPolOpts struct {
-	AccessPolicy     *podtypes.AccessPolicy
-	Ingresses        *[]string
-	Port             *int
-	RelatedServices  *[]corev1.Service
-	Namespace        string
-	Namespaces       *corev1.NamespaceList
-	Name             string
-	PrometheusConfig *skiperatorv1alpha1.PrometheusConfig
-	IstioEnabled     bool
-}
+func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *networkingv1.NetworkPolicy {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Attempting to generate network policy for application", application.Name)
 
-func CreateNetPolSpec(opts NetPolOpts) *networkingv1.NetworkPolicySpec {
-	ingressRules := getIngressRules(opts)
-	egressRules := getEgressRules(opts)
-
-	if len(ingressRules) > 0 || len(egressRules) > 0 {
-		return &networkingv1.NetworkPolicySpec{
-			PolicyTypes: getPolicyTypes(ingressRules, egressRules),
-			PodSelector: metav1.LabelSelector{
-				MatchLabels: util.GetPodAppSelector(opts.Name),
-			},
-			Ingress: ingressRules,
-			Egress:  egressRules,
-		}
+	networkPolicy := networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name,
+		},
 	}
 
-	return nil
+	accessPolicy := application.Spec.AccessPolicy
+	ingresses := application.Spec.Ingresses
+	ingressRules := getIngressRules(accessPolicy, ingresses, istioEnabled, application.Namespace)
+	egressRules := getEgressRules(accessPolicy, application.Namespace)
+
+	netpolSpec := networkingv1.NetworkPolicySpec{
+		PodSelector: metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
+		Ingress:     ingressRules,
+		Egress:      egressRules,
+		PolicyTypes: getPolicyTypes(ingressRules, egressRules),
+	}
+
+	resourceutils.SetApplicationLabels(&networkPolicy, application)
+	resourceutils.SetCommonAnnotations(&networkPolicy)
+
+	networkPolicy.Spec = netpolSpec
+
+	return &networkPolicy
 }
 
 func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egressRules []networkingv1.NetworkPolicyEgressRule) []networkingv1.PolicyType {
@@ -59,107 +61,46 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 	return policyType
 }
 
-func getEgressRules(opts NetPolOpts) []networkingv1.NetworkPolicyEgressRule {
+func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
-	accessPolicy := opts.AccessPolicy
-	namespace := opts.Namespace
-	namespaces := *opts.Namespaces
-	availableServices := *opts.RelatedServices
 
-	// Egress rules for internal peers
-	if accessPolicy == nil || availableServices == nil {
-		return egressRules
-	}
-
-	for _, outboundRule := range (*accessPolicy).Outbound.Rules {
-		if outboundRule.Namespace == "" && outboundRule.NamespacesByLabel == nil {
-			outboundRule.Namespace = namespace
-		}
-
-		relatedService, isApplicationAvailable := getRelatedService(availableServices, outboundRule, namespaces)
-
-		if !isApplicationAvailable {
-			continue
-		} else {
-			var servicePorts []networkingv1.NetworkPolicyPort
-
-			for _, port := range relatedService.Spec.Ports {
-				servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
-					Port: util.PointTo(intstr.FromInt(int(port.Port))),
-				})
-			}
-
-			egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
-				Ports: servicePorts,
-				To: []networkingv1.NetworkPolicyPeer{
-					{
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: relatedService.Spec.Selector,
-						},
-						NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
-					},
-				},
-			}
-
-			egressRules = append(egressRules, egressRuleForOutboundRule)
-		}
-
+	for _, rule := range accessPolicy.Outbound.Rules {
+		egressRules = append(egressRules, getEgressRule(rule, appNamespace))
 	}
 
 	return egressRules
 }
 
-func getRelatedService(services []corev1.Service, rule podtypes.InternalRule, namespaces corev1.NamespaceList) (corev1.Service, bool) {
-	for _, service := range services {
-		if service.Name == rule.Application {
-
-			if service.Namespace == rule.Namespace {
-				return service, true
-			}
-
-			if rule.NamespacesByLabel != nil {
-				if namespaceMatchesNamespacesByLabel(rule.NamespacesByLabel, namespaces) {
-					return service, true
-				}
-			}
-
-		}
-
+func getEgressRule(outboundRule podtypes.InternalRule, namespace string) networkingv1.NetworkPolicyEgressRule {
+	egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
+		To: []networkingv1.NetworkPolicyPeer{
+			{
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: util.GetPodAppSelector(outboundRule.Application),
+				},
+				NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
+			},
+		},
 	}
-
-	return corev1.Service{}, false
-
+	return egressRuleForOutboundRule
 }
 
-func namespaceMatchesNamespacesByLabel(namespacesByLabel map[string]string, namespaces corev1.NamespaceList) bool {
-	for _, namespace := range namespaces.Items {
-		if namespace.Labels != nil {
-			for key, value := range namespacesByLabel {
-				if namespace.Labels[key] == value {
-					return true
-				}
-			}
-		}
-	}
-
-	return false
-}
-
-func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
+// TODO Clean up better
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if opts.Ingresses != nil && opts.Port != nil && len(*opts.Ingresses) > 0 {
-		if hasInternalIngress(*opts.Ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, true))
+	if ingresses != nil && len(ingresses) < 0 {
+		if hasInternalIngress(ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(true))
 		}
 
-		if hasExternalIngress(*opts.Ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(*opts.Port, false))
+		if hasExternalIngress(ingresses) {
+			ingressRules = append(ingressRules, getGatewayIngressRule(false))
 		}
 	}
 
 	// Allow grafana-agent to scrape
-	if opts.IstioEnabled {
+	if istioEnabled {
 		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -184,20 +125,14 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 		ingressRules = append(ingressRules, promScrapeRule)
 	}
 
-	if opts.AccessPolicy == nil {
+	if accessPolicy == nil {
 		return ingressRules
 	}
 
-	if opts.AccessPolicy.Inbound != nil {
+	if accessPolicy.Inbound != nil {
 		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
-			From: getInboundPolicyPeers(opts.AccessPolicy.Inbound.Rules, opts.Namespace),
-			Ports: []networkingv1.NetworkPolicyPort{
-				{
-					Port: util.PointTo(intstr.FromInt(*opts.Port)),
-				},
-			},
+			From: getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
 		}
-
 		ingressRules = append(ingressRules, inboundTrafficIngressRule)
 	}
 
@@ -212,7 +147,7 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
 			NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
 			PodSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": inboundRule.Application},
+				MatchLabels: map[string]string{"app-name": inboundRule.Application},
 			},
 		})
 	}
@@ -220,7 +155,7 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 	return policyPeers
 }
 
-func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.LabelSelector {
+func getNamespaceSelector(rule podtypes.InternalRule, appNamespace string) *metav1.LabelSelector {
 	if rule.Namespace != "" {
 		return &metav1.LabelSelector{
 			MatchLabels: map[string]string{"kubernetes.io/metadata.name": rule.Namespace},
@@ -234,7 +169,7 @@ func getNamespaceSelector(rule podtypes.InternalRule, namespace string) *metav1.
 	}
 
 	return &metav1.LabelSelector{
-		MatchLabels: map[string]string{"kubernetes.io/metadata.name": namespace},
+		MatchLabels: map[string]string{"kubernetes.io/metadata.name": appNamespace},
 	}
 }
 
@@ -258,7 +193,7 @@ func hasInternalIngress(ingresses []string) bool {
 	return false
 }
 
-func getGatewayIngressRule(port int, isInternal bool) networkingv1.NetworkPolicyIngressRule {
+func getGatewayIngressRule(isInternal bool) networkingv1.NetworkPolicyIngressRule {
 	ingressRule := networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
 			{
@@ -270,16 +205,12 @@ func getGatewayIngressRule(port int, isInternal bool) networkingv1.NetworkPolicy
 				},
 			},
 		},
-		Ports: []networkingv1.NetworkPolicyPort{
-			{
-				Port: util.PointTo(intstr.FromInt(port)),
-			},
-		},
 	}
 
 	return ingressRule
 }
 
+// TODO Should be in constants or something
 func getIngressGatewayLabel(isInternal bool) map[string]string {
 	if isInternal {
 		return map[string]string{"app": "istio-ingress-internal"}

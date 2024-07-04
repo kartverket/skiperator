@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	applicationcontroller "github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
 	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
 	routingcontroller "github.com/kartverket/skiperator/controllers/routing"
 	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"

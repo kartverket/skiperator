@@ -284,6 +284,7 @@ github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2y
 github.com/cenkalti/backoff/v4 v4.3.0 h1:MyRJ/UdXutAwSAT+s3wNd7MfTIcy71VQueUuFK343L8=
 github.com/cenkalti/backoff/v4 v4.3.0/go.mod h1:Y3VNntkOUPxTVeUxJ/G5vcM//AlwfmyYozVcomhLiZE=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
+github.com/cert-manager/cert-manager v1.15.0/go.mod h1:Vxq6yNKAbgQeMtzu5gqU8n0vXDiZcGTa5LDyCJRbmXE=
 github.com/cert-manager/cert-manager v1.15.1 h1:HSG4k2GlJ2YgTLkZfQzrArNaQpM9+ehDDg550IxAD94=
 github.com/cert-manager/cert-manager v1.15.1/go.mod h1:p98JoGv3J9JhdKU9ngsj2EhWGI6/GlU7kpjWu5lf2js=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -581,6 +582,7 @@ github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
 github.com/kudobuilder/kuttl v0.17.0 h1:KkY5xs4RAiEI7XT1kj6XI3OYKVoAMu3PCVT/H/HZnnI=
 github.com/kudobuilder/kuttl v0.17.0/go.mod h1:2vrehDY2g27qKmV2hAxIsxcm7ZXkesVnNP43gWj2pQg=
+github.com/kyverno/chainsaw v0.2.4/go.mod h1:1YhR8iPhN0XIGIryuqzdpgI++CyDr3SlfMn2SXiJAcc=
 github.com/kyverno/chainsaw v0.2.5 h1:6mFALPjYbCFKmK4nD4yf70B1DiXGWsro481/k8aoHEs=
 github.com/kyverno/chainsaw v0.2.5/go.mod h1:L/UvkssKIyemXjovPnxiOJJNA2SuRrrgusmwK1+jHYM=
 github.com/kyverno/kyverno-json v0.0.3 h1:EImI/YV41dG4hDQer/W0qMZHfxqul1yiHrBEXxFrkGM=
@@ -625,6 +627,8 @@ github.com/nais/digdirator v0.0.0-20240701231217-06bb29bc831e h1:fggFj6l7sYgn6BI
 github.com/nais/digdirator v0.0.0-20240701231217-06bb29bc831e/go.mod h1:fLXPKj2I4dCS1JOkEvZJ7APOQl9ep+QzmmTw8QdlSlg=
 github.com/nais/liberator v0.0.0-20240628110454-831759e25b73 h1:a4gPHBPKynzd4lWnV5NNFoV5TZYyPWYx+U8nx8GFJYY=
 github.com/nais/liberator v0.0.0-20240628110454-831759e25b73/go.mod h1:bgMXRBuJtuEgSQlSCgjbUh58Jy93f2Zl4LH1iuIIm0w=
+github.com/nais/liberator v0.0.0-20240704091111-8b438c10cbd0 h1:Yaqrx6bqTzVALuhoi4QLp5Bc2HnyLf3uYBPV+uHYZdM=
+github.com/nais/liberator v0.0.0-20240704091111-8b438c10cbd0/go.mod h1:bgMXRBuJtuEgSQlSCgjbUh58Jy93f2Zl4LH1iuIIm0w=
 github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
 github.com/nxadm/tail v1.4.11/go.mod h1:OTaG3NK980DZzxbRq6lEuzgU+mug70nY11sMd4JXXHc=
 github.com/onsi/ginkgo v1.16.5 h1:8xi0RTUf59SOSfEtZMvwTvXYMzG4gV23XVHOZiXNtnE=
@@ -644,6 +648,7 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.0/go.mod h1:XYrdZw5dW12Cjkt4ndbeNZZTBp4UCHtW0ccR9+sTtPU=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.1 h1:+iiljhJV6niK7MuifJs/n3NeLxikd85nrQfn53sLJkU=
 github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.1/go.mod h1:XYrdZw5dW12Cjkt4ndbeNZZTBp4UCHtW0ccR9+sTtPU=
 github.com/prometheus/client_golang v0.9.2/go.mod h1:OsXs2jCmiKlQ1lTBmv21f2mNfw4xf/QclQDMrYNZzcM=
@@ -1367,8 +1372,10 @@ honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
 honnef.co/go/tools v0.0.1-2020.1.3/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
 honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9vFzvIQ3k=
+istio.io/api v1.22.1/go.mod h1:S3l8LWqNYS9yT+d4bH+jqzH2lMencPkW7SKM1Cu9EyM=
 istio.io/api v1.22.2 h1:b02rTNfbnsEK2HMH/kfuXHTzovSmqcL5cAj2TSklPcQ=
 istio.io/api v1.22.2/go.mod h1:S3l8LWqNYS9yT+d4bH+jqzH2lMencPkW7SKM1Cu9EyM=
+istio.io/client-go v1.22.1/go.mod h1:Z2QE9uMt6tDVyrmiLfLVhutbqtfUkPJ7A5Uw/p6gNFo=
 istio.io/client-go v1.22.2 h1:BiE7itlXFTHpZwOv0t2aZQGga7oCox8lYOdaYbyWNEo=
 istio.io/client-go v1.22.2/go.mod h1:Fxt0tVZLXQRKyrBv7uwm4zCZE0qayejG0bSwZy9K6Hg=
 k8s.io/api v0.30.2 h1:+ZhRj+28QT4UOH+BKznu4CBgPWgkXO7XAvMcMl0qKvI=

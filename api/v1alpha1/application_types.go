@@ -2,9 +2,6 @@ package v1alpha1
 
 import (
 	"encoding/json"
-	"errors"
-	"time"
-
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"golang.org/x/exp/slices"
@@ -12,6 +9,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -66,9 +64,7 @@ type ApplicationSpec struct {
 	// HTTP and HTTPS.
 	//
 	// Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
-	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
-	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
-	//
+	//+kubebuilder:validation:Pattern=^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
@@ -505,24 +501,4 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
-}
-
-func (s *ApplicationSpec) Hosts() ([]Host, error) {
-	var hosts []Host
-	var errorsFound []error
-	for _, ingress := range s.Ingresses {
-		h, err := NewHost(ingress)
-		if err != nil {
-			errorsFound = append(errorsFound, err)
-			continue
-		}
-
-		hosts = append(hosts, *h)
-	}
-
-	return hosts, errors.Join(errorsFound...)
-}
-
-type MultiErr interface {
-	Unwrap() []error
 }

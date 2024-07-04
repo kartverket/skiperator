@@ -2,9 +2,8 @@ package applicationcontroller
 
 import (
 	"context"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) reconcileMaskinporten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *controller.ApplicationReconciler) reconcileMaskinporten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Maskinporten"
 	r.SetControllerProgressing(ctx, application, controllerName)
 

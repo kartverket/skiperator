@@ -1,14 +1,24 @@
-package core
+package pod
 
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/flags"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type SkiperatorTopologyKey string
+
+const (
+	// Hostname is the value populated by the Kubelet.
+	Hostname SkiperatorTopologyKey = "kubernetes.io/hostname"
+	// OnPremFailureDomain is populated to the underlying ESXi hostname by the GKE on VMware tooling.
+	OnPremFailureDomain SkiperatorTopologyKey = "onprem.gke.io/failure-domain-name"
 )
 
 type PodOpts struct {
@@ -53,8 +63,8 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
 			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-				spreadConstraintForAppAndKey(serviceName, Hostname),
-				spreadConstraintForAppAndKey(serviceName, OnPremFailureDomain),
+				spreadConstraintForAppAndKey(serviceName, core.Hostname),
+				spreadConstraintForAppAndKey(serviceName, core.OnPremFailureDomain),
 			}
 		}
 	}
@@ -251,7 +261,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	return containerPorts
 }
 
-func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
+func spreadConstraintForAppAndKey(appName string, key core.SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
 	return corev1.TopologySpreadConstraint{
 		MaxSkew:           1,
 		TopologyKey:       string(key),

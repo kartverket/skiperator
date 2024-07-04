@@ -7,7 +7,6 @@ import (
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/nais/liberator/pkg/namegen"
 	"github.com/r3labs/diff/v3"
-	"golang.org/x/exp/maps"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -94,15 +93,6 @@ func ErrDoPanic(err error, message string) {
 	}
 }
 
-func SetCommonAnnotations(object client.Object) {
-	annotations := object.GetAnnotations()
-	if len(annotations) == 0 {
-		annotations = make(map[string]string)
-	}
-	maps.Copy(annotations, CommonAnnotations)
-	object.SetAnnotations(annotations)
-}
-
 func PointTo[T any](x T) *T {
 	return &x
 }
@@ -116,7 +106,7 @@ func GetIstioGatewaySelector() map[string]string {
 }
 
 func GetPodAppSelector(applicationName string) map[string]string {
-	return map[string]string{"app": applicationName}
+	return map[string]string{"app-name": applicationName}
 }
 
 func GetPodAppAndTeamSelector(applicationName string, teamName string) map[string]string {

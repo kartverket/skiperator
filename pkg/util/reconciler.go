@@ -214,7 +214,7 @@ func (r *ReconcilerBase) DeleteObjectIfExists(ctx context.Context, object client
 	return nil
 }
 
-func DoNotRequeue() (reconcile.Result, error) {
+func doNotRequeue() (reconcile.Result, error) {
 	return reconcile.Result{}, nil
 }
 

@@ -1,13 +1,14 @@
-package applicationcontroller
+package controller
 
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
-	"regexp"
-	"strings"
-
+	"github.com/go-logr/logr"
+	"github.com/kartverket/skiperator/controllers/application"
+	"github.com/kartverket/skiperator/pkg/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 
 	policyv1 "k8s.io/api/policy/v1"
 
@@ -25,12 +26,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -51,12 +50,11 @@ import (
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
-	util.ReconcilerBase
+	client   client.Client
+	recorder record.EventRecorder
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
-
-var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -66,7 +64,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}).
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+			util.MatchesPredicate[*networkingv1beta1.Gateway](applicationcontroller.isIngressGateway),
 		)).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}).
@@ -78,56 +76,65 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
-		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.SkiperatorOwnedCertRequests)).
+		Owns(&certmanagerv1.Certificate{}).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
 
-func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	application := &skiperatorv1alpha1.Application{}
-	err := r.GetClient().Get(ctx, req.NamespacedName, application)
+func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Trying to get application from request", req)
 
-	if errors.IsNotFound(err) {
-		return util.DoNotRequeue()
-	} else if err != nil {
-		r.EmitWarningEvent(application, "ReconcileStartFail", "something went wrong fetching the application, it might have been deleted")
-		return util.RequeueWithError(err)
+	application := &skiperatorv1alpha1.Application{}
+	if err := r.client.Get(ctx, req.NamespacedName, application); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error when trying to get application: %w", err)
 	}
 
-	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
-	if isApplicationMarkedToBeDeleted {
-		if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
-			if err := r.finalizeApplication(ctx, application); err != nil {
-				return ctrl.Result{}, err
-			}
+	return application, nil
+}
 
-			ctrlutil.RemoveFinalizer(application, applicationFinalizer)
-			err := r.GetClient().Update(ctx, application)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
+func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("finalizing application", application)
+
+	if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
+		ctrlutil.RemoveFinalizer(application, applicationFinalizer)
+		err := r.client.Update(ctx, application)
+		if err != nil {
+			ctxLog.Error(err, "Something went wrong when trying to finalize application.")
+			return err
 		}
 	}
 
-	err = r.validateApplicationSpec(application)
-	if err != nil {
-		r.EmitNormalEvent(application, "InvalidApplication", fmt.Sprintf("Application %v failed validation and was rejected, error: %s", application.Name, err.Error()))
-		return util.RequeueWithError(err)
-	}
+	return nil
+}
 
-	tmpApplication := application.DeepCopy()
+func shouldReconcile(application *skiperatorv1alpha1.Application) bool {
+	labels := application.GetLabels()
+	return labels["skiperator.kartverket.no/ignore"] != "true"
+}
+
+/*
+ * Set application defaults. For existing applications this shouldn't do anything
+ */
+func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1alpha1.Application, ctx context.Context) {
+	ctxLog := log.NewLogger(ctx)
+	ctxLog.Debug("Setting application defaults", application.Name)
+
 	application.FillDefaultsSpec()
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
 	}
 
-	if len(application.Labels) == 0 {
-		application.Labels = application.Spec.Labels
-	} else {
-		aggregateLabels := application.Labels
-		maps.Copy(aggregateLabels, application.Spec.Labels)
-		application.Labels = aggregateLabels
-	}
+	// Add labels to application
+	application.Labels["app.kubernetes.io/managed-by"] = "skiperator"
+	application.Labels["skiperator.skiperator.no/controller"] = "application"
+	application.Labels["application.skiperator.no/app-name"] = application.Name
+	application.Labels["application.skiperator.no/app-namespace"] = application.Namespace
+	maps.Copy(application.Labels, application.Spec.Labels)
 
 	// Add team label
 	if len(application.Spec.Team) == 0 {
@@ -137,6 +144,63 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	application.FillDefaultsStatus()
+}
+
+func (r *ApplicationReconciler) isIstioEnabledInNamespace(ctx context.Context, namespaceName string) bool {
+	namespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+
+	err := r.client.Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	if err != nil {
+		return false
+	}
+
+	v, exists := namespace.Labels[util.IstioRevisionLabel]
+
+	return exists && len(v) > 0
+}
+
+type Reconciliation interface {
+	SomeFunctions()
+}
+
+type ReconciliationTask struct {
+	ctx         context.Context
+	application *skiperatorv1alpha1.Application
+	logger      logr.Logger
+	objects     []client.Object
+}
+
+func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	ctxLog := log.NewLogger(ctx)
+	ctxLog.Debug("Starting reconcile for request", req.Name)
+
+	application, err := r.getApplication(req, ctx)
+	if application == nil {
+		return ctrl.Result{}, nil
+	} else if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if err = r.finalizeApplication(application, ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !shouldReconcile(application) {
+		return ctrl.Result{}, nil
+	}
+
+	// Copy application so we can check for diffs. Should be none on existing applications.
+	tmpApplication := application.DeepCopy()
+
+	r.setApplicationDefaults(application, ctx)
 
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
@@ -151,31 +215,25 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
 	if len(statusDiff) > 0 {
-		err := r.GetClient().Status().Update(ctx, application)
+		err := r.client.Status().Update(ctx, application)
 		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Finalizer check is due to a bug when updating using controller-runtime
 	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
 	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
-		err := r.GetClient().Update(ctx, application)
+		err := r.client.Update(ctx, application)
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	r.EmitNormalEvent(application, "ReconcileStart", fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
+	ctxLog.Debug("Starting reconciliation loop", application.Name)
+	r.recorder.Eventf(
+		application,
+		"Normal",
+		"ReconcileStart",
+		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
-		r.reconcileCertificate,
-		r.reconcileService,
-		r.reconcileConfigMap,
-		r.reconcileEgressServiceEntry,
-		r.reconcileIngressGateway,
-		r.reconcileIngressVirtualService,
-		r.reconcileHorizontalPodAutoscaler,
-		r.reconcilePeerAuthentication,
-		r.reconcileServiceAccount,
-		r.reconcileNetworkPolicy,
-		r.reconcileAuthorizationPolicy,
 		r.reconcilePodDisruptionBudget,
 		r.reconcileServiceMonitor,
 		r.reconcileIDPorten,
@@ -200,8 +258,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 }
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Trying to get team name for namespace", app.Namespace)
 	ns := &corev1.Namespace{}
-	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
+	if err := r.client.Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
 		return "", err
 	}
 
@@ -209,43 +269,8 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 	if len(teamValue) > 0 {
 		return teamValue, nil
 	}
-
+	ctxLog.Warning("Missing value for team label in namespace", app.Namespace, app.Name)
 	return "", fmt.Errorf("missing value for team label")
-}
-
-func (r *ApplicationReconciler) finalizeApplication(ctx context.Context, application *skiperatorv1alpha1.Application) error {
-	certificates, err := r.GetSkiperatorOwnedCertificates(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, certificate := range certificates.Items {
-		if r.IsApplicationsCertificate(ctx, *application, certificate) {
-			err = r.GetClient().Delete(ctx, &certificate)
-			err = client.IgnoreNotFound(err)
-			if err != nil {
-				return err
-			}
-		}
-
-	}
-	return err
-}
-
-func (r *ApplicationReconciler) validateApplicationSpec(application *skiperatorv1alpha1.Application) error {
-	validationFunctions := []func(application *skiperatorv1alpha1.Application) error{
-		ValidateIngresses,
-	}
-
-	for _, validationFunction := range validationFunctions {
-		err := validationFunction(application)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // Name in the form of "servicemonitors.monitoring.coreos.com".
@@ -256,26 +281,6 @@ func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) b
 	}
 
 	return true
-}
-
-func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
-	var err error
-	hosts, err := application.Spec.Hosts()
-	if err != nil {
-		return err
-	}
-
-	// TODO: Remove/rewrite?
-	for _, h := range hosts {
-		if !hostMatchExpression.MatchString(h.Hostname) {
-			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", h.Hostname)
-			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
-				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
-			})
-		}
-	}
-
-	return nil
 }
 
 func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
@@ -319,108 +324,22 @@ func (r *ApplicationReconciler) SetControllerFinishedOutcome(context context.Con
 	return r.SetControllerSynced(context, app, controllerName)
 }
 
-type ControllerResources string
+func (r *ApplicationReconciler) getGCPIdentityConfigMap(ctx context.Context, application skiperatorv1alpha1.Application) (*corev1.ConfigMap, error) {
+	if skipJob.Spec.Container.GCP != nil {
+		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
 
-const (
-	DEPLOYMENT              ControllerResources = "Deployment"
-	POD                     ControllerResources = "Pod"
-	SERVICE                 ControllerResources = "Service"
-	SERVICEACCOUNT          ControllerResources = "ServiceAccount"
-	CONFIGMAP               ControllerResources = "ConfigMap"
-	NETWORKPOLICY           ControllerResources = "NetworkPolicy"
-	GATEWAY                 ControllerResources = "Gateway"
-	SERVICEENTRY            ControllerResources = "ServiceEntry"
-	VIRTUALSERVICE          ControllerResources = "VirtualService"
-	PEERAUTHENTICATION      ControllerResources = "PeerAuthentication"
-	HORIZONTALPODAUTOSCALER ControllerResources = "HorizontalPodAutoscaler"
-	CERTIFICATE             ControllerResources = "Certificate"
-	AUTHORIZATIONPOLICY     ControllerResources = "AuthorizationPolicy"
-)
-
-var GroupKindFromControllerResource = map[string]metav1.GroupKind{
-	"deployment": {
-		Group: "apps",
-		Kind:  string(DEPLOYMENT),
-	},
-	"pod": {
-		Group: "",
-		Kind:  string(POD),
-	},
-	"service": {
-		Group: "",
-		Kind:  string(SERVICE),
-	},
-	"serviceaccount": {
-		Group: "",
-		Kind:  string(SERVICEACCOUNT),
-	},
-	"configmaps": {
-		Group: "",
-		Kind:  string(CONFIGMAP),
-	},
-	"networkpolicy": {
-		Group: "networking.k8s.io",
-		Kind:  string(NETWORKPOLICY),
-	},
-	"gateway": {
-		Group: "networking.istio.io",
-		Kind:  string(GATEWAY),
-	},
-	"serviceentry": {
-		Group: "networking.istio.io",
-		Kind:  string(SERVICEENTRY),
-	},
-	"virtualservice": {
-		Group: "networking.istio.io",
-		Kind:  string(VIRTUALSERVICE),
-	},
-	"peerauthentication": {
-		Group: "security.istio.io",
-		Kind:  string(PEERAUTHENTICATION),
-	},
-	"horizontalpodautoscaler": {
-		Group: "autoscaling",
-		Kind:  string(HORIZONTALPODAUTOSCALER),
-	},
-	"certificate": {
-		Group: "cert-manager.io",
-		Kind:  string(CERTIFICATE),
-	},
-	"authorizationpolicy": {
-		Group: "security.istio.io",
-		Kind:  string(AUTHORIZATIONPOLICY),
-	},
-}
-
-func (r *ApplicationReconciler) setResourceLabelsIfApplies(obj client.Object, app skiperatorv1alpha1.Application) {
-	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind()
-
-	for controllerResource, resourceLabels := range app.Spec.ResourceLabels {
-		resourceLabelGroupKind, present := GroupKindFromControllerResource[strings.ToLower(controllerResource)]
-		if present {
-			if strings.EqualFold(objectGroupVersionKind.Group, resourceLabelGroupKind.Group) && strings.EqualFold(objectGroupVersionKind.Kind, resourceLabelGroupKind.Kind) {
-				objectLabels := obj.GetLabels()
-				if len(objectLabels) == 0 {
-					objectLabels = make(map[string]string)
-				}
-				maps.Copy(objectLabels, resourceLabels)
-				obj.SetLabels(objectLabels)
-			}
-		} else {
-			r.EmitWarningEvent(&app, "MistypedLabel", fmt.Sprintf("could not find according Kind for Resource %v, make sure your resource is spelled correctly", controllerResource))
+		configMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
+		if !util.ErrIsMissingOrNil(
+			r.GetRecorder(),
+			err,
+			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
+			&skipJob,
+		) {
+			return nil, err
 		}
-	}
-}
 
-func (r *ApplicationReconciler) SetLabelsFromApplication(object client.Object, app skiperatorv1alpha1.Application) {
-	labels := object.GetLabels()
-	if len(labels) == 0 {
-		labels = make(map[string]string)
+		return &configMap, nil
+	} else {
+		return nil, nil
 	}
-	if app.Spec.Labels != nil {
-		maps.Copy(labels, app.Spec.Labels)
-		object.SetLabels(labels)
-	}
-
-	r.setResourceLabelsIfApplies(object, app)
 }

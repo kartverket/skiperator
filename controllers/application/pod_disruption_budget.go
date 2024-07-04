@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *controller.ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "PodDisruptionBudget"
 	_, _ = r.SetControllerProgressing(ctx, application, controllerName)
 

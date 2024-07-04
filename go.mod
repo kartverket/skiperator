@@ -4,20 +4,20 @@ go 1.22.2
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/cert-manager/cert-manager v1.15.1
+	github.com/cert-manager/cert-manager v1.15.0
 	github.com/chmike/domain v1.0.1
 	github.com/go-logr/logr v1.4.2
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.2.5
+	github.com/kyverno/chainsaw v0.2.4
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240701231217-06bb29bc831e
-	github.com/nais/liberator v0.0.0-20240628110454-831759e25b73
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.1
+	github.com/nais/liberator v0.0.0-20240704091111-8b438c10cbd0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.0
 	github.com/r3labs/diff/v3 v3.0.1
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
-	istio.io/api v1.22.2
-	istio.io/client-go v1.22.2
+	istio.io/api v1.22.1
+	istio.io/client-go v1.22.1
 	k8s.io/api v0.30.2
 	k8s.io/apiextensions-apiserver v0.30.2
 	k8s.io/apimachinery v0.30.2

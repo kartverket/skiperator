@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func (r *ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *controller.ApplicationReconciler) reconcileServiceMonitor(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "ServiceMonitor"
 	r.SetControllerProgressing(ctx, application, controllerName)
 

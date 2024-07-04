@@ -1,4 +1,4 @@
-package core
+package volume
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"

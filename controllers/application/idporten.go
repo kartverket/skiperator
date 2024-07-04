@@ -26,7 +26,7 @@ const (
 	KVBaseURL = "https://kartverket.no"
 )
 
-func (r *ApplicationReconciler) reconcileIDPorten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *controller.ApplicationReconciler) reconcileIDPorten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "IDPorten"
 	r.SetControllerProgressing(ctx, application, controllerName)
 

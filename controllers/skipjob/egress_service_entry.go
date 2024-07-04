@@ -5,6 +5,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,7 +47,7 @@ func (r *SKIPJobReconciler) reconcileEgressServiceEntry(ctx context.Context, ski
 		return util.RequeueWithError(err)
 	}
 
-	serviceEntriesToDelete := istio.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, skipJob.Name, serviceEntries)
+	serviceEntriesToDelete := serviceentry.GetServiceEntriesToDelete(serviceEntriesInNamespace.Items, skipJob.Name, serviceEntries)
 	for _, serviceEntry := range serviceEntriesToDelete {
 		err = r.DeleteObjectIfExists(ctx, &serviceEntry)
 		if err != nil {

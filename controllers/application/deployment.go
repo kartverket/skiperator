@@ -4,11 +4,14 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/kartverket/skiperator/internal/controller"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/configmap"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"strings"
 
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/maps"
@@ -36,7 +39,7 @@ var (
 	deploymentLog = ctrl.Log.WithName("deployment")
 )
 
-func (r *ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
+func (r *controller.ApplicationReconciler) defineDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (appsv1.Deployment, error) {
 	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
@@ -48,15 +51,15 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		},
 	}
 
-	podOpts := core.PodOpts{
+	podOpts := pod.PodOpts{
 		IstioEnabled: r.IsIstioEnabledForNamespace(ctx, application.Namespace),
 	}
 
-	skiperatorContainer := core.CreateApplicationContainer(application, podOpts)
+	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
 
 	var err error
 
-	podVolumes, containerVolumeMounts := core.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
+	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
 
 	if util.IsGCPAuthEnabled(application.Spec.GCP) {
 		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
@@ -69,7 +72,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
 			application,
 		) {
-			r.SetControllerError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, configmap.controllerName, err)
 			return deployment, err
 		}
 
@@ -85,7 +88,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
 		secretName, err := getIDPortenSecretName(application.Name)
 		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, configmap.controllerName, err)
 			return deployment, err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
@@ -100,7 +103,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
 		secretName, err := getMaskinportenSecretName(application.Name)
 		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, configmap.controllerName, err)
 			return deployment, err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
@@ -157,7 +160,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	containers = append(containers, skiperatorContainer)
 
 	if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
-		cloudSqlProxyContainer := core.CreateCloudSqlProxyContainer(application.Spec.GCP.CloudSQLProxy)
+		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(application.Spec.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 
@@ -170,7 +173,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 			Labels:      podTemplateLabels,
 			Annotations: generatedSpecAnnotations,
 		},
-		Spec: core.CreatePodSpec(
+		Spec: pod.CreatePodSpec(
 			containers,
 			podVolumes,
 			application.Name,
@@ -208,7 +211,7 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
-			r.SetControllerError(ctx, application, controllerName, err)
+			r.SetControllerError(ctx, application, configmap.controllerName, err)
 			return deployment, err
 		}
 	}
@@ -225,14 +228,14 @@ func (r *ApplicationReconciler) defineDeployment(ctx context.Context, applicatio
 	// Set application as owner of the deployment
 	err = ctrlutil.SetControllerReference(application, &deployment, r.GetScheme())
 	if err != nil {
-		r.SetControllerError(ctx, application, controllerName, err)
+		r.SetControllerError(ctx, application, configmap.controllerName, err)
 		return deployment, err
 	}
 
 	return *r.resolveDigest(ctx, &deployment), nil
 }
 
-func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
+func (r *controller.ApplicationReconciler) reconcileDeployment(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
 	controllerName := "Deployment"
 	r.SetControllerProgressing(ctx, application, controllerName)
 
@@ -295,7 +298,7 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, applica
 	return util.RequeueWithError(err)
 }
 
-func (r *ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
+func (r *controller.ApplicationReconciler) resolveDigest(ctx context.Context, input *appsv1.Deployment) *appsv1.Deployment {
 	res, err := util.ResolveImageTags(ctx, logr.Discard(), r.GetRestConfig(), input)
 	if err != nil {
 		// Exclude dummy image used in tests for decreased verbosity
