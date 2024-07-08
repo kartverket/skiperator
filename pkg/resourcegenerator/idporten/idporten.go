@@ -1,22 +1,20 @@
-package applicationcontroller
+package idporten
 
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"net/url"
 	"path"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
-	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
 	digdiratorClients "github.com/nais/digdirator/pkg/clients"
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
+	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -26,9 +24,9 @@ const (
 	KVBaseURL = "https://kartverket.no"
 )
 
-func (r *controller.ApplicationReconciler) reconcileIDPorten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "IDPorten"
-	r.SetControllerProgressing(ctx, application, controllerName)
+func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.IDPortenClient, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Attempting to generate id porten resource for application", application.Name)
 
 	var err error
 
@@ -43,38 +41,17 @@ func (r *controller.ApplicationReconciler) reconcileIDPorten(ctx context.Context
 		},
 	}
 
-	if idportenSpecifiedInSpec(application.Spec.IDPorten) {
-		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &idporten, func() error {
-			// Set application as owner of the sidecar
-			err := ctrlutil.SetControllerReference(application, &idporten, r.GetScheme())
-			if err != nil {
-				r.SetControllerError(ctx, application, controllerName, err)
-				return err
-			}
+	resourceutils.SetApplicationLabels(&idporten, application)
+	resourceutils.SetCommonAnnotations(&idporten)
 
-			r.SetLabelsFromApplication(&idporten, *application)
-			util.SetCommonAnnotations(&idporten)
-
-			idporten.Spec, err = getIDPortenSpec(application)
-			return err
-		})
-
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	} else {
-		err = r.GetClient().Delete(ctx, &idporten)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
+	idporten.Spec, err = getIDPortenSpec(application)
+	if err != nil {
+		return nil, err
 	}
 
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
+	ctxLog.Debug("Finished generating id porten resource for application", application.Name)
 
-	return reconcile.Result{}, err
+	return &idporten, nil
 }
 
 // Assumes application.Spec.IDPorten != nil
@@ -207,10 +184,10 @@ func buildURIs(ingresses []string, pathSeg string, fallback string) ([]naisiov1.
 	})
 }
 
-func idportenSpecifiedInSpec(mp *digdirator.IDPorten) bool {
+func IdportenSpecifiedInSpec(mp *digdirator.IDPorten) bool {
 	return mp != nil && mp.Enabled
 }
 
-func getIDPortenSecretName(name string) (string, error) {
+func GetIDPortenSecretName(name string) (string, error) {
 	return util.GetSecretName("idporten", name)
 }

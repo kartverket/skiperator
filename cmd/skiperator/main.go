@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	applicationcontroller "github.com/kartverket/skiperator/internal/controllers"
+	"github.com/kartverket/skiperator/internal/controller"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -103,9 +103,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&applicationcontroller.ApplicationReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr)
+	err = controller.NewApplicationReconciler(
+		mgr.GetClient(),
+		mgr.GetConfig(),
+		mgr.GetEventRecorderFor("application-controller"),
+	).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)

@@ -2,13 +2,23 @@ package v1alpha1
 
 import (
 	"encoding/json"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"golang.org/x/exp/slices"
+	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
@@ -501,4 +511,27 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
+}
+
+// object list of all the schemas the application type might create.
+// we need this for cleaning up resources no longer needed
+func GetSchemas() []client.ObjectList {
+	return []client.ObjectList{
+		&appsv1.DeploymentList{},
+		&corev1.ServiceList{},
+		&corev1.ConfigMapList{},
+		&networkingv1beta1.ServiceEntryList{},
+		&networkingv1beta1.GatewayList{},
+		&autoscalingv2.HorizontalPodAutoscalerList{},
+		&networkingv1beta1.VirtualServiceList{},
+		&securityv1beta1.PeerAuthenticationList{},
+		&corev1.ServiceAccountList{},
+		&policyv1.PodDisruptionBudgetList{},
+		&networkingv1.NetworkPolicyList{},
+		&securityv1beta1.AuthorizationPolicyList{},
+		&nais_io_v1.MaskinportenClientList{},
+		&nais_io_v1.IDPortenClientList{},
+		&pov1.ServiceMonitorList{},
+		&certmanagerv1.CertificateList{},
+	}
 }

@@ -36,6 +36,10 @@ type ReconcilerBase struct {
 	features         *flags.Features
 }
 
+type Controller interface {
+	SetupWithManager() error
+}
+
 func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclient.Clientset, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder, apireader client.Reader) ReconcilerBase {
 	return ReconcilerBase{
 		apireader:        apireader,

@@ -1,20 +1,19 @@
-package applicationcontroller
+package maskinporten
 
 import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func (r *controller.ApplicationReconciler) reconcileMaskinporten(ctx context.Context, application *skiperatorv1alpha1.Application) (reconcile.Result, error) {
-	controllerName := "Maskinporten"
-	r.SetControllerProgressing(ctx, application, controllerName)
+func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.MaskinportenClient, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Attempting to generate maskin porten resource  for application", application.Name)
 
 	var err error
 
@@ -28,37 +27,15 @@ func (r *controller.ApplicationReconciler) reconcileMaskinporten(ctx context.Con
 			Name:      application.Name,
 		},
 	}
+	resourceutils.SetApplicationLabels(&maskinporten, application)
+	resourceutils.SetCommonAnnotations(&maskinporten)
 
-	if maskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
-		_, err = ctrlutil.CreateOrPatch(ctx, r.GetClient(), &maskinporten, func() error {
-			err := ctrlutil.SetControllerReference(application, &maskinporten, r.GetScheme())
-			if err != nil {
-				return err
-			}
-
-			r.SetLabelsFromApplication(&maskinporten, *application)
-			util.SetCommonAnnotations(&maskinporten)
-
-			maskinporten.Spec, err = getMaskinportenSpec(application)
-			return err
-		})
-
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
-	} else {
-		err = r.GetClient().Delete(ctx, &maskinporten)
-		err = client.IgnoreNotFound(err)
-		if err != nil {
-			r.SetControllerError(ctx, application, controllerName, err)
-			return reconcile.Result{}, err
-		}
+	maskinporten.Spec, err = getMaskinportenSpec(application)
+	if err != nil {
+		return nil, err
 	}
-
-	r.SetControllerFinishedOutcome(ctx, application, controllerName, err)
-
-	return reconcile.Result{}, err
+	ctxLog.Debug("Finished generating maskin porten resource for application", application.Name)
+	return &maskinporten, nil
 }
 
 func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.MaskinportenClientSpec, error) {
@@ -87,10 +64,10 @@ func getClientNameMaskinporten(applicationName string, maskinportenSettings *dig
 	return applicationName
 }
 
-func maskinportenSpecifiedInSpec(maskinportenSettings *digdirator.Maskinporten) bool {
+func MaskinportenSpecifiedInSpec(maskinportenSettings *digdirator.Maskinporten) bool {
 	return maskinportenSettings != nil && maskinportenSettings.Enabled
 }
 
-func getMaskinportenSecretName(name string) (string, error) {
+func GetMaskinportenSecretName(name string) (string, error) {
 	return util.GetSecretName("maskinporten", name)
 }

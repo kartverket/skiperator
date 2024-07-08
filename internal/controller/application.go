@@ -3,11 +3,12 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
-	"github.com/kartverket/skiperator/controllers/application"
 	"github.com/kartverket/skiperator/pkg/log"
+	. "github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 
 	policyv1 "k8s.io/api/policy/v1"
@@ -27,7 +28,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -50,11 +50,20 @@ import (
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
-	client   client.Client
-	recorder record.EventRecorder
+	client     client.Client
+	recorder   record.EventRecorder
+	restConfig *rest.Config
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
+
+func NewApplicationReconciler(client client.Client, restConfig *rest.Config, recorder record.EventRecorder) *ApplicationReconciler {
+	return &ApplicationReconciler{
+		client:     client,
+		recorder:   recorder,
+		restConfig: restConfig,
+	}
+}
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
@@ -63,9 +72,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}).
-		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.Gateway](applicationcontroller.isIngressGateway),
-		)).
+		Owns(&networkingv1beta1.Gateway{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
@@ -117,6 +124,15 @@ func shouldReconcile(application *skiperatorv1alpha1.Application) bool {
 	return labels["skiperator.kartverket.no/ignore"] != "true"
 }
 
+func getApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":            "skiperator",
+		"skiperator.skiperator.no/controller":     "application",
+		"application.skiperator.no/app-name":      application.Name,
+		"application.skiperator.no/app-namespace": application.Namespace,
+	}
+}
+
 /*
  * Set application defaults. For existing applications this shouldn't do anything
  */
@@ -130,10 +146,8 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 	}
 
 	// Add labels to application
-	application.Labels["app.kubernetes.io/managed-by"] = "skiperator"
-	application.Labels["skiperator.skiperator.no/controller"] = "application"
-	application.Labels["application.skiperator.no/app-name"] = application.Name
-	application.Labels["application.skiperator.no/app-namespace"] = application.Namespace
+	//TODO can we skip a step here?
+	maps.Copy(getApplicationDefaultLabels(application), application.Labels)
 	maps.Copy(application.Labels, application.Spec.Labels)
 
 	// Add team label
@@ -163,20 +177,21 @@ func (r *ApplicationReconciler) isIstioEnabledInNamespace(ctx context.Context, n
 	return exists && len(v) > 0
 }
 
-type Reconciliation interface {
-	SomeFunctions()
-}
-
-type ReconciliationTask struct {
-	ctx         context.Context
-	application *skiperatorv1alpha1.Application
-	logger      logr.Logger
-	objects     []client.Object
+func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
+	if !r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com") {
+		return false
+	}
+	return true
 }
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx)
 	ctxLog.Debug("Starting reconcile for request", req.Name)
+
+	rdy := r.isClusterReady(ctx)
+	if !rdy {
+		ctxLog.Warning("Cluster is not ready for reconciliation", req.Name)
+	}
 
 	application, err := r.getApplication(req, ctx)
 	if application == nil {
@@ -226,6 +241,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	//Start the actual reconciliation
 	ctxLog.Debug("Starting reconciliation loop", application.Name)
 	r.recorder.Eventf(
 		application,
@@ -233,29 +249,25 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"ReconcileStart",
 		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Application) (reconcile.Result, error){
-		r.reconcilePodDisruptionBudget,
-		r.reconcileServiceMonitor,
-		r.reconcileIDPorten,
-		r.reconcileMaskinporten,
-		r.reconcileDeployment,
+	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig)
+
+	funcs := []reconciliationFunc{
+		certificate.Generate,
 	}
 
-	for _, fn := range controllerDuties {
-		res, err := fn(ctx, application)
-		if err != nil {
-			r.GetClient().Status().Update(ctx, application)
-			return res, err
-		} else if res.RequeueAfter > 0 || res.Requeue {
-			r.GetClient().Status().Update(ctx, application)
-			return res, nil
+	for _, f := range funcs {
+		if err := f(reconciliation); err != nil {
+			return util.RequeueWithError(err)
 		}
 	}
+
 	r.GetClient().Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return util.RequeueWithError(err)
 }
+
+type reconciliationFunc func(reconciliation Reconciliation) error
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
 	ctxLog := log.FromContext(ctx)

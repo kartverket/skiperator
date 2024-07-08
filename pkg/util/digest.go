@@ -10,24 +10,23 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-func ResolveImageTags(ctx context.Context, log logr.Logger, config *rest.Config, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
+func ResolveImageTags(ctx context.Context, log logr.Logger, config *rest.Config, deployment *appsv1.Deployment) error {
 	n, err := parseManifest(deployment)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err = resolve.ImageTags(ctx, log, config, n, []string{}); err != nil {
-		return nil, err
+		return err
 	}
 
 	b, _ := n.MarshalJSON()
-	var res appsv1.Deployment
-	err = json.Unmarshal(b, &res)
+	err = json.Unmarshal(b, &deployment)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &res, nil
+	return nil
 }
 
 func parseManifest(deployment *appsv1.Deployment) (*yaml.RNode, error) {

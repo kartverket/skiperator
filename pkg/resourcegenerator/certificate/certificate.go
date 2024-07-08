@@ -1,22 +1,29 @@
 package certificate
 
 import (
-	"context"
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) []certmanagerv1.Certificate {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to create certificates for application", application.Name)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	ctxLog.Debug("Attempting to create certificates for application", r.GetReconciliationObject().GetName())
 
-	var certificates []certmanagerv1.Certificate
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("certificate only supports Application type")
+	}
+
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		return fmt.Errorf("failed to cast object to Application")
+	}
 
 	// Generate separate gateway for each ingress
 	for _, hostname := range application.Spec.Ingresses {
@@ -34,8 +41,9 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 			DNSNames:   []string{hostname},
 			SecretName: certificateName,
 		}
-		certificates = append(certificates, certificate)
+		var obj client.Object = &certificate
+		r.AddSyncObject(&obj)
 	}
 	ctxLog.Debug("Finished creating certificates for application", application.Name)
-	return certificates
+	return nil
 }
