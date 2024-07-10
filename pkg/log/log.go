@@ -9,6 +9,7 @@ import (
 
 type logger struct {
 	logr.Logger
+	level zapcore.Level
 }
 
 var log = &logger{Logger: ctrl.Log}

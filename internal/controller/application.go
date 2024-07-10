@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -53,15 +54,17 @@ type ApplicationReconciler struct {
 	client     client.Client
 	recorder   record.EventRecorder
 	restConfig *rest.Config
+	processor  *resourceprocessor.ResourceProcessor
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
-func NewApplicationReconciler(client client.Client, restConfig *rest.Config, recorder record.EventRecorder) *ApplicationReconciler {
+func NewApplicationReconciler(client client.Client, restConfig *rest.Config, recorder record.EventRecorder, processor *resourceprocessor.ResourceProcessor) *ApplicationReconciler {
 	return &ApplicationReconciler{
 		client:     client,
 		recorder:   recorder,
 		restConfig: restConfig,
+		processor:  processor,
 	}
 }
 
@@ -184,6 +187,8 @@ func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
 	return true
 }
 
+type reconciliationFunc func(reconciliation Reconciliation) error
+
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx)
 	ctxLog.Debug("Starting reconcile for request", req.Name)
@@ -261,13 +266,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		}
 	}
 
-	r.GetClient().Status().Update(ctx, application)
+	r.client.Status().Update(ctx, application)
 	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
 
 	return util.RequeueWithError(err)
 }
-
-type reconciliationFunc func(reconciliation Reconciliation) error
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
 	ctxLog := log.FromContext(ctx)

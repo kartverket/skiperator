@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/internal/controller"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -103,10 +104,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas())
 	err = controller.NewApplicationReconciler(
 		mgr.GetClient(),
 		mgr.GetConfig(),
 		mgr.GetEventRecorderFor("application-controller"),
+		processor,
 	).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")

@@ -19,6 +19,6 @@ type Reconciliation interface {
 	IsIstioEnabled() bool
 	GetReconciliationObject() client.Object
 	GetType() ReconciliationObjectType
-	GetSyncObjects() []*client.Object
-	AddSyncObject(*client.Object)
+	GetResources() []*client.Object
+	AddResource(*client.Object)
 }

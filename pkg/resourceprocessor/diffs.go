@@ -1,33 +1,53 @@
 package resourceprocessor
 
 import (
-	"context"
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"reflect"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]*client.Object, error) {
-	var liveObjects client.ObjectList
+// TODO fix pointer mess ? ? ? ?
+func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, error) {
+	var liveObjects *[]client.Object
 	if err := r.listResourcesByLabels(task.GetCtx(), task.GetReconciliationObject().GetNamespace(), task.GetReconciliationObject().GetLabels(), liveObjects); err != nil {
-		return nil, fmt.Errorf("failed to list resources by labels: %w", err)
+		return nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 
-	diff := make([]*client.Object, 0)
-	for _, liveObj := range liveObjects {
-		for _, syncObj := range task.GetSyncObjects() {
-			if r.compareObject(liveObj, syncObj) {
-				// Remove the object from the list of live objects
-				// so that we can identify the objects that need to be deleted
-				diff = append(diff, liveObj)
+	liveObjectsMap := make(map[string]*client.Object)
+	for _, obj := range *liveObjects {
+		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
+	}
+
+	newObjectsMap := make(map[string]*client.Object)
+	for _, obj := range task.GetResources() {
+		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+(*obj).GetObjectKind().GroupVersionKind().Kind] = obj
+	}
+
+	shouldDelete := make([]client.Object, 0)
+	shouldUpdate := make([]client.Object, 0)
+	shouldCreate := make([]client.Object, 0)
+
+	for key, newObj := range newObjectsMap {
+		if liveObj, exists := liveObjectsMap[key]; exists {
+			if r.compareObject(*liveObj, *newObj) {
+				shouldUpdate = append(shouldUpdate, *newObj)
 			}
+		} else {
+			shouldCreate = append(shouldCreate, *newObj)
 		}
 	}
-	return diff, nil
+
+	// Determine resources to delete
+	for key, liveObj := range liveObjectsMap {
+		if _, exists := newObjectsMap[key]; !exists {
+			shouldDelete = append(shouldDelete, *liveObj)
+		}
+	}
+
+	return shouldDelete, shouldUpdate, shouldCreate, nil
 }
 
 func (r *ResourceProcessor) compareObject(obj1, obj2 client.Object) bool {
@@ -57,32 +77,4 @@ func (r *ResourceProcessor) compareObject(obj1, obj2 client.Object) bool {
 	}
 
 	return true
-}
-
-func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace string, labels map[string]string, objList []*client.Object) error {
-	// Convert the map of labels to a selector string
-	selector := metav1.LabelSelector{MatchLabels: labels}
-	selectorString, err := metav1.LabelSelectorAsSelector(&selector)
-	if err != nil {
-		return fmt.Errorf("failed to convert label selector to selector string: %w", err)
-	}
-
-	// List options that include the label selector and namespace
-	listOpts := &client.ListOptions{
-		LabelSelector: selectorString,
-		Namespace:     namespace,
-	}
-
-	// List resources
-	for _, schema := range r.schemas {
-		if err := r.client.List(ctx, schema, listOpts); err != nil {
-			return fmt.Errorf("failed to list resources: %w", err)
-		}
-		for _, resource := range schema.Items {
-			objList = append(objList, resource.)
-		}
-	}
-
-
-	return nil
 }
