@@ -74,7 +74,6 @@ type ApplicationSpec struct {
 	// HTTP and HTTPS.
 	//
 	// Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
-	//+kubebuilder:validation:Pattern=^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 

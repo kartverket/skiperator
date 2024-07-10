@@ -1,4 +1,4 @@
-package controller
+package controllers
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -31,7 +32,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -51,20 +51,28 @@ import (
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
-	client     client.Client
-	recorder   record.EventRecorder
-	restConfig *rest.Config
-	processor  *resourceprocessor.ResourceProcessor
+	client           client.Client
+	recorder         record.EventRecorder
+	restConfig       *rest.Config
+	processor        *resourceprocessor.ResourceProcessor
+	extensionsClient *apiextensionsclient.Clientset
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
-func NewApplicationReconciler(client client.Client, restConfig *rest.Config, recorder record.EventRecorder, processor *resourceprocessor.ResourceProcessor) *ApplicationReconciler {
+func NewApplicationReconciler(
+	client client.Client,
+	restConfig *rest.Config,
+	recorder record.EventRecorder,
+	processor *resourceprocessor.ResourceProcessor,
+	extensionsClient *apiextensionsclient.Clientset,
+) *ApplicationReconciler {
 	return &ApplicationReconciler{
-		client:     client,
-		recorder:   recorder,
-		restConfig: restConfig,
-		processor:  processor,
+		client:           client,
+		recorder:         recorder,
+		restConfig:       restConfig,
+		processor:        processor,
+		extensionsClient: extensionsClient,
 	}
 }
 
@@ -87,8 +95,96 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Owns(&certmanagerv1.Certificate{}).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
+}
+
+type reconciliationFunc func(reconciliation Reconciliation) error
+
+func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	ctxLog := log.NewLogger(ctx).WithName("application-controller")
+	ctxLog.Debug("Starting reconcile for request", req.Name)
+
+	rdy := r.isClusterReady(ctx)
+	if !rdy {
+		ctxLog.Warning("Cluster is not ready for reconciliation", req.Name)
+	}
+
+	application, err := r.getApplication(req, ctx)
+	if application == nil {
+		return ctrl.Result{}, nil
+	} else if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
+	if isApplicationMarkedToBeDeleted {
+		if err = r.finalizeApplication(application, ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if !shouldReconcile(application) {
+		return ctrl.Result{}, nil
+	}
+
+	// Copy application so we can check for diffs. Should be none on existing applications.
+	tmpApplication := application.DeepCopy()
+
+	r.setApplicationDefaults(application, ctx)
+
+	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
+	if err != nil {
+		return util.RequeueWithError(err)
+	}
+
+	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
+	if err != nil {
+		return util.RequeueWithError(err)
+	}
+
+	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
+	// updates to be visible even though the controllerDuties may take some time.
+	if len(statusDiff) > 0 {
+		err := r.client.Status().Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	// Finalizer check is due to a bug when updating using controller-runtime
+	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
+	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
+		err := r.client.Update(ctx, application)
+		return reconcile.Result{Requeue: true}, err
+	}
+
+	//Start the actual reconciliation
+	ctxLog.Debug("Starting reconciliation loop", application.Name)
+	r.recorder.Eventf(
+		application,
+		"Normal",
+		"ReconcileStart",
+		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
+
+	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig)
+
+	//TODO status and conditions in application object
+	funcs := []reconciliationFunc{
+		certificate.Generate,
+	}
+
+	for _, f := range funcs {
+		if err := f(reconciliation); err != nil {
+			return util.RequeueWithError(err)
+		}
+	}
+
+	if err = r.processor.Process(reconciliation); err != nil {
+		return util.RequeueWithError(err)
+	}
+
+	r.client.Status().Update(ctx, application)
+
+	return util.DoNotRequeue()
 }
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
@@ -187,91 +283,6 @@ func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
 	return true
 }
 
-type reconciliationFunc func(reconciliation Reconciliation) error
-
-func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	ctxLog := log.NewLogger(ctx)
-	ctxLog.Debug("Starting reconcile for request", req.Name)
-
-	rdy := r.isClusterReady(ctx)
-	if !rdy {
-		ctxLog.Warning("Cluster is not ready for reconciliation", req.Name)
-	}
-
-	application, err := r.getApplication(req, ctx)
-	if application == nil {
-		return ctrl.Result{}, nil
-	} else if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
-	if isApplicationMarkedToBeDeleted {
-		if err = r.finalizeApplication(application, ctx); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{}, nil
-	}
-
-	if !shouldReconcile(application) {
-		return ctrl.Result{}, nil
-	}
-
-	// Copy application so we can check for diffs. Should be none on existing applications.
-	tmpApplication := application.DeepCopy()
-
-	r.setApplicationDefaults(application, ctx)
-
-	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
-	if err != nil {
-		return util.RequeueWithError(err)
-	}
-
-	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
-	if err != nil {
-		return util.RequeueWithError(err)
-	}
-
-	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
-	// updates to be visible even though the controllerDuties may take some time.
-	if len(statusDiff) > 0 {
-		err := r.client.Status().Update(ctx, application)
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	// Finalizer check is due to a bug when updating using controller-runtime
-	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
-	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
-		err := r.client.Update(ctx, application)
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", application.Name)
-	r.recorder.Eventf(
-		application,
-		"Normal",
-		"ReconcileStart",
-		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
-
-	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig)
-
-	funcs := []reconciliationFunc{
-		certificate.Generate,
-	}
-
-	for _, f := range funcs {
-		if err := f(reconciliation); err != nil {
-			return util.RequeueWithError(err)
-		}
-	}
-
-	r.client.Status().Update(ctx, application)
-	r.EmitNormalEvent(application, "ReconcileEnd", fmt.Sprintf("Application %v has finished reconciliation loop", application.Name))
-
-	return util.RequeueWithError(err)
-}
-
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
 	ctxLog := log.FromContext(ctx)
 	ctxLog.Debug("Trying to get team name for namespace", app.Namespace)
@@ -290,71 +301,10 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 
 // Name in the form of "servicemonitors.monitoring.coreos.com".
 func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) bool {
-	result, err := r.GetApiExtensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+	result, err := r.extensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
 	if err != nil || result == nil {
 		return false
 	}
 
 	return true
-}
-
-func (r *ApplicationReconciler) manageControllerStatus(context context.Context, app *skiperatorv1alpha1.Application, controller string, statusName skiperatorv1alpha1.StatusNames, message string) (reconcile.Result, error) {
-	app.UpdateControllerStatus(controller, message, statusName)
-	return util.DoNotRequeue()
-}
-
-func (r *ApplicationReconciler) manageControllerStatusError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
-	app.UpdateControllerStatus(controller, issue.Error(), skiperatorv1alpha1.ERROR)
-	r.EmitWarningEvent(app, "ControllerFault", fmt.Sprintf("%v controller experienced an error: %v", controller, issue.Error()))
-	return util.RequeueWithError(issue)
-}
-
-func (r *ApplicationReconciler) SetControllerPending(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
-	message := controller + " has been initialized and is pending Skiperator startup"
-
-	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PENDING, message)
-}
-
-func (r *ApplicationReconciler) SetControllerProgressing(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
-	message := controller + " has started sync"
-
-	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.PROGRESSING, message)
-}
-
-func (r *ApplicationReconciler) SetControllerSynced(context context.Context, app *skiperatorv1alpha1.Application, controller string) (reconcile.Result, error) {
-	message := controller + " has finished synchronizing"
-
-	return r.manageControllerStatus(context, app, controller, skiperatorv1alpha1.SYNCED, message)
-}
-
-func (r *ApplicationReconciler) SetControllerError(context context.Context, app *skiperatorv1alpha1.Application, controller string, issue error) (reconcile.Result, error) {
-	return r.manageControllerStatusError(context, app, controller, issue)
-}
-
-func (r *ApplicationReconciler) SetControllerFinishedOutcome(context context.Context, app *skiperatorv1alpha1.Application, controllerName string, issue error) (reconcile.Result, error) {
-	if issue != nil {
-		return r.manageControllerStatusError(context, app, controllerName, issue)
-	}
-
-	return r.SetControllerSynced(context, app, controllerName)
-}
-
-func (r *ApplicationReconciler) getGCPIdentityConfigMap(ctx context.Context, application skiperatorv1alpha1.Application) (*corev1.ConfigMap, error) {
-	if skipJob.Spec.Container.GCP != nil {
-		gcpIdentityConfigMapNamespacedName := types.NamespacedName{Namespace: "skiperator-system", Name: "gcp-identity-config"}
-
-		configMap, err := util.GetConfigMap(r.GetClient(), ctx, gcpIdentityConfigMapNamespacedName)
-		if !util.ErrIsMissingOrNil(
-			r.GetRecorder(),
-			err,
-			"Cannot find configmap named "+gcpIdentityConfigMapNamespacedName.Name+" in namespace "+gcpIdentityConfigMapNamespacedName.Namespace,
-			&skipJob,
-		) {
-			return nil, err
-		}
-
-		return &configMap, nil
-	} else {
-		return nil, nil
-	}
 }

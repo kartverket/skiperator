@@ -1,10 +1,11 @@
-package routingcontroller
+package controllers
 
 import (
 	"context"
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -41,17 +42,35 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	routing := &skiperatorv1alpha1.Routing{}
-	err := r.GetClient().Get(ctx, req.NamespacedName, routing)
+func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Routing, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Trying to get routing from request", req)
 
-	if errors.IsNotFound(err) {
+	routing := &skiperatorv1alpha1.Routing{}
+	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error when trying to get routing: %w", err)
+	}
+
+	return routing, nil
+}
+
+func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	ctxLog := log.NewLogger(ctx).WithName("routing-controller")
+	ctxLog.Debug("Starting reconcile for request", req.Name)
+
+	routing, err := r.getRouting(req, ctx)
+	if routing == nil {
 		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
 		return util.RequeueWithError(err)
 	}
 
+	//Start the actual reconciliation
+	ctxLog.Debug("Starting reconciliation loop", routing.Name)
 	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
 	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Routing) (reconcile.Result, error){

@@ -11,6 +11,8 @@ type ReconciliationObjectType string
 const (
 	ApplicationType ReconciliationObjectType = "Application"
 	JobType         ReconciliationObjectType = "SKIPJob"
+	NamespaceType   ReconciliationObjectType = "Namespace"
+	RoutingType     ReconciliationObjectType = "Routing"
 )
 
 type Reconciliation interface {

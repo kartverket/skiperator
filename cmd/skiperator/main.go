@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/kartverket/skiperator/internal/controller"
+	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"os"
@@ -33,8 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
-	routingcontroller "github.com/kartverket/skiperator/controllers/routing"
 	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -104,12 +103,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas())
-	err = controller.NewApplicationReconciler(
+	//TODO clean up this mess
+	extensionsClient, _ := apiextensionsclient.NewForConfig(mgr.GetConfig())
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas(), mgr.GetScheme())
+	err = controllers.NewApplicationReconciler(
 		mgr.GetClient(),
 		mgr.GetConfig(),
 		mgr.GetEventRecorderFor("application-controller"),
 		processor,
+		extensionsClient,
 	).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
@@ -124,7 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&routingcontroller.RoutingReconciler{
+	err = (&controllers.RoutingReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
@@ -132,7 +134,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&namespacecontroller.NamespaceReconciler{
+	err = (&controllers.NamespaceReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
 		Registry:       "ghcr.io",
 		Token:          *imagePullToken,

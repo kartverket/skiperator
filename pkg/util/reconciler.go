@@ -3,7 +3,9 @@ package util
 import (
 	"context"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/flags"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -34,13 +36,22 @@ type ReconcilerBase struct {
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
 	features         *flags.Features
+	processor        *resourceprocessor.ResourceProcessor
 }
 
 type Controller interface {
 	SetupWithManager() error
 }
 
-func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclient.Clientset, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder, apireader client.Reader) ReconcilerBase {
+func NewReconcilerBase(
+	client client.Client,
+	extensionsClient *apiextensionsclient.Clientset,
+	scheme *runtime.Scheme,
+	restConfig *rest.Config,
+	recorder record.EventRecorder,
+	apireader client.Reader,
+	processor *resourceprocessor.ResourceProcessor,
+) ReconcilerBase {
 	return ReconcilerBase{
 		apireader:        apireader,
 		client:           client,
@@ -49,6 +60,7 @@ func NewReconcilerBase(client client.Client, extensionsClient *apiextensionsclie
 		restConfig:       restConfig,
 		recorder:         recorder,
 		features:         flags.FeatureFlags,
+		processor:        processor,
 	}
 }
 
@@ -58,8 +70,9 @@ func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) Reconcil
 	if err != nil {
 		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
 	}
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas(), mgr.GetScheme())
 
-	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader())
+	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader(), processor)
 }
 
 // GetClient returns the underlying client
@@ -218,10 +231,14 @@ func (r *ReconcilerBase) DeleteObjectIfExists(ctx context.Context, object client
 	return nil
 }
 
-func doNotRequeue() (reconcile.Result, error) {
+func DoNotRequeue() (reconcile.Result, error) {
 	return reconcile.Result{}, nil
 }
 
 func RequeueWithError(err error) (reconcile.Result, error) {
 	return reconcile.Result{}, err
+}
+
+func (r *ReconcilerBase) GetProcessor() *resourceprocessor.ResourceProcessor {
+	return r.processor
 }

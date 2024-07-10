@@ -3,6 +3,7 @@ package routingcontroller
 import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -32,7 +33,7 @@ const (
 	ConditionMessageNetworkPolicySynced = "NetworkPolicy has been synced"
 )
 
-func (r *RoutingReconciler) setConditionCertificateSynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
+func (r *controllers.RoutingReconciler) setConditionCertificateSynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
 	if !r.containsCondition(ctx, routing, ConditionReasonCertificateSynced) {
 		return util.AppendCondition(ctx, r.GetClient(), routing, ConditionTypeCertificateSynced, status,
 			ConditionReasonCertificateSynced, message)
@@ -47,7 +48,7 @@ func (r *RoutingReconciler) setConditionCertificateSynced(ctx context.Context, r
 	return nil
 }
 
-func (r *RoutingReconciler) setConditionGatewaySynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
+func (r *controllers.RoutingReconciler) setConditionGatewaySynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
 	if !r.containsCondition(ctx, routing, ConditionReasonGatewaySynced) {
 		return util.AppendCondition(ctx, r.GetClient(), routing, ConditionTypeGatewaySynced, status,
 			ConditionReasonGatewaySynced, message)
@@ -62,7 +63,7 @@ func (r *RoutingReconciler) setConditionGatewaySynced(ctx context.Context, routi
 	return nil
 }
 
-func (r *RoutingReconciler) setConditionVirtualServiceSynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
+func (r *controllers.RoutingReconciler) setConditionVirtualServiceSynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
 	if !r.containsCondition(ctx, routing, CoditionReasonVirtualServiceSynced) {
 		return util.AppendCondition(ctx, r.GetClient(), routing, ConditionTypeVirtualServiceSynced, ConditionStatusTrue,
 			CoditionReasonVirtualServiceSynced, ConditionMessageVirtualServiceSynced)
@@ -77,7 +78,7 @@ func (r *RoutingReconciler) setConditionVirtualServiceSynced(ctx context.Context
 	return nil
 }
 
-func (r *RoutingReconciler) setConditionNetworkPolicySynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
+func (r *controllers.RoutingReconciler) setConditionNetworkPolicySynced(ctx context.Context, routing *skiperatorv1alpha1.Routing, status metav1.ConditionStatus, message string) error {
 	if !r.containsCondition(ctx, routing, ConditionReasonNetworkPolicySynced) {
 		return util.AppendCondition(ctx, r.GetClient(), routing, ConditionTypeNetworkPolicySynced, ConditionStatusTrue,
 			ConditionReasonNetworkPolicySynced, ConditionMessageNetworkPolicySynced)
@@ -92,7 +93,7 @@ func (r *RoutingReconciler) setConditionNetworkPolicySynced(ctx context.Context,
 	return nil
 }
 
-func (r *RoutingReconciler) getConditionStatus(ctx context.Context, routing *skiperatorv1alpha1.Routing, typeName string) metav1.ConditionStatus {
+func (r *controllers.RoutingReconciler) getConditionStatus(ctx context.Context, routing *skiperatorv1alpha1.Routing, typeName string) metav1.ConditionStatus {
 
 	var output metav1.ConditionStatus = ConditionStatusUnknown
 	for _, condition := range routing.Status.Conditions {
@@ -103,7 +104,7 @@ func (r *RoutingReconciler) getConditionStatus(ctx context.Context, routing *ski
 	return output
 }
 
-func (r *RoutingReconciler) deleteCondition(ctx context.Context, routing *skiperatorv1alpha1.Routing, typeName string, reason string) error {
+func (r *controllers.RoutingReconciler) deleteCondition(ctx context.Context, routing *skiperatorv1alpha1.Routing, typeName string, reason string) error {
 	logger := log.FromContext(ctx)
 	var newConditions = make([]metav1.Condition, 0)
 	for _, condition := range routing.Status.Conditions {
@@ -121,7 +122,7 @@ func (r *RoutingReconciler) deleteCondition(ctx context.Context, routing *skiper
 	return nil
 }
 
-func (r *RoutingReconciler) containsCondition(ctx context.Context, routing *skiperatorv1alpha1.Routing, reason string) bool {
+func (r *controllers.RoutingReconciler) containsCondition(ctx context.Context, routing *skiperatorv1alpha1.Routing, reason string) bool {
 	output := false
 	for _, condition := range routing.Status.Conditions {
 		if condition.Reason == reason {

@@ -1,24 +1,25 @@
-package networking
+package dynamic
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	GrafanaAgentName      = "grafana-agent"
-	GrafanaAgentNamespace = GrafanaAgentName
-)
+func generateForApplication(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	ctxLog.Debug("Attempting to generate network policy for application", r.GetReconciliationObject().GetName())
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *networkingv1.NetworkPolicy {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate network policy for application", application.Name)
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		return fmt.Errorf("failed to cast object to Application")
+	}
 
 	networkPolicy := networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -29,7 +30,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 
 	accessPolicy := application.Spec.AccessPolicy
 	ingresses := application.Spec.Ingresses
-	ingressRules := getIngressRules(accessPolicy, ingresses, istioEnabled, application.Namespace)
+	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), application.Namespace)
 	egressRules := getEgressRules(accessPolicy, application.Namespace)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -43,8 +44,10 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 	resourceutils.SetCommonAnnotations(&networkPolicy)
 
 	networkPolicy.Spec = netpolSpec
-
-	return &networkPolicy
+	var obj client.Object = &networkPolicy
+	r.AddResource(&obj)
+	ctxLog.Debug("Finished generating networkpolicy for application", application.Name)
+	return nil
 }
 
 func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egressRules []networkingv1.NetworkPolicyEgressRule) []networkingv1.PolicyType {

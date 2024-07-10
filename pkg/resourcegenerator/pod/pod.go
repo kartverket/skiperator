@@ -5,7 +5,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/flags"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/core"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -63,8 +62,8 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
 			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-				spreadConstraintForAppAndKey(serviceName, core.Hostname),
-				spreadConstraintForAppAndKey(serviceName, core.OnPremFailureDomain),
+				spreadConstraintForAppAndKey(serviceName, "kubernetes.io/hostname"),
+				spreadConstraintForAppAndKey(serviceName, "onprem.gke.io/failure-domain-name"),
 			}
 		}
 	}

@@ -5,6 +5,7 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -15,7 +16,7 @@ import (
 
 const IstioGatewayNamespace = "istio-gateways"
 
-func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
+func (r *controllers.RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
 	certificate, isCert := obj.(*certmanagerv1.Certificate)
 
 	if !isCert {
@@ -39,7 +40,7 @@ func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj
 	return requests
 }
 
-func (r *RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
+func (r *controllers.RoutingReconciler) reconcileCertificate(ctx context.Context, routing *skiperatorv1alpha1.Routing) (reconcile.Result, error) {
 	h, err := routing.Spec.GetHost()
 	if err != nil {
 		err = r.setConditionCertificateSynced(ctx, routing, ConditionStatusFalse, err.Error())
@@ -95,7 +96,7 @@ func getLabels(certificate certmanagerv1.Certificate, routing *skiperatorv1alpha
 	return certLabels
 }
 
-func (r *RoutingReconciler) GetSkiperatorRoutingCertificates(context context.Context) (certmanagerv1.CertificateList, error) {
+func (r *controllers.RoutingReconciler) GetSkiperatorRoutingCertificates(context context.Context) (certmanagerv1.CertificateList, error) {
 	certificates := certmanagerv1.CertificateList{}
 	err := r.GetClient().List(context, &certificates, client.MatchingLabels{
 		"app.kubernetes.io/managed-by":        "skiperator",
