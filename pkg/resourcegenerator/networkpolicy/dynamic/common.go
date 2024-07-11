@@ -1,52 +1,53 @@
 package dynamic
 
 import (
-	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func generateForApplication(r reconciliation.Reconciliation) error {
+// TODO fix mess
+func generateForCommon(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate network policy for application", r.GetReconciliationObject().GetName())
 
-	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
-	if !ok {
-		return fmt.Errorf("failed to cast object to Application")
+	object := r.GetReconciliationObject()
+	name := object.GetName()
+	namespace := object.GetNamespace()
+	if r.GetType() == reconciliation.JobType {
+		name = util.ResourceNameWithKindPostfix(name, object.GetObjectKind().GroupVersionKind().Kind)
 	}
 
 	networkPolicy := networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: application.Namespace,
-			Name:      application.Name,
+			Namespace: namespace,
+			Name:      name,
 		},
 	}
 
-	accessPolicy := application.Spec.AccessPolicy
-	ingresses := application.Spec.Ingresses
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), application.Namespace)
-	egressRules := getEgressRules(accessPolicy, application.Namespace)
+	accessPolicy := r.GetCommonSpec().AccessPolicy
+	var ingresses []string
+	if r.GetType() == reconciliation.ApplicationType {
+		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
+	}
+	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace)
+	egressRules := getEgressRules(accessPolicy, namespace)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
-		PodSelector: metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
+		PodSelector: metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(name)},
 		Ingress:     ingressRules,
 		Egress:      egressRules,
 		PolicyTypes: getPolicyTypes(ingressRules, egressRules),
 	}
 
-	resourceutils.SetApplicationLabels(&networkPolicy, application)
-	resourceutils.SetCommonAnnotations(&networkPolicy)
-
 	networkPolicy.Spec = netpolSpec
 	var obj client.Object = &networkPolicy
 	r.AddResource(&obj)
-	ctxLog.Debug("Finished generating networkpolicy for application", application.Name)
+	ctxLog.Debug("Finished generating networkpolicy", r.GetType(), namespace)
 	return nil
 }
 

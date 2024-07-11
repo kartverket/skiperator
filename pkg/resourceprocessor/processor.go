@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -16,11 +17,11 @@ type Processor interface {
 type ResourceProcessor struct {
 	client  client.Client
 	log     log.Logger
-	schemas []client.ObjectList
+	schemas []*unstructured.UnstructuredList
 	scheme  *runtime.Scheme
 }
 
-func NewResourceProcessor(client client.Client, schemas []client.ObjectList, scheme *runtime.Scheme) *ResourceProcessor {
+func NewResourceProcessor(client client.Client, schemas []*unstructured.UnstructuredList, scheme *runtime.Scheme) *ResourceProcessor {
 	l := log.FromContext(context.Background()).WithName("ResourceProcessor")
 	return &ResourceProcessor{client: client, log: l, schemas: schemas, scheme: scheme}
 }

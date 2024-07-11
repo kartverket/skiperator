@@ -260,7 +260,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	return containerPorts
 }
 
-func spreadConstraintForAppAndKey(appName string, key core.SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
+func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
 	return corev1.TopologySpreadConstraint{
 		MaxSkew:           1,
 		TopologyKey:       string(key),

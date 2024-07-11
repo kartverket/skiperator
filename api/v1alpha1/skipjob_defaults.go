@@ -2,7 +2,6 @@ package v1alpha1
 
 import (
 	"dario.cat/mergo"
-	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,8 +44,8 @@ func (skipJob *SKIPJob) setSkipJobDefaults() error {
 
 	if skipJob.Spec.Cron != nil {
 		defaults.Spec.Cron = &CronSettings{}
-
-		defaults.Spec.Cron.Suspend = util.PointTo(false)
+		suspend := false
+		defaults.Spec.Cron.Suspend = &suspend
 	}
 
 	return mergo.Merge(skipJob, defaults)

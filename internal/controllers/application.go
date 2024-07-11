@@ -157,6 +157,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	identityConfigMap, err := getIdentityConfigMap(r.client)
+	if err != nil {
+		ctxLog.Error(err, "cant find identity config map")
+	}
+
 	//Start the actual reconciliation
 	ctxLog.Debug("Starting reconciliation loop", application.Name)
 	r.recorder.Eventf(
@@ -165,7 +170,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"ReconcileStart",
 		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig)
+	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig, identityConfigMap)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{

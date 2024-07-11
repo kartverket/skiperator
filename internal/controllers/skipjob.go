@@ -1,9 +1,17 @@
-package skipjobcontroller
+package controllers
 
 import (
 	"context"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/log"
+	. "github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
+	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -34,17 +42,17 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&batchv1.Job{}).
 		// This is added as the Jobs created by CronJobs are not owned by the SKIPJob directly, but rather through the CronJob
 		Watches(&batchv1.Job{}, handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, object client.Object) []reconcile.Request {
-			job, isJob := object.(*batchv1.Job)
+			batchJob, isJob := object.(*batchv1.Job)
 
 			if !isJob {
 				return nil
 			}
 
-			if skipJobName, exists := job.Labels[SKIPJobReferenceLabelKey]; exists {
+			if skipJobName, exists := batchJob.Labels[job.SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
-							Namespace: job.Namespace,
+							Namespace: batchJob.Namespace,
 							Name:      skipJobName,
 						},
 					},
@@ -61,11 +69,27 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	skipJob := &skiperatorv1alpha1.SKIPJob{}
-	err := r.GetClient().Get(ctx, req.NamespacedName, skipJob)
+func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.SKIPJob, error) {
+	ctxLog := log.FromContext(ctx)
+	ctxLog.Debug("Trying to get routing from request", req)
 
-	if errors.IsNotFound(err) {
+	skipJob := &skiperatorv1alpha1.SKIPJob{}
+	if err := r.GetClient().Get(ctx, req.NamespacedName, skipJob); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error when trying to get routing: %w", err)
+	}
+
+	return skipJob, nil
+}
+
+func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+	ctxLog := log.NewLogger(ctx).WithName("skipjob-controller")
+	ctxLog.Debug("Starting reconcile for request", req.Name)
+
+	skipJob, err := r.getSKIPJob(req, ctx)
+	if skipJob == nil {
 		return util.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
@@ -99,24 +123,34 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
-
-	controllerDuties := []func(context.Context, *skiperatorv1alpha1.SKIPJob) (reconcile.Result, error){
-		r.reconcileServiceAccount,
-		r.reconcileNetworkPolicy,
-		r.reconcileEgressServiceEntry,
-		r.reconcileConfigMap,
-		r.reconcileJob,
-		r.reconcilePodMonitor,
+	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	if err != nil {
+		ctxLog.Error(err, "cant find identity config map")
 	}
 
-	for _, fn := range controllerDuties {
-		res, err := fn(ctx, skipJob)
-		if err != nil {
-			return res, err
-		} else if res.RequeueAfter > 0 || res.Requeue {
-			return res, nil
+	//Start the actual reconciliation
+	ctxLog.Debug("Starting reconciliation loop", skipJob.Name)
+	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
+
+	reconciliation := NewJobReconciliation(ctx, skipJob, ctxLog, r.GetRestConfig(), identityConfigMap)
+
+	resourceGeneration := []reconciliationFunc{
+		serviceaccount.Generate,
+		networkpolicy.Generate,
+		serviceentry.Generate,
+		auth.Generate,
+		job.Generate,
+		podmonitor.Generate,
+	}
+
+	for _, f := range resourceGeneration {
+		if err := f(reconciliation); err != nil {
+			return util.RequeueWithError(err)
 		}
+	}
+
+	if err = r.GetProcessor().Process(reconciliation); err != nil {
+		return util.RequeueWithError(err)
 	}
 
 	r.EmitNormalEvent(skipJob, "ReconcileEnd", fmt.Sprintf("SKIPJob %v has finished reconciliation loop", skipJob.Name))

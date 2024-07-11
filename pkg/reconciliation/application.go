@@ -4,25 +4,28 @@ import (
 	"context"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ApplicationReconciliation struct {
-	ctx          context.Context
-	application  *skiperatorv1alpha1.Application
-	logger       log.Logger
-	resources    []*client.Object
-	istioEnabled bool
-	restConfig   *rest.Config
+	ctx               context.Context
+	application       *skiperatorv1alpha1.Application
+	logger            log.Logger
+	resources         []*client.Object
+	istioEnabled      bool
+	restConfig        *rest.Config
+	identityConfigMap *corev1.ConfigMap
 }
 
-func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application, logger log.Logger, restConfig *rest.Config) *ApplicationReconciliation {
+func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application, logger log.Logger, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
-		ctx:         ctx,
-		application: application,
-		logger:      logger,
-		restConfig:  restConfig,
+		ctx:               ctx,
+		application:       application,
+		logger:            logger,
+		restConfig:        restConfig,
+		identityConfigMap: identityConfigMap,
 	}
 }
 
@@ -52,4 +55,15 @@ func (r *ApplicationReconciliation) AddResource(object *client.Object) {
 
 func (r *ApplicationReconciliation) GetResources() []*client.Object {
 	return r.resources
+}
+
+func (r *ApplicationReconciliation) GetCommonSpec() *CommonType {
+	return &CommonType{
+		GCP:          r.application.Spec.GCP,
+		AccessPolicy: r.application.Spec.AccessPolicy,
+	}
+}
+
+func (r *ApplicationReconciliation) GetIdentityConfigMap() *corev1.ConfigMap {
+	return r.identityConfigMap
 }

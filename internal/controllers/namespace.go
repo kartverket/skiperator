@@ -59,10 +59,15 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return util.RequeueWithError(err)
 	}
 
+	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	if err != nil {
+		ctxLog.Error(err, "cant find identity config map")
+	}
+
 	ctxLog.Debug("Starting reconciliation of namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 
-	reconciliation := NewNamespaceReconciliation(ctx, namespace, ctxLog, r.GetRestConfig())
+	reconciliation := NewNamespaceReconciliation(ctx, namespace, ctxLog, r.GetRestConfig(), identityConfigMap)
 
 	if err = defaultdeny.Generate(reconciliation); err != nil {
 		return util.RequeueWithError(err)

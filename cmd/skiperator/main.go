@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
@@ -118,7 +117,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&skipjobcontroller.SKIPJobReconciler{
+	err = (&controllers.SKIPJobReconciler{
 		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {

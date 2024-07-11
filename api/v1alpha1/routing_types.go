@@ -2,8 +2,9 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 //+kubebuilder:object:root=true
@@ -75,7 +76,10 @@ func (in *Routing) GetVirtualServiceName() string {
 
 func (in *Routing) GetCertificateName() (string, error) {
 	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
-	return util.GetSecretName(namePrefix, "routing-ingress")
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170
+	secretName, err := namegen.ShortName(fmt.Sprintf("%s-%s", namePrefix, "routing-ingress"), validation.DNS1035LabelMaxLength)
+	return secretName, err
 }
 
 func (in *Routing) GetConditions() []metav1.Condition {

@@ -6,6 +6,11 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
+	. "github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
+	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -14,7 +19,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -28,6 +32,7 @@ type RoutingReconciler struct {
 	util.ReconcilerBase
 }
 
+// TODO fix this
 func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Routing{}).
@@ -38,7 +43,7 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&skiperatorv1alpha1.Application{},
 			handler.EnqueueRequestsFromMapFunc(r.SkiperatorApplicationsChanges)).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+		//TODO why red?
 		Complete(r)
 }
 
@@ -69,30 +74,38 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return util.RequeueWithError(err)
 	}
 
+	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	if err != nil {
+		ctxLog.Error(err, "cant find identity config map")
+	}
+
 	//Start the actual reconciliation
 	ctxLog.Debug("Starting reconciliation loop", routing.Name)
 	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
-	controllerDuties := []func(context.Context, *skiperatorv1alpha1.Routing) (reconcile.Result, error){
-		r.reconcileNetworkPolicy,
-		r.reconcileVirtualService,
-		r.reconcileGateway,
-		r.reconcileCertificate,
+	reconciliation := NewRoutingReconciliation(ctx, routing, ctxLog, r.GetRestConfig(), identityConfigMap)
+	resourceGeneration := []reconciliationFunc{
+		networkpolicy.Generate,
+		virtualservice.Generate,
+		gateway.Generate,
+		certificate.Generate,
 	}
 
-	for _, fn := range controllerDuties {
-		res, err := fn(ctx, routing)
-		if err != nil {
-			return res, err
-		} else if res.RequeueAfter > 0 || res.Requeue {
-			return res, nil
+	for _, f := range resourceGeneration {
+		if err := f(reconciliation); err != nil {
+			return util.RequeueWithError(err)
 		}
 	}
 
+	if err = r.GetProcessor().Process(reconciliation); err != nil {
+		return util.RequeueWithError(err)
+	}
+
+	r.GetClient().Status().Update(ctx, routing)
+
 	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", routing.Name))
 
-	err = r.GetClient().Update(ctx, routing)
-	return util.RequeueWithError(err)
+	return util.DoNotRequeue()
 }
 
 func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
@@ -115,6 +128,42 @@ func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Contex
 			NamespacedName: types.NamespacedName{
 				Namespace: route.Namespace,
 				Name:      route.Name,
+			},
+		})
+	}
+
+	return requests
+}
+
+// TODO Set labels
+func getRoutingLabels(obj client.Object, routing *skiperatorv1alpha1.Routing) map[string]string {
+	labels := make(map[string]string)
+
+	labels["app.kubernetes.io/managed-by"] = "skiperator"
+	labels["skiperator.kartverket.no/controller"] = "routing"
+	labels["skiperator.kartverket.no/source-namespace"] = routing.Namespace
+
+	return labels
+}
+
+// TODO figure out what this does
+func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
+	certificate, isCert := obj.(*certmanagerv1.Certificate)
+
+	if !isCert {
+		return nil
+	}
+
+	isSkiperatorRoutingOwned := certificate.Labels["app.kubernetes.io/managed-by"] == "skiperator" &&
+		certificate.Labels["skiperator.kartverket.no/controller"] == "routing"
+
+	requests := make([]reconcile.Request, 0)
+
+	if isSkiperatorRoutingOwned {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: certificate.Labels["application.skiperator.no/app-namespace"],
+				Name:      certificate.Labels["application.skiperator.no/app-name"],
 			},
 		})
 	}

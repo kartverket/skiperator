@@ -1,15 +1,13 @@
 package auth
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -24,21 +22,39 @@ type WorkloadIdentityCredentials struct {
 	TokenUrl                       string           `json:"token_url"`
 	CredentialSource               CredentialSource `json:"credential_source"`
 }
+
 type CredentialSource struct {
 	File string `json:"file"`
 }
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, gcpIdentityConfigMap *corev1.ConfigMap) (*corev1.ConfigMap, error) {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Generating configmap for application", application.Name)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
 
-	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(application.Name)
-	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: gcpAuthConfigMapName}}
+	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
+		return getConfigMap(r, r.GetIdentityConfigMap())
+	} else {
+		err := fmt.Errorf("unsupported type %s in gcp configmap", r.GetType())
+		ctxLog.Error(err, "Failed to generate gcp configmap")
+		return err
+	}
+}
+
+func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
+	if r.GetCommonSpec().GCP.Auth.ServiceAccount != "" {
+		return nil
+	}
+
+	ctxLog := r.GetLogger()
+	ctxLog.Debug("Generating configmap for type", r.GetType())
+
+	object := r.GetReconciliationObject()
+	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
+	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: gcpAuthConfigMapName}}
 
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
 		Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
-		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + application.Spec.GCP.Auth.ServiceAccount + ":generateAccessToken",
+		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",
 		CredentialSource: CredentialSource{
@@ -49,15 +65,15 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 	credentialsBytes, err := json.Marshal(credentials)
 	if err != nil {
 		ctxLog.Error(err, "could not marshall gcp identity config map")
-		return nil, err
+		return err
 	}
 
 	gcpConfigMap.Data = map[string]string{
 		"config": string(credentialsBytes),
 	}
+	var obj client.Object = &gcpConfigMap
+	r.AddResource(&obj)
 
-	resourceutils.SetCommonAnnotations(&gcpConfigMap)
-	resourceutils.SetApplicationLabels(&gcpConfigMap, application)
-
-	return &gcpConfigMap, nil
+	ctxLog.Debug("Finished generating configmap", r.GetType(), object.GetName())
+	return nil
 }

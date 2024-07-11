@@ -14,8 +14,8 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 
 	//TODO refactor more so we can have more common functions
-	if r.GetType() == reconciliation.ApplicationType {
-		return generateForApplication(r)
+	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
+		return generateForCommon(r)
 	} else if r.GetType() == reconciliation.RoutingType {
 		return generateForRouting(r)
 	} else {
