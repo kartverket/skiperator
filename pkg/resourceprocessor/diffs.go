@@ -11,13 +11,14 @@ import (
 
 // TODO fix pointer mess ? ? ? ?
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, error) {
-	var liveObjects *[]client.Object
-	if err := r.listResourcesByLabels(task.GetCtx(), task.GetReconciliationObject().GetNamespace(), task.GetReconciliationObject().GetLabels(), liveObjects); err != nil {
+	liveObjects := make([]client.Object, 0)
+
+	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), task.GetReconciliationObject().GetLabels(), &liveObjects); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 
 	liveObjectsMap := make(map[string]*client.Object)
-	for _, obj := range *liveObjects {
+	for _, obj := range liveObjects {
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
 	}
 
@@ -54,13 +55,13 @@ func (r *ResourceProcessor) compareObject(obj1, obj2 client.Object) bool {
 	// List doesnt return with group version kind. https://github.com/kubernetes/client-go/issues/308
 	obj1Meta, err := meta.Accessor(obj1)
 	if err != nil {
-		r.log.Error(err, "failed to get object meta", obj1.GetName())
+		r.log.Error(err, "failed to get object meta", "name", obj1.GetName())
 		return true
 	}
 
 	obj2Meta, err := meta.Accessor(obj2)
 	if err != nil {
-		r.log.Error(err, "failed to get object meta", obj2.GetName())
+		r.log.Error(err, "failed to get object meta", "name", obj2.GetName())
 		return true
 	}
 
@@ -77,4 +78,11 @@ func (r *ResourceProcessor) compareObject(obj1, obj2 client.Object) bool {
 	}
 
 	return true
+}
+
+func getNamespace(r reconciliation.Reconciliation) string {
+	if r.GetType() == reconciliation.NamespaceType {
+		return r.GetReconciliationObject().GetName()
+	}
+	return r.GetReconciliationObject().GetNamespace()
 }

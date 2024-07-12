@@ -102,11 +102,11 @@ type reconciliationFunc func(reconciliation Reconciliation) error
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx).WithName("application-controller")
-	ctxLog.Debug("Starting reconcile for request", req.Name)
+	ctxLog.Debug("Starting reconcile", "request", req.Name)
 
 	rdy := r.isClusterReady(ctx)
 	if !rdy {
-		ctxLog.Warning("Cluster is not ready for reconciliation", req.Name)
+		ctxLog.Warning("Cluster is not ready for reconciliation", "request", req.Name)
 	}
 
 	application, err := r.getApplication(req, ctx)
@@ -163,7 +163,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", application.Name)
+	ctxLog.Debug("Starting reconciliation loop", "application", application.Name)
 	r.recorder.Eventf(
 		application,
 		"Normal",
@@ -194,7 +194,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get application from request", req)
+	ctxLog.Debug("Trying to get application from request", "request", req)
 
 	application := &skiperatorv1alpha1.Application{}
 	if err := r.client.Get(ctx, req.NamespacedName, application); err != nil {
@@ -242,7 +242,7 @@ func getApplicationDefaultLabels(application *skiperatorv1alpha1.Application) ma
  */
 func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1alpha1.Application, ctx context.Context) {
 	ctxLog := log.NewLogger(ctx)
-	ctxLog.Debug("Setting application defaults", application.Name)
+	ctxLog.Debug("Setting application defaults", "application", application.Name)
 
 	application.FillDefaultsSpec()
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
@@ -290,7 +290,7 @@ func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get team name for namespace", app.Namespace)
+	ctxLog.Debug("Trying to get team name for namespace", "namespace", app.Namespace)
 	ns := &corev1.Namespace{}
 	if err := r.client.Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
 		return "", err
@@ -300,7 +300,7 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 	if len(teamValue) > 0 {
 		return teamValue, nil
 	}
-	ctxLog.Warning("Missing value for team label in namespace", app.Namespace, app.Name)
+	ctxLog.Warning("Missing value for team label in namespace", "namespace", app.Namespace, "applicationName", app.Name)
 	return "", fmt.Errorf("missing value for team label")
 }
 

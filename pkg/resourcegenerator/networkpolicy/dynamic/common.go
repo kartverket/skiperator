@@ -13,7 +13,7 @@ import (
 // TODO fix mess
 func generateForCommon(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate network policy for application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate network policy for application", "application", r.GetReconciliationObject().GetName())
 
 	object := r.GetReconciliationObject()
 	name := object.GetName()
@@ -47,7 +47,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	networkPolicy.Spec = netpolSpec
 	var obj client.Object = &networkPolicy
 	r.AddResource(&obj)
-	ctxLog.Debug("Finished generating networkpolicy", r.GetType(), namespace)
+	ctxLog.Debug("Finished generating networkpolicy", "type", r.GetType(), "namespace", namespace)
 	return nil
 }
 

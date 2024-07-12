@@ -2,23 +2,12 @@ package v1alpha1
 
 import (
 	"encoding/json"
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"golang.org/x/exp/slices"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
-	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
-	policyv1 "k8s.io/api/policy/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
 )
@@ -511,40 +500,4 @@ func allSameStatus(a []string) bool {
 		}
 	}
 	return true
-}
-
-// Function to convert a runtime.Object to *unstructured.UnstructuredList
-func toUnstructuredList(obj runtime.Object) *unstructured.UnstructuredList {
-	unstructuredList := &unstructured.UnstructuredList{}
-	err := runtime.DefaultUnstructuredConverter.FromUnstructured(
-		map[string]interface{}{
-			"apiVersion": obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-			"kind":       obj.GetObjectKind().GroupVersionKind().Kind,
-			"items":      obj,
-		}, unstructuredList)
-	if err != nil {
-		panic(err) // handle the error appropriately in production code
-	}
-	return unstructuredList
-}
-
-func GetSchemas() []*unstructured.UnstructuredList {
-	return []*unstructured.UnstructuredList{
-		toUnstructuredList(&appsv1.DeploymentList{}),
-		toUnstructuredList(&corev1.ServiceList{}),
-		toUnstructuredList(&corev1.ConfigMapList{}),
-		toUnstructuredList(&networkingv1beta1.ServiceEntryList{}),
-		toUnstructuredList(&networkingv1beta1.GatewayList{}),
-		toUnstructuredList(&autoscalingv2.HorizontalPodAutoscalerList{}),
-		toUnstructuredList(&networkingv1beta1.VirtualServiceList{}),
-		toUnstructuredList(&securityv1beta1.PeerAuthenticationList{}),
-		toUnstructuredList(&corev1.ServiceAccountList{}),
-		toUnstructuredList(&policyv1.PodDisruptionBudgetList{}),
-		toUnstructuredList(&networkingv1.NetworkPolicyList{}),
-		toUnstructuredList(&securityv1beta1.AuthorizationPolicyList{}),
-		toUnstructuredList(&nais_io_v1.MaskinportenClientList{}),
-		toUnstructuredList(&nais_io_v1.IDPortenClientList{}),
-		toUnstructuredList(&pov1.ServiceMonitorList{}),
-		toUnstructuredList(&certmanagerv1.CertificateList{}),
-	}
 }

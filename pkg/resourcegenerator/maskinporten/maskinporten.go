@@ -13,7 +13,7 @@ import (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.MaskinportenClient, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate maskin porten resource  for application", application.Name)
+	ctxLog.Debug("Attempting to generate maskin porten resource  for application", "application", application.Name)
 
 	var err error
 
@@ -34,12 +34,12 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 	if err != nil {
 		return nil, err
 	}
-	ctxLog.Debug("Finished generating maskin porten resource for application", application.Name)
+	ctxLog.Debug("Finished generating maskin porten resource for application", "application", application.Name)
 	return &maskinporten, nil
 }
 
 func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.MaskinportenClientSpec, error) {
-	secretName, err := getMaskinportenSecretName(application.Name)
+	secretName, err := GetMaskinportenSecretName(application.Name)
 	if err != nil {
 		return naisiov1.MaskinportenClientSpec{}, err
 	}

@@ -26,7 +26,7 @@ const (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.IDPortenClient, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate id porten resource for application", application.Name)
+	ctxLog.Debug("Attempting to generate id porten resource for application", "application", application.Name)
 
 	var err error
 
@@ -49,7 +49,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 		return nil, err
 	}
 
-	ctxLog.Debug("Finished generating id porten resource for application", application.Name)
+	ctxLog.Debug("Finished generating id porten resource for application", "application", application.Name)
 
 	return &idporten, nil
 }
@@ -90,7 +90,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 		return naisiov1.IDPortenClientSpec{}, nil
 	}
 
-	secretName, err := getIDPortenSecretName(application.Name)
+	secretName, err := GetIDPortenSecretName(application.Name)
 	if err != nil {
 		return naisiov1.IDPortenClientSpec{}, err
 	}

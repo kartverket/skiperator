@@ -11,7 +11,7 @@ import (
 
 func generateForSKIPJob(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate service account for skipjob", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate service account for skipjob", "skipjob", r.GetReconciliationObject().GetName())
 
 	skipJob, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.SKIPJob)
 	if !ok {
@@ -22,6 +22,6 @@ func generateForSKIPJob(r reconciliation.Reconciliation) error {
 
 	var obj client.Object = &serviceAccount
 	r.AddResource(&obj)
-	ctxLog.Debug("Finished generating service account for skipjob", skipJob.Name)
+	ctxLog.Debug("Finished generating service account for skipjob", "skipjob", skipJob.Name)
 	return nil
 }

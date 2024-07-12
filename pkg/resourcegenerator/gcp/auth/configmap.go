@@ -45,7 +45,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 	}
 
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Generating configmap for type", r.GetType())
+	ctxLog.Debug("Generating gcp configmap", "type", r.GetType())
 
 	object := r.GetReconciliationObject()
 	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
@@ -74,6 +74,6 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 	var obj client.Object = &gcpConfigMap
 	r.AddResource(&obj)
 
-	ctxLog.Debug("Finished generating configmap", r.GetType(), object.GetName())
+	ctxLog.Debug("Finished generating configmap", "type", r.GetType(), "name", object.GetName())
 	return nil
 }

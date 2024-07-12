@@ -12,7 +12,7 @@ import (
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate network policy for routing", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate network policy for routing", "routing", r.GetReconciliationObject().GetName())
 	routing, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Routing")
@@ -56,7 +56,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		var obj client.Object = &networkPolicy
 		r.AddResource(&obj)
 	}
-	ctxLog.Debug("Finished generating networkpolicy for routing", routing.Name)
+	ctxLog.Debug("Finished generating networkpolicy for routing", "routing", routing.Name)
 	return nil
 }
 

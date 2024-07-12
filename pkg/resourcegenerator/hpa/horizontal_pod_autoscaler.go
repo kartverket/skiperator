@@ -12,7 +12,7 @@ import (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*autoscalingv2.HorizontalPodAutoscaler, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate ingress gateways for application", application.Name)
+	ctxLog.Debug("Attempting to generate ingress gateways for application", "application", application.Name)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 

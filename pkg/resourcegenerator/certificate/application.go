@@ -14,7 +14,7 @@ import (
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate certificates for application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate certificates for application", "application", r.GetReconciliationObject().GetName())
 
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("certificate only supports Application type")
@@ -44,6 +44,6 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		var obj client.Object = &certificate
 		r.AddResource(&obj)
 	}
-	ctxLog.Debug("Finished generating certificates for application", application.Name)
+	ctxLog.Debug("Finished generating certificates for application", "application", application.Name)
 	return nil
 }

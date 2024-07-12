@@ -13,7 +13,7 @@ import (
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate service account for application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate service account for application", "application", r.GetReconciliationObject().GetName())
 
 	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
 	if !ok {
@@ -28,7 +28,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	var obj client.Object = &serviceAccount
 	r.AddResource(&obj)
-	ctxLog.Debug("Finished generating service account for application", application.Name)
+	ctxLog.Debug("Finished generating service account for application", "application", application.Name)
 	return nil
 }
 

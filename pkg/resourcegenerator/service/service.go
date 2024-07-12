@@ -24,7 +24,7 @@ var defaultPrometheusPort = corev1.ServicePort{
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *corev1.Service {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to create service for application", application.Name)
+	ctxLog.Debug("Attempting to create service for application", "application", application.Name)
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	resourceutils.SetApplicationLabels(&service, application)
@@ -43,7 +43,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		Ports:    ports,
 	}
 
-	ctxLog.Debug("created service manifest for application", application.Name)
+	ctxLog.Debug("created service manifest for application", "application", application.Name)
 
 	return &service
 }

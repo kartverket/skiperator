@@ -86,7 +86,7 @@ func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Contex
 
 func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx).WithName("skipjob-controller")
-	ctxLog.Debug("Starting reconcile for request", req.Name)
+	ctxLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	skipJob, err := r.getSKIPJob(req, ctx)
 	if skipJob == nil {

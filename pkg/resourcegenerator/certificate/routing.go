@@ -12,7 +12,7 @@ import (
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate certificates for routing", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate certificates for routing", "routing", r.GetReconciliationObject().GetName())
 
 	if r.GetType() != reconciliation.RoutingType {
 		return fmt.Errorf("certificate only supports routing type")
@@ -51,6 +51,6 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	var obj client.Object = &certificate
 	r.AddResource(&obj)
 
-	ctxLog.Debug("Finished generating certificates for routing", routing.Name)
+	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)
 	return nil
 }

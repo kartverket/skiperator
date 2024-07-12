@@ -26,7 +26,7 @@ var (
 // TODO completely butchered, need to be thorougly checked
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate job for skipjob", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate job for skipjob", "skipjob", r.GetReconciliationObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
 		return fmt.Errorf("job only supports skipjob type", r.GetType())

@@ -13,7 +13,7 @@ import (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *pov1.ServiceMonitor {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate service monitor for application", application.Name)
+	ctxLog.Debug("Attempting to generate service monitor for application", "application", application.Name)
 
 	serviceMonitor := pov1.ServiceMonitor{ObjectMeta: metav1.ObjectMeta{
 		Namespace: application.Namespace,
@@ -55,7 +55,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		serviceMonitor.Spec.Endpoints[0].MetricRelabelConfigs = nil
 	}
 
-	ctxLog.Debug("Finished generating service monitor for application", application.Name)
+	ctxLog.Debug("Finished generating service monitor for application", "application", application.Name)
 
 	return &serviceMonitor
 }

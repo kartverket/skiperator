@@ -3,9 +3,9 @@ package util
 import (
 	"context"
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -71,7 +71,7 @@ func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) Reconcil
 		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
 	}
 	// needs to be schemas for each type
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas(), mgr.GetScheme())
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), resourceschemas.GetApplicationSchemas(mgr.GetScheme()), mgr.GetScheme())
 
 	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, mgr.GetAPIReader(), processor)
 }

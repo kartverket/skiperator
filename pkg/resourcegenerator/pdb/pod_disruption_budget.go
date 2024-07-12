@@ -14,7 +14,7 @@ import (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*policyv1.PodDisruptionBudget, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate pdb for application", application.Name)
+	ctxLog.Debug("Attempting to generate pdb for application", "application", application.Name)
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 

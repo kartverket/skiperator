@@ -33,7 +33,7 @@ const (
 
 func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool, workloadIdentityPool string, restConfig *rest.Config) (*appsv1.Deployment, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Attempting to generate id porten resource for application", application.Name)
+	ctxLog.Debug("Attempting to generate id porten resource for application", "application", application.Name)
 
 	deployment := appsv1.Deployment{
 		TypeMeta: metav1.TypeMeta{

@@ -25,7 +25,7 @@ func (r *ResourceProcessor) update(ctx context.Context, resource client.Object) 
 	existing := resource.DeepCopyObject().(client.Object)
 	if err := r.client.Get(ctx, client.ObjectKeyFromObject(resource), existing); err != nil {
 		if errors.IsNotFound(err) {
-			r.log.Warning("Couldn't find object trying to update. Attempting create.", resource.GetObjectKind().GroupVersionKind(), resource.GetName())
+			r.log.Warning("Couldn't find object trying to update. Attempting create.", "kind", resource.GetObjectKind().GroupVersionKind().Kind, "name", resource.GetName())
 			return r.create(ctx, resource)
 		}
 		r.log.Error(err, "Failed to get object, for unknown reason")
@@ -59,7 +59,7 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 	}
 
 	for _, schema := range r.schemas {
-		if err := r.client.List(ctx, schema, listOpts); err != nil {
+		if err := r.client.List(ctx, &schema, listOpts); err != nil {
 			return fmt.Errorf("failed to list resources: %w", err)
 		}
 		for _, resource := range schema.Items {

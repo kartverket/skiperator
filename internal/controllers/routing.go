@@ -49,7 +49,7 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Routing, error) {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get routing from request", req)
+	ctxLog.Debug("Trying to get routing from request", "request", req)
 
 	routing := &skiperatorv1alpha1.Routing{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
@@ -64,7 +64,7 @@ func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Contex
 
 func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx).WithName("routing-controller")
-	ctxLog.Debug("Starting reconcile for request", req.Name)
+	ctxLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	routing, err := r.getRouting(req, ctx)
 	if routing == nil {
@@ -80,7 +80,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", routing.Name)
+	ctxLog.Debug("Starting reconciliation loop", "routing", routing.Name)
 	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
 	reconciliation := NewRoutingReconciliation(ctx, routing, ctxLog, r.GetRestConfig(), identityConfigMap)
@@ -103,7 +103,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	r.GetClient().Status().Update(ctx, routing)
 
-	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", routing.Name))
+	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", "routing", routing.Name))
 
 	return util.DoNotRequeue()
 }

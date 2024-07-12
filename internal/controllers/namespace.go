@@ -42,7 +42,7 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ctxLog := log.NewLogger(ctx).WithName("namespace-controller")
-	ctxLog.Debug("Starting reconcile for request", req.Name)
+	ctxLog.Debug("Starting reconcile for request", "requestName", req.Name)
 
 	namespace := &corev1.Namespace{}
 	err := r.GetClient().Get(ctx, req.NamespacedName, namespace)
@@ -55,7 +55,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	}
 
 	if r.isExcludedNamespace(ctx, namespace.Name) {
-		ctxLog.Debug("Namespace is excluded from reconciliation", namespace.Name)
+		ctxLog.Debug("Namespace is excluded from reconciliation", "name", namespace.Name)
 		return util.RequeueWithError(err)
 	}
 
@@ -64,7 +64,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		ctxLog.Error(err, "cant find identity config map")
 	}
 
-	ctxLog.Debug("Starting reconciliation of namespace", namespace.Name)
+	ctxLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 
 	reconciliation := NewNamespaceReconciliation(ctx, namespace, ctxLog, r.GetRestConfig(), identityConfigMap)

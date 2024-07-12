@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
@@ -104,7 +105,7 @@ func main() {
 
 	//TODO clean up this mess
 	extensionsClient, _ := apiextensionsclient.NewForConfig(mgr.GetConfig())
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), skiperatorv1alpha1.GetSchemas(), mgr.GetScheme())
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), resourceschemas.GetApplicationSchemas(mgr.GetScheme()), mgr.GetScheme())
 	err = controllers.NewApplicationReconciler(
 		mgr.GetClient(),
 		mgr.GetConfig(),

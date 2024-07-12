@@ -17,11 +17,11 @@ type Processor interface {
 type ResourceProcessor struct {
 	client  client.Client
 	log     log.Logger
-	schemas []*unstructured.UnstructuredList
+	schemas []unstructured.UnstructuredList
 	scheme  *runtime.Scheme
 }
 
-func NewResourceProcessor(client client.Client, schemas []*unstructured.UnstructuredList, scheme *runtime.Scheme) *ResourceProcessor {
+func NewResourceProcessor(client client.Client, schemas []unstructured.UnstructuredList, scheme *runtime.Scheme) *ResourceProcessor {
 	l := log.FromContext(context.Background()).WithName("ResourceProcessor")
 	return &ResourceProcessor{client: client, log: l, schemas: schemas, scheme: scheme}
 }

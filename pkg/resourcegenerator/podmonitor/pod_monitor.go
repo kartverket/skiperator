@@ -13,7 +13,7 @@ import (
 
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate podmonitor for skipjob", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate podmonitor for skipjob", "skipjob", r.GetReconciliationObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
 		return fmt.Errorf("podmonitor only supports skipjob type", r.GetType())
@@ -57,6 +57,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	var obj client.Object = &podMonitor
 	r.AddResource(&obj)
 
-	ctxLog.Debug("Finished generating configmap", r.GetType(), skipJob.GetName())
+	ctxLog.Debug("Finished generating configmap", "name", skipJob.GetName())
 	return nil
 }
