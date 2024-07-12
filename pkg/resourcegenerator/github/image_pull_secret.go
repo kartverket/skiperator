@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TODO figure out something smart so we only need to supply the reconciliation object
@@ -34,6 +35,8 @@ func Generate(r reconciliation.Reconciliation, token string, registry string) er
 	secret.Data = make(map[string][]byte, 1)
 	secret.Data[".dockerconfigjson"] = buf.Bytes()
 
+	var obj client.Object = &secret
+	r.AddResource(&obj)
 	return nil
 }
 
