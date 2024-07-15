@@ -6,6 +6,20 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
+	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/servicemonitor"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -175,6 +189,20 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
 		certificate.Generate,
+		auth.Generate,
+		serviceentry.Generate,
+		gateway.Generate,
+		virtualservice.Generate,
+		hpa.Generate,
+		peerauthentication.Generate,
+		serviceaccount.Generate,
+		networkpolicy.Generate,
+		authorizationpolicy.Generate,
+		pdb.Generate,
+		servicemonitor.Generate,
+		idporten.Generate,
+		maskinporten.Generate,
+		deployment.Generate,
 	}
 
 	for _, f := range funcs {
@@ -209,7 +237,7 @@ func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx contex
 
 func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
 	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("finalizing application", application)
+	ctxLog.Debug("finalizing application", "application", application)
 
 	if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.RemoveFinalizer(application, applicationFinalizer)

@@ -48,6 +48,10 @@ func (r *NamespaceReconciliation) GetType() ReconciliationObjectType {
 	return NamespaceType
 }
 
+func (r *NamespaceReconciliation) GetRestConfig() *rest.Config {
+	return r.restConfig
+}
+
 func (r *NamespaceReconciliation) AddResource(object *client.Object) {
 	r.resources = append(r.resources, object)
 }

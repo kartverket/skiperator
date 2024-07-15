@@ -48,6 +48,10 @@ func (j *JobReconciliation) GetType() ReconciliationObjectType {
 	return JobType
 }
 
+func (j *JobReconciliation) GetRestConfig() *rest.Config {
+	return j.restConfig
+}
+
 func (j *JobReconciliation) AddResource(object *client.Object) {
 	j.resources = append(j.resources, object)
 }

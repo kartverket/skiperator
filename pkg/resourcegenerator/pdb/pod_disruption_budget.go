@@ -1,19 +1,29 @@
 package pdb
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*policyv1.PodDisruptionBudget, error) {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in pod disruption budget", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate pod disruption budget")
+		return err
+	}
 	ctxLog.Debug("Attempting to generate pdb for application", "application", application.Name)
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
@@ -29,7 +39,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 			replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 			if err != nil {
 				ctxLog.Error(err, "Failed to get replicas")
-				return nil, err
+				return err
 			} else {
 				minReplicas = replicasStruct.Min
 			}
@@ -47,10 +57,11 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 		if k8sfeatures.EnhancedPDBAvailable() {
 			pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
 		}
-		return &pdb, nil
+		var obj client.Object = &pdb
+		r.AddResource(&obj)
 	}
 
-	return nil, nil
+	return nil
 }
 
 func determineMinAvailable(replicasAvailable uint) *intstr.IntOrString {

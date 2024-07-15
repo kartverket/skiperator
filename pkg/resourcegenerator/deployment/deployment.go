@@ -1,16 +1,15 @@
 package deployment
 
 import (
-	"context"
 	goerrors "errors"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
-	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -31,8 +30,19 @@ const (
 	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool, workloadIdentityPool string, restConfig *rest.Config) (*appsv1.Deployment, error) {
-	ctxLog := log.FromContext(ctx)
+// create a test for this function
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in deployment resource", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate deployment resource")
+		return err
+	}
+
 	ctxLog.Debug("Attempting to generate id porten resource for application", "application", application.Name)
 
 	deployment := appsv1.Deployment{
@@ -47,7 +57,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 	}
 
 	podOpts := pod.PodOpts{
-		IstioEnabled: istioEnabled,
+		IstioEnabled: r.IsIstioEnabled(),
 	}
 
 	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
@@ -57,7 +67,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
 
 	if util.IsGCPAuthEnabled(application.Spec.GCP) {
-		gcpPodVolume := gcp.GetGCPContainerVolume(workloadIdentityPool, application.Name)
+		gcpPodVolume := gcp.GetGCPContainerVolume(r.GetIdentityConfigMap().Data["workloadIdentityPool"], application.Name)
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
 		gcpEnvVar := gcp.GetGCPEnvVar()
 
@@ -70,7 +80,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		secretName, err := idporten.GetIDPortenSecretName(application.Name)
 		if err != nil {
 			ctxLog.Error(err, "could not get idporten secret name")
-			return nil, err
+			return err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
 			&skiperatorContainer,
@@ -85,7 +95,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		secretName, err := maskinporten.GetMaskinportenSecretName(application.Name)
 		if err != nil {
 			ctxLog.Error(err, "could not get maskinporten secret name")
-			return nil, err
+			return err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
 			&skiperatorContainer,
@@ -119,7 +129,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if istioEnabled {
+	if r.IsIstioEnabled() {
 		if application.Spec.Prometheus != nil {
 			// If the application has exposed metrics
 			generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application, ctxLog.GetLogger())
@@ -190,7 +200,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
 			ctxLog.Error(err, "could not get replicas from application spec")
-			return nil, err
+			return err
 		}
 	}
 
@@ -203,16 +213,20 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
-	err = util.ResolveImageTags(ctx, ctxLog.GetLogger(), restConfig, &deployment)
+	err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
 	if err != nil {
+		//TODO fix this
 		// Exclude dummy image used in tests for decreased verbosity
 		if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
 			ctxLog.Error(err, "could not resolve container image to digest")
+			return err
 		}
-		return nil, err
 	}
 
-	return &deployment, nil
+	var obj client.Object = &deployment
+	r.AddResource(&obj)
+
+	return nil
 }
 
 func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName string, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {

@@ -1,18 +1,31 @@
 package maskinporten
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.MaskinportenClient, error) {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in maskin porten resource", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate maskin porten resource")
+		return err
+	}
+	if application.Spec.Maskinporten == nil {
+		return nil
+	}
 	ctxLog.Debug("Attempting to generate maskin porten resource  for application", "application", application.Name)
 
 	var err error
@@ -32,10 +45,13 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 
 	maskinporten.Spec, err = getMaskinportenSpec(application)
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	var obj client.Object = &maskinporten
+	r.AddResource(&obj)
 	ctxLog.Debug("Finished generating maskin porten resource for application", "application", application.Name)
-	return &maskinporten, nil
+	return nil
 }
 
 func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.MaskinportenClientSpec, error) {

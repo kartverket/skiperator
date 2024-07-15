@@ -40,7 +40,7 @@ func Generate(r reconciliation.Reconciliation) error {
 }
 
 func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
-	if r.GetCommonSpec().GCP.Auth.ServiceAccount != "" {
+	if r.GetCommonSpec().GCP == nil || r.GetCommonSpec().GCP.Auth.ServiceAccount != "" {
 		return nil
 	}
 

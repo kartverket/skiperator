@@ -1,17 +1,28 @@
 package hpa
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*autoscalingv2.HorizontalPodAutoscaler, error) {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in horizontal pod autoscaler", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate horizontal pod autoscaler")
+		return err
+	}
+
 	ctxLog.Debug("Attempting to generate ingress gateways for application", "application", application.Name)
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
@@ -21,7 +32,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 
 	replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	horizontalPodAutoscaler.Spec = autoscalingv2.HorizontalPodAutoscalerSpec{
@@ -46,5 +57,8 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 		},
 	}
 
-	return &horizontalPodAutoscaler, nil
+	var obj client.Object = &horizontalPodAutoscaler
+	r.AddResource(&obj)
+
+	return nil
 }

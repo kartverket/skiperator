@@ -1,12 +1,13 @@
 package idporten
 
 import (
-	"context"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"net/url"
 	"path"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -24,8 +25,20 @@ const (
 	KVBaseURL = "https://kartverket.no"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) (*naisiov1.IDPortenClient, error) {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in idporten resource", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate idporten resource")
+		return err
+	}
+	if application.Spec.IDPorten == nil {
+		return nil
+	}
 	ctxLog.Debug("Attempting to generate id porten resource for application", "application", application.Name)
 
 	var err error
@@ -46,12 +59,14 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application) 
 
 	idporten.Spec, err = getIDPortenSpec(application)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
+	var obj client.Object = &idporten
+	r.AddResource(&obj)
 	ctxLog.Debug("Finished generating id porten resource for application", "application", application.Name)
 
-	return &idporten, nil
+	return nil
 }
 
 // Assumes application.Spec.IDPorten != nil

@@ -5,6 +5,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +28,7 @@ type Reconciliation interface {
 	GetResources() []*client.Object
 	AddResource(*client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
+	GetRestConfig() *rest.Config
 }
 
 // TODO Move to types?

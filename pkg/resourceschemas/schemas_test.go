@@ -22,3 +22,16 @@ func TestAddGVK(t *testing2.T) {
 	assert.NotEmpty(t, result[0].GroupVersionKind().Version)
 	assert.Equal(t, schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ServiceList"}, result[0].GroupVersionKind())
 }
+
+func TestGetApplicationSchemas(t *testing2.T) {
+	//arrange
+	scheme := runtime.NewScheme()
+	AddSchemas(scheme)
+	//act
+	result := GetApplicationSchemas(scheme)
+	//assert
+	assert.NotEmpty(t, result)
+	assert.NotEmpty(t, result[0].GroupVersionKind().Kind)
+	assert.NotEmpty(t, result[0].GroupVersionKind().Version)
+	assert.Equal(t, schema.GroupVersionKind{Group: "apps", Version: "v1", Kind: "DeploymentList"}, result[0].GroupVersionKind())
+}

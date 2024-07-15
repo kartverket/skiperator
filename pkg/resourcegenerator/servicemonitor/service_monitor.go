@@ -1,18 +1,28 @@
 package servicemonitor
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *pov1.ServiceMonitor {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in service monitor", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate service monitor")
+		return err
+	}
 	ctxLog.Debug("Attempting to generate service monitor for application", "application", application.Name)
 
 	serviceMonitor := pov1.ServiceMonitor{ObjectMeta: metav1.ObjectMeta{
@@ -21,7 +31,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 		Labels:    map[string]string{"instance": "primary"},
 	}}
 
-	if !istioEnabled {
+	if !r.IsIstioEnabled() {
 		return nil
 	}
 
@@ -57,5 +67,7 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 
 	ctxLog.Debug("Finished generating service monitor for application", "application", application.Name)
 
-	return &serviceMonitor
+	var obj client.Object = &serviceMonitor
+	r.AddResource(&obj)
+	return nil
 }

@@ -49,6 +49,10 @@ func (r *RoutingReconciliation) GetType() ReconciliationObjectType {
 	return RoutingType
 }
 
+func (r *RoutingReconciliation) GetRestConfig() *rest.Config {
+	return r.restConfig
+}
+
 func (r *RoutingReconciliation) AddResource(object *client.Object) {
 	r.resources = append(r.resources, object)
 }

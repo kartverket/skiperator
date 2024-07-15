@@ -3,6 +3,7 @@ package resourceschemas
 import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -14,9 +15,25 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	goclientscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
+
+func AddSchemas(scheme *runtime.Scheme) {
+	utilruntime.Must(goclientscheme.AddToScheme(scheme))
+	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
+	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
+	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
+	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
+	utilruntime.Must(policyv1.AddToScheme(scheme))
+	utilruntime.Must(pov1.AddToScheme(scheme))
+	utilruntime.Must(nais_io_v1.AddToScheme(scheme))
+	utilruntime.Must(appsv1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+}
 
 func addGVK(lists []client.ObjectList, scheme *runtime.Scheme) []unstructured.UnstructuredList {
 	listsWithGVKs := make([]unstructured.UnstructuredList, 0)

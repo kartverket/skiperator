@@ -16,27 +16,15 @@ import (
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strings"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	policyv1 "k8s.io/api/policy/v1"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
 
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
@@ -51,15 +39,7 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
-	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
-	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
-	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
-	utilruntime.Must(policyv1.AddToScheme(scheme))
-	utilruntime.Must(pov1.AddToScheme(scheme))
-	utilruntime.Must(nais_io_v1.AddToScheme(scheme))
+	resourceschemas.AddSchemas(scheme)
 }
 
 func main() {

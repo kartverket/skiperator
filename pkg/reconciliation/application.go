@@ -49,6 +49,10 @@ func (r *ApplicationReconciliation) GetType() ReconciliationObjectType {
 	return ApplicationType
 }
 
+func (r *ApplicationReconciliation) GetRestConfig() *rest.Config {
+	return r.restConfig
+}
+
 func (r *ApplicationReconciliation) AddResource(object *client.Object) {
 	r.resources = append(r.resources, object)
 }

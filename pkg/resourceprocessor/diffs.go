@@ -24,7 +24,8 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	newObjectsMap := make(map[string]*client.Object)
 	for _, obj := range task.GetResources() {
-		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+(*obj).GetObjectKind().GroupVersionKind().Kind] = obj
+		
+		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+meta.GetResourceVersion()] = obj
 	}
 
 	shouldDelete := make([]client.Object, 0)
