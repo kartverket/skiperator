@@ -1,15 +1,16 @@
-package applicationcontroller
+package service
 
 import (
-	"context"
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
@@ -22,18 +23,25 @@ var defaultPrometheusPort = corev1.ServicePort{
 	TargetPort: util.IstioMetricsPortNumber,
 }
 
-func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, istioEnabled bool) *corev1.Service {
-	ctxLog := log.FromContext(ctx)
+func Generate(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	if r.GetType() != reconciliation.ApplicationType {
+		return fmt.Errorf("unsupported type %s in deployment resource", r.GetType())
+	}
+	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		err := fmt.Errorf("failed to cast resource to application")
+		ctxLog.Error(err, "Failed to generate deployment resource")
+		return err
+	}
 	ctxLog.Debug("Attempting to create service for application", "application", application.Name)
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	resourceutils.SetApplicationLabels(&service, application)
 	resourceutils.SetCommonAnnotations(&service)
-	//TODO Remove or will it cause disaster? Use app-name instead
-	service.Labels["app"] = application.Name
 
 	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
-	if istioEnabled {
+	if r.IsIstioEnabled() {
 		ports = append(ports, defaultPrometheusPort)
 	}
 
@@ -45,7 +53,10 @@ func Generate(ctx context.Context, application *skiperatorv1alpha1.Application, 
 
 	ctxLog.Debug("created service manifest for application", "application", application.Name)
 
-	return &service
+	var obj client.Object = &service
+	r.AddResource(&obj)
+
+	return nil
 }
 
 func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.ServicePort {

@@ -18,6 +18,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/servicemonitor"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
@@ -189,6 +190,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
 		certificate.Generate,
+		service.Generate,
 		auth.Generate,
 		serviceentry.Generate,
 		gateway.Generate,
@@ -256,10 +258,11 @@ func shouldReconcile(application *skiperatorv1alpha1.Application) bool {
 	return labels["skiperator.kartverket.no/ignore"] != "true"
 }
 
-func getApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
+func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":            "skiperator",
 		"skiperator.skiperator.no/controller":     "application",
+		"application.skiperator.no/app":           application.Name,
 		"application.skiperator.no/app-name":      application.Name,
 		"application.skiperator.no/app-namespace": application.Namespace,
 	}
@@ -279,7 +282,10 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 
 	// Add labels to application
 	//TODO can we skip a step here?
-	maps.Copy(getApplicationDefaultLabels(application), application.Labels)
+	if application.Labels == nil {
+		application.Labels = make(map[string]string)
+	}
+	maps.Copy(application.Labels, GetApplicationDefaultLabels(application))
 	maps.Copy(application.Labels, application.Spec.Labels)
 
 	// Add team label

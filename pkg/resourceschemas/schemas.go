@@ -35,7 +35,7 @@ func AddSchemas(scheme *runtime.Scheme) {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 }
 
-func addGVK(lists []client.ObjectList, scheme *runtime.Scheme) []unstructured.UnstructuredList {
+func addGVKToList(lists []client.ObjectList, scheme *runtime.Scheme) []unstructured.UnstructuredList {
 	listsWithGVKs := make([]unstructured.UnstructuredList, 0)
 	for _, list := range lists {
 		unstructuredList := unstructured.UnstructuredList{}
@@ -50,7 +50,7 @@ func addGVK(lists []client.ObjectList, scheme *runtime.Scheme) []unstructured.Un
 }
 
 func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
-	return addGVK([]client.ObjectList{
+	return addGVKToList([]client.ObjectList{
 		&appsv1.DeploymentList{},
 		&corev1.ServiceList{},
 		&corev1.ConfigMapList{},

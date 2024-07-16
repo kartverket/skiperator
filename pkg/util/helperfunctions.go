@@ -106,7 +106,7 @@ func GetIstioGatewaySelector() map[string]string {
 }
 
 func GetPodAppSelector(applicationName string) map[string]string {
-	return map[string]string{"app-name": applicationName}
+	return map[string]string{"app": applicationName}
 }
 
 func GetPodAppAndTeamSelector(applicationName string, teamName string) map[string]string {

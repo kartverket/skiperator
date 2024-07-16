@@ -27,7 +27,7 @@ func NewResourceProcessor(client client.Client, schemas []unstructured.Unstructu
 }
 
 func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
-	shouldDelete, shouldCreate, shouldUpdate, err := r.getDiff(task)
+	shouldDelete, shouldUpdate, shouldCreate, err := r.getDiff(task)
 	if err != nil {
 		return err
 	}

@@ -3,8 +3,7 @@ package resourceprocessor
 import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -12,8 +11,12 @@ import (
 // TODO fix pointer mess ? ? ? ?
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
-
-	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), task.GetReconciliationObject().GetLabels(), &liveObjects); err != nil {
+	//TODO labels to get the resources by should be its own get function
+	labels := task.GetReconciliationObject().GetLabels()
+	if labels == nil {
+		return nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
+	}
+	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), labels, &liveObjects); err != nil {
 		return nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 
@@ -24,8 +27,10 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	newObjectsMap := make(map[string]*client.Object)
 	for _, obj := range task.GetResources() {
-		
-		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+meta.GetResourceVersion()] = obj
+		if err := r.setGVK(*obj); err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to set GVK for object: %w", err)
+		}
+		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+(*obj).GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
 	shouldDelete := make([]client.Object, 0)
@@ -34,7 +39,7 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
-			if r.compareObject(*liveObj, *newObj) {
+			if compareObject(*liveObj, *newObj) {
 				shouldUpdate = append(shouldUpdate, *newObj)
 			}
 		} else {
@@ -52,29 +57,22 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 	return shouldDelete, shouldUpdate, shouldCreate, nil
 }
 
-func (r *ResourceProcessor) compareObject(obj1, obj2 client.Object) bool {
-	// List doesnt return with group version kind. https://github.com/kubernetes/client-go/issues/308
-	obj1Meta, err := meta.Accessor(obj1)
-	if err != nil {
-		r.log.Error(err, "failed to get object meta", "name", obj1.GetName())
-		return true
+func compareObject(obj1, obj2 client.Object) bool {
+	if obj1.GetObjectKind().GroupVersionKind().Kind != obj2.GetObjectKind().GroupVersionKind().Kind {
+		return false
 	}
-
-	obj2Meta, err := meta.Accessor(obj2)
-	if err != nil {
-		r.log.Error(err, "failed to get object meta", "name", obj2.GetName())
-		return true
+	if obj1.GetObjectKind().GroupVersionKind().Group != obj2.GetObjectKind().GroupVersionKind().Group {
+		return false
 	}
-
-	if reflect.TypeOf(obj1) != reflect.TypeOf(obj2) {
+	if obj1.GetObjectKind().GroupVersionKind().Version != obj2.GetObjectKind().GroupVersionKind().Version {
 		return false
 	}
 
-	if obj1Meta.GetNamespace() != obj2Meta.GetNamespace() {
+	if obj1.GetNamespace() != obj2.GetNamespace() {
 		return false
 	}
 
-	if obj1Meta.GetName() != obj2Meta.GetName() {
+	if obj1.GetName() != obj2.GetName() {
 		return false
 	}
 
@@ -86,4 +84,14 @@ func getNamespace(r reconciliation.Reconciliation) string {
 		return r.GetReconciliationObject().GetName()
 	}
 	return r.GetReconciliationObject().GetNamespace()
+}
+
+// We must set the GVK here, as we create objects without typemeta set.
+func (r *ResourceProcessor) setGVK(obj client.Object) error {
+	gvk, err := apiutil.GVKForObject(obj, r.scheme)
+	if err != nil {
+		return fmt.Errorf("error getting GVK for object: %w", err)
+	}
+	obj.GetObjectKind().SetGroupVersionKind(gvk)
+	return nil
 }

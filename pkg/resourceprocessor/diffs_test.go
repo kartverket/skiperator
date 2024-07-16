@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestGetDiffForApplication(t *testing.T) {
+func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
 	resourceschemas.AddSchemas(scheme)
 	mockClient := fake.NewClientBuilder().Build()
@@ -31,6 +31,7 @@ func TestGetDiffForApplication(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-app",
 			Namespace: namespace,
+			Labels:    labels,
 		},
 	}
 	liveSA := &corev1.ServiceAccount{
@@ -54,9 +55,113 @@ func TestGetDiffForApplication(t *testing.T) {
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.FromContext(context.Background()), nil, nil)
 	var obj client.Object = newSA
 	r.AddResource(&obj)
-	shouldDelete, shouldCreate, shouldUpdate, err := resourceProcessor.getDiff(r)
+	shouldDelete, shouldUpdate, shouldCreate, err := resourceProcessor.getDiff(r)
 	assert.Nil(t, err)
 	assert.Len(t, shouldDelete, 1)
 	assert.Len(t, shouldCreate, 1)
 	assert.Len(t, shouldUpdate, 0)
+}
+
+func TestCompareObjectShouldEqual(t *testing.T) {
+	sa1 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test",
+		},
+	}
+	sa2 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test",
+		},
+	}
+
+	isEqual := compareObject(sa1, sa2)
+	assert.True(t, isEqual)
+}
+
+func TestCompareObjectShouldNotEqualNamespace(t *testing.T) {
+	sa1 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test",
+		},
+	}
+	sa2 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test2",
+		},
+	}
+
+	isEqual := compareObject(sa1, sa2)
+	assert.False(t, isEqual)
+}
+
+func TestCompareObjectShouldNotEqualName(t *testing.T) {
+	sa1 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test",
+		},
+	}
+	sa2 := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa2",
+			Namespace: "test",
+		},
+	}
+
+	isEqual := compareObject(sa1, sa2)
+	assert.False(t, isEqual)
+}
+
+func TestCompareObjectShouldNotEqualType(t *testing.T) {
+	sa := &corev1.ServiceAccount{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ServiceAccount",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-sa",
+			Namespace: "test",
+		},
+	}
+	configMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cm",
+			Namespace: "test",
+		},
+	}
+
+	isEqual := compareObject(sa, configMap)
+	assert.False(t, isEqual)
 }

@@ -15,7 +15,7 @@ func TestAddGVK(t *testing2.T) {
 	corev1.AddToScheme(scheme)
 	list := []client.ObjectList{&corev1.ServiceList{}}
 	//act
-	result := addGVK(list, scheme)
+	result := addGVKToList(list, scheme)
 	//assert
 	assert.NotEmpty(t, result)
 	assert.NotEmpty(t, result[0].GroupVersionKind().Kind)
