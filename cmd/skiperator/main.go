@@ -4,12 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/kartverket/skiperator/internal/controllers"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
-	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
-	"github.com/kartverket/skiperator/pkg/util"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"os"
@@ -52,6 +50,7 @@ func main() {
 
 	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
 
+	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Development: !*isDeployment,
 		Level:       parsedLogLevel,
@@ -83,23 +82,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	//TODO clean up this mess
-	extensionsClient, _ := apiextensionsclient.NewForConfig(mgr.GetConfig())
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), resourceschemas.GetApplicationSchemas(mgr.GetScheme()), mgr.GetScheme())
-	err = controllers.NewApplicationReconciler(
-		mgr.GetClient(),
-		mgr.GetConfig(),
-		mgr.GetEventRecorderFor("application-controller"),
-		processor,
-		extensionsClient,
-	).SetupWithManager(mgr)
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
 
 	err = (&controllers.SKIPJobReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
@@ -107,7 +99,7 @@ func main() {
 	}
 
 	err = (&controllers.RoutingReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Routing")
@@ -115,7 +107,7 @@ func main() {
 	}
 
 	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
 		Registry:       "ghcr.io",
 		Token:          *imagePullToken,
 	}).SetupWithManager(mgr)

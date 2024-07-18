@@ -25,7 +25,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("failed to cast object to Application")
 	}
 
-	// Generate separate gateway for each ingress
+	// Generate separate cert for each ingress
 	for _, hostname := range application.Spec.Ingresses {
 		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
 

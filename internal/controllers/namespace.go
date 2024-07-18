@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/github"
@@ -20,7 +21,7 @@ import (
 )
 
 type NamespaceReconciler struct {
-	util.ReconcilerBase
+	common.ReconcilerBase
 	Token    string
 	Registry string
 }
@@ -41,52 +42,52 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	ctxLog := log.NewLogger(ctx).WithName("namespace-controller")
-	ctxLog.Debug("Starting reconcile for request", "requestName", req.Name)
+	rLog := log.NewLogger().WithName(fmt.Sprintf("namespace: %s", req.Name))
+	rLog.Debug("Starting reconcile for request", "requestName", req.Name)
 
 	namespace := &corev1.Namespace{}
 	err := r.GetClient().Get(ctx, req.NamespacedName, namespace)
 	if errors.IsNotFound(err) {
-		return util.DoNotRequeue()
+		return common.DoNotRequeue()
 	} else if err != nil {
-		ctxLog.Warning("something went wrong fetching the namespace", err)
+		rLog.Error(err, "something went wrong fetching the namespace")
 		r.EmitWarningEvent(namespace, "ReconcileStartFail", "something went wrong fetching the namespace, it might have been deleted")
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	if r.isExcludedNamespace(ctx, namespace.Name) {
-		ctxLog.Debug("Namespace is excluded from reconciliation", "name", namespace.Name)
-		return util.RequeueWithError(err)
+		rLog.Debug("Namespace is excluded from reconciliation", "name", namespace.Name)
+		return common.RequeueWithError(err)
 	}
 
-	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
-		ctxLog.Error(err, "cant find identity config map")
+		rLog.Error(err, "cant find identity config map")
 	}
 
-	ctxLog.Debug("Starting reconciliation", "namespace", namespace.Name)
+	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 
-	reconciliation := NewNamespaceReconciliation(ctx, namespace, ctxLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewNamespaceReconciliation(ctx, namespace, rLog, r.GetRestConfig(), identityConfigMap)
 
 	if err = defaultdeny.Generate(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 	//TODO if we can fix the constructor for github then we can do this in a nicer way
 	if err = github.Generate(reconciliation, r.Token, r.Registry); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 	if err = sidecar.Generate(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	r.EmitNormalEvent(namespace, "ReconcileEnd", fmt.Sprintf("Namespace %v has finished reconciliation loop", namespace.Name))
 
-	return util.DoNotRequeue()
+	return common.DoNotRequeue()
 }
 
 func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace string) bool {

@@ -3,6 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
@@ -18,35 +21,29 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/servicemonitor"
-	"github.com/kartverket/skiperator/pkg/resourceprocessor"
-	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
-
-	policyv1 "k8s.io/api/policy/v1"
-
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	"golang.org/x/exp/maps"
-
 	"github.com/kartverket/skiperator/pkg/util"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
+	"golang.org/x/exp/maps"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -66,34 +63,15 @@ import (
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
-	client           client.Client
-	recorder         record.EventRecorder
-	restConfig       *rest.Config
-	processor        *resourceprocessor.ResourceProcessor
-	extensionsClient *apiextensionsclient.Clientset
+	common.ReconcilerBase
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
-func NewApplicationReconciler(
-	client client.Client,
-	restConfig *rest.Config,
-	recorder record.EventRecorder,
-	processor *resourceprocessor.ResourceProcessor,
-	extensionsClient *apiextensionsclient.Clientset,
-) *ApplicationReconciler {
-	return &ApplicationReconciler{
-		client:           client,
-		recorder:         recorder,
-		restConfig:       restConfig,
-		processor:        processor,
-		extensionsClient: extensionsClient,
-	}
-}
-
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
@@ -109,19 +87,21 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
-		Owns(&certmanagerv1.Certificate{}).
+		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		Complete(r)
 }
 
 type reconciliationFunc func(reconciliation Reconciliation) error
 
+// TODO Clean up logs, events
+
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	ctxLog := log.NewLogger(ctx).WithName("application-controller")
-	ctxLog.Debug("Starting reconcile", "request", req.Name)
+	rLog := log.NewLogger().WithName(fmt.Sprintf("application: %s", req.Name))
+	rLog.Info("Starting reconcile", "request", req.Name)
 
 	rdy := r.isClusterReady(ctx)
 	if !rdy {
-		ctxLog.Warning("Cluster is not ready for reconciliation", "request", req.Name)
+		panic("Cluster is not ready, missing servicemonitors.monitoring.coreos.com most likely")
 	}
 
 	application, err := r.getApplication(req, ctx)
@@ -139,7 +119,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return ctrl.Result{}, nil
 	}
 
-	if !shouldReconcile(application) {
+	if !common.ShouldReconcile(application) {
 		return ctrl.Result{}, nil
 	}
 
@@ -150,42 +130,44 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
 	if err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
 	if len(statusDiff) > 0 {
-		err := r.client.Status().Update(ctx, application)
+		rLog.Debug("Queueing for status diff")
+		err := r.GetClient().Status().Update(ctx, application)
 		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Finalizer check is due to a bug when updating using controller-runtime
 	// See https://github.com/kubernetes-sigs/controller-runtime/issues/2453
 	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
-		err := r.client.Update(ctx, application)
+		rLog.Debug("Queuing for spec diff")
+		err := r.GetClient().Update(ctx, application)
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	identityConfigMap, err := getIdentityConfigMap(r.client)
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
-		ctxLog.Error(err, "cant find identity config map")
+		rLog.Error(err, "cant find identity config map")
 	}
 
 	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", "application", application.Name)
-	r.recorder.Eventf(
+	rLog.Debug("Starting reconciliation loop", "application", application.Name)
+	r.GetRecorder().Eventf(
 		application,
 		"Normal",
 		"ReconcileStart",
 		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	reconciliation := NewApplicationReconciliation(ctx, application, ctxLog, r.restConfig, identityConfigMap)
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, r.GetRestConfig(), identityConfigMap)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -209,25 +191,28 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	for _, f := range funcs {
 		if err := f(reconciliation); err != nil {
-			return util.RequeueWithError(err)
+			rLog.Error(err, "Failed to create resource for application")
+			return common.RequeueWithError(err)
 		}
 	}
 
-	if err = r.processor.Process(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+	if err = r.setApplicationResourcesDefaults(reconciliation.GetResources(), application); err != nil {
+		rLog.Error(err, "Failed to set application resource defaults")
+		return common.RequeueWithError(err)
 	}
 
-	r.client.Status().Update(ctx, application)
+	if err = r.GetProcessor().Process(reconciliation); err != nil {
+		return common.RequeueWithError(err)
+	}
 
-	return util.DoNotRequeue()
+	r.GetClient().Status().Update(ctx, application)
+
+	return common.DoNotRequeue()
 }
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get application from request", "request", req)
-
 	application := &skiperatorv1alpha1.Application{}
-	if err := r.client.Get(ctx, req.NamespacedName, application); err != nil {
+	if err := r.GetClient().Get(ctx, req.NamespacedName, application); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
@@ -238,43 +223,38 @@ func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx contex
 }
 
 func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("finalizing application", "application", application)
-
 	if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.RemoveFinalizer(application, applicationFinalizer)
-		err := r.client.Update(ctx, application)
+		err := r.GetClient().Update(ctx, application)
 		if err != nil {
-			ctxLog.Error(err, "Something went wrong when trying to finalize application.")
-			return err
+			return fmt.Errorf("Something went wrong when trying to finalize application. %w", err)
 		}
 	}
 
 	return nil
 }
 
-func shouldReconcile(application *skiperatorv1alpha1.Application) bool {
-	labels := application.GetLabels()
-	return labels["skiperator.kartverket.no/ignore"] != "true"
-}
-
-func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
-	return map[string]string{
-		"app.kubernetes.io/managed-by":            "skiperator",
-		"skiperator.skiperator.no/controller":     "application",
-		"application.skiperator.no/app":           application.Name,
-		"application.skiperator.no/app-name":      application.Name,
-		"application.skiperator.no/app-namespace": application.Namespace,
+func (r *ApplicationReconciler) setApplicationResourcesDefaults(
+	resources []*client.Object,
+	app *skiperatorv1alpha1.Application,
+) error {
+	for _, resource := range resources {
+		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+			return err
+		}
+		resourceutils.SetCommonAnnotations(*resource)
+		resourceutils.SetApplicationLabels(*resource, app)
+		if err := resourceutils.SetOwnerReference(app, *resource, r.GetScheme()); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 /*
  * Set application defaults. For existing applications this shouldn't do anything
  */
 func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1alpha1.Application, ctx context.Context) {
-	ctxLog := log.NewLogger(ctx)
-	ctxLog.Debug("Setting application defaults", "application", application.Name)
-
 	application.FillDefaultsSpec()
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
@@ -285,7 +265,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 	if application.Labels == nil {
 		application.Labels = make(map[string]string)
 	}
-	maps.Copy(application.Labels, GetApplicationDefaultLabels(application))
+	maps.Copy(application.Labels, resourceutils.GetApplicationDefaultLabels(application))
 	maps.Copy(application.Labels, application.Spec.Labels)
 
 	// Add team label
@@ -305,7 +285,7 @@ func (r *ApplicationReconciler) isIstioEnabledInNamespace(ctx context.Context, n
 		},
 	}
 
-	err := r.client.Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
 	if err != nil {
 		return false
 	}
@@ -323,10 +303,8 @@ func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
 }
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get team name for namespace", "namespace", app.Namespace)
 	ns := &corev1.Namespace{}
-	if err := r.client.Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
 		return "", err
 	}
 
@@ -334,16 +312,38 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 	if len(teamValue) > 0 {
 		return teamValue, nil
 	}
-	ctxLog.Warning("Missing value for team label in namespace", "namespace", app.Namespace, "applicationName", app.Name)
 	return "", fmt.Errorf("missing value for team label")
 }
 
 // Name in the form of "servicemonitors.monitoring.coreos.com".
 func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) bool {
-	result, err := r.extensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+	result, err := r.GetApiExtensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
 	if err != nil || result == nil {
 		return false
 	}
 
 	return true
+}
+
+func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconcile.Request {
+	cert, ok := obj.(*certmanagerv1.Certificate)
+	if !ok {
+		return nil
+	}
+
+	isSkiperatorOwned := cert.Labels["app.kubernetes.io/managed-by"] == "skiperator" &&
+		cert.Labels["skiperator.skiperator.no/controller"] == "application"
+
+	requests := make([]reconcile.Request, 0)
+
+	if isSkiperatorOwned {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: cert.Labels["application.skiperator.no/app-namespace"],
+				Name:      cert.Labels["application.skiperator.no/app-name"],
+			},
+		})
+	}
+
+	return requests
 }

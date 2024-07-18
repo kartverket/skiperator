@@ -38,7 +38,6 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	resourceutils.SetApplicationLabels(&service, application)
-	resourceutils.SetCommonAnnotations(&service)
 
 	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
 	if r.IsIstioEnabled() {

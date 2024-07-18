@@ -5,6 +5,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 )
@@ -16,11 +17,14 @@ func TestSetResourceLabels(t *testing.T) {
 			Namespace: "testns",
 		},
 	}
+	// need to add gvk to find resource labels
+	AddGVK(scheme.Scheme, sa)
 
 	app := &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testapp",
 			Namespace: "testns",
+			Labels:    map[string]string{"test": "test"},
 		},
 		Spec: skiperatorv1alpha1.ApplicationSpec{
 			ResourceLabels: map[string]map[string]string{"ServiceAccount": {"someLabel": "someValue"}, "OtherResource": {"otherLabel": "otherValue"}},
@@ -28,8 +32,8 @@ func TestSetResourceLabels(t *testing.T) {
 	}
 
 	var obj client.Object = sa
-	setResourceLabels(obj, app)
-	assert.True(t, len(obj.GetLabels()) == 1)
+	SetApplicationLabels(obj, app)
+	assert.True(t, len(obj.GetLabels()) == 6)
 	assert.True(t, obj.GetLabels()["someLabel"] == "someValue")
-	assert.Nil(t, obj.GetLabels()["otherLabel"])
+	assert.Empty(t, obj.GetLabels()["otherLabel"])
 }

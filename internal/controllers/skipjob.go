@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
@@ -31,7 +32,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=pods;pods/ephemeralcontainers,verbs=get;list;watch;create;update;patch;delete
 
 type SKIPJobReconciler struct {
-	util.ReconcilerBase
+	common.ReconcilerBase
 }
 
 func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -70,9 +71,6 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.SKIPJob, error) {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get routing from request", req)
-
 	skipJob := &skiperatorv1alpha1.SKIPJob{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, skipJob); err != nil {
 		if errors.IsNotFound(err) {
@@ -85,30 +83,30 @@ func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Contex
 }
 
 func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	ctxLog := log.NewLogger(ctx).WithName("skipjob-controller")
-	ctxLog.Debug("Starting reconcile for request", "request", req.Name)
+	rLog := log.NewLogger().WithName(fmt.Sprintf("skipjob: %s", req.Name))
+	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	skipJob, err := r.getSKIPJob(req, ctx)
 	if skipJob == nil {
-		return util.DoNotRequeue()
+		return common.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	tmpSkipJob := skipJob.DeepCopy()
 	err = skipJob.ApplyDefaults()
 	if err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	specDiff, err := util.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
 	if err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 	statusDiff, err := util.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
 	if err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
@@ -123,16 +121,16 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
-		ctxLog.Error(err, "cant find identity config map")
+		rLog.Error(err, "cant find identity config map")
 	}
 
 	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", skipJob.Name)
+	rLog.Debug("Starting reconciliation loop", skipJob.Name)
 	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
-	reconciliation := NewJobReconciliation(ctx, skipJob, ctxLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, r.GetRestConfig(), identityConfigMap)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,
@@ -145,18 +143,18 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	for _, f := range resourceGeneration {
 		if err := f(reconciliation); err != nil {
-			return util.RequeueWithError(err)
+			return common.RequeueWithError(err)
 		}
 	}
 
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	r.EmitNormalEvent(skipJob, "ReconcileEnd", fmt.Sprintf("SKIPJob %v has finished reconciliation loop", skipJob.Name))
 
 	err = r.GetClient().Update(ctx, skipJob)
-	return util.RequeueWithError(err)
+	return common.RequeueWithError(err)
 }
 
 func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {

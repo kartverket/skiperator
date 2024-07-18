@@ -7,10 +7,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-func SetGVK(obj client.Object, scheme *runtime.Scheme) error {
+func AddGVK(scheme *runtime.Scheme, obj client.Object) error {
 	gvk, err := apiutil.GVKForObject(obj, scheme)
 	if err != nil {
-		return fmt.Errorf("error getting GVK for object: %w", err)
+		return fmt.Errorf("failed to get GVK for object, need gvk to proceed. type may not be added to schema: %w", err)
 	}
 	obj.GetObjectKind().SetGroupVersionKind(gvk)
 	return nil

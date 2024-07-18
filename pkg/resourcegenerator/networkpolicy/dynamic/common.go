@@ -155,7 +155,7 @@ func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace strin
 		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
 			NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
 			PodSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app-name": inboundRule.Application},
+				MatchLabels: map[string]string{"app": inboundRule.Application},
 			},
 		})
 	}

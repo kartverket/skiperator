@@ -5,13 +5,13 @@ import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
-	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,7 +29,7 @@ import (
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 
 type RoutingReconciler struct {
-	util.ReconcilerBase
+	common.ReconcilerBase
 }
 
 // TODO fix this
@@ -48,9 +48,6 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Routing, error) {
-	ctxLog := log.FromContext(ctx)
-	ctxLog.Debug("Trying to get routing from request", "request", req)
-
 	routing := &skiperatorv1alpha1.Routing{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
 		if errors.IsNotFound(err) {
@@ -63,27 +60,27 @@ func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Contex
 }
 
 func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	ctxLog := log.NewLogger(ctx).WithName("routing-controller")
-	ctxLog.Debug("Starting reconcile for request", "request", req.Name)
+	rLog := log.NewLogger().WithName(fmt.Sprintf("routing: %s", req.Name))
+	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	routing, err := r.getRouting(req, ctx)
 	if routing == nil {
-		return util.DoNotRequeue()
+		return common.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
-	identityConfigMap, err := getIdentityConfigMap(r.GetClient())
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
-		ctxLog.Error(err, "cant find identity config map")
+		rLog.Error(err, "cant find identity config map")
 	}
 
 	//Start the actual reconciliation
-	ctxLog.Debug("Starting reconciliation loop", "routing", routing.Name)
+	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
 	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
-	reconciliation := NewRoutingReconciliation(ctx, routing, ctxLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, r.GetRestConfig(), identityConfigMap)
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -93,19 +90,19 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	for _, f := range resourceGeneration {
 		if err := f(reconciliation); err != nil {
-			return util.RequeueWithError(err)
+			return common.RequeueWithError(err)
 		}
 	}
 
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
-		return util.RequeueWithError(err)
+		return common.RequeueWithError(err)
 	}
 
 	r.GetClient().Status().Update(ctx, routing)
 
 	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", "routing", routing.Name))
 
-	return util.DoNotRequeue()
+	return common.DoNotRequeue()
 }
 
 func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {

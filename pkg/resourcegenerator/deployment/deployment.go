@@ -30,7 +30,7 @@ const (
 	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 )
 
-// create a test for this function
+// TODO should clean up
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
@@ -43,13 +43,9 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	ctxLog.Debug("Attempting to generate id porten resource for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate deployment resource for application", "application", application.Name)
 
 	deployment := appsv1.Deployment{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Deployment",
-			APIVersion: "apps/v1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
 			Name:      application.Name,
@@ -174,6 +170,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		),
 	}
 
+	//we need to set the pod labels like this as its a template, not a resource. maybe move to common func in controller
+	resourceutils.SetApplicationLabels(&podForDeploymentTemplate, application)
+	resourceutils.SetCommonAnnotations(&podForDeploymentTemplate)
+
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
 		Strategy: appsv1.DeploymentStrategy{
@@ -204,13 +204,14 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	resourceutils.SetCommonAnnotations(&deployment)
-	resourceutils.SetApplicationLabels(&deployment, application)
-
 	// add an external link to argocd
 	ingresses := application.Spec.Ingresses
+	if deployment.Annotations == nil {
+		deployment.Annotations = make(map[string]string)
+	}
+
 	if len(ingresses) > 0 {
-		deployment.ObjectMeta.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
 	err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
@@ -226,6 +227,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	var obj client.Object = &deployment
 	r.AddResource(&obj)
 
+	ctxLog.Debug("successfully created deployment resource")
 	return nil
 }
 

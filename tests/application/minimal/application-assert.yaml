@@ -27,7 +27,8 @@ spec:
           image: image
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - name: main
+              containerPort: 8080
               protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
@@ -79,6 +80,14 @@ spec:
                   - minimal
           matchLabelKeys:
             - pod-template-hash
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 600
+
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

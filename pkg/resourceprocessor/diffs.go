@@ -3,8 +3,6 @@ package resourceprocessor
 import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -22,14 +20,14 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	liveObjectsMap := make(map[string]*client.Object)
 	for _, obj := range liveObjects {
+		if obj.GetLabels()["skiperator.kartverket.no/ignore"] == "true" {
+			continue
+		}
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
 	}
 
 	newObjectsMap := make(map[string]*client.Object)
 	for _, obj := range task.GetResources() {
-		if err := r.setGVK(*obj); err != nil {
-			return nil, nil, nil, fmt.Errorf("failed to set GVK for object: %w", err)
-		}
 		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+(*obj).GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
@@ -84,14 +82,4 @@ func getNamespace(r reconciliation.Reconciliation) string {
 		return r.GetReconciliationObject().GetName()
 	}
 	return r.GetReconciliationObject().GetNamespace()
-}
-
-// We must set the GVK here, as we create objects without typemeta set.
-func (r *ResourceProcessor) setGVK(obj client.Object) error {
-	gvk, err := apiutil.GVKForObject(obj, r.scheme)
-	if err != nil {
-		return fmt.Errorf("error getting GVK for object: %w", err)
-	}
-	obj.GetObjectKind().SetGroupVersionKind(gvk)
-	return nil
 }

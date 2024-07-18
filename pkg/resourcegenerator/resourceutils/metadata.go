@@ -23,6 +23,16 @@ func SetCommonAnnotations(object client.Object) {
 	object.SetAnnotations(annotations)
 }
 
+func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":            "skiperator",
+		"skiperator.skiperator.no/controller":     "application",
+		"application.skiperator.no/app":           application.Name,
+		"application.skiperator.no/app-name":      application.Name,
+		"application.skiperator.no/app-namespace": application.Namespace,
+	}
+}
+
 func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Application) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
@@ -30,8 +40,10 @@ func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Applicat
 	}
 	if app.Spec.Labels != nil {
 		maps.Copy(labels, app.Spec.Labels)
-		object.SetLabels(labels)
 	}
+	maps.Copy(labels, GetApplicationDefaultLabels(app))
+	object.SetLabels(labels)
+
 	setResourceLabels(object, app)
 }
 
@@ -41,7 +53,9 @@ func setResourceLabels(obj client.Object, app *skiperatorv1alpha1.Application) {
 	if !isPresent {
 		return
 	}
-	maps.Copy(obj.GetLabels(), resourceLabels)
+	labels := obj.GetLabels()
+	maps.Copy(labels, resourceLabels)
+	obj.SetLabels(labels)
 }
 
 func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string) (map[string]string, bool) {
