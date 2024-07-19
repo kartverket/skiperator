@@ -25,10 +25,12 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ctxLog.Debug("Attempting to generate ingress gateways for application", "application", application.Name)
 
-	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
+		ctxLog.Debug("Skipping horizontal pod autoscaler generation for application")
+		return nil
+	}
 
-	resourceutils.SetApplicationLabels(&horizontalPodAutoscaler, application)
-	resourceutils.SetCommonAnnotations(&horizontalPodAutoscaler)
+	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
 	replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 	if err != nil {

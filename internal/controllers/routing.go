@@ -71,6 +71,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
@@ -80,7 +81,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
 	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
-	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,

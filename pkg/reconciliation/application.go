@@ -19,11 +19,12 @@ type ApplicationReconciliation struct {
 	identityConfigMap *corev1.ConfigMap
 }
 
-func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application, logger log.Logger, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *ApplicationReconciliation {
+func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
 		ctx:               ctx,
 		application:       application,
 		logger:            logger,
+		istioEnabled:      istioEnabled,
 		restConfig:        restConfig,
 		identityConfigMap: identityConfigMap,
 	}

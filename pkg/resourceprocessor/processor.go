@@ -25,7 +25,7 @@ func NewResourceProcessor(client client.Client, schemas []unstructured.Unstructu
 }
 
 func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
-	shouldDelete, shouldUpdate, shouldCreate, err := r.getDiff(task)
+	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := r.getDiff(task)
 	if err != nil {
 		return err
 	}
@@ -44,6 +44,13 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
 		}
 	}
 
+	for _, newObj := range shouldPatch {
+		if err = r.patch(task.GetCtx(), newObj); err != nil {
+			r.log.Error(err, "Failed to patch object")
+			return err
+		}
+	}
+
 	for _, obj := range shouldUpdate {
 		if err = r.update(task.GetCtx(), obj); err != nil {
 			r.log.Error(err, "Failed to update object")
@@ -51,4 +58,16 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
 		}
 	}
 	return nil
+}
+
+func (r *ResourceProcessor) setMeta(new client.Object, old client.Object) {
+	new.SetResourceVersion(old.GetResourceVersion())
+	new.SetUID(old.GetUID())
+	new.SetSelfLink(old.GetSelfLink())
+
+	existingReferences := old.GetOwnerReferences()
+
+	if len(existingReferences) > 0 {
+		new.SetOwnerReferences(existingReferences)
+	}
 }

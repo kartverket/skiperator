@@ -23,9 +23,12 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Error(err, "Failed to generate maskin porten resource")
 		return err
 	}
-	if application.Spec.Maskinporten == nil {
+
+	if !MaskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
+		ctxLog.Info("Maskinporten not specified in spec, skipping generation")
 		return nil
 	}
+
 	ctxLog.Debug("Attempting to generate maskin porten resource  for application", "application", application.Name)
 
 	var err error

@@ -120,7 +120,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		err := r.GetClient().Status().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
-
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
@@ -130,7 +130,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop", skipJob.Name)
 	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
-	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,

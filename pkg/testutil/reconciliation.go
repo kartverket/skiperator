@@ -28,7 +28,7 @@ func GetTestMinimalAppReconciliation() *reconciliation.ApplicationReconciliation
 	identityConfigMap := corev1.ConfigMap{}
 	identityConfigMap.Data = map[string]string{"workloadIdentityPool": "test-pool"}
 	ctx := context.TODO()
-	r := reconciliation.NewApplicationReconciliation(ctx, application, log.FromContext(ctx), nil, &identityConfigMap)
+	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), nil, &identityConfigMap)
 
 	return r
 }

@@ -19,7 +19,6 @@ import (
 	"golang.org/x/exp/maps"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -189,7 +188,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	// Setting replicas to 0 if manifest has replicas set to 0 or replicas.min/max set to 0
-	if shouldScaleToZero(application.Spec.Replicas) {
+	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) {
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
 
@@ -268,18 +267,6 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 		MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 		MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 	}
-}
-
-func shouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
-	replicas, err := skiperatorv1alpha1.GetStaticReplicas(jsonReplicas)
-	if err == nil && replicas == 0 {
-		return true
-	}
-	replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(jsonReplicas)
-	if err == nil && (replicasStruct.Min == 0 || replicasStruct.Max == 0) {
-		return true
-	}
-	return false
 }
 
 func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application, ctxLog logr.Logger) string {

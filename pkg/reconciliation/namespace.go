@@ -18,11 +18,12 @@ type NamespaceReconciliation struct {
 	identityConfigMap *corev1.ConfigMap
 }
 
-func NewNamespaceReconciliation(ctx context.Context, namespace *corev1.Namespace, logger log.Logger, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *NamespaceReconciliation {
+func NewNamespaceReconciliation(ctx context.Context, namespace *corev1.Namespace, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *NamespaceReconciliation {
 	return &NamespaceReconciliation{
 		ctx:               ctx,
 		namespace:         namespace,
 		logger:            logger,
+		istioEnabled:      istioEnabled,
 		restConfig:        restConfig,
 		identityConfigMap: identityConfigMap,
 	}

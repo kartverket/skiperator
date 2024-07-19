@@ -7,22 +7,20 @@ import (
 )
 
 // TODO fix pointer mess ? ? ? ?
-func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, error) {
+func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
 	//TODO labels to get the resources by should be its own get function
 	labels := task.GetReconciliationObject().GetLabels()
+
 	if labels == nil {
-		return nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
+		return nil, nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
 	}
 	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), labels, &liveObjects); err != nil {
-		return nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 
 	liveObjectsMap := make(map[string]*client.Object)
 	for _, obj := range liveObjects {
-		if obj.GetLabels()["skiperator.kartverket.no/ignore"] == "true" {
-			continue
-		}
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
 	}
 
@@ -33,12 +31,21 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	shouldDelete := make([]client.Object, 0)
 	shouldUpdate := make([]client.Object, 0)
+	shouldPatch := make([]client.Object, 0)
 	shouldCreate := make([]client.Object, 0)
 
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
+			should := (*liveObj).GetLabels()["skiperator.kartverket.no/ignore"] != "true"
+			if !should {
+				continue
+			}
 			if compareObject(*liveObj, *newObj) {
-				shouldUpdate = append(shouldUpdate, *newObj)
+				if requirePatch(*newObj) {
+					shouldPatch = append(shouldPatch, *newObj)
+				} else {
+					shouldUpdate = append(shouldUpdate, *newObj)
+				}
 			}
 		} else {
 			shouldCreate = append(shouldCreate, *newObj)
@@ -52,7 +59,7 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 		}
 	}
 
-	return shouldDelete, shouldUpdate, shouldCreate, nil
+	return shouldDelete, shouldUpdate, shouldPatch, shouldCreate, nil
 }
 
 func compareObject(obj1, obj2 client.Object) bool {

@@ -5,8 +5,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -115,4 +117,21 @@ func (r *ReconcilerBase) GetIdentityConfigMap(ctx context.Context) (*corev1.Conf
 		return nil, err
 	}
 	return identityConfigMap, nil
+}
+
+func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+	namespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespaceName,
+		},
+	}
+
+	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	if err != nil {
+		return false
+	}
+
+	v, exists := namespace.Labels[util.IstioRevisionLabel]
+
+	return exists && len(v) > 0
 }

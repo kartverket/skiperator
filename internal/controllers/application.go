@@ -71,7 +71,6 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
-		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
@@ -88,6 +87,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
 
@@ -154,6 +154,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
@@ -167,7 +168,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		"ReconcileStart",
 		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -276,23 +277,6 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 	}
 
 	application.FillDefaultsStatus()
-}
-
-func (r *ApplicationReconciler) isIstioEnabledInNamespace(ctx context.Context, namespaceName string) bool {
-	namespace := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespaceName,
-		},
-	}
-
-	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
-	if err != nil {
-		return false
-	}
-
-	v, exists := namespace.Labels[util.IstioRevisionLabel]
-
-	return exists && len(v) > 0
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {

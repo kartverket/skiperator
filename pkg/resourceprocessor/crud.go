@@ -38,6 +38,30 @@ func (r *ResourceProcessor) update(ctx context.Context, resource client.Object) 
 	return nil
 }
 
+func (r *ResourceProcessor) patch(ctx context.Context, newObj client.Object) error {
+	existing := newObj.DeepCopyObject().(client.Object)
+	if err := r.client.Get(ctx, client.ObjectKeyFromObject(newObj), existing); err != nil {
+		if errors.IsNotFound(err) {
+			r.log.Info("Couldn't find object trying to update. Attempting create.", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name")
+			return r.create(ctx, newObj)
+		}
+		r.log.Error(err, "Failed to get object, for unknown reason")
+	}
+	preparePatch(newObj, existing)
+
+	//TODO move this to getDiffs?
+	if !diffBetween(newObj, existing) {
+		r.log.Info("No diff between objects, not patching", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name", newObj.GetName())
+		return nil
+	}
+
+	err := r.client.Patch(ctx, newObj, client.MergeFrom(existing))
+	if err != nil {
+		return fmt.Errorf("failed to patch object: %w", err)
+	}
+	return nil
+}
+
 func (r *ResourceProcessor) delete(ctx context.Context, resource client.Object) error {
 	err := r.client.Delete(ctx, resource)
 	if err != nil && errors.IsNotFound(err) {

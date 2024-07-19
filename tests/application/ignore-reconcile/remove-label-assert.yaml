@@ -2,8 +2,6 @@ apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
   name: ignore-reconcile-ingress
-  labels:
-    skiperator.kartverket.no/ignore: "false"
 spec:
   hosts:
     - test.com

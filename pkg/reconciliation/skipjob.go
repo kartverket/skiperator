@@ -19,11 +19,12 @@ type JobReconciliation struct {
 	identityConfigMap *corev1.ConfigMap
 }
 
-func NewJobReconciliation(ctx context.Context, job *skiperatorv1alpha1.SKIPJob, logger log.Logger, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *JobReconciliation {
+func NewJobReconciliation(ctx context.Context, job *skiperatorv1alpha1.SKIPJob, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *JobReconciliation {
 	return &JobReconciliation{
 		ctx:               ctx,
 		job:               job,
 		logger:            logger,
+		istioEnabled:      istioEnabled,
 		restConfig:        restConfig,
 		identityConfigMap: identityConfigMap,
 	}

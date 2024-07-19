@@ -19,11 +19,12 @@ type RoutingReconciliation struct {
 	identityConfigMap *corev1.ConfigMap
 }
 
-func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing, logger log.Logger, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *RoutingReconciliation {
+func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *RoutingReconciliation {
 	return &RoutingReconciliation{
 		ctx:               ctx,
 		application:       routing,
 		logger:            logger,
+		istioEnabled:      istioEnabled,
 		restConfig:        restConfig,
 		identityConfigMap: identityConfigMap,
 	}
