@@ -43,8 +43,9 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+// TODO Move controller to argocd
 func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	rLog := log.NewLogger().WithName(fmt.Sprintf("namespace: %s", req.Name))
+	rLog := log.NewLogger().WithName(fmt.Sprintf("namespace-controller: %s", req.Name))
 	rLog.Debug("Starting reconcile for request", "requestName", req.Name)
 
 	namespace := &corev1.Namespace{}

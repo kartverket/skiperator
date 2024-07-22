@@ -101,3 +101,24 @@ func GetRoutingLabels(routing *skiperatorv1alpha1.Routing) map[string]string {
 		"skiperator.kartverket.no/source-namespace": routing.Namespace,
 	}
 }
+
+// TODO Porbably smart to move these SET functions to the controllers or types
+func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, GetSKIPJobLabels(skipJob))
+	object.SetLabels(labels)
+}
+
+// TODO these labels are a disaster
+func GetSKIPJobLabels(skipJob *skiperatorv1alpha1.SKIPJob) map[string]string {
+	return map[string]string{
+		"app":                                  skipJob.Name,
+		"app.kubernetes.io/managed-by":         "skiperator",
+		"skiperator.kartverket.no/controller":  "skipjob",
+		"skiperator.kartverket.no/skipjob":     "true",
+		"skiperator.kartverket.no/skipjobName": skipJob.Name,
+	}
+}

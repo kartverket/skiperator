@@ -49,33 +49,8 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Routing, error) {
-	routing := &skiperatorv1alpha1.Routing{}
-	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error when trying to get routing: %w", err)
-	}
-
-	return routing, nil
-}
-
-func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
-	route := &skiperatorv1alpha1.Routing{}
-	route.SetName(name.Name)
-	route.SetNamespace(name.Namespace)
-
-	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
-	if err := r.GetProcessor().Process(reconciliation); err != nil {
-		r.EmitWarningEvent(route, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
-		return err
-	}
-	return nil
-}
-
 func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	rLog := log.NewLogger().WithName(fmt.Sprintf("routing: %s", req.Name))
+	rLog := log.NewLogger().WithName(fmt.Sprintf("routing-controller: %s", req.Name))
 	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	routing, err := r.getRouting(req, ctx)
@@ -137,6 +112,31 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	return common.DoNotRequeue()
 }
 
+func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Routing, error) {
+	routing := &skiperatorv1alpha1.Routing{}
+	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error when trying to get routing: %w", err)
+	}
+
+	return routing, nil
+}
+
+func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
+	route := &skiperatorv1alpha1.Routing{}
+	route.SetName(name.Name)
+	route.SetNamespace(name.Namespace)
+
+	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
+	if err := r.GetProcessor().Process(reconciliation); err != nil {
+		r.EmitWarningEvent(route, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
+		return err
+	}
+	return nil
+}
+
 // Do this with application too?
 func (r *RoutingReconciler) setDefaultSpec(routing *skiperatorv1alpha1.Routing) error {
 	for i := range routing.Spec.Routes {
@@ -152,12 +152,16 @@ func (r *RoutingReconciler) setDefaultSpec(routing *skiperatorv1alpha1.Routing) 
 	return nil
 }
 
+// TODO could potentially be moved to reconciliation pkg or something generic, much duplicate code here
 func (r *RoutingReconciler) setResourceDefaults(resources []*client.Object, routing *skiperatorv1alpha1.Routing) error {
 	for _, resource := range resources {
 		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
 			return err
 		}
 		resourceutils.SetRoutingLabels(*resource, routing)
+		if err := resourceutils.SetOwnerReference(routing, *resource, r.GetScheme()); err != nil {
+			return err
+		}
 	}
 	return nil
 }

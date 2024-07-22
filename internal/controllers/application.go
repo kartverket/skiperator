@@ -103,7 +103,7 @@ type reconciliationFunc func(reconciliation Reconciliation) error
 // TODO Clean up logs, events
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	rLog := log.NewLogger().WithName(fmt.Sprintf("application: %s", req.Name))
+	rLog := log.NewLogger().WithName(fmt.Sprintf("application-controller: %s", req.Name))
 	rLog.Info("Starting reconcile", "request", req.Name)
 
 	rdy := r.isClusterReady(ctx)

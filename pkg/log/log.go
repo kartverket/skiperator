@@ -22,6 +22,7 @@ type logger struct {
 	logr.Logger
 }
 
+// TODO add warn
 func (l *logger) Error(err error, msg string, keysAndValues ...interface{}) {
 	l.Logger.Error(err, msg, keysAndValues...)
 }

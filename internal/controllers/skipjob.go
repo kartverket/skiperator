@@ -12,6 +12,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -70,20 +71,8 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.SKIPJob, error) {
-	skipJob := &skiperatorv1alpha1.SKIPJob{}
-	if err := r.GetClient().Get(ctx, req.NamespacedName, skipJob); err != nil {
-		if errors.IsNotFound(err) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error when trying to get routing: %w", err)
-	}
-
-	return skipJob, nil
-}
-
 func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
-	rLog := log.NewLogger().WithName(fmt.Sprintf("skipjob: %s", req.Name))
+	rLog := log.NewLogger().WithName(fmt.Sprintf("skipjob-controller: %s", req.Name))
 	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	skipJob, err := r.getSKIPJob(req, ctx)
@@ -95,7 +84,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	tmpSkipJob := skipJob.DeepCopy()
-	err = skipJob.ApplyDefaults()
+	err = r.setSKIPJobDefaults(skipJob)
 	if err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -147,6 +136,12 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 	}
 
+	if err = r.setResourceDefaults(reconciliation.GetResources(), skipJob); err != nil {
+		rLog.Error(err, "error when trying to set resource defaults")
+		r.EmitWarningEvent(skipJob, "ReconcileError", "error when trying to set resource defaults")
+		return common.RequeueWithError(err)
+	}
+
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -155,6 +150,38 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	err = r.GetClient().Update(ctx, skipJob)
 	return common.RequeueWithError(err)
+}
+
+func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.SKIPJob, error) {
+	skipJob := &skiperatorv1alpha1.SKIPJob{}
+	if err := r.GetClient().Get(ctx, req.NamespacedName, skipJob); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error when trying to get routing: %w", err)
+	}
+
+	return skipJob, nil
+}
+
+func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJob) error {
+	if err := skipJob.FillDefaultSpec(); err != nil {
+		return fmt.Errorf("error when trying to fill default spec: %w", err)
+	}
+	return nil
+}
+
+func (r *SKIPJobReconciler) setResourceDefaults(resources []*client.Object, skipJob *skiperatorv1alpha1.SKIPJob) error {
+	for _, resource := range resources {
+		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+			return err
+		}
+		resourceutils.SetSKIPJobLabels(*resource, skipJob)
+		if err := resourceutils.SetOwnerReference(skipJob, *resource, r.GetScheme()); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {

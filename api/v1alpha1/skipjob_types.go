@@ -1,12 +1,21 @@
 package v1alpha1
 
 import (
+	"dario.cat/mergo"
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
+)
+
+var (
+	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7) // One week
+	DefaultBackoffLimit            = int32(6)
+
+	DefaultSuspend      = false
+	JobCreatedCondition = "SKIPJobCreated"
 )
 
 // SKIPJobStatus defines the observed state of SKIPJob
@@ -174,4 +183,36 @@ type CronSettings struct {
 
 func (skipJob *SKIPJob) KindPostFixedName() string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
+}
+
+func (skipJob *SKIPJob) FillDefaultSpec() error {
+
+	defaults := &SKIPJob{
+		Spec: SKIPJobSpec{
+			Job: &JobSettings{
+				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				BackoffLimit:            &DefaultBackoffLimit,
+				Suspend:                 &DefaultSuspend,
+			},
+		},
+		Status: SKIPJobStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               JobCreatedCondition,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: metav1.Now(),
+					Reason:             "SKIPJobCreated",
+					Message:            "SKIPJob was created",
+				},
+			},
+		},
+	}
+
+	if skipJob.Spec.Cron != nil {
+		defaults.Spec.Cron = &CronSettings{}
+		suspend := false
+		defaults.Spec.Cron.Suspend = &suspend
+	}
+
+	return mergo.Merge(skipJob, defaults)
 }
