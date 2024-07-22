@@ -115,6 +115,12 @@ func CreateCloudSqlProxyContainer(cs podtypes.CloudSQLProxySettings) corev1.Cont
 			SeccompProfile: &corev1.SeccompProfile{
 				Type: "RuntimeDefault",
 			},
+			Capabilities: &corev1.Capabilities{
+				Add: []corev1.Capability{
+					"NET_BIND_SERVICE",
+				},
+				Drop: []corev1.Capability{"ALL"},
+			},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
