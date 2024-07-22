@@ -50,6 +50,8 @@ type Route struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false
 	RewriteUri bool `json:"rewriteUri,omitempty"`
+	//+kubebuilder:validation:Optional
+	Port int32 `json:"port,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

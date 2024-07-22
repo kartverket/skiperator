@@ -83,3 +83,21 @@ func GetNamespaceLabels() map[string]string {
 		"skiperator.skiperator.no/controller": "namespace",
 	}
 }
+
+func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, GetRoutingLabels(routing))
+	object.SetLabels(labels)
+}
+
+func GetRoutingLabels(routing *skiperatorv1alpha1.Routing) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":              "skiperator",
+		"skiperator.kartverket.no/controller":       "routing",
+		"skiperator.kartverket.no/routing-name":     routing.Name,
+		"skiperator.kartverket.no/source-namespace": routing.Namespace,
+	}
+}

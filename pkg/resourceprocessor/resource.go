@@ -64,12 +64,16 @@ func diffBetween(old client.Object, new client.Object) bool {
 	return true
 }
 
+// TODO maybe this should be a reconciliation function instead
 func getLabelsForResources(task reconciliation.Reconciliation) map[string]string {
 	if task.GetType() == reconciliation.ApplicationType {
 		app := task.GetReconciliationObject().(*v1alpha1.Application)
 		return resourceutils.GetApplicationDefaultLabels(app)
 	} else if task.GetType() == reconciliation.NamespaceType {
 		return resourceutils.GetNamespaceLabels()
+	} else if task.GetType() == reconciliation.RoutingType {
+		routing := task.GetReconciliationObject().(*v1alpha1.Routing)
+		return resourceutils.GetRoutingLabels(routing)
 	}
 	return nil
 }

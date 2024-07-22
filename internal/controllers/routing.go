@@ -12,6 +12,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +20,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -43,7 +45,7 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&skiperatorv1alpha1.Application{},
 			handler.EnqueueRequestsFromMapFunc(r.SkiperatorApplicationsChanges)).
-		//TODO why red?
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
 
@@ -59,15 +61,38 @@ func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Contex
 	return routing, nil
 }
 
+func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
+	route := &skiperatorv1alpha1.Routing{}
+	route.SetName(name.Name)
+	route.SetNamespace(name.Namespace)
+
+	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
+	if err := r.GetProcessor().Process(reconciliation); err != nil {
+		r.EmitWarningEvent(route, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
+		return err
+	}
+	return nil
+}
+
 func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	rLog := log.NewLogger().WithName(fmt.Sprintf("routing: %s", req.Name))
 	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
 	routing, err := r.getRouting(req, ctx)
 	if routing == nil {
+		rLog.Info("Routing not found, cleaning up watched resources", "routing", req.Name)
+		if err := r.cleanUpWatchedResources(ctx, req.NamespacedName); err != nil {
+			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", err))
+		}
 		return common.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
+		return common.RequeueWithError(err)
+	}
+
+	if err := r.setDefaultSpec(routing); err != nil {
+		rLog.Error(err, "error when trying to set default spec")
+		r.EmitWarningEvent(routing, "ReconcileStartFail", "error when trying to set default spec")
 		return common.RequeueWithError(err)
 	}
 
@@ -95,6 +120,12 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 	}
 
+	if err = r.setResourceDefaults(reconciliation.GetResources(), routing); err != nil {
+		rLog.Error(err, "Failed to set routing resource defaults")
+		r.EmitWarningEvent(routing, "ReconcileEndFail", "Failed to set routing resource defaults")
+		return common.RequeueWithError(err)
+	}
+
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -104,6 +135,31 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", "routing", routing.Name))
 
 	return common.DoNotRequeue()
+}
+
+// Do this with application too?
+func (r *RoutingReconciler) setDefaultSpec(routing *skiperatorv1alpha1.Routing) error {
+	for i := range routing.Spec.Routes {
+		route := &routing.Spec.Routes[i] // Get a pointer to the route in the slice
+		if route.Port == 0 {
+			app, err := r.getTargetApplication(context.Background(), route.TargetApp, routing.Namespace)
+			if err != nil {
+				return err
+			}
+			route.Port = int32(app.Spec.Port)
+		}
+	}
+	return nil
+}
+
+func (r *RoutingReconciler) setResourceDefaults(resources []*client.Object, routing *skiperatorv1alpha1.Routing) error {
+	for _, resource := range resources {
+		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+			return err
+		}
+		resourceutils.SetRoutingLabels(*resource, routing)
+	}
+	return nil
 }
 
 func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
@@ -133,18 +189,8 @@ func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Contex
 	return requests
 }
 
-// TODO Set labels
-func getRoutingLabels(obj client.Object, routing *skiperatorv1alpha1.Routing) map[string]string {
-	labels := make(map[string]string)
-
-	labels["app.kubernetes.io/managed-by"] = "skiperator"
-	labels["skiperator.kartverket.no/controller"] = "routing"
-	labels["skiperator.kartverket.no/source-namespace"] = routing.Namespace
-
-	return labels
-}
-
 // TODO figure out what this does
+// TODO have to do something about the hardcoded labels everywhere
 func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj client.Object) []reconcile.Request {
 	certificate, isCert := obj.(*certmanagerv1.Certificate)
 
@@ -167,4 +213,13 @@ func (r *RoutingReconciler) SkiperatorRoutingCertRequests(_ context.Context, obj
 	}
 
 	return requests
+}
+
+func (r *RoutingReconciler) getTargetApplication(ctx context.Context, appName string, namespace string) (*skiperatorv1alpha1.Application, error) {
+	application := &skiperatorv1alpha1.Application{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, application); err != nil {
+		return nil, fmt.Errorf("error when trying to get target application: %w", err)
+	}
+
+	return application, nil
 }

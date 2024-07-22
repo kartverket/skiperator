@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -18,12 +19,12 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("failed to cast object to Routing")
 	}
 
-	uniqueTargetApps := make(map[string]string)
+	uniqueTargetApps := make(map[string]skiperatorv1alpha1.Route)
 	for _, route := range routing.Spec.Routes {
-		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route.TargetApp
+		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route
 	}
 
-	for netpolName, targetApp := range uniqueTargetApps {
+	for netpolName, route := range uniqueTargetApps {
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: routing.Namespace,
@@ -32,7 +33,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		}
 		networkPolicy.Spec = networkingv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
-				MatchLabels: util.GetPodAppSelector(targetApp),
+				MatchLabels: util.GetPodAppSelector(route.TargetApp),
 			},
 			PolicyTypes: []networkingv1.PolicyType{
 				networkingv1.PolicyTypeIngress,
@@ -47,6 +48,11 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 							PodSelector: &metav1.LabelSelector{
 								MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
 							},
+						},
+					},
+					Ports: []networkingv1.NetworkPolicyPort{
+						{
+							Port: util.PointTo(intstr.FromInt32(route.Port)),
 						},
 					},
 				},

@@ -49,6 +49,9 @@ spec:
                   properties:
                     pathPrefix:
                       type: string
+                    port:
+                      format: int32
+                      type: integer
                     rewriteUri:
                       default: false
                       type: boolean
