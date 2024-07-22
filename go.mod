@@ -18,10 +18,10 @@ require (
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	istio.io/api v1.22.3-0.20240703105953-437a88321a16
 	istio.io/client-go v1.22.3
-	k8s.io/api v0.30.2
+	k8s.io/api v0.30.3
 	k8s.io/apiextensions-apiserver v0.30.2
-	k8s.io/apimachinery v0.30.2
-	k8s.io/client-go v0.30.2
+	k8s.io/apimachinery v0.30.3
+	k8s.io/client-go v0.30.3
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/controller-tools v0.15.0
 	sigs.k8s.io/kustomize/kyaml v0.17.1
