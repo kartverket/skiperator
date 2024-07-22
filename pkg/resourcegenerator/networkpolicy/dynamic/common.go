@@ -97,7 +97,7 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if ingresses != nil && len(ingresses) < 0 {
+	if ingresses != nil && len(ingresses) > 0 {
 		if hasInternalIngress(ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(true))
 		}

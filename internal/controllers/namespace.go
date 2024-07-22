@@ -9,6 +9,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/github"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -82,6 +84,12 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return common.RequeueWithError(err)
 	}
 
+	if err = r.setDefaults(reconciliation.GetResources()); err != nil {
+		rLog.Error(err, "Failed to set application resource defaults")
+		r.EmitWarningEvent(namespace, "ReconcileEndFail", "Failed to set application resource defaults")
+		return common.RequeueWithError(err)
+	}
+
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -89,6 +97,13 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	r.EmitNormalEvent(namespace, "ReconcileEnd", fmt.Sprintf("Namespace %v has finished reconciliation loop", namespace.Name))
 
 	return common.DoNotRequeue()
+}
+
+func (r *NamespaceReconciler) setDefaults(resources []*client.Object) error {
+	for _, resource := range resources {
+		resourceutils.SetNamespaceLabels(*resource)
+	}
+	return nil
 }
 
 func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace string) bool {

@@ -2,6 +2,9 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: github-auth
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.skiperator.no/controller: namespace
 type: kubernetes.io/dockerconfigjson
 data:
   .dockerconfigjson: eyJhdXRocyI6eyJnaGNyLmlvIjp7ImF1dGgiOiIifX19Cg==

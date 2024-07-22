@@ -1,6 +1,9 @@
 package resourceprocessor
 
 import (
+	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -59,4 +62,14 @@ func diffBetween(old client.Object, new client.Object) bool {
 		return true
 	}
 	return true
+}
+
+func getLabelsForResources(task reconciliation.Reconciliation) map[string]string {
+	if task.GetType() == reconciliation.ApplicationType {
+		app := task.GetReconciliationObject().(*v1alpha1.Application)
+		return resourceutils.GetApplicationDefaultLabels(app)
+	} else if task.GetType() == reconciliation.NamespaceType {
+		return resourceutils.GetNamespaceLabels()
+	}
+	return nil
 }

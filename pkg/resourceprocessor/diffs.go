@@ -9,8 +9,7 @@ import (
 // TODO fix pointer mess ? ? ? ?
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
-	//TODO labels to get the resources by should be its own get function
-	labels := task.GetReconciliationObject().GetLabels()
+	labels := getLabelsForResources(task)
 
 	if labels == nil {
 		return nil, nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
@@ -18,7 +17,12 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), labels, &liveObjects); err != nil {
 		return nil, nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
-
+	//TODO ugly as hell
+	certs := make([]client.Object, 0)
+	if err := r.getCertificates(task.GetCtx(), labels, &certs); err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("failed to get certificates: %w", err)
+	}
+	liveObjects = append(liveObjects, certs...)
 	liveObjectsMap := make(map[string]*client.Object)
 	for _, obj := range liveObjects {
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj

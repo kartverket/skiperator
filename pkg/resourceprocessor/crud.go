@@ -79,8 +79,10 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 
 	listOpts := &client.ListOptions{
 		LabelSelector: selectorString,
+		Namespace:     namespace,
 	}
 
+	//TODO doesn't get namespace resources, why?
 	for _, schema := range r.schemas {
 		if err := r.client.List(ctx, &schema, listOpts); err != nil {
 			return fmt.Errorf("failed to list resources: %w", err)
@@ -92,4 +94,8 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 	}
 
 	return nil
+}
+
+func (r *ResourceProcessor) getCertificates(ctx context.Context, labels map[string]string, objList *[]client.Object) error {
+	return r.listResourcesByLabels(ctx, "istio-gateways", labels, objList)
 }

@@ -62,6 +62,11 @@ spec:
             allowPrivilegeEscalation: false
             seccompProfile:
               type: "RuntimeDefault"
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
           resources:
             requests:
               memory: "64Mi"

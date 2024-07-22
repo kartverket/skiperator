@@ -2,5 +2,8 @@ apiVersion: networking.istio.io/v1beta1
 kind: Sidecar
 metadata:
   name: sidecar
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.skiperator.no/controller: namespace
 spec:
   outboundTrafficPolicy: {}

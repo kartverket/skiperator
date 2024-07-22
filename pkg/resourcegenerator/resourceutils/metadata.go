@@ -23,6 +23,7 @@ func SetCommonAnnotations(object client.Object) {
 	object.SetAnnotations(annotations)
 }
 
+// TODO Generalize this so we dont need a type
 func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":            "skiperator",
@@ -65,4 +66,20 @@ func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string)
 		}
 	}
 	return nil, false
+}
+
+func SetNamespaceLabels(object client.Object) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, GetNamespaceLabels())
+	object.SetLabels(labels)
+}
+
+func GetNamespaceLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.skiperator.no/controller": "namespace",
+	}
 }

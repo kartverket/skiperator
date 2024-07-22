@@ -2,6 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.skiperator.no/controller: namespace
 spec:
   policyTypes:
   - Ingress

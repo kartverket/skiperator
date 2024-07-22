@@ -113,9 +113,13 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	application, err := r.getApplication(req, ctx)
 	if application == nil {
-		return ctrl.Result{}, nil
+		rLog.Info("Application not found, cleaning up watched resources", "application", req.Name)
+		if err := r.cleanUpWatchedResources(ctx, req.NamespacedName); err != nil {
+			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", err))
+		}
+		return common.DoNotRequeue()
 	} else if err != nil {
-		return ctrl.Result{}, err
+		return common.RequeueWithError(err)
 	}
 
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
@@ -123,15 +127,16 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		if err = r.finalizeApplication(application, ctx); err != nil {
 			return ctrl.Result{}, err
 		}
-		return ctrl.Result{}, nil
+		return common.DoNotRequeue()
 	}
 
 	if !common.ShouldReconcile(application) {
-		return ctrl.Result{}, nil
+		return common.DoNotRequeue()
 	}
 
 	if err := ValidateIngresses(application); err != nil {
-		rLog.Error(err, "Invalid ingresses")
+		rLog.Error(err, "invalid ingress in application manifest")
+		r.EmitWarningEvent(application, "InvalidApplication", "Invalid ingresses")
 		return common.RequeueWithError(err)
 	}
 
@@ -211,10 +216,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	if err = r.setApplicationResourcesDefaults(reconciliation.GetResources(), application); err != nil {
 		rLog.Error(err, "Failed to set application resource defaults")
+		r.EmitWarningEvent(application, "ReconcileEndFail", "Failed to set application resource defaults")
 		return common.RequeueWithError(err)
 	}
 
 	if err = r.GetProcessor().Process(reconciliation); err != nil {
+		r.EmitWarningEvent(application, "ReconcileEndFail", "Failed to process resources")
 		return common.RequeueWithError(err)
 	}
 
@@ -233,6 +240,19 @@ func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx contex
 	}
 
 	return application, nil
+}
+
+func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
+	app := &skiperatorv1alpha1.Application{}
+	app.SetName(name.Name)
+	app.SetNamespace(name.Namespace)
+
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil)
+	if err := r.GetProcessor().Process(reconciliation); err != nil {
+		r.EmitWarningEvent(app, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
+		return err
+	}
+	return nil
 }
 
 func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
