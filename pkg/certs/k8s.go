@@ -11,6 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// TODO do we need this?
 func AssertWellKnownTlsCert(c client.Client, ctx context.Context, certName string) (bool, []string, error) {
 	secret, err := util.GetSecret(c, ctx, types.NamespacedName{Namespace: "istio-gateways", Name: certName})
 	if err != nil {

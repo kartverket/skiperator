@@ -29,6 +29,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 
 	// Do not create a new certificate when a custom certificate secret is specified
 	if h.UsesCustomCert() {
+		ctxLog.Debug("Skipping certificate generation for routing", "routing", routing.Name, "reason", "custom certificate secret specified")
 		return nil
 	}
 

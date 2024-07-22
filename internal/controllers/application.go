@@ -39,7 +39,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -68,6 +71,8 @@ type ApplicationReconciler struct {
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
+var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
+
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -75,7 +80,9 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&networkingv1beta1.ServiceEntry{}).
-		Owns(&networkingv1beta1.Gateway{}).
+		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
+			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+		)).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
@@ -121,6 +128,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	if !common.ShouldReconcile(application) {
 		return ctrl.Result{}, nil
+	}
+
+	if err := ValidateIngresses(application); err != nil {
+		rLog.Error(err, "Invalid ingresses")
+		return common.RequeueWithError(err)
 	}
 
 	// Copy application so we can check for diffs. Should be none on existing applications.
@@ -330,4 +342,30 @@ func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconc
 	}
 
 	return requests
+}
+
+func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
+	match, _ := regexp.MatchString("^.*-ingress-.*$", gateway.Name)
+
+	return match
+}
+
+// TODO should be handled better
+func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
+	var err error
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Remove/rewrite?
+	for _, h := range hosts {
+		if !hostMatchExpression.MatchString(h.Hostname) {
+			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", h.Hostname)
+			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
+				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
+			})
+		}
+	}
+	return nil
 }

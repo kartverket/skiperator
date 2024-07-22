@@ -25,10 +25,17 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("failed to cast object to Application")
 	}
 
-	// Generate separate cert for each ingress
-	for _, hostname := range application.Spec.Ingresses {
-		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(hostname))
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return fmt.Errorf("Failure to get hosts from application: %w", err)
+	}
 
+	// Generate separate cert for each ingress
+	for _, h := range hosts {
+		if h.UsesCustomCert() {
+			continue
+		}
+		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(h.Hostname))
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
 
 		resourceutils.SetApplicationLabels(&certificate, application)
@@ -38,7 +45,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 				Kind: "ClusterIssuer",
 				Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			},
-			DNSNames:   []string{hostname},
+			DNSNames:   []string{h.Hostname},
 			SecretName: certificateName,
 		}
 		var obj client.Object = &certificate
