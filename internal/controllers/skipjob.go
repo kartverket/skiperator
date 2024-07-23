@@ -116,7 +116,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	//Start the actual reconciliation
-	rLog.Debug("Starting reconciliation loop", skipJob.Name)
+	rLog.Debug("Starting reconciliation loop")
 	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
 	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
@@ -168,6 +168,7 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJ
 	if err := skipJob.FillDefaultSpec(); err != nil {
 		return fmt.Errorf("error when trying to fill default spec: %w", err)
 	}
+	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	return nil
 }
 

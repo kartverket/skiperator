@@ -2,6 +2,7 @@ package resourceutils
 
 import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -28,6 +29,7 @@ func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) ma
 	return map[string]string{
 		"app.kubernetes.io/managed-by":            "skiperator",
 		"skiperator.skiperator.no/controller":     "application",
+		"app":                                     application.Name,
 		"application.skiperator.no/app":           application.Name,
 		"application.skiperator.no/app-name":      application.Name,
 		"application.skiperator.no/app-namespace": application.Namespace,
@@ -115,10 +117,12 @@ func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob)
 // TODO these labels are a disaster
 func GetSKIPJobLabels(skipJob *skiperatorv1alpha1.SKIPJob) map[string]string {
 	return map[string]string{
-		"app":                                  skipJob.Name,
-		"app.kubernetes.io/managed-by":         "skiperator",
-		"skiperator.kartverket.no/controller":  "skipjob",
-		"skiperator.kartverket.no/skipjob":     "true",
-		"skiperator.kartverket.no/skipjobName": skipJob.Name,
+		"app":                                 skipJob.KindPostFixedName(),
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "skipjob",
+		// Used by hahaha to know that the Pod should be watched for killing sidecars
+		job.IsSKIPJobKey: "true",
+		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
+		job.SKIPJobReferenceLabelKey: skipJob.Name,
 	}
 }

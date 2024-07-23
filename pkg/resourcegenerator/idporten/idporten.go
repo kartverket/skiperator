@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"net/url"
 	"path"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,9 +52,6 @@ func Generate(r reconciliation.Reconciliation) error {
 			Name:      application.Name,
 		},
 	}
-
-	resourceutils.SetApplicationLabels(&idporten, application)
-	resourceutils.SetCommonAnnotations(&idporten)
 
 	idporten.Spec, err = getIDPortenSpec(application)
 	if err != nil {

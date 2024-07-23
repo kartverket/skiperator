@@ -74,6 +74,9 @@ func getLabelsForResources(task reconciliation.Reconciliation) map[string]string
 	} else if task.GetType() == reconciliation.RoutingType {
 		routing := task.GetReconciliationObject().(*v1alpha1.Routing)
 		return resourceutils.GetRoutingLabels(routing)
+	} else if task.GetType() == reconciliation.JobType {
+		skipjob := task.GetReconciliationObject().(*v1alpha1.SKIPJob)
+		return resourceutils.GetSKIPJobLabels(skipjob)
 	}
 	return nil
 }

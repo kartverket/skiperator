@@ -12,6 +12,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
@@ -57,20 +58,15 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if skipJob.Spec.Cron != nil {
 		cronJob.Spec = getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
-
-		ctxLog.Info(fmt.Sprintf("cronjob %v/%v created, requeuing reconcile in %v seconds to await subresource creation", cronJob.Namespace, cronJob.Name, DefaultAwaitCronJobResourcesWait.Seconds()))
-		return nil
-	}
-	if skipJob.Spec.Job != nil {
-
+		var obj client.Object = &cronJob
+		r.AddResource(&obj)
+	} else {
 		desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
 		job.Labels = GetJobLabels(skipJob, job.Labels)
 		job.Spec = desiredSpec
-
-		return nil
-
+		var obj client.Object = &job
+		r.AddResource(&obj)
 	}
-
 	return nil
 }
 
