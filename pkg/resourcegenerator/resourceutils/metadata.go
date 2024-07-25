@@ -2,18 +2,21 @@ package resourceutils
 
 import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 )
 
-var commonAnnotations = map[string]string{
-	// Prevents Argo CD from deleting these resources and leaving the namespace
-	// in a deadlocked deleting state
-	// https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
-	"argocd.argoproj.io/sync-options": "Prune=false",
-}
+var (
+	commonAnnotations = map[string]string{
+		// Prevents Argo CD from deleting these resources and leaving the namespace
+		// in a deadlocked deleting state
+		// https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
+		"argocd.argoproj.io/sync-options": "Prune=false",
+	}
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
+	IsSKIPJobKey             = "skiperator.kartverket.no/skipjob"
+)
 
 func SetCommonAnnotations(object client.Object) {
 	annotations := object.GetAnnotations()
@@ -121,8 +124,8 @@ func GetSKIPJobLabels(skipJob *skiperatorv1alpha1.SKIPJob) map[string]string {
 		"app.kubernetes.io/managed-by":        "skiperator",
 		"skiperator.kartverket.no/controller": "skipjob",
 		// Used by hahaha to know that the Pod should be watched for killing sidecars
-		job.IsSKIPJobKey: "true",
+		IsSKIPJobKey: "true",
 		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
-		job.SKIPJobReferenceLabelKey: skipJob.Name,
+		SKIPJobReferenceLabelKey: skipJob.Name,
 	}
 }

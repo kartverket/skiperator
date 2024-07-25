@@ -50,7 +50,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := batchJob.Labels[job.SKIPJobReferenceLabelKey]; exists {
+			if skipJobName, exists := batchJob.Labels[resourceutils.SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{

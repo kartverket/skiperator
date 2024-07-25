@@ -10,6 +10,7 @@ import (
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
@@ -66,6 +67,38 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&nais_io_v1.MaskinportenClientList{},
 		&nais_io_v1.IDPortenClientList{},
 		&pov1.ServiceMonitorList{},
+		&pov1.PodMonitorList{},
 		&certmanagerv1.CertificateList{},
+	}, scheme)
+}
+
+func GetJobSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
+	return addGVKToList([]client.ObjectList{
+		&batchv1.CronJobList{},
+		&batchv1.JobList{},
+		&networkingv1.NetworkPolicyList{},
+		&corev1.ServiceAccountList{},
+		&networkingv1beta1.ServiceEntryList{},
+		&corev1.ConfigMapList{},
+		&pov1.PodMonitorList{},
+	}, scheme)
+}
+
+func GetRoutingSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
+	return addGVKToList([]client.ObjectList{
+		&certmanagerv1.CertificateList{},
+		&networkingv1beta1.GatewayList{},
+		&networkingv1.NetworkPolicyList{},
+		&networkingv1beta1.VirtualServiceList{},
+	}, scheme)
+}
+
+func GetNamespaceSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
+	return addGVKToList([]client.ObjectList{
+		&corev1.NamespaceList{},
+		&corev1.ConfigMapList{},
+		&networkingv1.NetworkPolicyList{},
+		&networkingv1beta1.SidecarList{},
+		&corev1.SecretList{},
 	}, scheme)
 }

@@ -5,7 +5,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -18,9 +20,12 @@ func copyRequiredData(new client.Object, existing client.Object) {
 	new.SetOwnerReferences(existing.GetOwnerReferences())
 }
 
+// Patch if you care about status or if kubernetes does changes to the object after creation
 func requirePatch(obj client.Object) bool {
 	switch obj.(type) {
 	case *v1.Deployment:
+		return true
+	case *batchv1.Job:
 		return true
 	}
 	return false
@@ -40,6 +45,11 @@ func preparePatch(new client.Object, old client.Object) {
 		if _, rolloutIssued := deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"]; rolloutIssued {
 			delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 		}
+	case *batchv1.Job:
+		job := old.(*batchv1.Job)
+		definition := new.(*batchv1.Job)
+		maps.Copy(definition.Spec.Template.Labels, job.Spec.Template.Labels) //kubernetes adds labels on creation
+		definition.Spec.Selector = job.Spec.Selector                         //is set on creation
 	}
 }
 
@@ -60,6 +70,15 @@ func diffBetween(old client.Object, new client.Object) bool {
 		}
 
 		return true
+
+	case *batchv1.Job:
+		job := old.(*batchv1.Job)
+		definition := new.(*batchv1.Job)
+		jobHash := util.GetHashForStructs([]interface{}{&job.Spec, &job.Labels})
+		jobDefinitionHash := util.GetHashForStructs([]interface{}{&definition.Spec, &definition.Labels})
+		if jobHash != jobDefinitionHash {
+			return true
+		}
 	}
 	return true
 }

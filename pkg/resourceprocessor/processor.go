@@ -59,15 +59,3 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
 	}
 	return nil
 }
-
-func (r *ResourceProcessor) setMeta(new client.Object, old client.Object) {
-	new.SetResourceVersion(old.GetResourceVersion())
-	new.SetUID(old.GetUID())
-	new.SetSelfLink(old.GetSelfLink())
-
-	existingReferences := old.GetOwnerReferences()
-
-	if len(existingReferences) > 0 {
-		new.SetOwnerReferences(existingReferences)
-	}
-}

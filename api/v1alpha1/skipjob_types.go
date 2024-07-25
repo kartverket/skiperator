@@ -16,6 +16,9 @@ var (
 
 	DefaultSuspend      = false
 	JobCreatedCondition = "SKIPJobCreated"
+	ConditionRunning    = "Running"
+	ConditionFinished   = "Finished"
+	ConditionFailed     = "Failed"
 )
 
 // SKIPJobStatus defines the observed state of SKIPJob
@@ -186,7 +189,6 @@ func (skipJob *SKIPJob) KindPostFixedName() string {
 }
 
 func (skipJob *SKIPJob) FillDefaultSpec() error {
-
 	defaults := &SKIPJob{
 		Spec: SKIPJobSpec{
 			Job: &JobSettings{
@@ -203,6 +205,27 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 					LastTransitionTime: metav1.Now(),
 					Reason:             "SKIPJobCreated",
 					Message:            "SKIPJob was created",
+				},
+				{
+					Type:               ConditionRunning,
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Now(),
+					Reason:             "NotReconciled",
+					Message:            "SKIPJob has not been reconciled yet",
+				},
+				{
+					Type:               ConditionFinished,
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Now(),
+					Reason:             "NotReconciled",
+					Message:            "SKIPJob has not been reconciled yet",
+				},
+				{
+					Type:               ConditionFailed,
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: metav1.Now(),
+					Reason:             "NotReconciled",
+					Message:            "SKIPJob has not been reconciled yet",
 				},
 			},
 		},

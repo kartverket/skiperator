@@ -4,11 +4,11 @@ import (
 	"context"
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
-	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
@@ -54,13 +54,13 @@ func NewReconcilerBase(
 }
 
 // NewReconcilerBase is a construction function to create a new ReconcilerBase.
-func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) ReconcilerBase {
+func NewFromManager(mgr manager.Manager, recorder record.EventRecorder, schemas []unstructured.UnstructuredList) ReconcilerBase {
 	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
 	}
 	//TODO needs to be schemas for each type
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), resourceschemas.GetApplicationSchemas(mgr.GetScheme()), mgr.GetScheme())
+	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), schemas, mgr.GetScheme())
 
 	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, processor)
 }
