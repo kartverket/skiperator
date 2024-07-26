@@ -11,9 +11,9 @@ import (
 
 func generateForSKIPJob(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate service account for skipjob", "skipjob", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate service account for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
-	skipJob, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob, ok := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
 	if !ok {
 		return fmt.Errorf("failed to cast object to skipjob")
 	}

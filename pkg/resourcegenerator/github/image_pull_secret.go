@@ -15,7 +15,7 @@ func Generate(r reconciliation.Reconciliation, token string, registry string) er
 	if r.GetType() != reconciliation.NamespaceType {
 		return fmt.Errorf("image pull secret only supports namespace type")
 	}
-	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetReconciliationObject().GetName(), Name: "github-auth"}}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "github-auth"}}
 
 	secret.Type = corev1.SecretTypeDockerConfigJson
 

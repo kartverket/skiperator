@@ -82,6 +82,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
 		return common.RequeueWithError(err)
 	}
+	//TODO clean up watched resources?
 
 	tmpSkipJob := skipJob.DeepCopy()
 	err = r.setSKIPJobDefaults(skipJob)
@@ -109,15 +110,16 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		err := r.GetClient().Status().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
+
+	//Start the actual reconciliation
+	rLog.Debug("Starting reconciliation loop")
+	r.SetProgressingState(skipJob, fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name), ctx)
+
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
-	}
-
-	//Start the actual reconciliation
-	rLog.Debug("Starting reconciliation loop")
-	r.EmitNormalEvent(skipJob, "ReconcileStart", fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
+	} //TODO Error state?
 
 	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
@@ -132,23 +134,31 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	for _, f := range resourceGeneration {
 		if err := f(reconciliation); err != nil {
+			rLog.Error(err, "failed to generate skipjob resource")
+			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
+			r.SetErrorState(skipJob, err, "failed to generate skipjob resource", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
 
 	if err = r.setResourceDefaults(reconciliation.GetResources(), skipJob); err != nil {
 		rLog.Error(err, "error when trying to set resource defaults")
-		r.EmitWarningEvent(skipJob, "ReconcileError", "error when trying to set resource defaults")
+		r.SetErrorState(skipJob, err, "failed to set skipjob resource defaults", ctx)
 		return common.RequeueWithError(err)
 	}
 
-	if err = r.GetProcessor().Process(reconciliation); err != nil {
+	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+		for _, err = range errs {
+			rLog.Error(err, "failed to process resource")
+			r.EmitWarningEvent(skipJob, "ReconcileEndFail", fmt.Sprintf("Failed to process skipjob resources: %s", err.Error()))
+		}
+		r.SetErrorState(skipJob, fmt.Errorf("found %d errors", len(errs)), "failed to process skipjob resources, see subresource status", ctx)
 		return common.RequeueWithError(err)
 	}
 
-	r.EmitNormalEvent(skipJob, "ReconcileEnd", fmt.Sprintf("SKIPJob %v has finished reconciliation loop", skipJob.Name))
-
+	r.SetSyncedState(skipJob, "SKIPJob has been reconciled", ctx)
 	err = r.GetClient().Update(ctx, skipJob)
+
 	return common.RequeueWithError(err)
 }
 
@@ -169,6 +179,7 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJ
 		return fmt.Errorf("error when trying to fill default spec: %w", err)
 	}
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
+	skipJob.FillDefaultStatus()
 	return nil
 }
 

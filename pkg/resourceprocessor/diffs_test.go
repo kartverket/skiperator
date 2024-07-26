@@ -52,7 +52,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	// Create the live resource in the fake client
 	err := mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
-	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), nil, nil)
+	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil)
 	var obj client.Object = newSA
 	r.AddResource(&obj)
 	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := resourceProcessor.getDiff(r)

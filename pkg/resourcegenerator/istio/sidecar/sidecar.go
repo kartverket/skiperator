@@ -13,13 +13,13 @@ import (
 // TODO investigate: this doesn't seem to be doing anything on the cluster today?
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate istio sidecar resource for namespace", "namespace", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate istio sidecar resource for namespace", "namespace", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.NamespaceType {
 		return fmt.Errorf(" istio sidecar resource supports namespace type")
 	}
 
-	sidecar := networkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetReconciliationObject().GetName(), Name: "sidecar"}}
+	sidecar := networkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "sidecar"}}
 
 	sidecar.Spec = networkingv1beta1api.Sidecar{
 		OutboundTrafficPolicy: &networkingv1beta1api.OutboundTrafficPolicy{
@@ -30,6 +30,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	var obj client.Object = &sidecar
 	r.AddResource(&obj)
 
-	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 	return nil
 }

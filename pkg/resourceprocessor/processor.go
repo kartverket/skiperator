@@ -1,6 +1,7 @@
 package resourceprocessor
 
 import (
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -24,38 +25,44 @@ func NewResourceProcessor(client client.Client, schemas []unstructured.Unstructu
 	return &ResourceProcessor{client: client, log: l, schemas: schemas, scheme: scheme}
 }
 
-func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) error {
+func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error {
+	if !hasGVK(task.GetResources()) {
+		return []error{v1alpha1.ErrNoGVK}
+	}
 	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := r.getDiff(task)
 	if err != nil {
-		return err
+		return []error{err}
 	}
+	results := map[client.Object]error{}
 
 	for _, obj := range shouldDelete {
-		if err = r.delete(task.GetCtx(), obj); err != nil {
-			r.log.Error(err, "Failed to delete object")
-			return err
-		}
+		err = r.delete(task.GetCtx(), obj)
+		results[obj] = err
 	}
 
 	for _, obj := range shouldCreate {
-		if err = r.create(task.GetCtx(), obj); err != nil {
-			r.log.Error(err, "Failed to create object")
-			return err
-		}
+		err = r.create(task.GetCtx(), obj)
+		results[obj] = err
 	}
 
-	for _, newObj := range shouldPatch {
-		if err = r.patch(task.GetCtx(), newObj); err != nil {
-			r.log.Error(err, "Failed to patch object")
-			return err
-		}
+	for _, obj := range shouldPatch {
+		err = r.patch(task.GetCtx(), obj)
+		results[obj] = err
 	}
 
 	for _, obj := range shouldUpdate {
-		if err = r.update(task.GetCtx(), obj); err != nil {
-			r.log.Error(err, "Failed to update object")
-			return err
+		err = r.update(task.GetCtx(), obj)
+		results[obj] = err
+	}
+
+	var errors []error
+	for obj, err := range results {
+		if err != nil {
+			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, err.Error(), v1alpha1.ERROR)
+			errors = append(errors, err)
+		} else {
+			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, "Resource successfully synced", v1alpha1.SYNCED)
 		}
 	}
-	return nil
+	return errors
 }

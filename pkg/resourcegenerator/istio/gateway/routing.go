@@ -13,12 +13,12 @@ import (
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate gateway for routing", "routing", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate gateway for routing", "routing", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.RoutingType {
 		return fmt.Errorf("gateway only supports routing type")
 	}
-	routing, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Routing)
+	routing, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to routing")
 	}

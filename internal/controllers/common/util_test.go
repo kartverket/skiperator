@@ -9,7 +9,7 @@ import (
 
 func TestShouldReconcile(t *testing.T) {
 	r := testutil.GetTestMinimalAppReconciliation()
-	app := r.GetReconciliationObject().(*v1alpha1.Application)
+	app := r.GetSKIPObject().(*v1alpha1.Application)
 	assert.True(t, ShouldReconcile(app))
 	app.Labels["skiperator.kartverket.no/ignore"] = "true"
 	assert.False(t, ShouldReconcile(app))

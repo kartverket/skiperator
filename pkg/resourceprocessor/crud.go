@@ -9,7 +9,8 @@ import (
 )
 
 func (r *ResourceProcessor) create(ctx context.Context, obj client.Object) error {
-	err := r.client.Create(ctx, obj)
+	createObj := obj.DeepCopyObject().(client.Object) //copy so we keep gvk
+	err := r.client.Create(ctx, createObj)
 	if err != nil && errors.IsAlreadyExists(err) {
 		if err = r.update(ctx, obj); err != nil {
 			return err

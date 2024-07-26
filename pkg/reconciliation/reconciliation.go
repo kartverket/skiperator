@@ -2,6 +2,7 @@ package reconciliation
 
 import (
 	"context"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
@@ -22,7 +23,7 @@ type Reconciliation interface {
 	GetLogger() log.Logger
 	GetCtx() context.Context
 	IsIstioEnabled() bool
-	GetReconciliationObject() client.Object
+	GetSKIPObject() v1alpha1.SKIPObject
 	GetCommonSpec() *CommonType
 	GetType() ReconciliationObjectType
 	GetResources() []*client.Object

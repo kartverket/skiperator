@@ -24,8 +24,8 @@ type Routing struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Spec   RoutingSpec   `json:"spec,omitempty"`
-	Status RoutingStatus `json:"status,omitempty"`
+	Spec   RoutingSpec      `json:"spec,omitempty"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -94,4 +94,8 @@ func (in *Routing) SetConditions(conditions []metav1.Condition) {
 
 func (in *RoutingSpec) GetHost() (*Host, error) {
 	return NewHost(in.Hostname)
+}
+
+func (in *Routing) GetStatus() *SkiperatorStatus {
+	return &in.Status
 }

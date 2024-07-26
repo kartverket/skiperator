@@ -40,7 +40,7 @@ type SKIPJob struct {
 	Spec SKIPJobSpec `json:"spec"`
 
 	//+kubebuilder:validation:Optional
-	Status SKIPJobStatus `json:"status"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -188,6 +188,10 @@ func (skipJob *SKIPJob) KindPostFixedName() string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
 }
 
+func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
+	return &skipJob.Status
+}
+
 func (skipJob *SKIPJob) FillDefaultSpec() error {
 	defaults := &SKIPJob{
 		Spec: SKIPJobSpec{
@@ -195,38 +199,6 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
 				BackoffLimit:            &DefaultBackoffLimit,
 				Suspend:                 &DefaultSuspend,
-			},
-		},
-		Status: SKIPJobStatus{
-			Conditions: []metav1.Condition{
-				{
-					Type:               JobCreatedCondition,
-					Status:             metav1.ConditionTrue,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "SKIPJobCreated",
-					Message:            "SKIPJob was created",
-				},
-				{
-					Type:               ConditionRunning,
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "NotReconciled",
-					Message:            "SKIPJob has not been reconciled yet",
-				},
-				{
-					Type:               ConditionFinished,
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "NotReconciled",
-					Message:            "SKIPJob has not been reconciled yet",
-				},
-				{
-					Type:               ConditionFailed,
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "NotReconciled",
-					Message:            "SKIPJob has not been reconciled yet",
-				},
 			},
 		},
 	}
@@ -238,4 +210,38 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 	}
 
 	return mergo.Merge(skipJob, defaults)
+}
+
+func (skipJob *SKIPJob) FillDefaultStatus() {
+	skipJob.Status.Conditions = []metav1.Condition{
+		{
+			Type:               JobCreatedCondition,
+			Status:             metav1.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "SKIPJobCreated",
+			Message:            "SKIPJob was created",
+		},
+		{
+			Type:               ConditionRunning,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+		{
+			Type:               ConditionFinished,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+		{
+			Type:               ConditionFailed,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+	}
+	skipJob.Status.Conditions = make([]metav1.Condition, 0)
 }

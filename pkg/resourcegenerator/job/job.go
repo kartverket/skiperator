@@ -18,13 +18,13 @@ import (
 // TODO completely butchered, need to be thorougly checked
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate job for skipjob", "skipjob", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate job for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
 		return fmt.Errorf("job only supports skipjob type", r.GetType())
 	}
 
-	skipJob := r.GetReconciliationObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
 
 	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,

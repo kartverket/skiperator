@@ -14,13 +14,13 @@ import (
 
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate default deny network policy for namespace", "namespace", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.NamespaceType {
 		return fmt.Errorf("default deny namespace only supports namespace type")
 	}
 
-	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetReconciliationObject().GetName(), Name: "default-deny"}}
+	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "default-deny"}}
 
 	networkPolicy.Spec = networkingv1.NetworkPolicySpec{
 		PolicyTypes: []networkingv1.PolicyType{
@@ -119,6 +119,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	var obj client.Object = &networkPolicy
 	r.AddResource(&obj)
 
-	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 	return nil
 }

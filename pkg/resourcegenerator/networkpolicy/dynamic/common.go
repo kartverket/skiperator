@@ -13,9 +13,9 @@ import (
 // TODO fix mess
 func generateForCommon(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate network policy for application", "application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate network policy for application", "application", r.GetSKIPObject().GetName())
 
-	object := r.GetReconciliationObject()
+	object := r.GetSKIPObject()
 	name := object.GetName()
 	namespace := object.GetNamespace()
 	if r.GetType() == reconciliation.JobType {

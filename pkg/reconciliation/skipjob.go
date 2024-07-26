@@ -41,7 +41,7 @@ func (j *JobReconciliation) IsIstioEnabled() bool {
 	return j.istioEnabled
 }
 
-func (j *JobReconciliation) GetReconciliationObject() client.Object {
+func (j *JobReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
 	return j.job
 }
 

@@ -47,7 +47,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Generating gcp configmap", "type", r.GetType())
 
-	object := r.GetReconciliationObject()
+	object := r.GetSKIPObject()
 	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
 	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: gcpAuthConfigMapName}}
 

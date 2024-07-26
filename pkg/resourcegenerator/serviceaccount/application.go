@@ -13,9 +13,9 @@ import (
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate service account for application", "application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate service account for application", "application", r.GetSKIPObject().GetName())
 
-	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}

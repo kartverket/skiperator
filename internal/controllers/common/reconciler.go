@@ -3,6 +3,8 @@ package common
 import (
 	"context"
 	"github.com/go-logr/logr"
+	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -134,4 +136,44 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	v, exists := namespace.Labels[util.IstioRevisionLabel]
 
 	return exists && len(v) > 0
+}
+
+func (r *ReconcilerBase) SetSubresourceDefaults(
+	resources []*client.Object,
+	skipObj client.Object,
+) error {
+	for _, resource := range resources {
+		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+			return err
+		}
+		resourceutils.SetCommonAnnotations(*resource)
+		if err := resourceutils.SetOwnerReference(skipObj, *resource, r.GetScheme()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ReconcilerBase) SetErrorState(skipObj v1alpha1.SKIPObject, err error, message string, ctx context.Context) {
+	r.EmitWarningEvent(skipObj, "ReconcileEndFail", "message")
+	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
+	if err = r.GetClient().Status().Update(ctx, skipObj); err != nil {
+		r.Logger.Error(err, "Failed to update status")
+	}
+}
+
+func (r *ReconcilerBase) SetProgressingState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
+	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
+	skipObj.GetStatus().SetSummaryProgressing()
+	if err := r.GetClient().Status().Update(ctx, skipObj); err != nil {
+		r.Logger.Error(err, "Failed to update status")
+	}
+}
+
+func (r *ReconcilerBase) SetSyncedState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
+	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
+	skipObj.GetStatus().SetSummarySynced()
+	if err := r.GetClient().Status().Update(ctx, skipObj); err != nil {
+		r.Logger.Error(err, "Failed to update status")
+	}
 }

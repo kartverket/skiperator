@@ -799,7 +799,11 @@ spec:
               rule: ((!has(self.cron) && (oldSelf.container == self.container)) ||
                 has(self.cron))
           status:
-            description: SKIPJobStatus defines the observed state of SKIPJob
+            description: |-
+              ApplicationStatus
+
+
+              A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:
               conditions:
                 items:
@@ -870,6 +874,46 @@ spec:
                   - type
                   type: object
                 type: array
+              subresources:
+                additionalProperties:
+                  description: Status
+                  properties:
+                    message:
+                      default: hello
+                      type: string
+                    status:
+                      default: Synced
+                      type: string
+                    timestamp:
+                      default: hello
+                      type: string
+                  required:
+                  - message
+                  - status
+                  - timestamp
+                  type: object
+                type: object
+              summary:
+                description: Status
+                properties:
+                  message:
+                    default: hello
+                    type: string
+                  status:
+                    default: Synced
+                    type: string
+                  timestamp:
+                    default: hello
+                    type: string
+                required:
+                - message
+                - status
+                - timestamp
+                type: object
+            required:
+            - conditions
+            - subresources
+            - summary
             type: object
         required:
         - spec

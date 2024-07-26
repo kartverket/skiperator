@@ -30,7 +30,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate service entries", "type", r.GetType())
 
-	object := r.GetReconciliationObject()
+	object := r.GetSKIPObject()
 	accessPolicy := r.GetCommonSpec().AccessPolicy
 
 	accessPolicy, err := setCloudSqlRule(accessPolicy, object)

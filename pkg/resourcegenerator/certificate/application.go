@@ -6,7 +6,6 @@ import (
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -14,13 +13,13 @@ import (
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate certificates for application", "application", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate certificates for application", "application", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("certificate only supports Application type")
 	}
 
-	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
@@ -37,8 +36,6 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		}
 		certificateName := fmt.Sprintf("%s-%s-ingress-%x", application.Namespace, application.Name, util.GenerateHashFromName(h.Hostname))
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
-
-		resourceutils.SetApplicationLabels(&certificate, application)
 
 		certificate.Spec = certmanagerv1.CertificateSpec{
 			IssuerRef: v1.ObjectReference{

@@ -114,14 +114,15 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	application, err := r.getApplication(req, ctx)
 	if application == nil {
 		rLog.Info("Application not found, cleaning up watched resources", "application", req.Name)
-		if err := r.cleanUpWatchedResources(ctx, req.NamespacedName); err != nil {
-			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", err))
+		if errs := r.cleanUpWatchedResources(ctx, req.NamespacedName); len(errs) > 0 {
+			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", errs[0]))
 		}
 		return common.DoNotRequeue()
 	} else if err != nil {
 		return common.RequeueWithError(err)
 	}
 
+	//TODO do we need this actually?
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
 		if err = r.finalizeApplication(application, ctx); err != nil {
@@ -145,6 +146,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	r.setApplicationDefaults(application, ctx)
 
+	//TODO won't this always have a diff?
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
 		return common.RequeueWithError(err)
@@ -171,19 +173,15 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	//Start the actual reconciliation
+	rLog.Debug("Starting reconciliation loop", "application", application.Name)
+	r.SetProgressingState(application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name), ctx)
+
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
-	}
-
-	//Start the actual reconciliation
-	rLog.Debug("Starting reconciliation loop", "application", application.Name)
-	r.GetRecorder().Eventf(
-		application,
-		"Normal",
-		"ReconcileStart",
-		fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
+	} //TODO Error state?
 
 	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
@@ -208,23 +206,31 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	for _, f := range funcs {
-		if err := f(reconciliation); err != nil {
-			rLog.Error(err, "Failed to create resource for application")
+		if err = f(reconciliation); err != nil {
+			rLog.Error(err, "failed to generate application resource")
+			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
+			r.SetErrorState(application, err, "failed to generate application resource", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
 
+	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
 	if err = r.setApplicationResourcesDefaults(reconciliation.GetResources(), application); err != nil {
-		rLog.Error(err, "Failed to set application resource defaults")
-		r.EmitWarningEvent(application, "ReconcileEndFail", "Failed to set application resource defaults")
+		rLog.Error(err, "failed to set application resource defaults")
+		r.SetErrorState(application, err, "failed to set application resource defaults", ctx)
 		return common.RequeueWithError(err)
 	}
 
-	if err = r.GetProcessor().Process(reconciliation); err != nil {
-		r.EmitWarningEvent(application, "ReconcileEndFail", "Failed to process resources")
+	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+		for _, err = range errs {
+			rLog.Error(err, "failed to process resource")
+			r.EmitWarningEvent(application, "ReconcileEndFail", fmt.Sprintf("Failed to process application resources: %s", err.Error()))
+		}
+		r.SetErrorState(application, fmt.Errorf("found %d errors", len(errs)), "failed to process application resources, see subresource status", ctx)
 		return common.RequeueWithError(err)
 	}
 
+	r.SetSyncedState(application, "Application has been reconciled", ctx)
 	r.GetClient().Status().Update(ctx, application)
 
 	return common.DoNotRequeue()
@@ -242,17 +248,13 @@ func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx contex
 	return application, nil
 }
 
-func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
+func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) []error {
 	app := &skiperatorv1alpha1.Application{}
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
 	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil)
-	if err := r.GetProcessor().Process(reconciliation); err != nil {
-		r.EmitWarningEvent(app, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
-		return err
-	}
-	return nil
+	return r.GetProcessor().Process(reconciliation)
 }
 
 func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
@@ -272,14 +274,10 @@ func (r *ApplicationReconciler) setApplicationResourcesDefaults(
 	app *skiperatorv1alpha1.Application,
 ) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+		if err := r.SetSubresourceDefaults(resources, app); err != nil {
 			return err
 		}
-		resourceutils.SetCommonAnnotations(*resource)
 		resourceutils.SetApplicationLabels(*resource, app)
-		if err := resourceutils.SetOwnerReference(app, *resource, r.GetScheme()); err != nil {
-			return err
-		}
 	}
 	return nil
 }

@@ -90,7 +90,7 @@ func compareObject(obj1, obj2 client.Object) bool {
 
 func getNamespace(r reconciliation.Reconciliation) string {
 	if r.GetType() == reconciliation.NamespaceType {
-		return r.GetReconciliationObject().GetName()
+		return r.GetSKIPObject().GetName()
 	}
-	return r.GetReconciliationObject().GetNamespace()
+	return r.GetSKIPObject().GetNamespace()
 }

@@ -86,16 +86,26 @@ func diffBetween(old client.Object, new client.Object) bool {
 // TODO maybe this should be a reconciliation function instead
 func getLabelsForResources(task reconciliation.Reconciliation) map[string]string {
 	if task.GetType() == reconciliation.ApplicationType {
-		app := task.GetReconciliationObject().(*v1alpha1.Application)
+		app := task.GetSKIPObject().(*v1alpha1.Application)
 		return resourceutils.GetApplicationDefaultLabels(app)
 	} else if task.GetType() == reconciliation.NamespaceType {
 		return resourceutils.GetNamespaceLabels()
 	} else if task.GetType() == reconciliation.RoutingType {
-		routing := task.GetReconciliationObject().(*v1alpha1.Routing)
+		routing := task.GetSKIPObject().(*v1alpha1.Routing)
 		return resourceutils.GetRoutingLabels(routing)
 	} else if task.GetType() == reconciliation.JobType {
-		skipjob := task.GetReconciliationObject().(*v1alpha1.SKIPJob)
+		skipjob := task.GetSKIPObject().(*v1alpha1.SKIPJob)
 		return resourceutils.GetSKIPJobLabels(skipjob)
 	}
 	return nil
+}
+
+func hasGVK(resources []*client.Object) bool {
+	for _, obj := range resources {
+		gvk := (*obj).GetObjectKind().GroupVersionKind().Kind
+		if gvk == "" {
+			return false
+		}
+	}
+	return true
 }

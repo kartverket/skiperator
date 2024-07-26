@@ -42,7 +42,7 @@ func (r *RoutingReconciliation) IsIstioEnabled() bool {
 	return r.istioEnabled
 }
 
-func (r *RoutingReconciliation) GetReconciliationObject() client.Object {
+func (r *RoutingReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
 	return r.application
 }
 

@@ -2,6 +2,7 @@ package reconciliation
 
 import (
 	"context"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -10,7 +11,7 @@ import (
 
 type NamespaceReconciliation struct {
 	ctx               context.Context
-	namespace         *corev1.Namespace
+	namespace         skiperatorv1alpha1.SKIPObject
 	logger            log.Logger
 	resources         []*client.Object
 	istioEnabled      bool
@@ -18,7 +19,7 @@ type NamespaceReconciliation struct {
 	identityConfigMap *corev1.ConfigMap
 }
 
-func NewNamespaceReconciliation(ctx context.Context, namespace *corev1.Namespace, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *NamespaceReconciliation {
+func NewNamespaceReconciliation(ctx context.Context, namespace skiperatorv1alpha1.SKIPObject, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *NamespaceReconciliation {
 	return &NamespaceReconciliation{
 		ctx:               ctx,
 		namespace:         namespace,
@@ -41,7 +42,7 @@ func (r *NamespaceReconciliation) IsIstioEnabled() bool {
 	return r.istioEnabled
 }
 
-func (r *NamespaceReconciliation) GetReconciliationObject() client.Object {
+func (r *NamespaceReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
 	return r.namespace
 }
 

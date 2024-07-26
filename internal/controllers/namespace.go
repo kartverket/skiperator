@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
@@ -62,6 +63,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		rLog.Debug("Namespace is excluded from reconciliation", "name", namespace.Name)
 		return common.RequeueWithError(err)
 	}
+	//This is a hack because namespace shouldn't be here. We need this to keep things generic
+	SKIPNamespace := skiperatorv1alpha1.SKIPNamespace{Namespace: namespace}
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, namespace.Name)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
@@ -72,7 +75,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 
-	reconciliation := NewNamespaceReconciliation(ctx, namespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
 	if err = defaultdeny.Generate(reconciliation); err != nil {
 		return common.RequeueWithError(err)
@@ -91,8 +94,9 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return common.RequeueWithError(err)
 	}
 
-	if err = r.GetProcessor().Process(reconciliation); err != nil {
-		return common.RequeueWithError(err)
+	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+		rLog.Error(errs[0], "failed to process resources, %d errors. Only showing first", len(errs))
+		return common.RequeueWithError(errs[0])
 	}
 
 	r.EmitNormalEvent(namespace, "ReconcileEnd", fmt.Sprintf("Namespace %v has finished reconciliation loop", namespace.Name))

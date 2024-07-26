@@ -56,13 +56,17 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	routing, err := r.getRouting(req, ctx)
 	if routing == nil {
 		rLog.Info("Routing not found, cleaning up watched resources", "routing", req.Name)
-		if err := r.cleanUpWatchedResources(ctx, req.NamespacedName); err != nil {
-			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", err))
+		if errs := r.cleanUpWatchedResources(ctx, req.NamespacedName); len(errs) > 0 {
+			return common.RequeueWithError(fmt.Errorf("error when trying to clean up watched resources: %w", errs[0]))
 		}
 		return common.DoNotRequeue()
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
 		return common.RequeueWithError(err)
+	}
+
+	if !common.ShouldReconcile(routing) {
+		return common.DoNotRequeue()
 	}
 
 	if err := r.setDefaultSpec(routing); err != nil {
@@ -71,15 +75,15 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
+	//Start the actual reconciliation
+	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
+	r.SetProgressingState(routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name), ctx)
+
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	}
-
-	//Start the actual reconciliation
-	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
-	r.EmitNormalEvent(routing, "ReconcileStart", fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
 	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 	resourceGeneration := []reconciliationFunc{
@@ -91,23 +95,31 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	for _, f := range resourceGeneration {
 		if err := f(reconciliation); err != nil {
+			rLog.Error(err, "failed to generate routing resource")
+			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
+			r.SetErrorState(routing, err, "failed to generate routing resource", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
 
-	if err = r.setResourceDefaults(reconciliation.GetResources(), routing); err != nil {
-		rLog.Error(err, "Failed to set routing resource defaults")
-		r.EmitWarningEvent(routing, "ReconcileEndFail", "Failed to set routing resource defaults")
+	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
+	if err = r.setRoutingResourceDefaults(reconciliation.GetResources(), routing); err != nil {
+		rLog.Error(err, "failed to set routing resource defaults")
+		r.SetErrorState(routing, err, "failed to set routing resource defaults", ctx)
 		return common.RequeueWithError(err)
 	}
 
-	if err = r.GetProcessor().Process(reconciliation); err != nil {
+	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+		for _, err = range errs {
+			rLog.Error(err, "failed to process resource")
+			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))
+		}
+		r.SetErrorState(routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", ctx)
 		return common.RequeueWithError(err)
 	}
 
+	r.SetSyncedState(routing, "Routing has been reconciled", ctx)
 	r.GetClient().Status().Update(ctx, routing)
-
-	r.EmitNormalEvent(routing, "ReconcileEnd", fmt.Sprintf("Routing %v has finished reconciliation loop", "routing", routing.Name))
 
 	return common.DoNotRequeue()
 }
@@ -124,17 +136,13 @@ func (r *RoutingReconciler) getRouting(req reconcile.Request, ctx context.Contex
 	return routing, nil
 }
 
-func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) error {
+func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) []error {
 	route := &skiperatorv1alpha1.Routing{}
 	route.SetName(name.Name)
 	route.SetNamespace(name.Namespace)
 
 	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
-	if err := r.GetProcessor().Process(reconciliation); err != nil {
-		r.EmitWarningEvent(route, "ApplicationCleanUpFailed", "Failed to clean up watched resources")
-		return err
-	}
-	return nil
+	return r.GetProcessor().Process(reconciliation)
 }
 
 // Do this with application too?
@@ -152,16 +160,12 @@ func (r *RoutingReconciler) setDefaultSpec(routing *skiperatorv1alpha1.Routing) 
 	return nil
 }
 
-// TODO could potentially be moved to reconciliation pkg or something generic, much duplicate code here
-func (r *RoutingReconciler) setResourceDefaults(resources []*client.Object, routing *skiperatorv1alpha1.Routing) error {
+func (r *RoutingReconciler) setRoutingResourceDefaults(resources []*client.Object, routing *skiperatorv1alpha1.Routing) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
 			return err
 		}
 		resourceutils.SetRoutingLabels(*resource, routing)
-		if err := resourceutils.SetOwnerReference(routing, *resource, r.GetScheme()); err != nil {
-			return err
-		}
 	}
 	return nil
 }

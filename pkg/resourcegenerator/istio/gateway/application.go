@@ -13,13 +13,13 @@ import (
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate gateway for application", "objectname", r.GetReconciliationObject().GetName())
+	ctxLog.Debug("Attempting to generate gateway for application", "objectname", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("gateway only supports Application type")
 	}
 
-	application, ok := r.GetReconciliationObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
