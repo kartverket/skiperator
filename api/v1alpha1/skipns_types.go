@@ -13,3 +13,5 @@ type SKIPNamespace struct {
 func (n SKIPNamespace) GetStatus() *SkiperatorStatus {
 	return &SkiperatorStatus{}
 }
+
+func (n SKIPNamespace) SetStatus(status SkiperatorStatus) {}

@@ -231,7 +231,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	r.SetSyncedState(application, "Application has been reconciled", ctx)
-	r.GetClient().Status().Update(ctx, application)
 
 	return common.DoNotRequeue()
 }

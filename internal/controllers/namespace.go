@@ -51,7 +51,8 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	namespace := &corev1.Namespace{}
 	err := r.GetClient().Get(ctx, req.NamespacedName, namespace)
-	if errors.IsNotFound(err) {
+	if errors.IsNotFound(err) || common.IsNamespaceTerminating(namespace) {
+		rLog.Debug("Namespace is terminating or not found", "name", namespace.Name)
 		return common.DoNotRequeue()
 	} else if err != nil {
 		rLog.Error(err, "something went wrong fetching the namespace")
@@ -95,7 +96,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	}
 
 	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
-		rLog.Error(errs[0], "failed to process resources, %d errors. Only showing first", len(errs))
+		rLog.Error(errs[0], "failed to process resources. Only showing first", "numberOfErrors", len(errs))
 		return common.RequeueWithError(errs[0])
 	}
 

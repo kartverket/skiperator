@@ -8,6 +8,7 @@ import (
 type SKIPObject interface {
 	client.Object
 	GetStatus() *SkiperatorStatus
+	SetStatus(status SkiperatorStatus)
 }
 
 var ErrNoGVK error = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")

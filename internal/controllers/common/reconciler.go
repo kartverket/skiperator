@@ -157,23 +157,30 @@ func (r *ReconcilerBase) SetSubresourceDefaults(
 func (r *ReconcilerBase) SetErrorState(skipObj v1alpha1.SKIPObject, err error, message string, ctx context.Context) {
 	r.EmitWarningEvent(skipObj, "ReconcileEndFail", "message")
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
-	if err = r.GetClient().Status().Update(ctx, skipObj); err != nil {
-		r.Logger.Error(err, "Failed to update status")
-	}
+	r.updateStatus(skipObj, ctx)
 }
 
 func (r *ReconcilerBase) SetProgressingState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
-	if err := r.GetClient().Status().Update(ctx, skipObj); err != nil {
-		r.Logger.Error(err, "Failed to update status")
-	}
+	r.updateStatus(skipObj, ctx)
 }
 
 func (r *ReconcilerBase) SetSyncedState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
-	if err := r.GetClient().Status().Update(ctx, skipObj); err != nil {
+	r.updateStatus(skipObj, ctx)
+}
+
+func (r *ReconcilerBase) updateStatus(skipObj v1alpha1.SKIPObject, ctx context.Context) {
+	latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
+	key := client.ObjectKeyFromObject(skipObj)
+
+	if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
+		r.Logger.Error(err, "Failed to get latest object version")
+	}
+	latestObj.SetStatus(*skipObj.GetStatus())
+	if err := r.GetClient().Status().Update(ctx, latestObj); err != nil {
 		r.Logger.Error(err, "Failed to update status")
 	}
 }

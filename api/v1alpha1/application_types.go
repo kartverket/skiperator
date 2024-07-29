@@ -400,6 +400,10 @@ func (a *Application) GetStatus() *SkiperatorStatus {
 	return &a.Status
 }
 
+func (a *Application) SetStatus(status SkiperatorStatus) {
+	a.Status = status
+}
+
 func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
 	var errorsFound []error

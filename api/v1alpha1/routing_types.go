@@ -99,3 +99,7 @@ func (in *RoutingSpec) GetHost() (*Host, error) {
 func (in *Routing) GetStatus() *SkiperatorStatus {
 	return &in.Status
 }
+
+func (in *Routing) SetStatus(status SkiperatorStatus) {
+	in.Status = status
+}

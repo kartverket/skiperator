@@ -191,6 +191,9 @@ func (skipJob *SKIPJob) KindPostFixedName() string {
 func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
 	return &skipJob.Status
 }
+func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
+	skipJob.Status = status
+}
 
 func (skipJob *SKIPJob) FillDefaultSpec() error {
 	defaults := &SKIPJob{

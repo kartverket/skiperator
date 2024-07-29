@@ -45,7 +45,7 @@ func (s *SkiperatorStatus) SetSummaryPending() {
 
 func (s *SkiperatorStatus) SetSummarySynced() {
 	s.Summary.Status = SYNCED
-	s.Summary.Message = "Resource is synced"
+	s.Summary.Message = "All subresources synced"
 	s.Summary.TimeStamp = metav1.Now().String()
 	s.Conditions = make([]metav1.Condition, 0)
 }
@@ -55,6 +55,7 @@ func (s *SkiperatorStatus) SetSummaryProgressing() {
 	s.Summary.Message = "Resource is progressing"
 	s.Summary.TimeStamp = metav1.Now().String()
 	s.Conditions = make([]metav1.Condition, 0)
+	s.SubResources = make(map[string]Status)
 }
 
 func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
@@ -68,20 +69,12 @@ func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message st
 	if s.SubResources == nil {
 		s.SubResources = map[string]Status{}
 	}
-	test := object.GetObjectKind().GroupVersionKind().Kind
-	switch test {
-	case "":
-		s.SubResources["lol"] = Status{
-			Status:    status,
-			Message:   object.GetName() + "fdsfds" + message,
-			TimeStamp: metav1.Now().String(),
-		}
-	default:
-		s.SubResources[object.GetObjectKind().GroupVersionKind().Kind] = Status{
-			Status:    status,
-			Message:   object.GetName() + message,
-			TimeStamp: metav1.Now().String(),
-		}
+	kind := object.GetObjectKind().GroupVersionKind().Kind
+	key := kind + "[" + object.GetName() + "]"
+	s.SubResources[key] = Status{
+		Status:    status,
+		Message:   kind + " " + message,
+		TimeStamp: metav1.Now().String(),
 	}
 
 }

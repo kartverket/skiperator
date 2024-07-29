@@ -11,7 +11,7 @@ import (
 
 type RoutingReconciliation struct {
 	ctx               context.Context
-	application       *skiperatorv1alpha1.Routing
+	routing           *skiperatorv1alpha1.Routing
 	logger            log.Logger
 	resources         []*client.Object
 	istioEnabled      bool
@@ -22,7 +22,7 @@ type RoutingReconciliation struct {
 func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *RoutingReconciliation {
 	return &RoutingReconciliation{
 		ctx:               ctx,
-		application:       routing,
+		routing:           routing,
 		logger:            logger,
 		istioEnabled:      istioEnabled,
 		restConfig:        restConfig,
@@ -43,7 +43,7 @@ func (r *RoutingReconciliation) IsIstioEnabled() bool {
 }
 
 func (r *RoutingReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
-	return r.application
+	return r.routing
 }
 
 func (r *RoutingReconciliation) GetType() ReconciliationObjectType {

@@ -61,7 +61,7 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error 
 			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, err.Error(), v1alpha1.ERROR)
 			errors = append(errors, err)
 		} else {
-			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, "Resource successfully synced", v1alpha1.SYNCED)
+			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, "has finished synchronizing", v1alpha1.SYNCED)
 		}
 	}
 	return errors
