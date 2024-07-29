@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.application.status
+    - jsonPath: .status.summary.status
       name: Status
       type: string
     name: v1alpha1

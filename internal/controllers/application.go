@@ -137,7 +137,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	if err := ValidateIngresses(application); err != nil {
 		rLog.Error(err, "invalid ingress in application manifest")
-		r.EmitWarningEvent(application, "InvalidApplication", "Invalid ingresses")
+		r.SetErrorState(application, err, "invalid ingress in application manifest", ctx)
 		return common.RequeueWithError(err)
 	}
 

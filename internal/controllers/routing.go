@@ -119,7 +119,6 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	r.SetSyncedState(routing, "Routing has been reconciled", ctx)
-	r.GetClient().Status().Update(ctx, routing)
 
 	return common.DoNotRequeue()
 }

@@ -31,6 +31,7 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`

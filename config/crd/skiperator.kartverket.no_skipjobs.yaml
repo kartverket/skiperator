@@ -14,7 +14,11 @@ spec:
     singular: skipjob
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - jsonPath: .status.summary.status
+      name: Status
+      type: string
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: SKIPJob is the Schema for the skipjobs API

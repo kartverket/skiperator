@@ -157,7 +157,6 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	r.SetSyncedState(skipJob, "SKIPJob has been reconciled", ctx)
-	err = r.GetClient().Update(ctx, skipJob)
 
 	return common.RequeueWithError(err)
 }
