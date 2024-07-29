@@ -9,6 +9,7 @@ type SKIPObject interface {
 	client.Object
 	GetStatus() *SkiperatorStatus
 	SetStatus(status SkiperatorStatus)
+	GetDefaultLabels() map[string]string
 }
 
-var ErrNoGVK error = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")
+var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")

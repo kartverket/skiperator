@@ -17,8 +17,10 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -50,7 +52,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				return nil
 			}
 
-			if skipJobName, exists := batchJob.Labels[resourceutils.SKIPJobReferenceLabelKey]; exists {
+			if skipJobName, exists := batchJob.Labels[skiperatorv1alpha1.SKIPJobReferenceLabelKey]; exists {
 				return []reconcile.Request{
 					{
 						types.NamespacedName{
@@ -156,6 +158,13 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
+	//TODO fix better handling of status updates in context of summary, conditions and subresources
+	if err = r.updateConditions(skipJob); err != nil {
+		rLog.Error(err, "failed to update conditions")
+		r.SetErrorState(skipJob, err, "failed to update conditions", ctx)
+		return common.RequeueWithError(err)
+	}
+
 	r.SetSyncedState(skipJob, "SKIPJob has been reconciled", ctx)
 
 	return common.RequeueWithError(err)
@@ -222,4 +231,100 @@ func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object clien
 		})
 	}
 	return reconcileRequests
+}
+
+const (
+	ConditionRunning  = "Running"
+	ConditionFinished = "Finished"
+	ConditionFailed   = "Failed"
+)
+
+func (r *SKIPJobReconciler) getConditionRunning(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus) v1.Condition {
+	return v1.Condition{
+		Type:               ConditionRunning,
+		Status:             status,
+		ObservedGeneration: skipJob.Generation,
+		LastTransitionTime: v1.Now(),
+		Reason:             "JobRunning",
+		Message:            "Job has been created and is now running",
+	}
+}
+
+func (r *SKIPJobReconciler) getConditionFinished(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus) v1.Condition {
+	return v1.Condition{
+		Type:               ConditionFinished,
+		Status:             status,
+		ObservedGeneration: skipJob.Generation,
+		LastTransitionTime: v1.Now(),
+		Reason:             "JobFinished",
+		Message:            "Job has finished",
+	}
+}
+
+func (r *SKIPJobReconciler) getConditionFailed(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus, err *string) v1.Condition {
+	conditionMessage := "Job failed previous run"
+	if err != nil {
+		conditionMessage = fmt.Sprintf("%v: %v", conditionMessage, *err)
+	}
+	return v1.Condition{
+		Type:               ConditionFailed,
+		Status:             status,
+		ObservedGeneration: skipJob.Generation,
+		LastTransitionTime: v1.Now(),
+		Reason:             "JobFailed",
+		Message:            conditionMessage,
+	}
+}
+
+func (r *SKIPJobReconciler) updateConditions(skipJob *skiperatorv1alpha1.SKIPJob) error {
+	jobList := &batchv1.JobList{}
+	err := r.GetClient().List(context.Background(), jobList,
+		client.InNamespace(skipJob.Namespace),
+		client.MatchingLabels(skipJob.GetDefaultLabels()),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to list jobs: %w", err)
+	}
+	if len(jobList.Items) == 0 {
+		return nil
+	}
+
+	//find last job to set conditions, cronjobs have multiple jobs
+	lastJob := &batchv1.Job{}
+	for _, liveJob := range jobList.Items {
+		if lastJob.CreationTimestamp.Before(&liveJob.CreationTimestamp) {
+			lastJob = &liveJob
+		}
+	}
+	if isFailed, failedJobMessage := isFailedJob(lastJob); isFailed {
+		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionFailed(skipJob, v1.ConditionTrue, &failedJobMessage),
+			r.getConditionRunning(skipJob, v1.ConditionFalse),
+			r.getConditionFinished(skipJob, v1.ConditionFalse),
+		}
+	} else if lastJob.Status.CompletionTime != nil {
+		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
+			r.getConditionRunning(skipJob, v1.ConditionFalse),
+			r.getConditionFinished(skipJob, v1.ConditionTrue),
+		}
+	} else {
+		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
+			r.getConditionRunning(skipJob, v1.ConditionTrue),
+			r.getConditionFinished(skipJob, v1.ConditionFalse),
+		}
+	}
+
+	return nil
+}
+
+// think it can be done easier
+func isFailedJob(job *batchv1.Job) (bool, string) {
+	for _, condition := range job.Status.Conditions {
+		if condition.Type == ConditionFailed && condition.Status == corev1.ConditionTrue {
+			return true, condition.Message
+		}
+	}
+	return false, ""
 }

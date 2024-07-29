@@ -13,4 +13,3 @@ spec:
         - assert:
             file: skipjob-assert.yaml
 
-#TODO this test must be rewritten, it wasn't working before refactor either.

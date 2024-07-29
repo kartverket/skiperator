@@ -104,3 +104,12 @@ func (in *Routing) GetStatus() *SkiperatorStatus {
 func (in *Routing) SetStatus(status SkiperatorStatus) {
 	in.Status = status
 }
+
+func (in *Routing) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":              "skiperator",
+		"skiperator.kartverket.no/controller":       "routing",
+		"skiperator.kartverket.no/routing-name":     in.Name,
+		"skiperator.kartverket.no/source-namespace": in.Namespace,
+	}
+}

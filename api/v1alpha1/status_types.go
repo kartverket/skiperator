@@ -40,21 +40,27 @@ func (s *SkiperatorStatus) SetSummaryPending() {
 	s.Summary.Status = PENDING
 	s.Summary.Message = "Awaiting first reconcile"
 	s.Summary.TimeStamp = metav1.Now().String()
-	s.Conditions = make([]metav1.Condition, 0)
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
 }
 
 func (s *SkiperatorStatus) SetSummarySynced() {
 	s.Summary.Status = SYNCED
 	s.Summary.Message = "All subresources synced"
 	s.Summary.TimeStamp = metav1.Now().String()
-	s.Conditions = make([]metav1.Condition, 0)
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
 }
 
 func (s *SkiperatorStatus) SetSummaryProgressing() {
 	s.Summary.Status = PROGRESSING
 	s.Summary.Message = "Resource is progressing"
 	s.Summary.TimeStamp = metav1.Now().String()
-	s.Conditions = make([]metav1.Condition, 0)
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
 	s.SubResources = make(map[string]Status)
 }
 
@@ -62,7 +68,9 @@ func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
 	s.Summary.Status = ERROR
 	s.Summary.Message = errorMsg
 	s.Summary.TimeStamp = metav1.Now().String()
-	s.Conditions = make([]metav1.Condition, 0)
+	if s.Conditions == nil {
+		s.Conditions = make([]metav1.Condition, 0)
+	}
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {

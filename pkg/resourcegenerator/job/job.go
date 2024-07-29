@@ -6,7 +6,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
@@ -68,7 +67,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 		Suspend:                 skipJob.Spec.Cron.Suspend,
 		JobTemplate: batchv1.JobTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: resourceutils.GetSKIPJobLabels(skipJob),
+				Labels: skipJob.GetDefaultLabels(),
 			},
 			Spec: getJobSpec(skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
@@ -117,7 +116,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 				skipJob.Name,
 			),
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: resourceutils.GetSKIPJobLabels(skipJob),
+				Labels: skipJob.GetDefaultLabels(),
 			},
 		},
 		TTLSecondsAfterFinished: skipJob.Spec.Job.TTLSecondsAfterFinished,

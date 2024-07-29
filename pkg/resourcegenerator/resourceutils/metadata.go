@@ -14,8 +14,6 @@ var (
 		// https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
 		"argocd.argoproj.io/sync-options": "Prune=false",
 	}
-	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
-	IsSKIPJobKey             = "skiperator.kartverket.no/skipjob"
 )
 
 func SetCommonAnnotations(object client.Object) {
@@ -27,18 +25,6 @@ func SetCommonAnnotations(object client.Object) {
 	object.SetAnnotations(annotations)
 }
 
-// TODO Generalize this so we dont need a type
-func GetApplicationDefaultLabels(application *skiperatorv1alpha1.Application) map[string]string {
-	return map[string]string{
-		"app.kubernetes.io/managed-by":            "skiperator",
-		"skiperator.skiperator.no/controller":     "application",
-		"app":                                     application.Name,
-		"application.skiperator.no/app":           application.Name,
-		"application.skiperator.no/app-name":      application.Name,
-		"application.skiperator.no/app-namespace": application.Namespace,
-	}
-}
-
 func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Application) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
@@ -47,7 +33,7 @@ func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Applicat
 	if app.Spec.Labels != nil {
 		maps.Copy(labels, app.Spec.Labels)
 	}
-	maps.Copy(labels, GetApplicationDefaultLabels(app))
+	maps.Copy(labels, app.GetDefaultLabels())
 	object.SetLabels(labels)
 
 	setResourceLabels(object, app)
@@ -73,20 +59,13 @@ func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string)
 	return nil, false
 }
 
-func SetNamespaceLabels(object client.Object) {
+func SetNamespaceLabels(object client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	maps.Copy(labels, GetNamespaceLabels())
+	maps.Copy(labels, skipns.GetDefaultLabels())
 	object.SetLabels(labels)
-}
-
-func GetNamespaceLabels() map[string]string {
-	return map[string]string{
-		"app.kubernetes.io/managed-by":        "skiperator",
-		"skiperator.skiperator.no/controller": "namespace",
-	}
 }
 
 func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing) {
@@ -94,17 +73,8 @@ func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing)
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	maps.Copy(labels, GetRoutingLabels(routing))
+	maps.Copy(labels, routing.GetDefaultLabels())
 	object.SetLabels(labels)
-}
-
-func GetRoutingLabels(routing *skiperatorv1alpha1.Routing) map[string]string {
-	return map[string]string{
-		"app.kubernetes.io/managed-by":              "skiperator",
-		"skiperator.kartverket.no/controller":       "routing",
-		"skiperator.kartverket.no/routing-name":     routing.Name,
-		"skiperator.kartverket.no/source-namespace": routing.Namespace,
-	}
 }
 
 // TODO Porbably smart to move these SET functions to the controllers or types
@@ -113,19 +83,6 @@ func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob)
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	maps.Copy(labels, GetSKIPJobLabels(skipJob))
+	maps.Copy(labels, skipJob.GetDefaultLabels())
 	object.SetLabels(labels)
-}
-
-// TODO these labels are a disaster
-func GetSKIPJobLabels(skipJob *skiperatorv1alpha1.SKIPJob) map[string]string {
-	return map[string]string{
-		"app":                                 skipJob.KindPostFixedName(),
-		"app.kubernetes.io/managed-by":        "skiperator",
-		"skiperator.kartverket.no/controller": "skipjob",
-		// Used by hahaha to know that the Pod should be watched for killing sidecars
-		IsSKIPJobKey: "true",
-		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
-		SKIPJobReferenceLabelKey: skipJob.Name,
-	}
 }

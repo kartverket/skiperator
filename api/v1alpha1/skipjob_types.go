@@ -14,11 +14,13 @@ var (
 	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7) // One week
 	DefaultBackoffLimit            = int32(6)
 
-	DefaultSuspend      = false
-	JobCreatedCondition = "SKIPJobCreated"
-	ConditionRunning    = "Running"
-	ConditionFinished   = "Finished"
-	ConditionFailed     = "Failed"
+	DefaultSuspend           = false
+	JobCreatedCondition      = "SKIPJobCreated"
+	ConditionRunning         = "Running"
+	ConditionFinished        = "Finished"
+	ConditionFailed          = "Failed"
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
+	IsSKIPJobKey             = "skiperator.kartverket.no/skipjob"
 )
 
 // SKIPJobStatus defines the observed state of SKIPJob
@@ -219,13 +221,6 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 func (skipJob *SKIPJob) FillDefaultStatus() {
 	skipJob.Status.Conditions = []metav1.Condition{
 		{
-			Type:               JobCreatedCondition,
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "SKIPJobCreated",
-			Message:            "SKIPJob was created",
-		},
-		{
 			Type:               ConditionRunning,
 			Status:             metav1.ConditionFalse,
 			LastTransitionTime: metav1.Now(),
@@ -248,4 +243,16 @@ func (skipJob *SKIPJob) FillDefaultStatus() {
 		},
 	}
 	skipJob.Status.Conditions = make([]metav1.Condition, 0)
+}
+
+func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app":                                 skipJob.KindPostFixedName(),
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "skipjob",
+		// Used by hahaha to know that the Pod should be watched for killing sidecars
+		IsSKIPJobKey: "true",
+		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
+		SKIPJobReferenceLabelKey: skipJob.Name,
+	}
 }

@@ -9,7 +9,7 @@ import (
 // TODO fix pointer mess ? ? ? ?
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
-	labels := getLabelsForResources(task)
+	labels := task.GetSKIPObject().GetDefaultLabels()
 
 	if labels == nil {
 		return nil, nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
@@ -25,6 +25,9 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 	liveObjects = append(liveObjects, certs...)
 	liveObjectsMap := make(map[string]*client.Object)
 	for _, obj := range liveObjects {
+		if shouldIgnoreObject(obj) {
+			continue
+		}
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
 	}
 
@@ -40,10 +43,6 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
-			should := (*liveObj).GetLabels()["skiperator.kartverket.no/ignore"] != "true"
-			if !should {
-				continue
-			}
 			if compareObject(*liveObj, *newObj) {
 				if requirePatch(*newObj) {
 					shouldPatch = append(shouldPatch, *newObj)
@@ -93,4 +92,14 @@ func getNamespace(r reconciliation.Reconciliation) string {
 		return r.GetSKIPObject().GetName()
 	}
 	return r.GetSKIPObject().GetNamespace()
+}
+
+func shouldIgnoreObject(obj client.Object) bool {
+	if obj.GetLabels()["skiperator.kartverket.no/ignore"] == "true" {
+		return true
+	}
+	if len(obj.GetOwnerReferences()) > 0 && obj.GetOwnerReferences()[0].Kind == "CronJob" {
+		return true
+	}
+	return false
 }

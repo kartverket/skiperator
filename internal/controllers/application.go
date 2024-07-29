@@ -295,7 +295,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 	if application.Labels == nil {
 		application.Labels = make(map[string]string)
 	}
-	maps.Copy(application.Labels, resourceutils.GetApplicationDefaultLabels(application))
+	maps.Copy(application.Labels, application.GetDefaultLabels())
 	maps.Copy(application.Labels, application.Spec.Labels)
 
 	// Add team label

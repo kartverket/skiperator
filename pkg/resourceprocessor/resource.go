@@ -1,9 +1,6 @@
 package resourceprocessor
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/apps/v1"
@@ -81,23 +78,6 @@ func diffBetween(old client.Object, new client.Object) bool {
 		}
 	}
 	return true
-}
-
-// TODO maybe this should be a reconciliation function instead
-func getLabelsForResources(task reconciliation.Reconciliation) map[string]string {
-	if task.GetType() == reconciliation.ApplicationType {
-		app := task.GetSKIPObject().(*v1alpha1.Application)
-		return resourceutils.GetApplicationDefaultLabels(app)
-	} else if task.GetType() == reconciliation.NamespaceType {
-		return resourceutils.GetNamespaceLabels()
-	} else if task.GetType() == reconciliation.RoutingType {
-		routing := task.GetSKIPObject().(*v1alpha1.Routing)
-		return resourceutils.GetRoutingLabels(routing)
-	} else if task.GetType() == reconciliation.JobType {
-		skipjob := task.GetSKIPObject().(*v1alpha1.SKIPJob)
-		return resourceutils.GetSKIPJobLabels(skipjob)
-	}
-	return nil
 }
 
 func hasGVK(resources []*client.Object) bool {

@@ -404,6 +404,17 @@ func (a *Application) SetStatus(status SkiperatorStatus) {
 	a.Status = status
 }
 
+func (a *Application) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":            "skiperator",
+		"skiperator.skiperator.no/controller":     "application",
+		"app":                                     a.Name,
+		"application.skiperator.no/app":           a.Name,
+		"application.skiperator.no/app-name":      a.Name,
+		"application.skiperator.no/app-namespace": a.Namespace,
+	}
+}
+
 func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
 	var errorsFound []error
