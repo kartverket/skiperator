@@ -154,8 +154,8 @@ func (r *ReconcilerBase) SetSubresourceDefaults(
 	return nil
 }
 
-func (r *ReconcilerBase) SetErrorState(skipObj v1alpha1.SKIPObject, err error, message string, ctx context.Context) {
-	r.EmitWarningEvent(skipObj, "ReconcileEndFail", "message")
+func (r *ReconcilerBase) SetErrorState(skipObj v1alpha1.SKIPObject, err error, message string, reason string, ctx context.Context) {
+	r.EmitWarningEvent(skipObj, reason, "message")
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
 	r.updateStatus(skipObj, ctx)
 }

@@ -97,7 +97,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate routing resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(routing, err, "failed to generate routing resource", ctx)
+			r.SetErrorState(routing, err, "failed to generate routing resource", "ResourceGenerationFailure", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
@@ -105,7 +105,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
 	if err = r.setRoutingResourceDefaults(reconciliation.GetResources(), routing); err != nil {
 		rLog.Error(err, "failed to set routing resource defaults")
-		r.SetErrorState(routing, err, "failed to set routing resource defaults", ctx)
+		r.SetErrorState(routing, err, "failed to set routing resource defaults", "ResourceDefaultsFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 
@@ -114,7 +114,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))
 		}
-		r.SetErrorState(routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", ctx)
+		r.SetErrorState(routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", "ProcessorFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 

@@ -138,14 +138,14 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate skipjob resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(skipJob, err, "failed to generate skipjob resource", ctx)
+			r.SetErrorState(skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
 
 	if err = r.setResourceDefaults(reconciliation.GetResources(), skipJob); err != nil {
 		rLog.Error(err, "error when trying to set resource defaults")
-		r.SetErrorState(skipJob, err, "failed to set skipjob resource defaults", ctx)
+		r.SetErrorState(skipJob, err, "failed to set skipjob resource defaults", "ResourceDefaultsFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 
@@ -154,14 +154,14 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(skipJob, "ReconcileEndFail", fmt.Sprintf("Failed to process skipjob resources: %s", err.Error()))
 		}
-		r.SetErrorState(skipJob, fmt.Errorf("found %d errors", len(errs)), "failed to process skipjob resources, see subresource status", ctx)
+		r.SetErrorState(skipJob, fmt.Errorf("found %d errors", len(errs)), "failed to process skipjob resources, see subresource status", "ProcessorFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 
 	//TODO fix better handling of status updates in context of summary, conditions and subresources
 	if err = r.updateConditions(skipJob); err != nil {
 		rLog.Error(err, "failed to update conditions")
-		r.SetErrorState(skipJob, err, "failed to update conditions", ctx)
+		r.SetErrorState(skipJob, err, "failed to update conditions", "ConditionsFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 

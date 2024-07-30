@@ -137,7 +137,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	if err := ValidateIngresses(application); err != nil {
 		rLog.Error(err, "invalid ingress in application manifest")
-		r.SetErrorState(application, err, "invalid ingress in application manifest", ctx)
+		r.SetErrorState(application, err, "invalid ingress in application manifest", "InvalidApplication", ctx)
 		return common.RequeueWithError(err)
 	}
 
@@ -209,7 +209,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		if err = f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate application resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(application, err, "failed to generate application resource", ctx)
+			r.SetErrorState(application, err, "failed to generate application resource", "ResourceGenerationFailure", ctx)
 			return common.RequeueWithError(err)
 		}
 	}
@@ -217,7 +217,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
 	if err = r.setApplicationResourcesDefaults(reconciliation.GetResources(), application); err != nil {
 		rLog.Error(err, "failed to set application resource defaults")
-		r.SetErrorState(application, err, "failed to set application resource defaults", ctx)
+		r.SetErrorState(application, err, "failed to set application resource defaults", "ResourceDefaultsFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 
@@ -226,7 +226,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(application, "ReconcileEndFail", fmt.Sprintf("Failed to process application resources: %s", err.Error()))
 		}
-		r.SetErrorState(application, fmt.Errorf("found %d errors", len(errs)), "failed to process application resources, see subresource status", ctx)
+		r.SetErrorState(application, fmt.Errorf("found %d errors", len(errs)), "failed to process application resources, see subresource status", "ProcessorFailure", ctx)
 		return common.RequeueWithError(err)
 	}
 
