@@ -112,6 +112,15 @@ test: install-test-tools install-skiperator
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 
+.PHONY: run-unit-tests
+run-unit-tests:
+	@failed_tests=$$(go test ./... 2>&1 | grep "^--- FAIL" | awk '{print $$3}'); \
+		if [ -n "$$failed_tests" ]; then \
+			echo -e "\033[31mFailed Unit Tests: [$$failed_tests]\033[0m" && exit 1; \
+		else \
+			echo -e "\033[32mAll unit tests passed\033[0m"; \
+		fi
+
 .PHONY: run-test
 run-test: build
 	@echo "Starting skiperator in background..."
@@ -127,4 +136,4 @@ run-test: build
 			$(MAKE) test-single dir=$(TEST_DIR); \
 		fi; \
 	) && \
-	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)
+	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID && echo "running unit tests..." && $(MAKE) run-unit-tests)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)

@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,7 +40,6 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 			Labels:    application.GetDefaultLabels(),
 		},
 	}
-
 	newSA := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "new-sa",
@@ -47,11 +47,34 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 			Labels:    application.GetDefaultLabels(),
 		},
 	}
+
+	ignoreLabels := application.GetDefaultLabels()
+	ignoreLabels["skiperator.kartverket.no/ignore"] = "true"
+	liveDeploymentDontDelete := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-app",
+			Namespace: namespace,
+			Labels:    ignoreLabels,
+		},
+	}
+	liveDeploymentIgnorePatchOrCreate := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-app",
+			Namespace: namespace,
+			Labels:    ignoreLabels,
+		},
+	}
+
 	// Create the live resource in the fake client
-	err := mockClient.Create(ctx, liveSA)
+	err := mockClient.Create(ctx, liveDeploymentDontDelete)
+	err = mockClient.Create(ctx, liveDeploymentIgnorePatchOrCreate)
+	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil)
+	//build reconcile objects array
 	var obj client.Object = newSA
+	r.AddResource(&obj)
+	obj = liveDeploymentIgnorePatchOrCreate
 	r.AddResource(&obj)
 	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := resourceProcessor.getDiff(r)
 	assert.Nil(t, err)

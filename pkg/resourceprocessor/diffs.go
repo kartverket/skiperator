@@ -25,9 +25,6 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 	liveObjects = append(liveObjects, certs...)
 	liveObjectsMap := make(map[string]*client.Object)
 	for _, obj := range liveObjects {
-		if shouldIgnoreObject(obj) {
-			continue
-		}
 		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
 	}
 
@@ -41,8 +38,21 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 	shouldPatch := make([]client.Object, 0)
 	shouldCreate := make([]client.Object, 0)
 
+	// Determine resources to delete
+	for key, liveObj := range liveObjectsMap {
+		if shouldIgnoreObject(*liveObj) {
+			continue
+		}
+		if _, exists := newObjectsMap[key]; !exists {
+			shouldDelete = append(shouldDelete, *liveObj)
+		}
+	}
+
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
+			if shouldIgnoreObject(*liveObj) {
+				continue
+			}
 			if compareObject(*liveObj, *newObj) {
 				if requirePatch(*newObj) {
 					shouldPatch = append(shouldPatch, *newObj)
@@ -52,13 +62,6 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 			}
 		} else {
 			shouldCreate = append(shouldCreate, *newObj)
-		}
-	}
-
-	// Determine resources to delete
-	for key, liveObj := range liveObjectsMap {
-		if _, exists := newObjectsMap[key]; !exists {
-			shouldDelete = append(shouldDelete, *liveObj)
 		}
 	}
 
