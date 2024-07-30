@@ -404,6 +404,7 @@ func (a *Application) SetStatus(status SkiperatorStatus) {
 	a.Status = status
 }
 
+// TODO clean up labels
 func (a *Application) GetDefaultLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":            "skiperator",
