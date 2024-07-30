@@ -4,6 +4,6 @@ metadata:
   name: sidecar
   labels:
     app.kubernetes.io/managed-by: skiperator
-    skiperator.skiperator.no/controller: namespace
+    skiperator.kartverket.no/controller: namespace
 spec:
   outboundTrafficPolicy: {}

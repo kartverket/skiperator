@@ -4,7 +4,6 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,9 +33,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	if !r.IsIstioEnabled() {
 		return nil
 	}
-
-	resourceutils.SetApplicationLabels(&serviceMonitor, application)
-	resourceutils.SetCommonAnnotations(&serviceMonitor)
 
 	serviceMonitor.Spec = pov1.ServiceMonitorSpec{
 		Selector: metav1.LabelSelector{

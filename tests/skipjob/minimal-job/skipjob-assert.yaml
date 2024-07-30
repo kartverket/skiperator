@@ -11,6 +11,8 @@ metadata:
     app: minimal-job-skipjob
     skiperator.kartverket.no/skipjob: "true"
     skiperator.kartverket.no/skipjobName: minimal-job
+    app.kubernetes.io/managed-by:        "skiperator"
+    skiperator.kartverket.no/controller: "skipjob"
 spec:
   suspend: false
   backoffLimit: 6
@@ -20,6 +22,10 @@ spec:
     metadata:
       labels:
         job-name: minimal-job
+        skiperator.kartverket.no/skipjob: "true"
+        skiperator.kartverket.no/skipjobName: minimal-job
+        app.kubernetes.io/managed-by: "skiperator"
+        skiperator.kartverket.no/controller: "skipjob"
     spec:
       containers:
         - name: minimal-job-skipjob

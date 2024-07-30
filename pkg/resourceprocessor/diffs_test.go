@@ -24,21 +24,19 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 
 	ctx := context.TODO()
 	namespace := "test"
-	labels := map[string]string{"app": "test-app"}
 
 	application := &v1alpha1.Application{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-app",
 			Namespace: namespace,
-			Labels:    labels,
 		},
 	}
 	liveSA := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "live-sa",
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    application.GetDefaultLabels(),
 		},
 	}
 
@@ -46,7 +44,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "new-sa",
 			Namespace: namespace,
-			Labels:    labels,
+			Labels:    application.GetDefaultLabels(),
 		},
 	}
 	// Create the live resource in the fake client

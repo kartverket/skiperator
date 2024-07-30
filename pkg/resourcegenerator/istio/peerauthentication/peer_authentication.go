@@ -4,7 +4,6 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1beta1api "istio.io/api/security/v1beta1"
 	typev1beta1 "istio.io/api/type/v1beta1"
@@ -27,8 +26,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate peer authentication for application", "application", application.Name)
 
 	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
-	resourceutils.SetApplicationLabels(&peerAuthentication, application)
-	resourceutils.SetCommonAnnotations(&peerAuthentication)
+
 	peerAuthentication.Spec = securityv1beta1api.PeerAuthentication{
 		Selector: &typev1beta1.WorkloadSelector{
 			MatchLabels: util.GetPodAppSelector(application.Name),

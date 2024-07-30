@@ -127,5 +127,5 @@ func (r *NamespaceReconciler) isExcludedNamespace(ctx context.Context, namespace
 
 	exclusion, keyExists := nameSpacesToExclude[namespace]
 
-	return (keyExists && exclusion == "true")
+	return keyExists && exclusion == "true"
 }

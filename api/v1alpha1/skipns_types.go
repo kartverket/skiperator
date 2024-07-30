@@ -19,6 +19,6 @@ func (n SKIPNamespace) SetStatus(status SkiperatorStatus) {}
 func (n SKIPNamespace) GetDefaultLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":        "skiperator",
-		"skiperator.skiperator.no/controller": "namespace",
+		"skiperator.kartverket.no/controller": "namespace",
 	}
 }

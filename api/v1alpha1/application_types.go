@@ -408,8 +408,7 @@ func (a *Application) SetStatus(status SkiperatorStatus) {
 func (a *Application) GetDefaultLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/managed-by":            "skiperator",
-		"skiperator.skiperator.no/controller":     "application",
-		"app":                                     a.Name,
+		"skiperator.kartverket.no/controller":     "application",
 		"application.skiperator.no/app":           a.Name,
 		"application.skiperator.no/app-name":      a.Name,
 		"application.skiperator.no/app-namespace": a.Namespace,

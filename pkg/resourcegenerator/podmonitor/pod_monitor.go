@@ -16,7 +16,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate podmonitor for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
-		return fmt.Errorf("podmonitor only supports skipjob type", r.GetType())
+		return fmt.Errorf("podmonitor only supports skipjob type, got %s", r.GetType())
 	}
 
 	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)

@@ -1,5 +1,9 @@
 package resourceschemas
 
+/*
+ * In order to keep the processor generic we need to supply the processor with a list of schemas that it can process.
+ * If we don't do this then the GVK will remain empty, and it will be impossible to compare resources.
+ */
 import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"

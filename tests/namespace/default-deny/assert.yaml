@@ -4,7 +4,7 @@ metadata:
   name: default-deny
   labels:
     app.kubernetes.io/managed-by: skiperator
-    skiperator.skiperator.no/controller: namespace
+    skiperator.kartverket.no/controller: namespace
 spec:
   policyTypes:
   - Ingress

@@ -345,7 +345,7 @@ func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconc
 	}
 
 	isSkiperatorOwned := cert.Labels["app.kubernetes.io/managed-by"] == "skiperator" &&
-		cert.Labels["skiperator.skiperator.no/controller"] == "application"
+		cert.Labels["skiperator.kartverket.no/controller"] == "application"
 
 	requests := make([]reconcile.Request, 0)
 

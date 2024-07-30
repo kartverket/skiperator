@@ -5,7 +5,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,9 +28,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
 	if *application.Spec.EnablePDB {
-
-		resourceutils.SetApplicationLabels(&pdb, application)
-		resourceutils.SetCommonAnnotations(&pdb)
 		var minReplicas uint
 
 		replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas)

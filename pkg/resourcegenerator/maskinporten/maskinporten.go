@@ -5,7 +5,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,8 +42,6 @@ func Generate(r reconciliation.Reconciliation) error {
 			Name:      application.Name,
 		},
 	}
-	resourceutils.SetApplicationLabels(&maskinporten, application)
-	resourceutils.SetCommonAnnotations(&maskinporten)
 
 	maskinporten.Spec, err = getMaskinportenSpec(application)
 	if err != nil {

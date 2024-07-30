@@ -20,7 +20,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate job for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
-		return fmt.Errorf("job only supports skipjob type", r.GetType())
+		return fmt.Errorf("job only supports skipjob type, got %s", r.GetType())
 	}
 
 	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
@@ -28,11 +28,13 @@ func Generate(r reconciliation.Reconciliation) error {
 	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
+		Labels:    map[string]string{"app": skipJob.KindPostFixedName()},
 	}}
 
 	cronJob := batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
+		Labels:    map[string]string{"app": skipJob.KindPostFixedName()},
 	}}
 
 	// By specifying port and path annotations, Istio will scrape metrics from the application
