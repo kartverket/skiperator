@@ -160,6 +160,27 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 
 	// Allow grafana-agent to scrape
 	if opts.IstioEnabled {
+		promScrapeRuleAlloy := networkingv1.NetworkPolicyIngressRule{
+			From: []networkingv1.NetworkPolicyPeer{
+				{
+					NamespaceSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{"kubernetes.io/metadata.name": "grafana-alloy"},
+					},
+					PodSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"app.kubernetes.io/instance": "alloy",
+							"app.kubernetes.io/name":     "alloy",
+						},
+					},
+				},
+			},
+			Ports: []networkingv1.NetworkPolicyPort{
+				{
+					Port: util.PointTo(util.IstioMetricsPortName),
+				},
+			},
+		}
+		
 		promScrapeRule := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -181,7 +202,10 @@ func getIngressRules(opts NetPolOpts) []networkingv1.NetworkPolicyIngressRule {
 			},
 		}
 
+
+		
 		ingressRules = append(ingressRules, promScrapeRule)
+		ingressRules = append(ingressRules, promScrapeRuleAlloy)
 	}
 
 	if opts.AccessPolicy == nil {

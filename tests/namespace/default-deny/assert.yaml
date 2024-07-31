@@ -51,3 +51,10 @@ spec:
           matchLabels:
             app.kubernetes.io/instance: grafana-agent
             app.kubernetes.io/name: grafana-agent
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: grafana-alloy
+        podSelector:
+          matchLabels:
+            app.kubernetes.io/instance: alloy
+            app.kubernetes.io/name: alloy
