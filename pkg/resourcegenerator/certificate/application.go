@@ -46,7 +46,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			SecretName: certificateName,
 		}
 		var obj client.Object = &certificate
-		r.AddResource(&obj)
+		r.AddResource(obj)
 	}
 	ctxLog.Debug("Finished generating certificates for application", "application", application.Name)
 	return nil

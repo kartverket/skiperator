@@ -28,7 +28,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &sidecar
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 	return nil

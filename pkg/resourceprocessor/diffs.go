@@ -6,7 +6,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO fix pointer mess ? ? ? ?
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
 	labels := task.GetSKIPObject().GetDefaultLabels()
@@ -23,14 +22,14 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 		return nil, nil, nil, nil, fmt.Errorf("failed to get certificates: %w", err)
 	}
 	liveObjects = append(liveObjects, certs...)
-	liveObjectsMap := make(map[string]*client.Object)
+	liveObjectsMap := make(map[string]client.Object)
 	for _, obj := range liveObjects {
-		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = &obj
+		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
-	newObjectsMap := make(map[string]*client.Object)
+	newObjectsMap := make(map[string]client.Object)
 	for _, obj := range task.GetResources() {
-		newObjectsMap[client.ObjectKeyFromObject(*obj).String()+(*obj).GetObjectKind().GroupVersionKind().Kind] = obj
+		newObjectsMap[client.ObjectKeyFromObject(obj).String()+(obj).GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
 	shouldDelete := make([]client.Object, 0)
@@ -40,28 +39,28 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 
 	// Determine resources to delete
 	for key, liveObj := range liveObjectsMap {
-		if shouldIgnoreObject(*liveObj) {
+		if shouldIgnoreObject(liveObj) {
 			continue
 		}
 		if _, exists := newObjectsMap[key]; !exists {
-			shouldDelete = append(shouldDelete, *liveObj)
+			shouldDelete = append(shouldDelete, liveObj)
 		}
 	}
 
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
-			if shouldIgnoreObject(*liveObj) {
+			if shouldIgnoreObject(liveObj) {
 				continue
 			}
-			if compareObject(*liveObj, *newObj) {
-				if requirePatch(*newObj) {
-					shouldPatch = append(shouldPatch, *newObj)
+			if compareObject(liveObj, newObj) {
+				if requirePatch(newObj) {
+					shouldPatch = append(shouldPatch, newObj)
 				} else {
-					shouldUpdate = append(shouldUpdate, *newObj)
+					shouldUpdate = append(shouldUpdate, newObj)
 				}
 			}
 		} else {
-			shouldCreate = append(shouldCreate, *newObj)
+			shouldCreate = append(shouldCreate, newObj)
 		}
 	}
 

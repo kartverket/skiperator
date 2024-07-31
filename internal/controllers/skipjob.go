@@ -191,13 +191,13 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJ
 	return nil
 }
 
-func (r *SKIPJobReconciler) setResourceDefaults(resources []*client.Object, skipJob *skiperatorv1alpha1.SKIPJob) error {
+func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1alpha1.SKIPJob) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
 			return err
 		}
-		resourceutils.SetSKIPJobLabels(*resource, skipJob)
-		if err := resourceutils.SetOwnerReference(skipJob, *resource, r.GetScheme()); err != nil {
+		resourceutils.SetSKIPJobLabels(resource, skipJob)
+		if err := resourceutils.SetOwnerReference(skipJob, resource, r.GetScheme()); err != nil {
 			return err
 		}
 	}

@@ -60,7 +60,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &horizontalPodAutoscaler
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	return nil
 }

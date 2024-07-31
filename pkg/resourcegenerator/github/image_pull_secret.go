@@ -36,7 +36,7 @@ func Generate(r reconciliation.Reconciliation, token string, registry string) er
 	secret.Data[".dockerconfigjson"] = buf.Bytes()
 
 	var obj client.Object = &secret
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	return nil
 }
 

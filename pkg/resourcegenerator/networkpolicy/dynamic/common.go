@@ -46,7 +46,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 
 	networkPolicy.Spec = netpolSpec
 	var obj client.Object = &networkPolicy
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	ctxLog.Debug("Finished generating networkpolicy", "type", r.GetType(), "namespace", namespace)
 	return nil
 }

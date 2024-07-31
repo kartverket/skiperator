@@ -26,8 +26,8 @@ type Reconciliation interface {
 	GetSKIPObject() v1alpha1.SKIPObject
 	GetCommonSpec() *CommonType
 	GetType() ReconciliationObjectType
-	GetResources() []*client.Object
-	AddResource(*client.Object)
+	GetResources() []client.Object
+	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
 }

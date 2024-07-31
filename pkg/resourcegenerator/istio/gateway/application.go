@@ -69,7 +69,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 		gateway.Spec.Servers = gatewayServersToAdd
 		var obj client.Object = &gateway
-		r.AddResource(&obj)
+		r.AddResource(obj)
 	}
 
 	ctxLog.Debug("Finished generating ingress gateways for application", "application", application.Name)

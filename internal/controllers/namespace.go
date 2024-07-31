@@ -105,12 +105,12 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	return common.DoNotRequeue()
 }
 
-func (r *NamespaceReconciler) setResourceDefaults(resources []*client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) error {
+func (r *NamespaceReconciler) setResourceDefaults(resources []client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
 			return err
 		}
-		resourceutils.SetNamespaceLabels(*resource, skipns)
+		resourceutils.SetNamespaceLabels(resource, skipns)
 	}
 	return nil
 }

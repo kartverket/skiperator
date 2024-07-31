@@ -65,7 +65,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &gateway
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("Finished generating ingress gateways for routing", "routing", routing.Name)
 	return nil

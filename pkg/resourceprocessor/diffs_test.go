@@ -5,6 +5,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,7 +60,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	}
 	liveDeploymentIgnorePatchOrCreate := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-app",
+			Name:      "test-app2",
 			Namespace: namespace,
 			Labels:    ignoreLabels,
 		},
@@ -73,9 +74,11 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil)
 	//build reconcile objects array
 	var obj client.Object = newSA
-	r.AddResource(&obj)
+	resourceutils.AddGVK(scheme, obj)
+	r.AddResource(obj)
 	obj = liveDeploymentIgnorePatchOrCreate
-	r.AddResource(&obj)
+	resourceutils.AddGVK(scheme, obj)
+	r.AddResource(obj)
 	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := resourceProcessor.getDiff(r)
 	assert.Nil(t, err)
 	assert.Len(t, shouldDelete, 1)

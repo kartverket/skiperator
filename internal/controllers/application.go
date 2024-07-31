@@ -269,14 +269,14 @@ func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alp
 }
 
 func (r *ApplicationReconciler) setApplicationResourcesDefaults(
-	resources []*client.Object,
+	resources []client.Object,
 	app *skiperatorv1alpha1.Application,
 ) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, app); err != nil {
 			return err
 		}
-		resourceutils.SetApplicationLabels(*resource, app)
+		resourceutils.SetApplicationLabels(resource, app)
 	}
 	return nil
 }

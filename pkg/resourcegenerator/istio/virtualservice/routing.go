@@ -94,7 +94,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		virtualService.Spec.Http = append(virtualService.Spec.Http, httpRoute)
 	}
 	var obj client.Object = &virtualService
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	ctxLog.Debug("Finished generating virtual service for routing", "routing", routing.Name)
 	return nil
 }

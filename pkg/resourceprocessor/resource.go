@@ -80,9 +80,9 @@ func diffBetween(old client.Object, new client.Object) bool {
 	return true
 }
 
-func hasGVK(resources []*client.Object) bool {
+func hasGVK(resources []client.Object) bool {
 	for _, obj := range resources {
-		gvk := (*obj).GetObjectKind().GroupVersionKind().Kind
+		gvk := (obj).GetObjectKind().GroupVersionKind().Kind
 		if gvk == "" {
 			return false
 		}

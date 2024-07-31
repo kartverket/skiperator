@@ -64,6 +64,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Finished generating service monitor for application", "application", application.Name)
 
 	var obj client.Object = &serviceMonitor
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	return nil
 }

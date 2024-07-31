@@ -60,7 +60,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		}
 
 		var obj client.Object = &networkPolicy
-		r.AddResource(&obj)
+		r.AddResource(obj)
 	}
 	ctxLog.Debug("Finished generating networkpolicy for routing", "routing", routing.Name)
 	return nil

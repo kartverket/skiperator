@@ -13,7 +13,7 @@ type JobReconciliation struct {
 	ctx               context.Context
 	job               *skiperatorv1alpha1.SKIPJob
 	logger            log.Logger
-	resources         []*client.Object
+	resources         []client.Object
 	istioEnabled      bool
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
@@ -53,11 +53,11 @@ func (j *JobReconciliation) GetRestConfig() *rest.Config {
 	return j.restConfig
 }
 
-func (j *JobReconciliation) AddResource(object *client.Object) {
+func (j *JobReconciliation) AddResource(object client.Object) {
 	j.resources = append(j.resources, object)
 }
 
-func (j *JobReconciliation) GetResources() []*client.Object {
+func (j *JobReconciliation) GetResources() []client.Object {
 	return j.resources
 }
 

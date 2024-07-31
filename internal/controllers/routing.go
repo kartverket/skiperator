@@ -159,12 +159,12 @@ func (r *RoutingReconciler) setDefaultSpec(routing *skiperatorv1alpha1.Routing) 
 	return nil
 }
 
-func (r *RoutingReconciler) setRoutingResourceDefaults(resources []*client.Object, routing *skiperatorv1alpha1.Routing) error {
+func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
 			return err
 		}
-		resourceutils.SetRoutingLabels(*resource, routing)
+		resourceutils.SetRoutingLabels(resource, routing)
 	}
 	return nil
 }

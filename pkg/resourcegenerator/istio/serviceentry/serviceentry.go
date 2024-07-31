@@ -75,7 +75,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 			}
 
 			var obj client.Object = &serviceEntry
-			r.AddResource(&obj)
+			r.AddResource(obj)
 		}
 	}
 

@@ -49,7 +49,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &maskinporten
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	ctxLog.Debug("Finished generating maskin porten resource for application", "application", application.Name)
 	return nil
 }

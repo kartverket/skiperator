@@ -39,7 +39,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Finished generating peer authentication for application", "application", application.Name)
 
 	var obj client.Object = &peerAuthentication
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	return nil
 }

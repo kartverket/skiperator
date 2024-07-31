@@ -52,7 +52,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("created service manifest for application", "application", application.Name)
 
 	var obj client.Object = &service
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	return nil
 }

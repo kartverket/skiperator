@@ -71,7 +71,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			},
 		})
 		var obj client.Object = &virtualService
-		r.AddResource(&obj)
+		r.AddResource(obj)
 		ctxLog.Debug("Added virtual service to application", "application", application.Name)
 	}
 

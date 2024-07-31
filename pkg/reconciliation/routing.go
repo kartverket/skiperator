@@ -13,7 +13,7 @@ type RoutingReconciliation struct {
 	ctx               context.Context
 	routing           *skiperatorv1alpha1.Routing
 	logger            log.Logger
-	resources         []*client.Object
+	resources         []client.Object
 	istioEnabled      bool
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
@@ -54,11 +54,11 @@ func (r *RoutingReconciliation) GetRestConfig() *rest.Config {
 	return r.restConfig
 }
 
-func (r *RoutingReconciliation) AddResource(object *client.Object) {
+func (r *RoutingReconciliation) AddResource(object client.Object) {
 	r.resources = append(r.resources, object)
 }
 
-func (r *RoutingReconciliation) GetResources() []*client.Object {
+func (r *RoutingReconciliation) GetResources() []client.Object {
 	return r.resources
 }
 

@@ -59,7 +59,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &idporten
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	ctxLog.Debug("Finished generating id porten resource for application", "application", application.Name)
 
 	return nil

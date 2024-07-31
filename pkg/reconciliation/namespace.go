@@ -13,7 +13,7 @@ type NamespaceReconciliation struct {
 	ctx               context.Context
 	namespace         skiperatorv1alpha1.SKIPObject
 	logger            log.Logger
-	resources         []*client.Object
+	resources         []client.Object
 	istioEnabled      bool
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
@@ -54,11 +54,11 @@ func (r *NamespaceReconciliation) GetRestConfig() *rest.Config {
 	return r.restConfig
 }
 
-func (r *NamespaceReconciliation) AddResource(object *client.Object) {
+func (r *NamespaceReconciliation) AddResource(object client.Object) {
 	r.resources = append(r.resources, object)
 }
 
-func (r *NamespaceReconciliation) GetResources() []*client.Object {
+func (r *NamespaceReconciliation) GetResources() []client.Object {
 	return r.resources
 }
 

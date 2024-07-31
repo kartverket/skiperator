@@ -72,7 +72,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 		"config": string(credentialsBytes),
 	}
 	var obj client.Object = &gcpConfigMap
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("Finished generating configmap", "type", r.GetType(), "name", object.GetName())
 	return nil

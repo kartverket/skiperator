@@ -224,7 +224,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &deployment
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("successfully created deployment resource")
 	return nil

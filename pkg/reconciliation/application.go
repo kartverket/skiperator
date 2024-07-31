@@ -13,7 +13,7 @@ type ApplicationReconciliation struct {
 	ctx               context.Context
 	application       *skiperatorv1alpha1.Application
 	logger            log.Logger
-	resources         []*client.Object
+	resources         []client.Object
 	istioEnabled      bool
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
@@ -54,11 +54,11 @@ func (r *ApplicationReconciliation) GetRestConfig() *rest.Config {
 	return r.restConfig
 }
 
-func (r *ApplicationReconciliation) AddResource(object *client.Object) {
+func (r *ApplicationReconciliation) AddResource(object client.Object) {
 	r.resources = append(r.resources, object)
 }
 
-func (r *ApplicationReconciliation) GetResources() []*client.Object {
+func (r *ApplicationReconciliation) GetResources() []client.Object {
 	return r.resources
 }
 

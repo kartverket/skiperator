@@ -55,7 +55,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 	var obj client.Object = &podMonitor
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("Finished generating configmap", "name", skipJob.GetName())
 	return nil

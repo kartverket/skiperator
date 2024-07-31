@@ -139,15 +139,15 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 }
 
 func (r *ReconcilerBase) SetSubresourceDefaults(
-	resources []*client.Object,
+	resources []client.Object,
 	skipObj client.Object,
 ) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), *resource); err != nil {
+		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
 			return err
 		}
-		resourceutils.SetCommonAnnotations(*resource)
-		if err := resourceutils.SetOwnerReference(skipObj, *resource, r.GetScheme()); err != nil {
+		resourceutils.SetCommonAnnotations(resource)
+		if err := resourceutils.SetOwnerReference(skipObj, resource, r.GetScheme()); err != nil {
 			return err
 		}
 	}

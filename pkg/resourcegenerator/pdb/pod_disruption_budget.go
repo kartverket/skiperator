@@ -54,7 +54,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
 		}
 		var obj client.Object = &pdb
-		r.AddResource(&obj)
+		r.AddResource(obj)
 	}
 
 	return nil

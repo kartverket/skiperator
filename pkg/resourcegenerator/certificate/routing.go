@@ -50,7 +50,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &certificate
-	r.AddResource(&obj)
+	r.AddResource(obj)
 
 	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)
 	return nil

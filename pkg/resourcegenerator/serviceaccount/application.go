@@ -27,7 +27,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 
 	var obj client.Object = &serviceAccount
-	r.AddResource(&obj)
+	r.AddResource(obj)
 	ctxLog.Debug("Finished generating service account for application", "application", application.Name)
 	return nil
 }
