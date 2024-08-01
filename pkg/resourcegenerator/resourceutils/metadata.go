@@ -59,6 +59,18 @@ func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string)
 	return nil, false
 }
 
+func FindResourceLabelErrors(app *skiperatorv1alpha1.Application, resources []client.Object) map[string]map[string]string {
+	labelsWithNoMatch := app.Spec.ResourceLabels
+	for k, _ := range labelsWithNoMatch {
+		for _, resource := range resources {
+			if strings.ToLower(k) == strings.ToLower(resource.GetObjectKind().GroupVersionKind().Kind) {
+				delete(labelsWithNoMatch, k)
+			}
+		}
+	}
+	return labelsWithNoMatch
+}
+
 func SetNamespaceLabels(object client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {

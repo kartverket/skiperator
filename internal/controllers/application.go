@@ -278,6 +278,12 @@ func (r *ApplicationReconciler) setApplicationResourcesDefaults(
 		}
 		resourceutils.SetApplicationLabels(resource, app)
 	}
+
+	//TODO should try to combine this with the above
+	resourceLabelsWithNoMatch := resourceutils.FindResourceLabelErrors(app, resources)
+	for k, _ := range resourceLabelsWithNoMatch {
+		r.EmitWarningEvent(app, "MistypedLabel", fmt.Sprintf("Resource label %s not a generated resource", k))
+	}
 	return nil
 }
 
