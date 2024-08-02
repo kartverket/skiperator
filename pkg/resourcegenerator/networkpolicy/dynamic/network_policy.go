@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	GrafanaAgentName      = "grafana-agent"
-	GrafanaAgentNamespace = GrafanaAgentName
+	GrafanaAgentName      	= "grafana-agent"
+	GrafanaAgentNamespace 	= GrafanaAgentName
+	AlloyAgentName			= "alloy"
+	AlloyAgentNamespace 	= "grafana-alloy"
 )
 
 func Generate(r reconciliation.Reconciliation) error {

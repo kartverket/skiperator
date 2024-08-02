@@ -113,6 +113,32 @@ func Generate(r reconciliation.Reconciliation) error {
 					},
 				},
 			},
+			// Egress rule for grafana-alloy
+			{
+				To: []networkingv1.NetworkPolicyPeer{
+					{
+						NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"kubernetes.io/metadata.name": "grafana-alloy"},
+						},
+						PodSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{
+								"app.kubernetes.io/instance": "alloy",
+								"app.kubernetes.io/name":     "alloy",
+							},
+						},
+					},
+				},
+				Ports: []networkingv1.NetworkPolicyPort{
+					{
+						Protocol: util.PointTo(corev1.ProtocolTCP),
+						Port:     util.PointTo(intstr.FromInt(4317)),
+					},
+					{
+						Protocol: util.PointTo(corev1.ProtocolTCP),
+						Port:     util.PointTo(intstr.FromInt(4318)),
+					},
+				},
+			},
 		},
 	}
 
