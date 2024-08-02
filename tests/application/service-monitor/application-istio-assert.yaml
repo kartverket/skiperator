@@ -102,3 +102,13 @@ spec:
               app.kubernetes.io/name: grafana-agent
       ports:
         - port: istio-metrics
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: grafana-alloy
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: alloy
+              app.kubernetes.io/name: alloy
+      ports:
+        - port: istio-metrics
