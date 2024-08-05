@@ -3,6 +3,7 @@ package resourceprocessor
 import (
 	"context"
 	"fmt"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,7 +44,7 @@ func (r *ResourceProcessor) patch(ctx context.Context, newObj client.Object) err
 	existing := newObj.DeepCopyObject().(client.Object)
 	if err := r.client.Get(ctx, client.ObjectKeyFromObject(newObj), existing); err != nil {
 		if errors.IsNotFound(err) {
-			r.log.Info("Couldn't find object trying to update. Attempting create.", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name")
+			r.log.Info("Couldn't find object trying to update. Attempting create.", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name", newObj.GetName())
 			return r.create(ctx, newObj)
 		}
 		r.log.Error(err, "Failed to get object, for unknown reason")
