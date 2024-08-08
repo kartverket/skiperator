@@ -122,7 +122,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
-		rLog.Error(err, "cant find identity config map")
+		rLog.Error(err, "can't find identity config map")
 	} //TODO Error state?
 
 	reconciliation := NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)

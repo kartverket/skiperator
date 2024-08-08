@@ -135,7 +135,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
-	if err := ValidateIngresses(application); err != nil {
+	if err := validateIngresses(application); err != nil {
 		rLog.Error(err, "invalid ingress in application manifest")
 		r.SetErrorState(ctx, application, err, "invalid ingress in application manifest", "InvalidApplication")
 		return common.RequeueWithError(err)
@@ -268,10 +268,7 @@ func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alp
 	return nil
 }
 
-func (r *ApplicationReconciler) setApplicationResourcesDefaults(
-	resources []client.Object,
-	app *skiperatorv1alpha1.Application,
-) error {
+func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []client.Object, app *skiperatorv1alpha1.Application) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, app); err != nil {
 			return err
@@ -374,7 +371,7 @@ func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
 }
 
 // TODO should be handled better
-func ValidateIngresses(application *skiperatorv1alpha1.Application) error {
+func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	var err error
 	hosts, err := application.Spec.Hosts()
 	if err != nil {

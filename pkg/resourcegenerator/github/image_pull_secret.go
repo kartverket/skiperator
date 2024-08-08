@@ -4,21 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// TODO figure out something smart so we only need to supply the reconciliation object
-func Generate(r reconciliation.Reconciliation, token string, registry string) error {
-	if r.GetType() != reconciliation.NamespaceType {
-		return fmt.Errorf("image pull secret only supports namespace type")
-	}
-	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "github-auth"}}
+type imagePullSecret struct {
+	payload []byte
+}
 
-	secret.Type = corev1.SecretTypeDockerConfigJson
-
+func NewImagePullSecret(token, registry string) (*imagePullSecret, error) {
 	cfg := dockerConfigJson{}
 	cfg.Auths = make(map[string]dockerConfigAuth, 1)
 	auth := dockerConfigAuth{}
@@ -29,18 +26,28 @@ func Generate(r reconciliation.Reconciliation, token string, registry string) er
 	enc := json.NewEncoder(&buf)
 	err := enc.Encode(cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	return &imagePullSecret{payload: buf.Bytes()}, nil
+}
+
+func (ips *imagePullSecret) Generate(r reconciliation.Reconciliation) error {
+	if r.GetType() != reconciliation.NamespaceType {
+		return fmt.Errorf("image pull secret only supports namespace type")
+	}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "github-auth"}}
+	secret.Type = corev1.SecretTypeDockerConfigJson
+
 	secret.Data = make(map[string][]byte, 1)
-	secret.Data[".dockerconfigjson"] = buf.Bytes()
+	secret.Data[".dockerconfigjson"] = ips.payload
 
 	var obj client.Object = &secret
 	r.AddResource(obj)
 	return nil
 }
 
-// Filter for secrets named github-auth
+// IsImagePullSecret filters for secrets named github-auth
 func IsImagePullSecret(secret *corev1.Secret) bool {
 	return secret.Name == "github-auth"
 }

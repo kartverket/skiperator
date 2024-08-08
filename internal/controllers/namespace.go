@@ -77,15 +77,23 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
-	if err = defaultdeny.Generate(reconciliation); err != nil {
+	ps, err := github.NewImagePullSecret(r.Token, r.Registry)
+	if err != nil {
+		rLog.Error(err, "failed to create image pull secret")
 		return common.RequeueWithError(err)
 	}
-	//TODO if we can fix the constructor for github then we can do this in a nicer way
-	if err = github.Generate(reconciliation, r.Token, r.Registry); err != nil {
-		return common.RequeueWithError(err)
+
+	funcs := []reconciliationFunc{
+		ps.Generate,
+		sidecar.Generate,
+		defaultdeny.Generate,
 	}
-	if err = sidecar.Generate(reconciliation); err != nil {
-		return common.RequeueWithError(err)
+
+	for _, f := range funcs {
+		if err = f(reconciliation); err != nil {
+			rLog.Error(err, "failed to generate namespace resource")
+			return common.RequeueWithError(err)
+		}
 	}
 
 	if err = r.setResourceDefaults(reconciliation.GetResources(), &SKIPNamespace); err != nil {
