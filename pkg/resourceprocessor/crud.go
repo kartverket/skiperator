@@ -84,7 +84,6 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 		Namespace:     namespace,
 	}
 
-	//TODO doesn't get namespace resources, why?
 	for _, schema := range r.schemas {
 		if err := r.client.List(ctx, &schema, listOpts); err != nil {
 			return fmt.Errorf("failed to list resources: %w", err)

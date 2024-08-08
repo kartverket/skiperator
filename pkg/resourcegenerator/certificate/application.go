@@ -21,7 +21,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate certificates for application", "application", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("certificate only supports Application type")
+		return fmt.Errorf("certificate only supports application type")
 	}
 
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
@@ -31,7 +31,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	hosts, err := application.Spec.Hosts()
 	if err != nil {
-		return fmt.Errorf("Failure to get hosts from application: %w", err)
+		return fmt.Errorf("failure to get hosts from application: %w", err)
 	}
 
 	// Generate separate cert for each ingress

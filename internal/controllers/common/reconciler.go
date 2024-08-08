@@ -21,7 +21,7 @@ import (
 )
 
 // ReconcilerBase is a base struct from which all reconcilers can be derived from. By doing so your reconcilers will also inherit a set of utility functions
-// To inherit from reconciler just build your finalizer this way:
+// To inherit the functionality just build your reconciler this way:
 //
 //	type MyReconciler struct {
 //	  util.ReconcilerBase
@@ -55,7 +55,6 @@ func NewReconcilerBase(
 	}
 }
 
-// NewReconcilerBase is a construction function to create a new ReconcilerBase.
 func NewFromManager(mgr manager.Manager, recorder record.EventRecorder, schemas []unstructured.UnstructuredList) ReconcilerBase {
 	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -138,10 +137,7 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	return exists && len(v) > 0
 }
 
-func (r *ReconcilerBase) SetSubresourceDefaults(
-	resources []client.Object,
-	skipObj client.Object,
-) error {
+func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {
 	for _, resource := range resources {
 		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
 			return err
@@ -154,25 +150,25 @@ func (r *ReconcilerBase) SetSubresourceDefaults(
 	return nil
 }
 
-func (r *ReconcilerBase) SetErrorState(skipObj v1alpha1.SKIPObject, err error, message string, reason string, ctx context.Context) {
-	r.EmitWarningEvent(skipObj, reason, "message")
+func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj v1alpha1.SKIPObject, err error, message string, reason string) {
+	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
-	r.updateStatus(skipObj, ctx)
+	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetProgressingState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
+func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
-	r.updateStatus(skipObj, ctx)
+	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetSyncedState(skipObj v1alpha1.SKIPObject, message string, ctx context.Context) {
+func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
-	r.updateStatus(skipObj, ctx)
+	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) updateStatus(skipObj v1alpha1.SKIPObject, ctx context.Context) {
+func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIPObject) {
 	latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
 	key := client.ObjectKeyFromObject(skipObj)
 
