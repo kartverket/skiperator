@@ -5,6 +5,7 @@ import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
@@ -221,9 +222,58 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
+	r.updateConditions(application)
 	r.SetSyncedState(ctx, application, "Application has been reconciled")
 
 	return common.DoNotRequeue()
+}
+
+func (r *ApplicationReconciler) getInternalRulesCondition(app *skiperatorv1alpha1.Application, status metav1.ConditionStatus) metav1.Condition {
+	message := "Internal rules are valid"
+	if status == metav1.ConditionFalse {
+		message = "Internal rules are invalid, applications or namespaces defined might not exist or have invalid ports"
+	}
+	return metav1.Condition{
+		Type:               "InternalRulesValid",
+		Status:             status,
+		ObservedGeneration: app.Generation,
+		LastTransitionTime: metav1.Now(),
+		Reason:             "ApplicationReconciled",
+		Message:            message,
+	}
+}
+
+func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
+	var conditions []metav1.Condition
+	accessPolicy := app.Spec.AccessPolicy
+	if accessPolicy != nil && !isInternalRulesValid(accessPolicy) {
+		conditions = append(conditions, r.getInternalRulesCondition(app, metav1.ConditionFalse))
+	} else {
+		conditions = append(conditions, r.getInternalRulesCondition(app, metav1.ConditionTrue))
+	}
+	app.Status.Conditions = conditions
+}
+
+func isInternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
+	if accessPolicy == nil {
+		return false
+	}
+
+	var rules []podtypes.InternalRule
+
+	if accessPolicy.Outbound != nil {
+		rules = append(rules, accessPolicy.Outbound.Rules...)
+	}
+
+	if accessPolicy.Inbound != nil {
+		rules = append(rules, accessPolicy.Inbound.Rules...)
+	}
+	for _, rule := range rules {
+		if len(rule.Ports) == 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
@@ -299,7 +349,59 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 		}
 	}
 
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	if err := r.updateAccessPolicy(application, ctx); err != nil {
+		r.EmitWarningEvent(application, "InvalidAccessPolicy", fmt.Sprintf("Failed to update access policy: %s", err.Error()))
+	}
 	application.FillDefaultsStatus()
+}
+
+func (r *ApplicationReconciler) updateAccessPolicy(app *skiperatorv1alpha1.Application, ctx context.Context) error {
+	if app.Spec.AccessPolicy == nil {
+		return nil
+	}
+
+	if app.Spec.AccessPolicy.Inbound != nil {
+		if err := r.setPortsForRules(ctx, app.Spec.AccessPolicy.Inbound.Rules, app.Namespace); err != nil {
+			return err
+		}
+	}
+	if app.Spec.AccessPolicy.Outbound != nil {
+		if err := r.setPortsForRules(ctx, app.Spec.AccessPolicy.Outbound.Rules, app.Namespace); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ApplicationReconciler) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
+	for i := range rules {
+		rule := &rules[i]
+		if len(rule.Ports) != 0 {
+			continue
+		}
+		if rule.Namespace != "" {
+			namespace = rule.Namespace
+		} else if len(rule.NamespacesByLabel) != 0 {
+			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
+			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
+			namespaces := &corev1.NamespaceList{}
+			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
+				return err
+			}
+			if len(namespaces.Items) > 1 || len(namespaces.Items) == 0 {
+				return fmt.Errorf("expected exactly one namespace, but found %d", len(namespaces.Items))
+			}
+			namespace = namespaces.Items[0].Name
+		}
+		targetApp, err := r.GetTargetApplication(ctx, rule.Application, namespace)
+		if err != nil {
+			return err
+		}
+		rule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(int32(targetApp.Spec.Port)))}}
+	}
+	return nil
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {

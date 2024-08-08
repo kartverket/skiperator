@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
@@ -178,4 +179,13 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 	if err := r.GetClient().Status().Update(ctx, latestObj); err != nil {
 		r.Logger.Error(err, "Failed to update status")
 	}
+}
+
+func (r *ReconcilerBase) GetTargetApplication(ctx context.Context, appName string, namespace string) (*v1alpha1.Application, error) {
+	application := &v1alpha1.Application{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, application); err != nil {
+		return nil, fmt.Errorf("error when trying to get target application: %w", err)
+	}
+
+	return application, nil
 }

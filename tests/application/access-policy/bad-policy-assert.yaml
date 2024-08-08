@@ -1,0 +1,81 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-app-same-namespace
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    inbound:
+      rules:
+        - application: doesnt-exist
+status:
+  conditions:
+    - type: InternalRulesValid
+      status: "False"
+---
+apiVersion: v1
+kind: Event
+reason: InvalidAccessPolicy
+source:
+  component: application-controller
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: no-app-same-namespace
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-app-different-namespace
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    inbound:
+      rules:
+        - application: doesnt-exist-diff-ns
+          namespace: non-existing
+status:
+  conditions:
+    - type: InternalRulesValid
+      status: "False"
+---
+apiVersion: v1
+kind: Event
+reason: InvalidAccessPolicy
+source:
+  component: application-controller
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: no-app-different-namespace
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-namespace-with-labels
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - namespacesByLabel:
+            test: label
+          application: access-policy-other
+status:
+  conditions:
+    - type: InternalRulesValid
+      status: "False"
+
+---
+apiVersion: v1
+kind: Event
+reason: InvalidAccessPolicy
+source:
+  component: application-controller
+involvedObject:
+  apiVersion: skiperator.kartverket.no/v1alpha1
+  kind: Application
+  name: no-namespace-with-labels

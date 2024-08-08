@@ -10,7 +10,10 @@ metadata:
       name: access-policy-job
 spec:
   egress:
-     - to:
+    -  ports:
+         - port: 8080
+           protocol: TCP
+       to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: access-policy-job-ns

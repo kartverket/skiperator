@@ -38,7 +38,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	if accessPolicy != nil {
+	if accessPolicy != nil && accessPolicy.Outbound != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
 			serviceEntryName := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
 

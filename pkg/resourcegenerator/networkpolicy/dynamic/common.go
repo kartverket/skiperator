@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func init() {
@@ -35,11 +36,13 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 
 	accessPolicy := object.GetCommonSpec().AccessPolicy
 	var ingresses []string
+	var inboundPort int32
 	if r.GetType() == reconciliation.ApplicationType {
 		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
+		inboundPort = int32(object.(*skiperatorv1alpha1.Application).Spec.Port)
 	}
 
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace)
+	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)
 	egressRules := getEgressRules(accessPolicy, namespace)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -72,7 +75,7 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
 
-	if accessPolicy == nil {
+	if accessPolicy == nil || accessPolicy.Outbound != nil {
 		return egressRules
 	}
 
@@ -93,21 +96,22 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 				NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
 			},
 		},
+		Ports: outboundRule.Ports,
 	}
 	return egressRuleForOutboundRule
 }
 
 // TODO Clean up better
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if ingresses != nil && len(ingresses) > 0 {
 		if hasInternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(true))
+			ingressRules = append(ingressRules, getGatewayIngressRule(true, port))
 		}
 
 		if hasExternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(false))
+			ingressRules = append(ingressRules, getGatewayIngressRule(false, port))
 		}
 	}
 
@@ -166,6 +170,9 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 	if accessPolicy.Inbound != nil {
 		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
 			From: getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
+		}
+		if port != 0 {
+			inboundTrafficIngressRule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(port))}}
 		}
 		ingressRules = append(ingressRules, inboundTrafficIngressRule)
 	}
@@ -227,7 +234,7 @@ func hasInternalIngress(ingresses []string) bool {
 	return false
 }
 
-func getGatewayIngressRule(isInternal bool) networkingv1.NetworkPolicyIngressRule {
+func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPolicyIngressRule {
 	ingressRule := networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
 			{
@@ -240,7 +247,9 @@ func getGatewayIngressRule(isInternal bool) networkingv1.NetworkPolicyIngressRul
 			},
 		},
 	}
-
+	if port != 0 {
+		ingressRule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(port))}}
+	}
 	return ingressRule
 }
 
