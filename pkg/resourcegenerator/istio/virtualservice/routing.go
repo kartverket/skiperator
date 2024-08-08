@@ -2,6 +2,7 @@ package virtualservice
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
@@ -9,6 +10,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func init() {
+	multiGenerator.Register(reconciliation.RoutingType, generateForRouting)
+}
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()

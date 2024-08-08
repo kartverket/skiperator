@@ -2,15 +2,20 @@ package virtualservice
 
 import (
 	"fmt"
+	"hash/fnv"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"hash/fnv"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func init() {
+	multiGenerator.Register(reconciliation.ApplicationType, generateForApplication)
+}
 
 func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()

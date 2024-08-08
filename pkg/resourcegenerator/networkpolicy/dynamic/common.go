@@ -10,6 +10,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func init() {
+	multiGenerator.Register(reconciliation.ApplicationType, generateForCommon)
+	multiGenerator.Register(reconciliation.JobType, generateForCommon)
+}
+
 // TODO fix mess
 func generateForCommon(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()

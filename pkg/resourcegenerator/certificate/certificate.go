@@ -1,8 +1,8 @@
 package certificate
 
 import (
-	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
 )
 
 const (
@@ -11,17 +11,8 @@ const (
 	GrafanaAgentNamespace = GrafanaAgentName
 )
 
-func Generate(r reconciliation.Reconciliation) error {
-	ctxLog := r.GetLogger()
+var multiGenerator = generator.NewMulti()
 
-	//TODO refactor more so we can have more common functions
-	if r.GetType() == reconciliation.ApplicationType {
-		return generateForApplication(r)
-	} else if r.GetType() == reconciliation.RoutingType {
-		return generateForRouting(r)
-	} else {
-		err := fmt.Errorf("unsupported type %s in certificate", r.GetType())
-		ctxLog.Error(err, "Failed to generate certificate")
-		return err
-	}
+func Generate(r reconciliation.Reconciliation) error {
+	return multiGenerator.Generate(r, "Certificate")
 }
