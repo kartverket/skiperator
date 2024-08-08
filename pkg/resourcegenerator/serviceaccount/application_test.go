@@ -14,7 +14,7 @@ func TestServiceAccountMinimalApp(t *testing.T) {
 	err := Generate(r)
 
 	// Assert
-	sa := (*r.GetResources()[0]).(*corev1.ServiceAccount)
+	sa := r.GetResources()[0].(*corev1.ServiceAccount)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(r.GetResources()))
 	assert.Equal(t, "minimal", sa.Name)

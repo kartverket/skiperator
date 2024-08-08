@@ -115,7 +115,7 @@ test: install-test-tools install-skiperator
 
 .PHONY: run-unit-tests
 run-unit-tests:
-	@failed_tests=$$(go test ./... 2>&1 | grep "^--- FAIL" | awk '{print $$3}'); \
+	@failed_tests=$$(go test ./... 2>&1 | grep "^FAIL" | awk '{print $$2}'); \
 		if [ -n "$$failed_tests" ]; then \
 			echo -e "\033[31mFailed Unit Tests: [$$failed_tests]\033[0m" && exit 1; \
 		else \

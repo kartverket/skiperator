@@ -34,7 +34,6 @@ type RoutingReconciler struct {
 	common.ReconcilerBase
 }
 
-// TODO fix this
 func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Routing{}).
@@ -77,7 +76,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	//Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
-	r.SetProgressingState(routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name), ctx)
+	r.SetProgressingState(ctx, routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
@@ -97,7 +96,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate routing resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(routing, err, "failed to generate routing resource", "ResourceGenerationFailure", ctx)
+			r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")
 			return common.RequeueWithError(err)
 		}
 	}
@@ -105,7 +104,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
 	if err = r.setRoutingResourceDefaults(reconciliation.GetResources(), routing); err != nil {
 		rLog.Error(err, "failed to set routing resource defaults")
-		r.SetErrorState(routing, err, "failed to set routing resource defaults", "ResourceDefaultsFailure", ctx)
+		r.SetErrorState(ctx, routing, err, "failed to set routing resource defaults", "ResourceDefaultsFailure")
 		return common.RequeueWithError(err)
 	}
 
@@ -114,11 +113,11 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))
 		}
-		r.SetErrorState(routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", "ProcessorFailure", ctx)
+		r.SetErrorState(ctx, routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", "ProcessorFailure")
 		return common.RequeueWithError(err)
 	}
 
-	r.SetSyncedState(routing, "Routing has been reconciled", ctx)
+	r.SetSyncedState(ctx, routing, "Routing has been reconciled")
 
 	return common.DoNotRequeue()
 }

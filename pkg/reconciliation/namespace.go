@@ -63,7 +63,7 @@ func (r *NamespaceReconciliation) GetResources() []client.Object {
 }
 
 func (r *NamespaceReconciliation) GetCommonSpec() *CommonType {
-	panic("implement me")
+	panic("common spec not available for namespace reconciliation")
 }
 
 func (r *NamespaceReconciliation) GetIdentityConfigMap() *corev1.ConfigMap {

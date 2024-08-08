@@ -62,7 +62,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	if r.isExcludedNamespace(ctx, namespace.Name) {
 		rLog.Debug("Namespace is excluded from reconciliation", "name", namespace.Name)
-		return common.RequeueWithError(err)
+		return common.DoNotRequeue()
 	}
 	//This is a hack because namespace shouldn't be here. We need this to keep things generic
 	SKIPNamespace := skiperatorv1alpha1.SKIPNamespace{Namespace: namespace}
@@ -75,7 +75,6 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
-
 	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
 	if err = defaultdeny.Generate(reconciliation); err != nil {
@@ -96,7 +95,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	}
 
 	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
-		rLog.Error(errs[0], "failed to process resources. Only showing first", "numberOfErrors", len(errs))
+		rLog.Error(errs[0], "failed to process resources - returning only the first error", "numberOfErrors", len(errs))
 		return common.RequeueWithError(errs[0])
 	}
 
