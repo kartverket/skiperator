@@ -9,7 +9,6 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -53,8 +52,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		if k8sfeatures.EnhancedPDBAvailable() {
 			pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
 		}
-		var obj client.Object = &pdb
-		r.AddResource(obj)
+		r.AddResource(&pdb)
 	}
 
 	return nil

@@ -113,3 +113,7 @@ func (in *Routing) GetDefaultLabels() map[string]string {
 		"skiperator.kartverket.no/source-namespace": in.Namespace,
 	}
 }
+
+func (in *Routing) GetCommonSpec() *CommonSpec {
+	panic("common spec not available for routing resource type")
+}

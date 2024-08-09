@@ -9,7 +9,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -223,8 +222,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	var obj client.Object = &deployment
-	r.AddResource(obj)
+	r.AddResource(&deployment)
 
 	ctxLog.Debug("successfully created deployment resource")
 	return nil

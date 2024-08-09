@@ -3,7 +3,6 @@ package reconciliation
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -24,7 +23,6 @@ type Reconciliation interface {
 	GetCtx() context.Context
 	IsIstioEnabled() bool
 	GetSKIPObject() v1alpha1.SKIPObject
-	GetCommonSpec() *CommonType
 	GetType() ObjectType
 	GetResources() []client.Object
 	AddResource(client.Object)
@@ -32,8 +30,44 @@ type Reconciliation interface {
 	GetRestConfig() *rest.Config
 }
 
-// TODO Move to types?
-type CommonType struct {
-	AccessPolicy *podtypes.AccessPolicy
-	GCP          *podtypes.GCP
+type baseReconciliation struct {
+	ctx               context.Context
+	logger            log.Logger
+	resources         []client.Object
+	istioEnabled      bool
+	restConfig        *rest.Config
+	identityConfigMap *corev1.ConfigMap
+	skipObject        v1alpha1.SKIPObject
+}
+
+func (b *baseReconciliation) GetLogger() log.Logger {
+	return b.logger
+}
+
+func (b *baseReconciliation) GetCtx() context.Context {
+	return b.ctx
+}
+
+func (b *baseReconciliation) IsIstioEnabled() bool {
+	return b.istioEnabled
+}
+
+func (b *baseReconciliation) GetResources() []client.Object {
+	return b.resources
+}
+
+func (b *baseReconciliation) AddResource(object client.Object) {
+	b.resources = append(b.resources, object)
+}
+
+func (b *baseReconciliation) GetIdentityConfigMap() *corev1.ConfigMap {
+	return b.identityConfigMap
+}
+
+func (b *baseReconciliation) GetRestConfig() *rest.Config {
+	return b.restConfig
+}
+
+func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
+	return b.skipObject
 }

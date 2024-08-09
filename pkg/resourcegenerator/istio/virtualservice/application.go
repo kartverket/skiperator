@@ -8,8 +8,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -75,8 +73,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 				},
 			},
 		})
-		var obj client.Object = &virtualService
-		r.AddResource(obj)
+		r.AddResource(&virtualService)
 		ctxLog.Debug("Added virtual service to application", "application", application.Name)
 	}
 

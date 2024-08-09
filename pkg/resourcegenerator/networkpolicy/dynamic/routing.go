@@ -9,7 +9,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -64,8 +63,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 			},
 		}
 
-		var obj client.Object = &networkPolicy
-		r.AddResource(obj)
+		r.AddResource(&networkPolicy)
 	}
 	ctxLog.Debug("Finished generating networkpolicy for routing", "routing", routing.Name)
 	return nil

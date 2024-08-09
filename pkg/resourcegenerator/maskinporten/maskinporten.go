@@ -8,7 +8,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -48,8 +47,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	var obj client.Object = &maskinporten
-	r.AddResource(obj)
+	r.AddResource(&maskinporten)
 	ctxLog.Debug("Finished generating maskin porten resource for application", "application", application.Name)
 	return nil
 }

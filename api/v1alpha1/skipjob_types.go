@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
+	"time"
 )
 
 var (
@@ -218,7 +219,20 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 	return mergo.Merge(skipJob, defaults)
 }
 
+// TODO we should test SKIPJob status better, same for Routing probably
 func (skipJob *SKIPJob) FillDefaultStatus() {
+	if skipJob.Status.Summary.Status == "" {
+		skipJob.Status.Summary = Status{
+			Status:    PENDING,
+			Message:   "Default SKIPJob status, it has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
+	}
+
+	if skipJob.Status.SubResources == nil {
+		skipJob.Status.SubResources = make(map[string]Status)
+	}
+
 	skipJob.Status.Conditions = []metav1.Condition{
 		{
 			Type:               ConditionRunning,
@@ -242,7 +256,6 @@ func (skipJob *SKIPJob) FillDefaultStatus() {
 			Message:            "SKIPJob has not been reconciled yet",
 		},
 	}
-	skipJob.Status.Conditions = make([]metav1.Condition, 0)
 }
 
 func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
@@ -253,5 +266,12 @@ func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
 		IsSKIPJobKey: "true",
 		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
 		SKIPJobReferenceLabelKey: skipJob.Name,
+	}
+}
+
+func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
+	return &CommonSpec{
+		GCP:          skipJob.Spec.Container.GCP,
+		AccessPolicy: skipJob.Spec.Container.AccessPolicy,
 	}
 }

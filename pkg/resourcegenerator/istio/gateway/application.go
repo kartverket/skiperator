@@ -9,7 +9,6 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -73,8 +72,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		gatewayServersToAdd = append(gatewayServersToAdd, baseHttpGatewayServer, httpsGatewayServer)
 
 		gateway.Spec.Servers = gatewayServersToAdd
-		var obj client.Object = &gateway
-		r.AddResource(obj)
+		r.AddResource(&gateway)
 	}
 
 	ctxLog.Debug("Finished generating ingress gateways for application", "application", application.Name)

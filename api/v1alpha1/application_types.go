@@ -415,6 +415,13 @@ func (a *Application) GetDefaultLabels() map[string]string {
 	}
 }
 
+func (a *Application) GetCommonSpec() *CommonSpec {
+	return &CommonSpec{
+		GCP:          a.Spec.GCP,
+		AccessPolicy: a.Spec.AccessPolicy,
+	}
+}
+
 func (s *ApplicationSpec) Hosts() ([]Host, error) {
 	var hosts []Host
 	var errorsFound []error

@@ -9,7 +9,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -50,8 +49,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			DNSNames:   []string{h.Hostname},
 			SecretName: certificateName,
 		}
-		var obj client.Object = &certificate
-		r.AddResource(obj)
+		r.AddResource(&certificate)
 	}
 	ctxLog.Debug("Finished generating certificates for application", "application", application.Name)
 	return nil

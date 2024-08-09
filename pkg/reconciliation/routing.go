@@ -6,66 +6,27 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type RoutingReconciliation struct {
-	ctx               context.Context
-	routing           *skiperatorv1alpha1.Routing
-	logger            log.Logger
-	resources         []client.Object
-	istioEnabled      bool
-	restConfig        *rest.Config
-	identityConfigMap *corev1.ConfigMap
+	baseReconciliation
 }
 
-func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing, logger log.Logger, istioEnabled bool, restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *RoutingReconciliation {
+func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing,
+	logger log.Logger, istioEnabled bool, restConfig *rest.Config,
+	identityConfigMap *corev1.ConfigMap) *RoutingReconciliation {
 	return &RoutingReconciliation{
-		ctx:               ctx,
-		routing:           routing,
-		logger:            logger,
-		istioEnabled:      istioEnabled,
-		restConfig:        restConfig,
-		identityConfigMap: identityConfigMap,
+		baseReconciliation: baseReconciliation{
+			ctx:               ctx,
+			logger:            logger,
+			istioEnabled:      istioEnabled,
+			restConfig:        restConfig,
+			identityConfigMap: identityConfigMap,
+			skipObject:        routing,
+		},
 	}
-}
-
-func (r *RoutingReconciliation) GetLogger() log.Logger {
-	return r.logger
-}
-
-func (r *RoutingReconciliation) GetCtx() context.Context {
-	return r.ctx
-}
-
-func (r *RoutingReconciliation) IsIstioEnabled() bool {
-	return r.istioEnabled
-}
-
-func (r *RoutingReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
-	return r.routing
 }
 
 func (r *RoutingReconciliation) GetType() ObjectType {
 	return RoutingType
-}
-
-func (r *RoutingReconciliation) GetRestConfig() *rest.Config {
-	return r.restConfig
-}
-
-func (r *RoutingReconciliation) AddResource(object client.Object) {
-	r.resources = append(r.resources, object)
-}
-
-func (r *RoutingReconciliation) GetResources() []client.Object {
-	return r.resources
-}
-
-func (r *RoutingReconciliation) GetCommonSpec() *CommonType {
-	panic("implement me")
-}
-
-func (r *RoutingReconciliation) GetIdentityConfigMap() *corev1.ConfigMap {
-	return r.identityConfigMap
 }

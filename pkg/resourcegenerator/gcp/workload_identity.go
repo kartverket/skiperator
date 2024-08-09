@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// TODO move to a more suitable pkg
 var (
 	CredentialsMountPath = "/var/run/secrets/tokens/gcp-ksa"
 	CredentialsFileName  = "google-application-credentials.json"

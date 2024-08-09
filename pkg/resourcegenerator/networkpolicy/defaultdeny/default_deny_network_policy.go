@@ -3,8 +3,6 @@ package defaultdeny
 import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -142,8 +140,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		},
 	}
 
-	var obj client.Object = &networkPolicy
-	r.AddResource(obj)
+	r.AddResource(&networkPolicy)
 
 	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 	return nil

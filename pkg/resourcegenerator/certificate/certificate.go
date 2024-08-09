@@ -7,8 +7,6 @@ import (
 
 const (
 	IstioGatewayNamespace = "istio-gateways"
-	GrafanaAgentName      = "grafana-agent"
-	GrafanaAgentNamespace = GrafanaAgentName
 )
 
 var multiGenerator = generator.NewMulti()

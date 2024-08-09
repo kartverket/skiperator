@@ -3,8 +3,6 @@ package sidecar
 import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,8 +25,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		},
 	}
 
-	var obj client.Object = &sidecar
-	r.AddResource(obj)
+	r.AddResource(&sidecar)
 
 	ctxLog.Debug("Finished generating default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 	return nil

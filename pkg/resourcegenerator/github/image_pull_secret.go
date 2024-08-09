@@ -8,7 +8,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type imagePullSecret struct {
@@ -42,8 +41,7 @@ func (ips *imagePullSecret) Generate(r reconciliation.Reconciliation) error {
 	secret.Data = make(map[string][]byte, 1)
 	secret.Data[".dockerconfigjson"] = ips.payload
 
-	var obj client.Object = &secret
-	r.AddResource(obj)
+	r.AddResource(&secret)
 	return nil
 }
 

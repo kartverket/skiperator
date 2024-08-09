@@ -10,7 +10,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,13 +71,11 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil)
+	resourceutils.AddGVK(scheme, newSA)
+	resourceutils.AddGVK(scheme, liveDeploymentIgnorePatchOrCreate)
 	//build reconcile objects array
-	var obj client.Object = newSA
-	resourceutils.AddGVK(scheme, obj)
-	r.AddResource(obj)
-	obj = liveDeploymentIgnorePatchOrCreate
-	resourceutils.AddGVK(scheme, obj)
-	r.AddResource(obj)
+	r.AddResource(newSA)
+	r.AddResource(liveDeploymentIgnorePatchOrCreate)
 	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := resourceProcessor.getDiff(r)
 	assert.Nil(t, err)
 	assert.Len(t, shouldDelete, 1)

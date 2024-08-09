@@ -7,7 +7,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -25,8 +24,7 @@ func generateForSKIPJob(r reconciliation.Reconciliation) error {
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
 
-	var obj client.Object = &serviceAccount
-	r.AddResource(obj)
+	r.AddResource(&serviceAccount)
 	ctxLog.Debug("Finished generating service account for skipjob", "skipjob", skipJob.Name)
 	return nil
 }

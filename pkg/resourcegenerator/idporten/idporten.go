@@ -2,19 +2,17 @@ package idporten
 
 import (
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"net/url"
-	"path"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
 	digdiratorClients "github.com/nais/digdirator/pkg/clients"
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"net/url"
+	"path"
 )
 
 const (
@@ -58,8 +56,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	var obj client.Object = &idporten
-	r.AddResource(obj)
+	r.AddResource(&idporten)
 	ctxLog.Debug("Finished generating id porten resource for application", "application", application.Name)
 
 	return nil

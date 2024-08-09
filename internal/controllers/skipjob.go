@@ -103,10 +103,6 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if err != nil {
 		return common.RequeueWithError(err)
 	}
-	statusDiff, err := util.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
-	if err != nil {
-		return common.RequeueWithError(err)
-	}
 
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
@@ -115,9 +111,10 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	if len(statusDiff) > 0 {
-		err := r.GetClient().Status().Update(ctx, skipJob)
-		return reconcile.Result{Requeue: true}, err
+	// TODO Removed status diff check here... why do we need that? Causing endless reconcile because timestamps are different (which makes sense)
+	// i dont understand how this was working before
+	if err = r.GetClient().Status().Update(ctx, skipJob); err != nil {
+		return common.RequeueWithError(err)
 	}
 
 	//Start the actual reconciliation

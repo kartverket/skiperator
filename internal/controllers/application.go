@@ -159,6 +159,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
+	//TODO Remove? removed it from skipjobs, was causing endless reconcile because of lastTransitionTime. I dont understand why we would need this
 	if len(statusDiff) > 0 {
 		rLog.Debug("Queueing for status diff")
 		err := r.GetClient().Status().Update(ctx, application)

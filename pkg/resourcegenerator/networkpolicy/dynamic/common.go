@@ -7,7 +7,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -18,7 +17,7 @@ func init() {
 // TODO fix mess
 func generateForCommon(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
-	ctxLog.Debug("Attempting to generate network policy for application", "application", r.GetSKIPObject().GetName())
+	ctxLog.Debug("Attempting to generate network policy for skipobj", "skipobj", r.GetSKIPObject().GetName())
 
 	object := r.GetSKIPObject()
 	name := object.GetName()
@@ -34,11 +33,12 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 		},
 	}
 
-	accessPolicy := r.GetCommonSpec().AccessPolicy
+	accessPolicy := object.GetCommonSpec().AccessPolicy
 	var ingresses []string
 	if r.GetType() == reconciliation.ApplicationType {
 		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
 	}
+
 	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace)
 	egressRules := getEgressRules(accessPolicy, namespace)
 
@@ -50,8 +50,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	}
 
 	networkPolicy.Spec = netpolSpec
-	var obj client.Object = &networkPolicy
-	r.AddResource(obj)
+	r.AddResource(&networkPolicy)
 	ctxLog.Debug("Finished generating networkpolicy", "type", r.GetType(), "namespace", namespace)
 	return nil
 }

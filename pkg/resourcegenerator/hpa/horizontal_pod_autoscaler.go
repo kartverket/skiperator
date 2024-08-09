@@ -8,7 +8,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -59,8 +58,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		},
 	}
 
-	var obj client.Object = &horizontalPodAutoscaler
-	r.AddResource(obj)
+	r.AddResource(&horizontalPodAutoscaler)
 
 	return nil
 }

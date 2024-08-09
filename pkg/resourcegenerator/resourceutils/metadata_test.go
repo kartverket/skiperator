@@ -6,7 +6,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"testing"
 )
 
@@ -31,9 +30,8 @@ func TestSetResourceLabels(t *testing.T) {
 		},
 	}
 
-	var obj client.Object = sa
-	SetApplicationLabels(obj, app)
-	assert.True(t, len(obj.GetLabels()) == 6)
-	assert.True(t, obj.GetLabels()["someLabel"] == "someValue")
-	assert.Empty(t, obj.GetLabels()["otherLabel"])
+	SetApplicationLabels(sa, app)
+	assert.True(t, len(sa.GetLabels()) == 6)
+	assert.True(t, sa.GetLabels()["someLabel"] == "someValue")
+	assert.Empty(t, sa.GetLabels()["otherLabel"])
 }

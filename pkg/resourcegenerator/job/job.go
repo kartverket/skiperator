@@ -11,7 +11,6 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // TODO completely butchered, need to be thorougly checked
@@ -50,13 +49,11 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if skipJob.Spec.Cron != nil {
 		cronJob.Spec = getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
-		var obj client.Object = &cronJob
-		r.AddResource(obj)
+		r.AddResource(&cronJob)
 	} else {
 		desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
 		job.Spec = desiredSpec
-		var obj client.Object = &job
-		r.AddResource(obj)
+		r.AddResource(&job)
 	}
 	return nil
 }

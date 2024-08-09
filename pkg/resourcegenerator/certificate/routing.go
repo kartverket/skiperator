@@ -8,7 +8,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -54,8 +53,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		SecretName: certificateName,
 	}
 
-	var obj client.Object = &certificate
-	r.AddResource(obj)
+	r.AddResource(&certificate)
 
 	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)
 	return nil

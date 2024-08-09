@@ -31,7 +31,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate service entries", "type", r.GetType())
 
 	object := r.GetSKIPObject()
-	accessPolicy := r.GetCommonSpec().AccessPolicy
+	accessPolicy := object.GetCommonSpec().AccessPolicy
 
 	accessPolicy, err := setCloudSqlRule(accessPolicy, object)
 	if err != nil {
@@ -74,8 +74,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				},
 			}
 
-			var obj client.Object = &serviceEntry
-			r.AddResource(obj)
+			r.AddResource(&serviceEntry)
 		}
 	}
 

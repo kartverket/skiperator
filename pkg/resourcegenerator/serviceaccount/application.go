@@ -9,7 +9,6 @@ import (
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -30,9 +29,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
 		setCloudSqlAnnotations(&serviceAccount, application)
 	}
-
-	var obj client.Object = &serviceAccount
-	r.AddResource(obj)
+	r.AddResource(&serviceAccount)
 	ctxLog.Debug("Finished generating service account for application", "application", application.Name)
 	return nil
 }

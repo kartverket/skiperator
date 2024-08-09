@@ -7,7 +7,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -40,7 +39,7 @@ func Generate(r reconciliation.Reconciliation) error {
 }
 
 func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
-	if r.GetCommonSpec().GCP == nil || r.GetCommonSpec().GCP.Auth.ServiceAccount == "" {
+	if r.GetSKIPObject().GetCommonSpec().GCP == nil || r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount == "" {
 		return nil
 	}
 
@@ -54,7 +53,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
 		Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
-		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
+		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",
 		CredentialSource: CredentialSource{
@@ -71,8 +70,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 	gcpConfigMap.Data = map[string]string{
 		"config": string(credentialsBytes),
 	}
-	var obj client.Object = &gcpConfigMap
-	r.AddResource(obj)
+	r.AddResource(&gcpConfigMap)
 
 	ctxLog.Debug("Finished generating configmap", "type", r.GetType(), "name", object.GetName())
 	return nil

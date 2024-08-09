@@ -8,7 +8,6 @@ import (
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {
@@ -98,8 +97,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 
 		virtualService.Spec.Http = append(virtualService.Spec.Http, httpRoute)
 	}
-	var obj client.Object = &virtualService
-	r.AddResource(obj)
+	r.AddResource(&virtualService)
 	ctxLog.Debug("Finished generating virtual service for routing", "routing", routing.Name)
 	return nil
 }

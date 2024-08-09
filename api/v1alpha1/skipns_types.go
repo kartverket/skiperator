@@ -22,3 +22,7 @@ func (n SKIPNamespace) GetDefaultLabels() map[string]string {
 		"skiperator.kartverket.no/controller": "namespace",
 	}
 }
+
+func (n SKIPNamespace) GetCommonSpec() *CommonSpec {
+	panic("common spec not available for namespace resource type")
+}

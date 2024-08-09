@@ -9,7 +9,6 @@ import (
 	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -38,8 +37,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ctxLog.Debug("Finished generating peer authentication for application", "application", application.Name)
 
-	var obj client.Object = &peerAuthentication
-	r.AddResource(obj)
+	r.AddResource(&peerAuthentication)
 
 	return nil
 }
