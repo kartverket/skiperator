@@ -9,17 +9,17 @@ import (
 type genFunc = func(r reconciliation.Reconciliation) error
 
 type MultiGenerator struct {
-	generators map[reconciliation.ReconciliationObjectType]genFunc
+	generators map[reconciliation.ObjectType]genFunc
 }
 
 func NewMulti() *MultiGenerator {
 	return &MultiGenerator{
-		generators: map[reconciliation.ReconciliationObjectType]genFunc{},
+		generators: map[reconciliation.ObjectType]genFunc{},
 	}
 }
 
 // Register will ensure that the supplied generator will be used for a given reconciliation object type.
-func (g *MultiGenerator) Register(objectType reconciliation.ReconciliationObjectType, generator genFunc) {
+func (g *MultiGenerator) Register(objectType reconciliation.ObjectType, generator genFunc) {
 	if generator == nil {
 		panic("generator cannot be nil")
 	}
