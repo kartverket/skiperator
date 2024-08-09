@@ -2,12 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: access-policy-job-skipjob
+  ownerReferences:
+    - apiVersion: skiperator.kartverket.no/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: SKIPJob
+      name: access-policy-job
 spec:
   egress:
-    - ports:
-        - port: 8080
-          protocol: TCP
-      to:
+     - to:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: access-policy-job-ns

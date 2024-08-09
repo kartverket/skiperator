@@ -34,6 +34,4 @@ spec:
           podSelector:
             matchLabels:
               app: access-policy-other
-      ports:
-        - port: 8080
-          protocol: TCP
+

@@ -35,3 +35,5 @@ spec:
       - "perl"
       - "-wle"
       - "exit 1"
+  job:
+    activeDeadlineSeconds: 1

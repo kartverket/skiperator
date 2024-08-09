@@ -1,0 +1,22 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  finalizers:
+    - skip.statkart.no/finalizer
+  name: borked
+spec:
+  enablePDB: true
+  image: image
+  port: 8080
+  priority: medium
+  redirectToHTTPS: true
+  replicas: "2"
+  strategy:
+    type: RollingUpdate
+status:
+  summary:
+    message: >-
+      failed to generate application resource: json: cannot unmarshal string
+      into Go value of type v1alpha1.Replicas
+    status: Error
+

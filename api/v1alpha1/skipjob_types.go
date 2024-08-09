@@ -1,11 +1,27 @@
 package v1alpha1
 
 import (
+	"dario.cat/mergo"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+	"time"
+)
+
+var (
+	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7) // One week
+	DefaultBackoffLimit            = int32(6)
+
+	DefaultSuspend           = false
+	JobCreatedCondition      = "SKIPJobCreated"
+	ConditionRunning         = "Running"
+	ConditionFinished        = "Finished"
+	ConditionFailed          = "Failed"
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
+	IsSKIPJobKey             = "skiperator.kartverket.no/skipjob"
 )
 
 // SKIPJobStatus defines the observed state of SKIPJob
@@ -18,6 +34,7 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -27,7 +44,7 @@ type SKIPJob struct {
 	Spec SKIPJobSpec `json:"spec"`
 
 	//+kubebuilder:validation:Optional
-	Status SKIPJobStatus `json:"status"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -172,5 +189,89 @@ type CronSettings struct {
 }
 
 func (skipJob *SKIPJob) KindPostFixedName() string {
-	return util.ResourceNameWithKindPostfix(skipJob.Name, skipJob.Kind)
+	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
+}
+
+func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
+	return &skipJob.Status
+}
+func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
+	skipJob.Status = status
+}
+
+func (skipJob *SKIPJob) FillDefaultSpec() error {
+	defaults := &SKIPJob{
+		Spec: SKIPJobSpec{
+			Job: &JobSettings{
+				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				BackoffLimit:            &DefaultBackoffLimit,
+				Suspend:                 &DefaultSuspend,
+			},
+		},
+	}
+
+	if skipJob.Spec.Cron != nil {
+		defaults.Spec.Cron = &CronSettings{}
+		suspend := false
+		defaults.Spec.Cron.Suspend = &suspend
+	}
+
+	return mergo.Merge(skipJob, defaults)
+}
+
+// TODO we should test SKIPJob status better, same for Routing probably
+func (skipJob *SKIPJob) FillDefaultStatus() {
+	if skipJob.Status.Summary.Status == "" {
+		skipJob.Status.Summary = Status{
+			Status:    PENDING,
+			Message:   "Default SKIPJob status, it has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
+	}
+
+	if skipJob.Status.SubResources == nil {
+		skipJob.Status.SubResources = make(map[string]Status)
+	}
+
+	skipJob.Status.Conditions = []metav1.Condition{
+		{
+			Type:               ConditionRunning,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+		{
+			Type:               ConditionFinished,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+		{
+			Type:               ConditionFailed,
+			Status:             metav1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "NotReconciled",
+			Message:            "SKIPJob has not been reconciled yet",
+		},
+	}
+}
+
+func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "skipjob",
+		// Used by hahaha to know that the Pod should be watched for killing sidecars
+		IsSKIPJobKey: "true",
+		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
+		SKIPJobReferenceLabelKey: skipJob.Name,
+	}
+}
+
+func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
+	return &CommonSpec{
+		GCP:          skipJob.Spec.Container.GCP,
+		AccessPolicy: skipJob.Spec.Container.AccessPolicy,
+	}
 }

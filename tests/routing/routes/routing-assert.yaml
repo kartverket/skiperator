@@ -4,7 +4,7 @@ metadata:
   labels:
     app.kubernetes.io/managed-by: skiperator
     skiperator.kartverket.no/controller: routing
-    skiperator.kartverket.no/source-namespace: chainsaw-routing-routes
+    skiperator.kartverket.no/source-namespace: ($namespace)
   name: chainsaw-routing-routes-app-paths-routing-ingress-b1dffede
   namespace: istio-gateways
 spec:

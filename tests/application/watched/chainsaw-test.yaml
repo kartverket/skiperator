@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: watched
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: certificate.yaml
+        - assert:
+            file: certificate-assert.yaml
+        - delete:
+            file: certificate.yaml
+    - try:
+        - error:
+            file: certificate-errors.yaml

@@ -3,40 +3,26 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/internal/controllers"
+	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"os"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"strings"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"go.uber.org/zap/zapcore"
-	autoscalingv2 "k8s.io/api/autoscaling/v2"
-	policyv1 "k8s.io/api/policy/v1"
-
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	applicationcontroller "github.com/kartverket/skiperator/controllers/application"
-	namespacecontroller "github.com/kartverket/skiperator/controllers/namespace"
-	routingcontroller "github.com/kartverket/skiperator/controllers/routing"
-	skipjobcontroller "github.com/kartverket/skiperator/controllers/skipjob"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
 )
 
 //+kubebuilder:rbac:groups=coordination.k8s.io,resources=leases,verbs=get;create;update
@@ -51,15 +37,7 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
-	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
-	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
-	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
-	utilruntime.Must(policyv1.AddToScheme(scheme))
-	utilruntime.Must(pov1.AddToScheme(scheme))
-	utilruntime.Must(nais_io_v1.AddToScheme(scheme))
+	resourceschemas.AddSchemas(scheme)
 }
 
 func main() {
@@ -72,6 +50,7 @@ func main() {
 
 	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
 
+	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Development: !*isDeployment,
 		Level:       parsedLogLevel,
@@ -103,32 +82,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&applicationcontroller.ApplicationReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller"), resourceschemas.GetApplicationSchemas(mgr.GetScheme())),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
 
-	err = (&skipjobcontroller.SKIPJobReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+	err = (&controllers.SKIPJobReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller"), resourceschemas.GetJobSchemas(mgr.GetScheme())),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
 		os.Exit(1)
 	}
 
-	err = (&routingcontroller.RoutingReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
+	err = (&controllers.RoutingReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller"), resourceschemas.GetRoutingSchemas(mgr.GetScheme())),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Routing")
 		os.Exit(1)
 	}
 
-	err = (&namespacecontroller.NamespaceReconciler{
-		ReconcilerBase: util.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
+	err = (&controllers.NamespaceReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
 		Registry:       "ghcr.io",
 		Token:          *imagePullToken,
 	}).SetupWithManager(mgr)

@@ -1,0 +1,21 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: badport
+spec:
+  image: image
+  port: 80801
+  ingresses:
+    - hei.no
+  gcp:
+    auth:
+      serviceAccount: something@verdier.com
+  accessPolicy:
+    inbound:
+      rules:
+        - application: access-policy-other
+    outbound:
+      rules:
+        - application: access-policy-two
+      external:
+        - host: example.com

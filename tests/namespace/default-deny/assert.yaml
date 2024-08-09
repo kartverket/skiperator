@@ -2,6 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: namespace
 spec:
   policyTypes:
   - Ingress
@@ -56,7 +59,7 @@ spec:
         protocol: TCP
       - port: 4318
         protocol: TCP
-    to:  
+    to:
       - namespaceSelector:
           matchLabels:
             kubernetes.io/metadata.name: grafana-alloy

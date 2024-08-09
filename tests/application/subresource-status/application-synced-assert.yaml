@@ -17,49 +17,49 @@ spec:
   strategy:
     type: RollingUpdate
 status:
-  application:
-    message: All controllers synced
+  summary:
+    message: All subresources synced
     status: Synced
-  controllers:
-    AuthorizationPolicy:
+  subresources:
+    AuthorizationPolicy[working-deny]:
       message: AuthorizationPolicy has finished synchronizing
       status: Synced
-    Certificate:
+    Certificate[chainsaw-subresource-labels-working-ingress-214f400d5abb9c1c]:
       message: Certificate has finished synchronizing
       status: Synced
-    ConfigMap:
+    ConfigMap[working-gcp-auth]:
       message: ConfigMap has finished synchronizing
       status: Synced
-    Deployment:
+    Deployment[working]:
       message: Deployment has finished synchronizing
       status: Synced
-    EgressServiceEntry:
-      message: EgressServiceEntry has finished synchronizing
+    Gateway[working-ingress-214f400d5abb9c1c]:
+      message: Gateway has finished synchronizing
       status: Synced
-    HorizontalPodAutoScaler:
-      message: HorizontalPodAutoScaler has finished synchronizing
+    HorizontalPodAutoscaler[working]:
+      message: HorizontalPodAutoscaler has finished synchronizing
       status: Synced
-    IngressGateway:
-      message: IngressGateway has finished synchronizing
-      status: Synced
-    IngressVirtualService:
-      message: IngressVirtualService has finished synchronizing
-      status: Synced
-    NetworkPolicy:
+    NetworkPolicy[working]:
       message: NetworkPolicy has finished synchronizing
       status: Synced
-    PeerAuthentication:
+    PeerAuthentication[working]:
       message: PeerAuthentication has finished synchronizing
       status: Synced
-    PodDisruptionBudget:
+    PodDisruptionBudget[working]:
       message: PodDisruptionBudget has finished synchronizing
       status: Synced
-    Service:
-      message: Service has finished synchronizing
-      status: Synced
-    ServiceAccount:
+    ServiceAccount[working]:
       message: ServiceAccount has finished synchronizing
       status: Synced
-    ServiceMonitor:
+    ServiceEntry[working-egress-56cd7aa901014e78]:
+      message: ServiceEntry has finished synchronizing
+      status: Synced
+    ServiceMonitor[working]:
       message: ServiceMonitor has finished synchronizing
+      status: Synced
+    Service[working]:
+      message: Service has finished synchronizing
+      status: Synced
+    VirtualService[working-ingress]:
+      message: VirtualService has finished synchronizing
       status: Synced
