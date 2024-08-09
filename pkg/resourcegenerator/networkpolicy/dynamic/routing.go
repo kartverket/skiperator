@@ -2,6 +2,7 @@ package dynamic
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -10,6 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func init() {
+	multiGenerator.Register(reconciliation.RoutingType, generateForRouting)
+}
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()

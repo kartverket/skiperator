@@ -2,6 +2,7 @@ package certificate
 
 import (
 	"fmt"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -9,6 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+func init() {
+	multiGenerator.Register(reconciliation.RoutingType, generateForRouting)
+}
 
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
