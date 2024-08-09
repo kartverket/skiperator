@@ -46,7 +46,7 @@ func (r *RoutingReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
 	return r.routing
 }
 
-func (r *RoutingReconciliation) GetType() ReconciliationObjectType {
+func (r *RoutingReconciliation) GetType() ObjectType {
 	return RoutingType
 }
 

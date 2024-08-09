@@ -30,10 +30,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	ConditionRunning  = "Running"
+	ConditionFinished = "Finished"
+	ConditionFailed   = "Failed"
+)
+
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skipjobs;skipjobs/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods;pods/ephemeralcontainers,verbs=get;list;watch;create;update;patch;delete
-
 type SKIPJobReconciler struct {
 	common.ReconcilerBase
 }
@@ -77,7 +82,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog := log.NewLogger().WithName(fmt.Sprintf("skipjob-controller: %s", req.Name))
 	rLog.Debug("Starting reconcile for request", "request", req.Name)
 
-	skipJob, err := r.getSKIPJob(req, ctx)
+	skipJob, err := r.getSKIPJob(ctx, req)
 	if skipJob == nil {
 		return common.DoNotRequeue()
 	} else if err != nil {
@@ -160,8 +165,8 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	//TODO fix better handling of status updates in context of summary, conditions and subresources
-	if err = r.updateConditions(skipJob); err != nil {
+	//TODO consider if we need better handling of status updates in context of summary, conditions and subresources
+	if err = r.updateConditions(ctx, skipJob); err != nil {
 		rLog.Error(err, "failed to update conditions")
 		r.SetErrorState(ctx, skipJob, err, "failed to update conditions", "ConditionsFailure")
 		return common.RequeueWithError(err)
@@ -172,7 +177,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	return common.RequeueWithError(err)
 }
 
-func (r *SKIPJobReconciler) getSKIPJob(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.SKIPJob, error) {
+func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.SKIPJob, error) {
 	skipJob := &skiperatorv1alpha1.SKIPJob{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, skipJob); err != nil {
 		if errors.IsNotFound(err) {
@@ -224,22 +229,16 @@ func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object clien
 	if err != nil {
 		return nil
 	}
-	for _, job := range jobsToReconcile.Items {
+	for _, j := range jobsToReconcile.Items {
 		reconcileRequests = append(reconcileRequests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: job.Namespace,
-				Name:      job.Name,
+				Namespace: j.Namespace,
+				Name:      j.Name,
 			},
 		})
 	}
 	return reconcileRequests
 }
-
-const (
-	ConditionRunning  = "Running"
-	ConditionFinished = "Finished"
-	ConditionFailed   = "Failed"
-)
 
 func (r *SKIPJobReconciler) getConditionRunning(skipJob *skiperatorv1alpha1.SKIPJob, status v1.ConditionStatus) v1.Condition {
 	return v1.Condition{
@@ -278,9 +277,9 @@ func (r *SKIPJobReconciler) getConditionFailed(skipJob *skiperatorv1alpha1.SKIPJ
 	}
 }
 
-func (r *SKIPJobReconciler) updateConditions(skipJob *skiperatorv1alpha1.SKIPJob) error {
+func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) error {
 	jobList := &batchv1.JobList{}
-	err := r.GetClient().List(context.Background(), jobList,
+	err := r.GetClient().List(ctx, jobList,
 		client.InNamespace(skipJob.Namespace),
 		client.MatchingLabels(skipJob.GetDefaultLabels()),
 	)

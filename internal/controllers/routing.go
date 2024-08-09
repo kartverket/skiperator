@@ -43,7 +43,7 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.skiperatorRoutingCertRequests)).
 		Watches(
 			&skiperatorv1alpha1.Application{},
-			handler.EnqueueRequestsFromMapFunc(r.SkiperatorApplicationsChanges)).
+			handler.EnqueueRequestsFromMapFunc(r.skiperatorApplicationsChanges)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
 }
@@ -168,7 +168,7 @@ func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object
 	return nil
 }
 
-func (r *RoutingReconciler) SkiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
+func (r *RoutingReconciler) skiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
 	application, isApplication := obj.(*skiperatorv1alpha1.Application)
 
 	if !isApplication {

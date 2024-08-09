@@ -46,7 +46,7 @@ func (r *NamespaceReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject 
 	return r.namespace
 }
 
-func (r *NamespaceReconciliation) GetType() ReconciliationObjectType {
+func (r *NamespaceReconciliation) GetType() ObjectType {
 	return NamespaceType
 }
 

@@ -46,7 +46,7 @@ func (r *ApplicationReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObjec
 	return r.application
 }
 
-func (r *ApplicationReconciliation) GetType() ReconciliationObjectType {
+func (r *ApplicationReconciliation) GetType() ObjectType {
 	return ApplicationType
 }
 

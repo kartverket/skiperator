@@ -45,7 +45,7 @@ func (j *JobReconciliation) GetSKIPObject() skiperatorv1alpha1.SKIPObject {
 	return j.job
 }
 
-func (j *JobReconciliation) GetType() ReconciliationObjectType {
+func (j *JobReconciliation) GetType() ObjectType {
 	return JobType
 }
 

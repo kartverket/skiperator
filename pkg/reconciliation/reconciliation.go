@@ -10,13 +10,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ReconciliationObjectType string
+type ObjectType string
 
 const (
-	ApplicationType ReconciliationObjectType = "Application"
-	JobType         ReconciliationObjectType = "SKIPJob"
-	NamespaceType   ReconciliationObjectType = "Namespace"
-	RoutingType     ReconciliationObjectType = "Routing"
+	ApplicationType ObjectType = "Application"
+	JobType         ObjectType = "SKIPJob"
+	NamespaceType   ObjectType = "Namespace"
+	RoutingType     ObjectType = "Routing"
 )
 
 type Reconciliation interface {
@@ -25,7 +25,7 @@ type Reconciliation interface {
 	IsIstioEnabled() bool
 	GetSKIPObject() v1alpha1.SKIPObject
 	GetCommonSpec() *CommonType
-	GetType() ReconciliationObjectType
+	GetType() ObjectType
 	GetResources() []client.Object
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
