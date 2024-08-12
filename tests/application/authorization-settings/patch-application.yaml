@@ -17,3 +17,5 @@ metadata:
 spec:
   image: image
   port: 8080
+  authorizationSettings: null # if we don't set it to null, then it will just merge.
+
