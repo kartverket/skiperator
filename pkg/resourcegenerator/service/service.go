@@ -24,7 +24,7 @@ var defaultPrometheusPort = corev1.ServicePort{
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in deployment resource", r.GetType())
+		return fmt.Errorf("unsupported type %s in service resource", r.GetType())
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {

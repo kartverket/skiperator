@@ -20,7 +20,7 @@ const (
 
 type Reconciliation interface {
 	GetLogger() log.Logger
-	GetCtx() context.Context
+	GetCtx() context.Context //TODO: remove ctx from this interface
 	IsIstioEnabled() bool
 	GetSKIPObject() v1alpha1.SKIPObject
 	GetType() ObjectType

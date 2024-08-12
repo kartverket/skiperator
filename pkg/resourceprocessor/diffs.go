@@ -6,6 +6,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// TODO nicer return type (struct instead?)
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
 	liveObjects := make([]client.Object, 0)
 	labels := task.GetSKIPObject().GetDefaultLabels()
