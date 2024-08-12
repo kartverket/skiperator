@@ -24,17 +24,13 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
 
-	job := batchv1.Job{ObjectMeta: metav1.ObjectMeta{
+	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
 		Labels:    map[string]string{"app": skipJob.KindPostFixedName()},
-	}}
-
-	cronJob := batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{
-		Namespace: skipJob.Namespace,
-		Name:      skipJob.Name,
-		Labels:    map[string]string{"app": skipJob.KindPostFixedName()},
-	}}
+	}
+	job := batchv1.Job{ObjectMeta: meta}
+	cronJob := batchv1.CronJob{ObjectMeta: meta}
 
 	// By specifying port and path annotations, Istio will scrape metrics from the application
 	// and merge it together with its own metrics.
@@ -51,10 +47,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		cronJob.Spec = getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&cronJob)
 	} else {
-		desiredSpec := getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
-		job.Spec = desiredSpec
+		job.Spec = getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&job)
 	}
+
 	return nil
 }
 

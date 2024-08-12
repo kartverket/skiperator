@@ -19,10 +19,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "Failed to generate peer authentication")
+		ctxLog.Error(err, "Failed to generate AuthorizationPolicy")
 		return err
 	}
-	ctxLog.Debug("Attempting to generate network policy for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate AuthorizationPolicy for application", "application", application.Name)
 
 	defaultDenyPaths := []string{
 		"/actuator*",

@@ -30,7 +30,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	hosts, err := application.Spec.Hosts()
 	if err != nil {
-		return fmt.Errorf("Failure to get hosts from application: %w", err)
+		return fmt.Errorf("failure to get hosts from application: %w", err)
 	}
 
 	// Generate separate gateway for each ingress

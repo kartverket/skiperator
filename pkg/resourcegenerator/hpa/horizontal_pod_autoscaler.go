@@ -22,7 +22,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	ctxLog.Debug("Attempting to generate ingress gateways for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate HPA for application", "application", application.Name)
 
 	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
 		ctxLog.Debug("Skipping horizontal pod autoscaler generation for application")

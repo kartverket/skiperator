@@ -62,8 +62,8 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
 			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-				spreadConstraintForAppAndKey(serviceName, "kubernetes.io/hostname"),
-				spreadConstraintForAppAndKey(serviceName, "onprem.gke.io/failure-domain-name"),
+				spreadConstraintForAppAndKey(serviceName, Hostname),
+				spreadConstraintForAppAndKey(serviceName, OnPremFailureDomain),
 			}
 		}
 	}

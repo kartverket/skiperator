@@ -14,7 +14,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate istio sidecar resource for namespace", "namespace", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.NamespaceType {
-		return fmt.Errorf(" istio sidecar resource supports namespace type")
+		return fmt.Errorf("istio sidecar resource only supports the namespace type")
 	}
 
 	sidecar := networkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "sidecar"}}

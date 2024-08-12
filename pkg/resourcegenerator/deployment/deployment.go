@@ -168,7 +168,8 @@ func Generate(r reconciliation.Reconciliation) error {
 		),
 	}
 
-	//we need to set the pod labels like this as its a template, not a resource. maybe move to common func in controller
+	//we need to set the pod labels like this as its a template, not a resource.
+	//TODO: figure out a smoother solution?
 	resourceutils.SetApplicationLabels(&podForDeploymentTemplate, application)
 	resourceutils.SetCommonAnnotations(&podForDeploymentTemplate)
 
