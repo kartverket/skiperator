@@ -70,7 +70,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	if err := r.setDefaultSpec(ctx, routing); err != nil {
 		rLog.Error(err, "error when trying to set default spec")
-		r.EmitWarningEvent(routing, "ReconcileStartFail", "error when trying to set default spec")
+		r.SetErrorState(ctx, routing, err, "error when trying to set default spec", "DefaultSpecFailure")
 		return common.RequeueWithError(err)
 	}
 

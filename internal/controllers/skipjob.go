@@ -89,7 +89,6 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.EmitWarningEvent(skipJob, "ReconcileStartFail", "something went wrong fetching the SKIPJob, it might have been deleted")
 		return common.RequeueWithError(err)
 	}
-	//TODO clean up watched resources?
 
 	tmpSkipJob := skipJob.DeepCopy()
 	//TODO make sure we don't update the skipjob/application/routing after this step, it will cause endless reconciliations
@@ -112,7 +111,6 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	// TODO Removed status diff check here... why do we need that? Causing endless reconcile because timestamps are different (which makes sense)
-	// i dont understand how this was working before
 	if err = r.GetClient().Status().Update(ctx, skipJob); err != nil {
 		return common.RequeueWithError(err)
 	}

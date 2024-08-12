@@ -95,8 +95,6 @@ install-digdirator-crds:
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
-	@kubectl create namespace sample --context $(SKIPERATOR_CONTEXT) || true
-	@kubectl apply -f samples/ --recursive --context $(SKIPERATOR_CONTEXT) || true
 
 .PHONY: install-test-tools
 install-test-tools:

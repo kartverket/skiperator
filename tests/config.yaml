@@ -3,11 +3,11 @@ kind: Configuration
 metadata:
   name: configuration
 spec:
-  parallel: 10
+  parallel: 50
   timeouts:
-    delete: 60s
-    assert: 60s
-    apply: 60s
-    cleanup: 60s
-    error: 60s
-    exec: 60s
+    delete: 120s
+    assert: 120s
+    apply: 120s
+    cleanup: 120s
+    error: 120s
+    exec: 120s

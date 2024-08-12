@@ -14,7 +14,7 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in peer authentication", r.GetType())
+		return fmt.Errorf("unsupported type %s in AuthorizationPolicy", r.GetType())
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
@@ -48,6 +48,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
+	ctxLog.Debug("Finished generating AuthorizationPolicy for application", "application", application.Name)
 	r.AddResource(&defaultDenyAuthPolicy)
 
 	return nil

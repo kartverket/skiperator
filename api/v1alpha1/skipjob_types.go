@@ -221,40 +221,48 @@ func (skipJob *SKIPJob) FillDefaultSpec() error {
 
 // TODO we should test SKIPJob status better, same for Routing probably
 func (skipJob *SKIPJob) FillDefaultStatus() {
+	var msg string
+
 	if skipJob.Status.Summary.Status == "" {
-		skipJob.Status.Summary = Status{
-			Status:    PENDING,
-			Message:   "Default SKIPJob status, it has not initialized yet",
-			TimeStamp: time.Now().String(),
-		}
+		msg = "Default SKIPJob status, it has not initialized yet"
+	} else {
+		msg = "SKIPJob is trying to reconcile"
+	}
+
+	skipJob.Status.Summary = Status{
+		Status:    PENDING,
+		Message:   msg,
+		TimeStamp: time.Now().String(),
 	}
 
 	if skipJob.Status.SubResources == nil {
 		skipJob.Status.SubResources = make(map[string]Status)
 	}
 
-	skipJob.Status.Conditions = []metav1.Condition{
-		{
-			Type:               ConditionRunning,
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "NotReconciled",
-			Message:            "SKIPJob has not been reconciled yet",
-		},
-		{
-			Type:               ConditionFinished,
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "NotReconciled",
-			Message:            "SKIPJob has not been reconciled yet",
-		},
-		{
-			Type:               ConditionFailed,
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "NotReconciled",
-			Message:            "SKIPJob has not been reconciled yet",
-		},
+	if len(skipJob.Status.Conditions) == 0 {
+		skipJob.Status.Conditions = []metav1.Condition{
+			{
+				Type:               ConditionRunning,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+			{
+				Type:               ConditionFinished,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+			{
+				Type:               ConditionFailed,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+		}
 	}
 }
 

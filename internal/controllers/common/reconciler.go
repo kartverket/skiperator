@@ -60,7 +60,6 @@ func NewFromManager(mgr manager.Manager, recorder record.EventRecorder, schemas 
 	if err != nil {
 		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
 	}
-	//TODO needs to be schemas for each type
 	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), schemas, mgr.GetScheme())
 
 	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, processor)

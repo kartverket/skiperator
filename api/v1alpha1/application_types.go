@@ -382,18 +382,27 @@ func (a *Application) FillDefaultsSpec() {
 }
 
 func (a *Application) FillDefaultsStatus() {
+	var msg string
+
 	if a.Status.Summary.Status == "" {
-		a.Status.Summary = Status{
-			Status:    PENDING,
-			Message:   "Default application status, application has not initialized yet",
-			TimeStamp: time.Now().String(),
-		}
+		msg = "Default Application status, it has not initialized yet"
+	} else {
+		msg = "Application is trying to reconcile"
+	}
+
+	a.Status.Summary = Status{
+		Status:    PENDING,
+		Message:   msg,
+		TimeStamp: time.Now().String(),
 	}
 
 	if a.Status.SubResources == nil {
 		a.Status.SubResources = make(map[string]Status)
 	}
-	a.Status.Conditions = make([]metav1.Condition, 0)
+
+	if len(a.Status.Conditions) == 0 {
+		a.Status.Conditions = make([]metav1.Condition, 0)
+	}
 }
 
 func (a *Application) GetStatus() *SkiperatorStatus {

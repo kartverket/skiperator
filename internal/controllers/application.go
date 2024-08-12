@@ -146,24 +146,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	r.setApplicationDefaults(application, ctx)
 
-	//TODO won't this always have a diff?
 	specDiff, err := util.GetObjectDiff(tmpApplication.Spec, application.Spec)
 	if err != nil {
 		return common.RequeueWithError(err)
-	}
-
-	statusDiff, err := util.GetObjectDiff(tmpApplication.Status, application.Status)
-	if err != nil {
-		return common.RequeueWithError(err)
-	}
-
-	// If we update the Application initially on applied defaults before starting reconciling resources we allow all
-	// updates to be visible even though the controllerDuties may take some time.
-	//TODO Remove? removed it from skipjobs, was causing endless reconcile because of lastTransitionTime. I dont understand why we would need this
-	if len(statusDiff) > 0 {
-		rLog.Debug("Queueing for status diff")
-		err := r.GetClient().Status().Update(ctx, application)
-		return reconcile.Result{Requeue: true}, err
 	}
 
 	// Finalizer check is due to a bug when updating using controller-runtime
@@ -172,6 +157,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Debug("Queuing for spec diff")
 		err := r.GetClient().Update(ctx, application)
 		return reconcile.Result{Requeue: true}, err
+	}
+
+	// TODO Removed status diff check here... why do we need that? Causing endless reconcile because timestamps are different (which makes sense)
+	if err = r.GetClient().Status().Update(ctx, application); err != nil {
+		return common.RequeueWithError(err)
 	}
 
 	//Start the actual reconciliation
