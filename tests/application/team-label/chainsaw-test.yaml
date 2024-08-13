@@ -8,7 +8,7 @@ spec:
   skipDelete: false
   steps:
     - try:
-        - create:
+        - apply:
             file: namespace.yaml
         - create:
             file: application.yaml
@@ -20,7 +20,7 @@ spec:
         - assert:
             file: application-with-fixed-team-assert.yaml
     - try:
-        - create:
+        - apply:
             file: namespace-no-team.yaml
         - create:
             file: application-no-team.yaml
