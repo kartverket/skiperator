@@ -29,28 +29,28 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error 
 	if !hasGVK(task.GetResources()) {
 		return []error{v1alpha1.ErrNoGVK}
 	}
-	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := r.getDiff(task)
+	diffs, err := r.getDiff(task)
 	if err != nil {
 		return []error{err}
 	}
 	results := map[client.Object]error{}
 
-	for _, obj := range shouldDelete {
+	for _, obj := range diffs.shouldDelete {
 		err = r.delete(task.GetCtx(), obj)
 		results[obj] = err
 	}
 
-	for _, obj := range shouldCreate {
+	for _, obj := range diffs.shouldCreate {
 		err = r.create(task.GetCtx(), obj)
 		results[obj] = err
 	}
 
-	for _, obj := range shouldPatch {
+	for _, obj := range diffs.shouldPatch {
 		err = r.patch(task.GetCtx(), obj)
 		results[obj] = err
 	}
 
-	for _, obj := range shouldUpdate {
+	for _, obj := range diffs.shouldUpdate {
 		err = r.update(task.GetCtx(), obj)
 		results[obj] = err
 	}

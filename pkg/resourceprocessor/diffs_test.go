@@ -76,12 +76,12 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	//build reconcile objects array
 	r.AddResource(newSA)
 	r.AddResource(liveDeploymentIgnorePatchOrCreate)
-	shouldDelete, shouldUpdate, shouldPatch, shouldCreate, err := resourceProcessor.getDiff(r)
+	diffs, err := resourceProcessor.getDiff(r)
 	assert.Nil(t, err)
-	assert.Len(t, shouldDelete, 1)
-	assert.Len(t, shouldCreate, 1)
-	assert.Len(t, shouldUpdate, 0)
-	assert.Len(t, shouldPatch, 0)
+	assert.Len(t, diffs.shouldDelete, 1)
+	assert.Len(t, diffs.shouldCreate, 1)
+	assert.Len(t, diffs.shouldUpdate, 0)
+	assert.Len(t, diffs.shouldPatch, 0)
 }
 
 func TestCompareObjectShouldEqual(t *testing.T) {

@@ -6,21 +6,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type resourceDiff struct {
+	shouldDelete []client.Object
+	shouldUpdate []client.Object
+	shouldPatch  []client.Object
+	shouldCreate []client.Object
+}
+
 // TODO nicer return type (struct instead?)
-func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]client.Object, []client.Object, []client.Object, []client.Object, error) {
+func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) (*resourceDiff, error) {
 	liveObjects := make([]client.Object, 0)
 	labels := task.GetSKIPObject().GetDefaultLabels()
 
 	if labels == nil {
-		return nil, nil, nil, nil, fmt.Errorf("labels are nil, cant process resources without labels")
+		return nil, fmt.Errorf("labels are nil, cant process resources without labels")
 	}
 	if err := r.listResourcesByLabels(task.GetCtx(), getNamespace(task), labels, &liveObjects); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to list resources by labels: %w", err)
+		return nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 	//TODO ugly as hell
 	certs := make([]client.Object, 0)
 	if err := r.getCertificates(task.GetCtx(), labels, &certs); err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("failed to get certificates: %w", err)
+		return nil, fmt.Errorf("failed to get certificates: %w", err)
 	}
 	liveObjects = append(liveObjects, certs...)
 	liveObjectsMap := make(map[string]client.Object)
@@ -33,10 +40,12 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 		newObjectsMap[client.ObjectKeyFromObject(obj).String()+(obj).GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
-	shouldDelete := make([]client.Object, 0)
-	shouldUpdate := make([]client.Object, 0)
-	shouldPatch := make([]client.Object, 0)
-	shouldCreate := make([]client.Object, 0)
+	diffs := &resourceDiff{
+		shouldDelete: make([]client.Object, 0),
+		shouldUpdate: make([]client.Object, 0),
+		shouldPatch:  make([]client.Object, 0),
+		shouldCreate: make([]client.Object, 0),
+	}
 
 	// Determine resources to delete
 	for key, liveObj := range liveObjectsMap {
@@ -44,7 +53,7 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 			continue
 		}
 		if _, exists := newObjectsMap[key]; !exists {
-			shouldDelete = append(shouldDelete, liveObj)
+			diffs.shouldDelete = append(diffs.shouldDelete, liveObj)
 		}
 	}
 
@@ -55,17 +64,17 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) ([]clien
 			}
 			if compareObject(liveObj, newObj) {
 				if requirePatch(newObj) {
-					shouldPatch = append(shouldPatch, newObj)
+					diffs.shouldPatch = append(diffs.shouldPatch, newObj)
 				} else {
-					shouldUpdate = append(shouldUpdate, newObj)
+					diffs.shouldUpdate = append(diffs.shouldUpdate, newObj)
 				}
 			}
 		} else {
-			shouldCreate = append(shouldCreate, newObj)
+			diffs.shouldCreate = append(diffs.shouldCreate, newObj)
 		}
 	}
 
-	return shouldDelete, shouldUpdate, shouldPatch, shouldCreate, nil
+	return diffs, nil
 }
 
 func compareObject(obj1, obj2 client.Object) bool {
