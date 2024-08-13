@@ -4,25 +4,25 @@ go 1.22.2
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/cert-manager/cert-manager v1.15.0
+	github.com/cert-manager/cert-manager v1.15.1
 	github.com/chmike/domain v1.0.1
 	github.com/go-logr/logr v1.4.2
 	github.com/google/k8s-digester v0.1.13
-	github.com/kyverno/chainsaw v0.2.4
+	github.com/kyverno/chainsaw v0.2.5
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240701231217-06bb29bc831e
-	github.com/nais/liberator v0.0.0-20240704091111-8b438c10cbd0
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.0
+	github.com/nais/liberator v0.0.0-20240628110454-831759e25b73
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.75.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
-	istio.io/api v1.22.1
-	istio.io/client-go v1.22.1
-	k8s.io/api v0.30.2
+	istio.io/api v1.22.3-0.20240703105953-437a88321a16
+	istio.io/client-go v1.22.3
+	k8s.io/api v0.30.3
 	k8s.io/apiextensions-apiserver v0.30.2
-	k8s.io/apimachinery v0.30.2
-	k8s.io/client-go v0.30.2
+	k8s.io/apimachinery v0.30.3
+	k8s.io/client-go v0.30.3
 	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/controller-tools v0.15.0
 	sigs.k8s.io/kustomize/kyaml v0.17.1
@@ -209,15 +209,15 @@ require (
 	google.golang.org/genproto v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
-	google.golang.org/grpc v1.64.0 // indirect
+	google.golang.org/grpc v1.64.1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
-	k8s.io/apiserver v0.30.2 // indirect
-	k8s.io/component-base v0.30.2 // indirect
+	k8s.io/apiserver v0.30.3 // indirect
+	k8s.io/component-base v0.30.3 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240620174524-b456828f718b // indirect
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
