@@ -6,7 +6,7 @@ spec:
   image: image
   port: 8080
   accessPolicy:
-    inbound:
+    outbound:
       rules:
         - application: doesnt-exist
 status:
@@ -24,6 +24,39 @@ involvedObject:
   kind: Application
   name: no-app-same-namespace
 ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: no-app-same-namespace
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    application.skiperator.no/app: no-app-same-namespace
+    application.skiperator.no/app-name: no-app-same-namespace
+    application.skiperator.no/app-namespace: access-policy-ns
+    skiperator.kartverket.no/controller: application
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  ownerReferences:
+    - apiVersion: skiperator.kartverket.no/v1alpha1
+      kind: Application
+      name: no-app-same-namespace
+      controller: true
+      blockOwnerDeletion: true
+spec:
+  podSelector:
+    matchLabels:
+      app: no-app-same-namespace
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: doesnt-exist
+          namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ($namespace)
+  policyTypes:
+    - Egress
+---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
@@ -32,7 +65,7 @@ spec:
   image: image
   port: 8080
   accessPolicy:
-    inbound:
+    outbound:
       rules:
         - application: doesnt-exist-diff-ns
           namespace: non-existing
@@ -62,7 +95,7 @@ spec:
     outbound:
       rules:
         - namespacesByLabel:
-            test: label
+            test: dontexist
           application: access-policy-other
 status:
   conditions:

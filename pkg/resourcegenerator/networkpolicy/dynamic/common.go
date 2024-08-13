@@ -75,7 +75,7 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
 
-	if accessPolicy == nil || accessPolicy.Outbound != nil {
+	if accessPolicy == nil || accessPolicy.Outbound == nil {
 		return egressRules
 	}
 

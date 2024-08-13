@@ -6,7 +6,7 @@ spec:
   image: image
   port: 8080
   accessPolicy:
-    inbound:
+    outbound:
       rules:
         - application: doesnt-exist
 ---
@@ -18,7 +18,7 @@ spec:
   image: image
   port: 8080
   accessPolicy:
-    inbound:
+    outbound:
       rules:
         - application: doesnt-exist-diff-ns
           namespace: non-existing
@@ -34,5 +34,5 @@ spec:
     outbound:
       rules:
         - namespacesByLabel:
-            test: label
+            test: dontexist
           application: access-policy-other

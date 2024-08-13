@@ -146,7 +146,11 @@ func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) 
 		accessPolicy = &podtypes.AccessPolicy{}
 	}
 
-	(*accessPolicy).Outbound.External = append((*accessPolicy).Outbound.External, *externalRule)
+	if accessPolicy.Outbound == nil {
+		accessPolicy.Outbound = &podtypes.OutboundPolicy{}
+	}
+
+	accessPolicy.Outbound.External = append(accessPolicy.Outbound.External, *externalRule)
 
 	return accessPolicy, nil
 }

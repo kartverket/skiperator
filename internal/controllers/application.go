@@ -256,24 +256,16 @@ func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Applica
 }
 
 func isInternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
-	if accessPolicy == nil {
-		return false
+	if accessPolicy == nil || accessPolicy.Outbound == nil {
+		return true
 	}
 
-	var rules []podtypes.InternalRule
-
-	if accessPolicy.Outbound != nil {
-		rules = append(rules, accessPolicy.Outbound.Rules...)
-	}
-
-	if accessPolicy.Inbound != nil {
-		rules = append(rules, accessPolicy.Inbound.Rules...)
-	}
-	for _, rule := range rules {
+	for _, rule := range accessPolicy.Outbound.Rules {
 		if len(rule.Ports) == 0 {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -352,28 +344,21 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
-	if err := r.updateAccessPolicy(application, ctx); err != nil {
-		r.EmitWarningEvent(application, "InvalidAccessPolicy", fmt.Sprintf("Failed to update access policy: %s", err.Error()))
-	}
+	r.updateAccessPolicy(ctx, application)
+
 	application.FillDefaultsStatus()
 }
 
-func (r *ApplicationReconciler) updateAccessPolicy(app *skiperatorv1alpha1.Application, ctx context.Context) error {
+func (r *ApplicationReconciler) updateAccessPolicy(ctx context.Context, app *skiperatorv1alpha1.Application) {
 	if app.Spec.AccessPolicy == nil {
-		return nil
+		return
 	}
 
-	if app.Spec.AccessPolicy.Inbound != nil {
-		if err := r.setPortsForRules(ctx, app.Spec.AccessPolicy.Inbound.Rules, app.Namespace); err != nil {
-			return err
-		}
-	}
 	if app.Spec.AccessPolicy.Outbound != nil {
 		if err := r.setPortsForRules(ctx, app.Spec.AccessPolicy.Outbound.Rules, app.Namespace); err != nil {
-			return err
+			r.EmitWarningEvent(app, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
 		}
 	}
-	return nil
 }
 
 func (r *ApplicationReconciler) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
