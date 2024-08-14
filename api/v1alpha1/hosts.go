@@ -15,6 +15,10 @@ type Host struct {
 	CustomCertificateSecret *string
 }
 
+type HostCollection struct {
+	hosts map[string]*Host
+}
+
 func NewHost(hostname string) (*Host, error) {
 	if len(hostname) == 0 {
 		return nil, fmt.Errorf("hostname cannot be empty")
@@ -51,4 +55,53 @@ func NewHost(hostname string) (*Host, error) {
 
 func (h *Host) UsesCustomCert() bool {
 	return h.CustomCertificateSecret != nil
+}
+
+func NewCollection() HostCollection {
+	return HostCollection{
+		hosts: map[string]*Host{},
+	}
+}
+
+func (hs *HostCollection) Add(hostname string) error {
+	h, err := NewHost(hostname)
+	if err != nil {
+		return err
+	}
+
+	existingValue, alreadyPresent := hs.hosts[h.Hostname]
+
+	switch alreadyPresent {
+	case true:
+		if existingValue.UsesCustomCert() {
+			return fmt.Errorf("host '%s' is already defined and using a custom certificate", existingValue.Hostname)
+		}
+		fallthrough
+	case false:
+		fallthrough
+	default:
+		hs.hosts[h.Hostname] = h
+	}
+
+	return nil
+}
+
+func (hs *HostCollection) AllHosts() []*Host {
+	hosts := make([]*Host, 0, len(hs.hosts))
+	for _, host := range hs.hosts {
+		hosts = append(hosts, host)
+	}
+	return hosts
+}
+
+func (hs *HostCollection) Hostnames() []string {
+	hostnames := make([]string, 0, len(hs.hosts))
+	for hostname := range hs.hosts {
+		hostnames = append(hostnames, hostname)
+	}
+	return hostnames
+}
+
+func (hs *HostCollection) Count() int {
+	return len(hs.hosts)
 }

@@ -431,17 +431,16 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
-func (s *ApplicationSpec) Hosts() ([]Host, error) {
-	var hosts []Host
+func (s *ApplicationSpec) Hosts() (HostCollection, error) {
+	hosts := NewCollection()
+
 	var errorsFound []error
 	for _, ingress := range s.Ingresses {
-		h, err := NewHost(ingress)
+		err := hosts.Add(ingress)
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 			continue
 		}
-
-		hosts = append(hosts, *h)
 	}
 
 	return hosts, errors.Join(errorsFound...)

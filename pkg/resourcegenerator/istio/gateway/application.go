@@ -34,7 +34,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 
 	// Generate separate gateway for each ingress
-	for _, h := range hosts {
+	for _, h := range hosts.AllHosts() {
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 

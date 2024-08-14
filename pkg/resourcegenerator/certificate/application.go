@@ -34,7 +34,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 
 	// Generate separate cert for each ingress
-	for _, h := range hosts {
+	for _, h := range hosts.AllHosts() {
 		if h.UsesCustomCert() {
 			continue
 		}
