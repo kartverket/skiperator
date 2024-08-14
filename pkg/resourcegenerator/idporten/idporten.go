@@ -76,14 +76,20 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 	}
 
 	ingress := KVBaseURL
-	if len(application.Spec.Ingresses) != 0 {
-		ingress = application.Spec.Ingresses[0]
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return naisiov1.IDPortenClientSpec{}, err
+	}
+
+	ingresses := hosts.Hostnames()
+	if len(ingresses) != 0 {
+		ingress = ingresses[0]
 	}
 	ingress = util.EnsurePrefix(ingress, "https://")
 
 	scopes := getScopes(integrationType, application.Spec.IDPorten.Scopes)
 
-	redirectURIs, err := buildURIs(application.Spec.Ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
+	redirectURIs, err := buildURIs(ingresses, application.Spec.IDPorten.RedirectPath, DefaultClientCallbackPath)
 	if err != nil {
 		return naisiov1.IDPortenClientSpec{}, nil
 	}

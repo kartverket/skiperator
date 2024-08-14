@@ -1,0 +1,53 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: custom-cert-duplicate-ingress-db284ad1b14a59a0
+spec:
+  selector:
+    app: istio-ingress-external
+  servers:
+    - hosts:
+        - "test.kartverket.no+custom-cert"
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - "test.kartverket.no+custom-cert"
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: some-cert
+        mode: SIMPLE
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: custom-cert-duplicate-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - custom-cert-duplicate-ingress-db284ad1b14a59a0
+  hosts:
+    - "test.kartverket.no+custom-cert"
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            ':path':
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - name: default-app-route
+      route:
+        - destination:
+            host: custom-cert-duplicate
+            port:
+              number: 8080

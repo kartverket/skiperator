@@ -30,11 +30,17 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			Namespace: application.Namespace,
 		},
 	}
-	if len(application.Spec.Ingresses) > 0 {
+
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return err
+	}
+
+	if len(hosts.Hostnames()) > 0 {
 		virtualService.Spec = networkingv1beta1api.VirtualService{
 			ExportTo: []string{".", "istio-system", "istio-gateways"},
 			Gateways: getGatewaysFromApplication(application),
-			Hosts:    application.Spec.Ingresses,
+			Hosts:    hosts.Hostnames(),
 			Http:     []*networkingv1beta1api.HTTPRoute{},
 		}
 
@@ -82,8 +88,9 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 }
 
 func getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []string {
-	gateways := make([]string, 0, len(application.Spec.Ingresses))
-	for _, hostname := range application.Spec.Ingresses {
+	hosts, _ := application.Spec.Hosts()
+	gateways := make([]string, 0, hosts.Count())
+	for _, hostname := range hosts.Hostnames() {
 		// Generate gateway name
 		hash := fnv.New64()
 		_, _ = hash.Write([]byte(hostname))

@@ -1,0 +1,10 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: custom-cert-duplicate
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - test.kartverket.no
+    - test.kartverket.no+some-cert

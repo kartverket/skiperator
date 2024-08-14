@@ -387,7 +387,7 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	}
 
 	// TODO: Remove/rewrite?
-	for _, h := range hosts {
+	for _, h := range hosts.AllHosts() {
 		if !hostMatchExpression.MatchString(h.Hostname) {
 			errMessage := fmt.Sprintf("ingress with value '%s' was not valid. ingress must be lower case, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period", h.Hostname)
 			return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, field.ErrorList{
