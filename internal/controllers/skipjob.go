@@ -93,7 +93,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	tmpSkipJob := skipJob.DeepCopy()
 	//TODO make sure we don't update the skipjob/application/routing after this step, it will cause endless reconciliations
 	//check that resource request limit 0.3 doesn't overwrite to 300m
-	err = r.setSKIPJobDefaults(skipJob)
+	err = r.setSKIPJobDefaults(ctx, skipJob)
 	if err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -184,12 +184,16 @@ func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Reques
 	return skipJob, nil
 }
 
-func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJob) error {
+func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) error {
 	if err := skipJob.FillDefaultSpec(); err != nil {
 		return fmt.Errorf("error when trying to fill default spec: %w", err)
 	}
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	skipJob.FillDefaultStatus()
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	r.UpdateAccessPolicy(ctx, skipJob)
+
 	return nil
 }
 

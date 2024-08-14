@@ -10,6 +10,7 @@ func DoNotRequeue() (reconcile.Result, error) {
 	return reconcile.Result{}, nil
 }
 
+// TODO: exponential backoff
 func RequeueWithError(err error) (reconcile.Result, error) {
 	return reconcile.Result{}, err
 }

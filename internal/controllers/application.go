@@ -40,7 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -344,50 +343,9 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
-	r.updateAccessPolicy(ctx, application)
+	r.UpdateAccessPolicy(ctx, application)
 
 	application.FillDefaultsStatus()
-}
-
-func (r *ApplicationReconciler) updateAccessPolicy(ctx context.Context, app *skiperatorv1alpha1.Application) {
-	if app.Spec.AccessPolicy == nil {
-		return
-	}
-
-	if app.Spec.AccessPolicy.Outbound != nil {
-		if err := r.setPortsForRules(ctx, app.Spec.AccessPolicy.Outbound.Rules, app.Namespace); err != nil {
-			r.EmitWarningEvent(app, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
-		}
-	}
-}
-
-func (r *ApplicationReconciler) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
-	for i := range rules {
-		rule := &rules[i]
-		if len(rule.Ports) != 0 {
-			continue
-		}
-		if rule.Namespace != "" {
-			namespace = rule.Namespace
-		} else if len(rule.NamespacesByLabel) != 0 {
-			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
-			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
-			namespaces := &corev1.NamespaceList{}
-			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
-				return err
-			}
-			if len(namespaces.Items) > 1 || len(namespaces.Items) == 0 {
-				return fmt.Errorf("expected exactly one namespace, but found %d", len(namespaces.Items))
-			}
-			namespace = namespaces.Items[0].Name
-		}
-		targetApp, err := r.GetTargetApplication(ctx, rule.Application, namespace)
-		if err != nil {
-			return err
-		}
-		rule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(int32(targetApp.Spec.Port)))}}
-	}
-	return nil
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {

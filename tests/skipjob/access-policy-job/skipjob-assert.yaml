@@ -2,6 +2,11 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: access-policy-job-skipjob
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: skipjob
+    skiperator.kartverket.no/skipjob: 'true'
+    skiperator.kartverket.no/skipjobName: access-policy-job
   ownerReferences:
     - apiVersion: skiperator.kartverket.no/v1alpha1
       blockOwnerDeletion: true
@@ -59,3 +64,31 @@ spec:
       number: 80
       protocol: HTTP
   resolution: DNS
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: access-policy-job
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(2000)"
+    accessPolicy:
+      outbound:
+        external:
+          - host: example.com
+            ports:
+              - name: http
+                port: 80
+                protocol: HTTP
+          - host: foo.com
+        rules:
+          - application: minimal-application
+            ports:
+              - port: 8080
+                protocol: TCP
+---

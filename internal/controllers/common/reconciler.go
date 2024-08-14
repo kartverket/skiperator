@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -181,11 +184,52 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 	}
 }
 
-func (r *ReconcilerBase) GetTargetApplication(ctx context.Context, appName string, namespace string) (*v1alpha1.Application, error) {
+func (r *ReconcilerBase) getTargetApplication(ctx context.Context, appName string, namespace string) (*v1alpha1.Application, error) {
 	application := &v1alpha1.Application{}
 	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, application); err != nil {
 		return nil, fmt.Errorf("error when trying to get target application: %w", err)
 	}
 
 	return application, nil
+}
+
+func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SKIPObject) {
+	if obj.GetCommonSpec().AccessPolicy == nil {
+		return
+	}
+
+	if obj.GetCommonSpec().AccessPolicy.Outbound != nil {
+		if err := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); err != nil {
+			r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
+		}
+	}
+}
+
+func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
+	for i := range rules {
+		rule := &rules[i]
+		if len(rule.Ports) != 0 {
+			continue
+		}
+		if rule.Namespace != "" {
+			namespace = rule.Namespace
+		} else if len(rule.NamespacesByLabel) != 0 {
+			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
+			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
+			namespaces := &corev1.NamespaceList{}
+			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
+				return err
+			}
+			if len(namespaces.Items) > 1 || len(namespaces.Items) == 0 {
+				return fmt.Errorf("expected exactly one namespace, but found %d", len(namespaces.Items))
+			}
+			namespace = namespaces.Items[0].Name
+		}
+		targetApp, err := r.getTargetApplication(ctx, rule.Application, namespace)
+		if err != nil {
+			return err
+		}
+		rule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(int32(targetApp.Spec.Port)))}}
+	}
+	return nil
 }
