@@ -35,6 +35,8 @@ func (ips *imagePullSecret) Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.NamespaceType {
 		return fmt.Errorf("image pull secret only supports namespace type")
 	}
+	// SKIPObject here is a namespace, so thats why we use GetName, not GetNamespace.
+	// Should NOT be called from any other controller than namespace-controller
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "github-auth"}}
 	secret.Type = corev1.SecretTypeDockerConfigJson
 
