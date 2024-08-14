@@ -188,6 +188,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 	return ingressRules
 }
 
+// TODO investigate if we can just return nil if SKIPJob
 func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace string) []networkingv1.NetworkPolicyPeer {
 	var policyPeers []networkingv1.NetworkPolicyPeer
 
