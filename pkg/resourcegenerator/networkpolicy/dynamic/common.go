@@ -52,6 +52,11 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 		PolicyTypes: getPolicyTypes(ingressRules, egressRules),
 	}
 
+	if len(ingressRules) == 0 && len(egressRules) == 0 {
+		ctxLog.Debug("No rules for networkpolicy, skipping", "type", r.GetType(), "namespace", namespace)
+		return nil
+	}
+
 	networkPolicy.Spec = netpolSpec
 	r.AddResource(&networkPolicy)
 	ctxLog.Debug("Finished generating networkpolicy", "type", r.GetType(), "namespace", namespace)
@@ -80,6 +85,9 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []
 	}
 
 	for _, rule := range accessPolicy.Outbound.Rules {
+		if rule.Ports == nil {
+			continue
+		}
 		egressRules = append(egressRules, getEgressRule(rule, appNamespace))
 	}
 

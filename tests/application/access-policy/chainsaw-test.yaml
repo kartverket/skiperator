@@ -28,4 +28,5 @@ spec:
             file: bad-policy.yaml
         - assert:
             file: bad-policy-assert.yaml
-
+        - error:
+            file: bad-policy-error.yaml
