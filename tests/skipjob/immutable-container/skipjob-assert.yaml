@@ -10,3 +10,6 @@ spec:
       - "-Mbignum=bpi"
       - "-wle"
       - "print bpi(2000)"
+status:
+  summary:
+    status: Synced

@@ -26,6 +26,17 @@ spec:
                 protocol: TCP
   cron:
     schedule: "* * * * *"
+status:
+  conditions:
+    - type: Failed
+      status: "False"
+    - type: Running
+      status: "True"
+    - type: Finished
+      status: "False"
+    - type: InternalRulesValid
+      status: "True"
+
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

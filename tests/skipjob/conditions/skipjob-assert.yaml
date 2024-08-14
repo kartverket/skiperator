@@ -10,6 +10,8 @@ status:
       status: "False"
     - type: Finished
       status: "True"
+    - type: InternalRulesValid
+      status: "True"
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob
@@ -23,6 +25,8 @@ status:
       status: "True"
     - type: Finished
       status: "False"
+    - type: InternalRulesValid
+      status: "True"
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob
@@ -35,4 +39,6 @@ status:
     - type: Running
       status: "False"
     - type: Finished
+      status: "False"
+    - type: InternalRulesValid
       status: "False"

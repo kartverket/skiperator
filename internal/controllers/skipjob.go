@@ -316,6 +316,14 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 		}
 	}
 
+	// Invalid port condition
+	accessPolicy := skipJob.Spec.Container.AccessPolicy
+	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionFalse))
+	} else {
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionTrue))
+	}
+
 	return nil
 }
 

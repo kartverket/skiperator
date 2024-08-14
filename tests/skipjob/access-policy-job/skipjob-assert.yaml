@@ -91,4 +91,13 @@ spec:
             ports:
               - port: 8080
                 protocol: TCP
----
+status:
+  conditions:
+    - type: Failed
+      status: "False"
+    - type: Running
+      status: "True"
+    - type: Finished
+      status: "False"
+    - type: InternalRulesValid
+      status: "True"

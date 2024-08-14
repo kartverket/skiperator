@@ -5,7 +5,6 @@ import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
@@ -228,44 +227,15 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) getInternalRulesCondition(app *skiperatorv1alpha1.Application, status metav1.ConditionStatus) metav1.Condition {
-	message := "Internal rules are valid"
-	if status == metav1.ConditionFalse {
-		message = "Internal rules are invalid, applications or namespaces defined might not exist or have invalid ports"
-	}
-	return metav1.Condition{
-		Type:               "InternalRulesValid",
-		Status:             status,
-		ObservedGeneration: app.Generation,
-		LastTransitionTime: metav1.Now(),
-		Reason:             "ApplicationReconciled",
-		Message:            message,
-	}
-}
-
 func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
 	var conditions []metav1.Condition
 	accessPolicy := app.Spec.AccessPolicy
-	if accessPolicy != nil && !isInternalRulesValid(accessPolicy) {
-		conditions = append(conditions, r.getInternalRulesCondition(app, metav1.ConditionFalse))
+	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
 	} else {
-		conditions = append(conditions, r.getInternalRulesCondition(app, metav1.ConditionTrue))
+		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
 	}
 	app.Status.Conditions = conditions
-}
-
-func isInternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
-	if accessPolicy == nil || accessPolicy.Outbound == nil {
-		return true
-	}
-
-	for _, rule := range accessPolicy.Outbound.Rules {
-		if len(rule.Ports) == 0 {
-			return false
-		}
-	}
-
-	return true
 }
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {

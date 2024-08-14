@@ -1,3 +1,4 @@
+# spec.Container should be immutable after status has been set
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
