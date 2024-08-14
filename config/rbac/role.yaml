@@ -35,6 +35,19 @@ rules:
   - update
   - watch
 - apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - cert-manager.io
   resources:
   - certificates
@@ -82,6 +95,19 @@ rules:
   verbs:
   - get
   - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/ephemeralcontainers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - ""
@@ -223,6 +249,16 @@ rules:
   resources:
   - routings
   - routings/status
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - skiperator.kartverket.no
+  resources:
+  - skipjobs
+  - skipjobs/status
   verbs:
   - get
   - list
