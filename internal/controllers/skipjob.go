@@ -43,6 +43,7 @@ type SKIPJobReconciler struct {
 	common.ReconcilerBase
 }
 
+// TODO Watch applications that are using dynamic port allocation
 func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// GenerationChangedPredicate is now only applied to the SkipJob itself to allow status changes on Jobs/CronJobs to affect reconcile loops
