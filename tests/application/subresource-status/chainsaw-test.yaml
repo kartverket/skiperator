@@ -6,14 +6,20 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
+  namespace: chainsaw-subresource-labels
   steps:
     - try:
-        - create:
+        - apply:
             file: application-synced.yaml
         - assert:
             file: application-synced-assert.yaml
     - try:
-        - create:
-            file: application-error.yaml
+        - apply:
+            file: application-generate-error.yaml
         - assert:
-            file: application-error-assert.yaml
+            file: application-generate-error-assert.yaml
+    - try:
+        - apply:
+            file: application-resource-apply-error.yaml
+        - assert:
+            file: application-resource-apply-error-assert.yaml

@@ -35,3 +35,10 @@ spec:
       - "perl"
       - "-wle"
       - "exit 1"
+    accessPolicy:
+      outbound:
+        rules:
+          - application: doesnt-exist-diff-ns
+            namespace: non-existing
+  job:
+    activeDeadlineSeconds: 1

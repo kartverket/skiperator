@@ -2,6 +2,8 @@ apiVersion: v1
 kind: Service
 metadata:
   name: service-props
+  labels:
+    app: service-props
 spec:
   selector:
     app: service-props

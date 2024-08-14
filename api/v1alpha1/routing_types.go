@@ -2,8 +2,9 @@ package v1alpha1
 
 import (
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 //+kubebuilder:object:root=true
@@ -18,13 +19,14 @@ type RoutingList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="routing"
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 type Routing struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	//+kubebuilder:validation:Required
-	Spec   RoutingSpec   `json:"spec,omitempty"`
-	Status RoutingStatus `json:"status,omitempty"`
+	Spec   RoutingSpec      `json:"spec,omitempty"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -49,6 +51,8 @@ type Route struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false
 	RewriteUri bool `json:"rewriteUri,omitempty"`
+	//+kubebuilder:validation:Optional
+	Port int32 `json:"port,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -75,7 +79,10 @@ func (in *Routing) GetVirtualServiceName() string {
 
 func (in *Routing) GetCertificateName() (string, error) {
 	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
-	return util.GetSecretName(namePrefix, "routing-ingress")
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
+	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170
+	secretName, err := namegen.ShortName(fmt.Sprintf("%s-%s", namePrefix, "routing-ingress"), validation.DNS1035LabelMaxLength)
+	return secretName, err
 }
 
 func (in *Routing) GetConditions() []metav1.Condition {
@@ -88,4 +95,25 @@ func (in *Routing) SetConditions(conditions []metav1.Condition) {
 
 func (in *RoutingSpec) GetHost() (*Host, error) {
 	return NewHost(in.Hostname)
+}
+
+func (in *Routing) GetStatus() *SkiperatorStatus {
+	return &in.Status
+}
+
+func (in *Routing) SetStatus(status SkiperatorStatus) {
+	in.Status = status
+}
+
+func (in *Routing) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":              "skiperator",
+		"skiperator.kartverket.no/controller":       "routing",
+		"skiperator.kartverket.no/routing-name":     in.Name,
+		"skiperator.kartverket.no/source-namespace": in.Namespace,
+	}
+}
+
+func (in *Routing) GetCommonSpec() *CommonSpec {
+	panic("common spec not available for routing resource type")
 }

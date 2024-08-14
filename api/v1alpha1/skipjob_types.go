@@ -1,11 +1,27 @@
 package v1alpha1
 
 import (
+	"dario.cat/mergo"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
+	"time"
+)
+
+var (
+	DefaultTTLSecondsAfterFinished = int32(60 * 60 * 24 * 7) // One week
+	DefaultBackoffLimit            = int32(6)
+
+	DefaultSuspend           = false
+	JobCreatedCondition      = "SKIPJobCreated"
+	ConditionRunning         = "Running"
+	ConditionFinished        = "Finished"
+	ConditionFailed          = "Failed"
+	SKIPJobReferenceLabelKey = "skiperator.kartverket.no/skipjobName"
+	IsSKIPJobKey             = "skiperator.kartverket.no/skipjob"
 )
 
 // SKIPJobStatus defines the observed state of SKIPJob
@@ -18,6 +34,12 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
+//
+// A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
+// The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
+// +kubebuilder:validation:XValidation:rule="(has(oldSelf.spec.cron) && has(self.spec.cron)) || (!has(oldSelf.spec.cron) && !has(self.spec.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
+// +kubebuilder:validation:XValidation:rule="(!has(self.status) || ((!has(self.spec.cron) && (oldSelf.spec.container == self.spec.container)) || has(self.spec.cron)))", message="The field Container is immutable for one-off jobs. Please delete your SKIPJob to change the containers settings."
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -27,7 +49,7 @@ type SKIPJob struct {
 	Spec SKIPJobSpec `json:"spec"`
 
 	//+kubebuilder:validation:Optional
-	Status SKIPJobStatus `json:"status"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -41,11 +63,6 @@ type SKIPJobList struct {
 
 // SKIPJobSpec defines the desired state of SKIPJob
 //
-// A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
-// The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
-//
-// +kubebuilder:validation:XValidation:rule="(has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) && !has(self.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
-// +kubebuilder:validation:XValidation:rule="((!has(self.cron) && (oldSelf.container == self.container)) || has(self.cron))", message="The field Container is immutable for one-off jobs. Please delete your SKIPJob to change the containers settings."
 // +kubebuilder:object:generate=true
 type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
@@ -172,5 +189,97 @@ type CronSettings struct {
 }
 
 func (skipJob *SKIPJob) KindPostFixedName() string {
-	return util.ResourceNameWithKindPostfix(skipJob.Name, skipJob.Kind)
+	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
+}
+
+func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
+	return &skipJob.Status
+}
+func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
+	skipJob.Status = status
+}
+
+func (skipJob *SKIPJob) FillDefaultSpec() error {
+	defaults := &SKIPJob{
+		Spec: SKIPJobSpec{
+			Job: &JobSettings{
+				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
+				BackoffLimit:            &DefaultBackoffLimit,
+				Suspend:                 &DefaultSuspend,
+			},
+		},
+	}
+
+	if skipJob.Spec.Cron != nil {
+		defaults.Spec.Cron = &CronSettings{}
+		suspend := false
+		defaults.Spec.Cron.Suspend = &suspend
+	}
+
+	return mergo.Merge(skipJob, defaults)
+}
+
+// TODO we should test SKIPJob status better, same for Routing probably
+func (skipJob *SKIPJob) FillDefaultStatus() {
+	var msg string
+
+	if skipJob.Status.Summary.Status == "" {
+		msg = "Default SKIPJob status, it has not initialized yet"
+	} else {
+		msg = "SKIPJob is trying to reconcile"
+	}
+
+	skipJob.Status.Summary = Status{
+		Status:    PENDING,
+		Message:   msg,
+		TimeStamp: time.Now().String(),
+	}
+
+	if skipJob.Status.SubResources == nil {
+		skipJob.Status.SubResources = make(map[string]Status)
+	}
+
+	if len(skipJob.Status.Conditions) == 0 {
+		skipJob.Status.Conditions = []metav1.Condition{
+			{
+				Type:               ConditionRunning,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+			{
+				Type:               ConditionFinished,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+			{
+				Type:               ConditionFailed,
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
+		}
+	}
+}
+
+func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "skipjob",
+		// Used by hahaha to know that the Pod should be watched for killing sidecars
+		IsSKIPJobKey: "true",
+		// Added to be able to add the SKIPJob to a reconcile queue when Watched Jobs are queued
+		SKIPJobReferenceLabelKey: skipJob.Name,
+	}
+}
+
+func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
+	return &CommonSpec{
+		GCP:          skipJob.Spec.Container.GCP,
+		AccessPolicy: skipJob.Spec.Container.AccessPolicy,
+	}
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/nais/liberator/pkg/namegen"
 	"github.com/r3labs/diff/v3"
-	"golang.org/x/exp/maps"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,6 +20,8 @@ import (
 	"strings"
 	"unicode"
 )
+
+//TODO Clean up this file, move functions to more appropriate files
 
 var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
 
@@ -92,15 +93,6 @@ func ErrDoPanic(err error, message string) {
 		errorMessage := fmt.Sprintf(message, err.Error())
 		panic(errorMessage)
 	}
-}
-
-func SetCommonAnnotations(object client.Object) {
-	annotations := object.GetAnnotations()
-	if len(annotations) == 0 {
-		annotations = make(map[string]string)
-	}
-	maps.Copy(annotations, CommonAnnotations)
-	object.SetAnnotations(annotations)
 }
 
 func PointTo[T any](x T) *T {

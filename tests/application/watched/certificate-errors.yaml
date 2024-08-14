@@ -1,0 +1,15 @@
+# controller should clean up certificates
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: watched-certificates-ingress-56cd7aa901014e78
+
+---
+
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: watched-certificates-ingress-34888c0b0c2a4a2c

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chainsaw-subresource-labels
+  labels:
+    istio.io/rev: "revision-1"
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: borked
+spec:
+  image: image
+  port: 8080
+  replicas: "2"

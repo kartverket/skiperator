@@ -1,0 +1,26 @@
+# spec.Container should be immutable after status has been set
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: immutable-container
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml
+    - try:
+        - patch:
+            file: skipjob-patch.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: SKIPJob
+                check:
+                  ($error != null): true
+        - error:
+            file: skipjob-patch-error.yaml

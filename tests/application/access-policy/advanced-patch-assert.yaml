@@ -35,5 +35,5 @@ spec:
             matchLabels:
               app: access-policy-other
       ports:
-        - port: 8080
-          protocol: TCP
+          - port: 8080
+            protocol: TCP

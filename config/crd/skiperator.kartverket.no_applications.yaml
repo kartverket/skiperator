@@ -17,7 +17,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.application.status
+    - jsonPath: .status.summary.status
       name: Status
       type: string
     name: v1alpha1
@@ -89,6 +89,38 @@ spec:
                                 If both namespace and namespacesByLabel are set, namespace
                                 takes precedence and namespacesByLabel is omitted.
                               type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    default: TCP
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
                           required:
                           - application
                           type: object
@@ -190,6 +222,38 @@ spec:
                                 If both namespace and namespacesByLabel are set, namespace
                                 takes precedence and namespacesByLabel is omitted.
                               type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    default: TCP
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
                           required:
                           - application
                           type: object
@@ -1059,27 +1123,78 @@ spec:
               ApplicationStatus
 
 
-              A status field shown on the Application resource which contains information regarding all controllers present on the Application.
-              Will for example show errors on the Deployment field when something went wrong when attempting to create a Deployment.
+              A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:
-              application:
-                description: Status
-                properties:
-                  message:
-                    default: hello
-                    type: string
-                  status:
-                    default: Synced
-                    type: string
-                  timestamp:
-                    default: hello
-                    type: string
-                required:
-                - message
-                - status
-                - timestamp
-                type: object
-              controllers:
+              conditions:
+                items:
+                  description: "Condition contains details for one aspect of the current
+                    state of this API Resource.\n---\nThis struct is intended for
+                    direct use as an array at the field path .status.conditions.  For
+                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
+                    observations of a foo's current state.\n\t    // Known .status.conditions.type
+                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
+                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
+                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
+                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
+                    \   // other fields\n\t}"
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: |-
+                        type of condition in CamelCase or in foo.example.com/CamelCase.
+                        ---
+                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
+                        useful (see .node.status.conditions), the ability to deconflict is important.
+                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              subresources:
                 additionalProperties:
                   description: Status
                   properties:
@@ -1098,9 +1213,27 @@ spec:
                   - timestamp
                   type: object
                 type: object
+              summary:
+                description: Status
+                properties:
+                  message:
+                    default: hello
+                    type: string
+                  status:
+                    default: Synced
+                    type: string
+                  timestamp:
+                    default: hello
+                    type: string
+                required:
+                - message
+                - status
+                - timestamp
+                type: object
             required:
-            - application
-            - controllers
+            - conditions
+            - subresources
+            - summary
             type: object
         type: object
     served: true

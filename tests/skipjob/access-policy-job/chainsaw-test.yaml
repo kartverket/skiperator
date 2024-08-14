@@ -18,3 +18,8 @@ spec:
             file: skipjob.yaml
         - assert:
             file: skipjob-assert.yaml
+    - try:
+        - apply:
+            file: skipjob-cron.yaml
+        - assert:
+            file: skipjob-cron-assert.yaml

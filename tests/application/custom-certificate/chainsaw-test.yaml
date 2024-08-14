@@ -15,3 +15,9 @@ spec:
         - error:
             template: true
             file: generated-cert.yaml
+        - create:
+            file: application-duplicate-ingress.yaml
+        - assert:
+            file: application-duplicate-ingress-assert.yaml
+        - error:
+            file: application-duplicate-ingress-error.yaml

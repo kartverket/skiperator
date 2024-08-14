@@ -7,8 +7,9 @@ spec:
   concurrent: true
   skipDelete: false
   steps:
-    - try:
+   - try:
         - apply:
             file: skipjob.yaml
-     #   - assert:
-     #       file: skipjob-assert.yaml
+        - assert:
+            file: skipjob-assert.yaml
+

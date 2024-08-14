@@ -3,15 +3,13 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"time"
-
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -30,14 +28,13 @@ type ApplicationList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.application.status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ApplicationSpec `json:"spec,omitempty"`
-
-	Status ApplicationStatus `json:"status,omitempty"`
+	Spec   ApplicationSpec  `json:"spec,omitempty"`
+	Status SkiperatorStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -68,7 +65,6 @@ type ApplicationSpec struct {
 	// Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
 	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
-	//
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
 
@@ -329,38 +325,6 @@ type PrometheusConfig struct {
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 }
 
-// ApplicationStatus
-//
-// A status field shown on the Application resource which contains information regarding all controllers present on the Application.
-// Will for example show errors on the Deployment field when something went wrong when attempting to create a Deployment.
-//
-// +kubebuilder:object:generate=true
-type ApplicationStatus struct {
-	ApplicationStatus Status            `json:"application"`
-	ControllersStatus map[string]Status `json:"controllers"`
-}
-
-// Status
-//
-// +kubebuilder:object:generate=true
-type Status struct {
-	// +kubebuilder:default="Synced"
-	Status StatusNames `json:"status"`
-	// +kubebuilder:default="hello"
-	Message string `json:"message"`
-	// +kubebuilder:default="hello"
-	TimeStamp string `json:"timestamp"`
-}
-
-type StatusNames string
-
-const (
-	SYNCED      StatusNames = "Synced"
-	PROGRESSING StatusNames = "Progressing"
-	ERROR       StatusNames = "Error"
-	PENDING     StatusNames = "Pending"
-)
-
 func NewDefaultReplicas() Replicas {
 	return Replicas{
 		Min:                  2,
@@ -418,106 +382,65 @@ func (a *Application) FillDefaultsSpec() {
 }
 
 func (a *Application) FillDefaultsStatus() {
-	if a.Status.ApplicationStatus.Status == "" {
-		a.Status.ApplicationStatus = Status{
-			Status:    PENDING,
-			Message:   "Default application status, application has not initialized yet",
-			TimeStamp: time.Now().String(),
-		}
+	var msg string
+
+	if a.Status.Summary.Status == "" {
+		msg = "Default Application status, it has not initialized yet"
+	} else {
+		msg = "Application is trying to reconcile"
 	}
 
-	if a.Status.ControllersStatus == nil {
-		a.Status.ControllersStatus = make(map[string]Status)
-	}
-}
-
-func (a *Application) UpdateApplicationStatus() {
-	newApplicationStatus := a.CalculateApplicationStatus()
-	if newApplicationStatus.Status == a.Status.ApplicationStatus.Status {
-		return
-	}
-
-	a.Status.ApplicationStatus = newApplicationStatus
-}
-
-func (a *Application) UpdateControllerStatus(controllerName string, message string, status StatusNames) {
-	if a.Status.ControllersStatus[controllerName].Status == status {
-		return
-	}
-
-	newStatus := Status{
-		Status:    status,
-		Message:   message,
+	a.Status.Summary = Status{
+		Status:    PENDING,
+		Message:   msg,
 		TimeStamp: time.Now().String(),
 	}
-	a.Status.ControllersStatus[controllerName] = newStatus
 
-	a.UpdateApplicationStatus()
+	if a.Status.SubResources == nil {
+		a.Status.SubResources = make(map[string]Status)
+	}
 
+	if len(a.Status.Conditions) == 0 {
+		a.Status.Conditions = make([]metav1.Condition, 0)
+	}
 }
 
-func (a *Application) ShouldUpdateApplicationStatus(newStatus Status) bool {
-	shouldUpdate := newStatus.Status != a.Status.ApplicationStatus.Status
-
-	return shouldUpdate
+func (a *Application) GetStatus() *SkiperatorStatus {
+	return &a.Status
 }
 
-func (a *Application) CalculateApplicationStatus() Status {
-	returnStatus := Status{
-		Status:    ERROR,
-		Message:   "CALCULATION DEFAULT, YOU SHOULD NOT SEE THIS MESSAGE. PLEASE LET SKIP KNOW IF THIS MESSAGE IS VISIBLE",
-		TimeStamp: time.Now().String(),
-	}
-	statusList := []string{}
-	for _, s := range a.Status.ControllersStatus {
-		statusList = append(statusList, string(s.Status))
-	}
-
-	if slices.IndexFunc(statusList, func(s string) bool { return s == string(ERROR) }) != -1 {
-		returnStatus.Status = ERROR
-		returnStatus.Message = "One of the controllers is in a failed state"
-		return returnStatus
-	}
-
-	if slices.IndexFunc(statusList, func(s string) bool { return s == string(PROGRESSING) }) != -1 {
-		returnStatus.Status = PROGRESSING
-		returnStatus.Message = "One of the controllers is progressing"
-		return returnStatus
-	}
-
-	if allSameStatus(statusList) {
-		returnStatus.Status = StatusNames(statusList[0])
-		if returnStatus.Status == SYNCED {
-			returnStatus.Message = "All controllers synced"
-		} else if returnStatus.Status == PENDING {
-			returnStatus.Message = "All controllers pending"
-		}
-		return returnStatus
-	}
-
-	return returnStatus
+func (a *Application) SetStatus(status SkiperatorStatus) {
+	a.Status = status
 }
 
-func allSameStatus(a []string) bool {
-	for _, v := range a {
-		if v != a[0] {
-			return false
-		}
+// TODO clean up labels
+func (a *Application) GetDefaultLabels() map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":            "skiperator",
+		"skiperator.kartverket.no/controller":     "application",
+		"application.skiperator.no/app":           a.Name,
+		"application.skiperator.no/app-name":      a.Name,
+		"application.skiperator.no/app-namespace": a.Namespace,
 	}
-	return true
 }
 
-func (s *ApplicationSpec) Hosts() ([]Host, error) {
-	var hosts []Host
+func (a *Application) GetCommonSpec() *CommonSpec {
+	return &CommonSpec{
+		GCP:          a.Spec.GCP,
+		AccessPolicy: a.Spec.AccessPolicy,
+	}
+}
+
+func (s *ApplicationSpec) Hosts() (HostCollection, error) {
+	hosts := NewCollection()
+
 	var errorsFound []error
 	for _, ingress := range s.Ingresses {
-		h, err := NewHost(ingress)
+		err := hosts.Add(ingress)
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 			continue
 		}
-
-		hosts = append(hosts, *h)
 	}
 
 	return hosts, errors.Join(errorsFound...)
