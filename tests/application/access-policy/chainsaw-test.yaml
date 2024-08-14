@@ -23,6 +23,10 @@ spec:
             file: advanced-patch.yaml
         - assert:
             file: advanced-patch-assert.yaml
-
-
-
+    - try :
+        - apply:
+            file: bad-policy.yaml
+        - assert:
+            file: bad-policy-assert.yaml
+        - error:
+            file: bad-policy-error.yaml

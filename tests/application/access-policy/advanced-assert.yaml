@@ -18,6 +18,8 @@ spec:
           podSelector:
             matchLabels:
               app: access-policy-other
+      ports:
+        - port: 8080
   egress:
     - to:
         - namespaceSelector:
@@ -26,6 +28,8 @@ spec:
           podSelector:
             matchLabels:
               app: access-policy-two
+      ports:
+        - port: 8080
     - to:
         - namespaceSelector:
             matchLabels:
@@ -33,6 +37,8 @@ spec:
           podSelector:
             matchLabels:
               app: access-policy-other
+      ports:
+        - port: 8080
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -52,6 +58,9 @@ spec:
           podSelector:
             matchLabels:
               app: access-policy-other
+      ports:
+        - port: 8080
+          protocol: TCP
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
@@ -88,3 +97,33 @@ spec:
     - name: https
       number: 443
       protocol: HTTPS
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: access-policy
+  namespace: access-policy-ns
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    inbound:
+      rules:
+        - application: access-policy-other
+          namespace: access-policy-other
+    outbound:
+      external:
+        - host: example.com
+          ports:
+            - name: http
+              port: 80
+              protocol: HTTP
+        - host: foo.com
+      rules:
+        - application: access-policy-two
+        - application: access-policy-other
+          namespace: access-policy-other
+status:
+  conditions:
+    - type: InternalRulesValid
+      status: "True"

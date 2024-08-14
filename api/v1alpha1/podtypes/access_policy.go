@@ -1,5 +1,7 @@
 package podtypes
 
+import v1 "k8s.io/api/networking/v1"
+
 // AccessPolicy
 //
 // Zero trust dictates that only applications with a reason for being able
@@ -19,7 +21,7 @@ type AccessPolicy struct {
 	// internet is the Application allowed to send requests to?
 	//
 	//+kubebuilder:validation:Optional
-	Outbound OutboundPolicy `json:"outbound,omitempty"`
+	Outbound *OutboundPolicy `json:"outbound,omitempty"`
 }
 
 // InboundPolicy
@@ -76,6 +78,9 @@ type InternalRule struct {
 	//
 	//+kubebuilder:validation:Optional
 	NamespacesByLabel map[string]string `json:"namespacesByLabel,omitempty"`
+	// The ports to allow for the above application.
+	//+kubebuilder:validation:Optional
+	Ports []v1.NetworkPolicyPort `json:"ports,omitempty"`
 }
 
 // ExternalRule

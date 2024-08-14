@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob
 metadata:
-  name: access-policy-job
+  name: access-policy-cron-job
 spec:
   container:
     image: "perl:5.34.0"
@@ -21,3 +21,5 @@ spec:
                 port: 80
                 protocol: HTTP
           - host: foo.com
+  cron:
+    schedule: "* * * * *"

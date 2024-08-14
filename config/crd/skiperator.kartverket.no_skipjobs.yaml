@@ -21,7 +21,10 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SKIPJob is the Schema for the skipjobs API
+        description: |-
+          A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
+          The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
+          SKIPJob is the Schema for the skipjobs API
         properties:
           apiVersion:
             description: |-
@@ -41,12 +44,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: |-
-              SKIPJobSpec defines the desired state of SKIPJob
-
-
-              A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
-              The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
+            description: SKIPJobSpec defines the desired state of SKIPJob
             properties:
               container:
                 description: |-
@@ -101,6 +99,38 @@ spec:
                                     are set, namespace takes precedence and namespacesByLabel
                                     is omitted.
                                   type: object
+                                ports:
+                                  description: The ports to allow for the above application.
+                                  items:
+                                    description: NetworkPolicyPort describes a port
+                                      to allow traffic on
+                                    properties:
+                                      endPort:
+                                        description: |-
+                                          endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                          should be allowed by the policy. This field cannot be defined if the port field
+                                          is not defined or if the port field is defined as a named (string) port.
+                                          The endPort must be equal or greater than port.
+                                        format: int32
+                                        type: integer
+                                      port:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: |-
+                                          port represents the port on the given protocol. This can either be a numerical or named
+                                          port on a pod. If this field is not provided, this matches all port names and
+                                          numbers.
+                                          If present, only traffic on the specified protocol AND port will be matched.
+                                        x-kubernetes-int-or-string: true
+                                      protocol:
+                                        default: TCP
+                                        description: |-
+                                          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                          If not specified, this field defaults to TCP.
+                                        type: string
+                                    type: object
+                                  type: array
                               required:
                               - application
                               type: object
@@ -205,6 +235,38 @@ spec:
                                     are set, namespace takes precedence and namespacesByLabel
                                     is omitted.
                                   type: object
+                                ports:
+                                  description: The ports to allow for the above application.
+                                  items:
+                                    description: NetworkPolicyPort describes a port
+                                      to allow traffic on
+                                    properties:
+                                      endPort:
+                                        description: |-
+                                          endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                          should be allowed by the policy. This field cannot be defined if the port field
+                                          is not defined or if the port field is defined as a named (string) port.
+                                          The endPort must be equal or greater than port.
+                                        format: int32
+                                        type: integer
+                                      port:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: |-
+                                          port represents the port on the given protocol. This can either be a numerical or named
+                                          port on a pod. If this field is not provided, this matches all port names and
+                                          numbers.
+                                          If present, only traffic on the specified protocol AND port will be matched.
+                                        x-kubernetes-int-or-string: true
+                                      protocol:
+                                        default: TCP
+                                        description: |-
+                                          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                          If not specified, this field defaults to TCP.
+                                        type: string
+                                    type: object
+                                  type: array
                               required:
                               - application
                               type: object
@@ -791,17 +853,6 @@ spec:
             required:
             - container
             type: object
-            x-kubernetes-validations:
-            - message: After creation of a SKIPJob you may not remove the Cron field
-                if it was previously present, or add it if it was previously omitted.
-                Please delete the SKIPJob to change its nature from a one-off/scheduled
-                job.
-              rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
-                !has(self.cron))
-            - message: The field Container is immutable for one-off jobs. Please delete
-                your SKIPJob to change the containers settings.
-              rule: ((!has(self.cron) && (oldSelf.container == self.container)) ||
-                has(self.cron))
           status:
             description: |-
               ApplicationStatus
@@ -922,6 +973,16 @@ spec:
         required:
         - spec
         type: object
+        x-kubernetes-validations:
+        - message: After creation of a SKIPJob you may not remove the Cron field if
+            it was previously present, or add it if it was previously omitted. Please
+            delete the SKIPJob to change its nature from a one-off/scheduled job.
+          rule: (has(oldSelf.spec.cron) && has(self.spec.cron)) || (!has(oldSelf.spec.cron)
+            && !has(self.spec.cron))
+        - message: The field Container is immutable for one-off jobs. Please delete
+            your SKIPJob to change the containers settings.
+          rule: (!has(self.status) || ((!has(self.spec.cron) && (oldSelf.spec.container
+            == self.spec.container)) || has(self.spec.cron)))
     served: true
     storage: true
     subresources:

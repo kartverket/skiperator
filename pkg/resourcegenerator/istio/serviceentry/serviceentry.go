@@ -38,7 +38,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	if accessPolicy != nil {
+	if accessPolicy != nil && accessPolicy.Outbound != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
 			serviceEntryName := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
 
@@ -146,7 +146,11 @@ func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) 
 		accessPolicy = &podtypes.AccessPolicy{}
 	}
 
-	(*accessPolicy).Outbound.External = append((*accessPolicy).Outbound.External, *externalRule)
+	if accessPolicy.Outbound == nil {
+		accessPolicy.Outbound = &podtypes.OutboundPolicy{}
+	}
+
+	accessPolicy.Outbound.External = append(accessPolicy.Outbound.External, *externalRule)
 
 	return accessPolicy, nil
 }

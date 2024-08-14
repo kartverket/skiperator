@@ -41,8 +41,12 @@ status:
       message: HorizontalPodAutoscaler has finished synchronizing
       status: Synced
     NetworkPolicy[badport]:
-      message: NetworkPolicy has finished synchronizing
-      status: Synced
+      message: >-
+        NetworkPolicy NetworkPolicy.networking.k8s.io "badport" is invalid:
+        [spec.ingress[0].ports[0].port: Invalid value: 80801: must be between 1
+        and 65535, inclusive, spec.ingress[3].ports[0].port: Invalid value:
+        80801: must be between 1 and 65535, inclusive]
+      status: Error
     PeerAuthentication[badport]:
       message: PeerAuthentication has finished synchronizing
       status: Synced
@@ -69,5 +73,5 @@ status:
         range 1..65535
       status: Error
   summary:
-    message: 'failed to process application resources, see subresource status: found 3 errors'
+    message: 'failed to process application resources, see subresource status: found 4 errors'
     status: Error

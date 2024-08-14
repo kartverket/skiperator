@@ -73,6 +73,7 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
+// TODO Watch applications that are using dynamic port allocation
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -221,9 +222,21 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
+	r.updateConditions(application)
 	r.SetSyncedState(ctx, application, "Application has been reconciled")
 
 	return common.DoNotRequeue()
+}
+
+func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
+	var conditions []metav1.Condition
+	accessPolicy := app.Spec.AccessPolicy
+	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
+	} else {
+		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
+	}
+	app.Status.Conditions = conditions
 }
 
 func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
@@ -298,6 +311,10 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 			application.Spec.Team = name
 		}
 	}
+
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	r.UpdateAccessPolicy(ctx, application)
 
 	application.FillDefaultsStatus()
 }

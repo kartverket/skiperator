@@ -1,0 +1,38 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-app-same-namespace
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - application: doesnt-exist
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-app-different-namespace
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - application: doesnt-exist-diff-ns
+          namespace: non-existing
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-namespace-with-labels
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - namespacesByLabel:
+            test: dontexist
+          application: access-policy-other

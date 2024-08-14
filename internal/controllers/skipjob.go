@@ -43,6 +43,7 @@ type SKIPJobReconciler struct {
 	common.ReconcilerBase
 }
 
+// TODO Watch applications that are using dynamic port allocation
 func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// GenerationChangedPredicate is now only applied to the SkipJob itself to allow status changes on Jobs/CronJobs to affect reconcile loops
@@ -93,7 +94,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	tmpSkipJob := skipJob.DeepCopy()
 	//TODO make sure we don't update the skipjob/application/routing after this step, it will cause endless reconciliations
 	//check that resource request limit 0.3 doesn't overwrite to 300m
-	err = r.setSKIPJobDefaults(skipJob)
+	err = r.setSKIPJobDefaults(ctx, skipJob)
 	if err != nil {
 		return common.RequeueWithError(err)
 	}
@@ -184,12 +185,16 @@ func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Reques
 	return skipJob, nil
 }
 
-func (r *SKIPJobReconciler) setSKIPJobDefaults(skipJob *skiperatorv1alpha1.SKIPJob) error {
+func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) error {
 	if err := skipJob.FillDefaultSpec(); err != nil {
 		return fmt.Errorf("error when trying to fill default spec: %w", err)
 	}
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	skipJob.FillDefaultStatus()
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	r.UpdateAccessPolicy(ctx, skipJob)
+
 	return nil
 }
 
@@ -310,6 +315,14 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 			r.getConditionRunning(skipJob, v1.ConditionTrue),
 			r.getConditionFinished(skipJob, v1.ConditionFalse),
 		}
+	}
+
+	// Invalid port condition
+	accessPolicy := skipJob.Spec.Container.AccessPolicy
+	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionFalse))
+	} else {
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionTrue))
 	}
 
 	return nil
