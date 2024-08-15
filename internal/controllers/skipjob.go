@@ -14,7 +14,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
-	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -101,21 +100,27 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	specDiff, err := util.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
+	specDiff, err := common.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
 	if err != nil {
 		return common.RequeueWithError(err)
+	}
+
+	statusDiff, err := common.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
+	if err != nil {
+		return common.RequeueWithError(err)
+	}
+
+	if len(statusDiff) > 0 {
+		rLog.Info("Status has changed", "diff", statusDiff)
+		err = r.GetClient().Status().Update(ctx, skipJob)
+		return reconcile.Result{Requeue: true}, err
 	}
 
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
 	if len(specDiff) > 0 {
-		err := r.GetClient().Update(ctx, skipJob)
+		err = r.GetClient().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
-	}
-
-	// TODO Removed status diff check here... why do we need that? Causing endless reconcile because timestamps are different (which makes sense)
-	if err = r.GetClient().Status().Update(ctx, skipJob); err != nil {
-		return common.RequeueWithError(err)
 	}
 
 	//Start the actual reconciliation
