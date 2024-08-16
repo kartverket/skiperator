@@ -111,7 +111,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	if len(statusDiff) > 0 {
-		rLog.Info("Status has changed", "diff", statusDiff)
+		rLog.Debug("Status has changed", "diff", statusDiff)
 		err = r.GetClient().Status().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
