@@ -123,6 +123,10 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	r.UpdateAccessPolicy(ctx, skipJob)
+
 	//Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop")
 	r.SetProgressingState(ctx, skipJob, fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
@@ -198,9 +202,6 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *ski
 	}
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	skipJob.FillDefaultStatus()
-	//We try to feed the access policy with port values dynamically,
-	//if unsuccessfull we just don't set ports, and rely on podselectors
-	r.UpdateAccessPolicy(ctx, skipJob)
 
 	return nil
 }

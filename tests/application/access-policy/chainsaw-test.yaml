@@ -18,6 +18,8 @@ spec:
             file: advanced.yaml
         - assert:
             file: advanced-assert.yaml
+        - error:
+            file: advanced-error.yaml
     - try:
         - apply:
             file: advanced-patch.yaml

@@ -21,6 +21,9 @@ spec:
           - host: foo.com
         rules:
           - application: minimal-application
+            ports:
+              - port: 8080
+                protocol: TCP
   cron:
     schedule: "* * * * *"
 status:
@@ -34,32 +37,3 @@ status:
     - type: InternalRulesValid
       status: "True"
 
----
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: access-policy-cron-job-skipjob
-  ownerReferences:
-    - apiVersion: skiperator.kartverket.no/v1alpha1
-      blockOwnerDeletion: true
-      controller: true
-      kind: SKIPJob
-      name: access-policy-cron-job
-spec:
-  egress:
-    -  ports:
-         - port: 8080
-           protocol: TCP
-       to:
-         - namespaceSelector:
-             matchLabels:
-               kubernetes.io/metadata.name: access-policy-job-ns
-           podSelector:
-             matchLabels:
-               app: minimal-application
-  podSelector:
-    matchLabels:
-      app: access-policy-cron-job-skipjob
-  policyTypes:
-    - Egress
----
