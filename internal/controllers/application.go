@@ -171,6 +171,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	//We try to feed the access policy with port values dynamically,
+	//if unsuccessfull we just don't set ports, and rely on podselectors
+	r.UpdateAccessPolicy(ctx, application)
+
 	//Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop", "application", application.Name)
 	r.SetProgressingState(ctx, application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
@@ -317,10 +321,6 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 			application.Spec.Team = name
 		}
 	}
-
-	//We try to feed the access policy with port values dynamically,
-	//if unsuccessfull we just don't set ports, and rely on podselectors
-	r.UpdateAccessPolicy(ctx, application)
 
 	application.FillDefaultsStatus()
 }

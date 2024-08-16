@@ -88,9 +88,6 @@ spec:
           - host: foo.com
         rules:
           - application: minimal-application
-            ports:
-              - port: 8080
-                protocol: TCP
 status:
   conditions:
     - type: Failed
