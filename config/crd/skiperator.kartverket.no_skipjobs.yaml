@@ -981,7 +981,7 @@ spec:
             && !has(self.spec.cron))
         - message: The field Container is immutable for one-off jobs. Please delete
             your SKIPJob to change the containers settings.
-          rule: (!has(self.status) || ((!has(self.spec.cron) && (oldSelf.spec.container
+          rule: (size(self.status.subresources) == 0|| ((!has(self.spec.cron) && (oldSelf.spec.container
             == self.spec.container)) || has(self.spec.cron)))
     served: true
     storage: true

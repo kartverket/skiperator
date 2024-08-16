@@ -1,10 +1,13 @@
 package common
 
 import (
+	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -54,4 +57,28 @@ func GetInternalRulesCondition(obj skiperatorv1alpha1.SKIPObject, status metav1.
 		Reason:             "ApplicationReconciled",
 		Message:            message,
 	}
+}
+
+func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
+	aKind := reflect.ValueOf(a).Kind()
+	bKind := reflect.ValueOf(b).Kind()
+	if aKind != bKind {
+		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+	}
+	changelog, err := diff.Diff(a, b)
+
+	changelog = filterOutStatusTimestamps(changelog)
+
+	if len(changelog) == 0 {
+		return nil, err
+	}
+
+	return changelog, nil
+}
+
+func filterOutStatusTimestamps(changelog diff.Changelog) diff.Changelog {
+	changelog = changelog.FilterOut([]string{"Summary", "TimeStamp"})
+	changelog = changelog.FilterOut([]string{"Conditions", ".*", "LastTransitionTime"})
+	changelog = changelog.FilterOut([]string{"SubResources", ".*", "TimeStamp"})
+	return changelog
 }
