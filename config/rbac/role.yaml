@@ -71,6 +71,9 @@ rules:
   - ""
   resources:
   - configmaps
+  - pods
+  - pods/ephemeralcontainers
+  - secrets
   - serviceaccounts
   - services
   verbs:
@@ -98,9 +101,6 @@ rules:
   - watch
 - apiGroups:
   - ""
-  resources:
-  - pods
-  - pods/ephemeralcontainers
   verbs:
   - create
   - delete

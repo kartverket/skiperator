@@ -39,7 +39,8 @@ func Generate(r reconciliation.Reconciliation) error {
 }
 
 func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
-	if r.GetSKIPObject().GetCommonSpec().GCP == nil || r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount == "" {
+	commonSpec := r.GetSKIPObject().GetCommonSpec()
+	if commonSpec.GCP == nil || commonSpec.GCP.Auth == nil || commonSpec.GCP.Auth.ServiceAccount == "" {
 		return nil
 	}
 
