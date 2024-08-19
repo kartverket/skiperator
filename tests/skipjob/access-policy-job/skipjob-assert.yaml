@@ -2,6 +2,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: access-policy-job-skipjob
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
   labels:
     app.kubernetes.io/managed-by: skiperator
     skiperator.kartverket.no/controller: skipjob

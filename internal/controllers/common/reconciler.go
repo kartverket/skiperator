@@ -184,13 +184,20 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 	}
 }
 
-func (r *ReconcilerBase) getTargetApplication(ctx context.Context, appName string, namespace string) (*v1alpha1.Application, error) {
-	application := &v1alpha1.Application{}
-	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, application); err != nil {
+func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName string, namespace string) ([]networkingv1.NetworkPolicyPort, error) {
+	service := &corev1.Service{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, service); err != nil {
 		return nil, fmt.Errorf("error when trying to get target application: %w", err)
 	}
 
-	return application, nil
+	var servicePorts []networkingv1.NetworkPolicyPort
+
+	for _, port := range service.Spec.Ports {
+		servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
+			Port: util.PointTo(intstr.FromInt32(port.Port)),
+		})
+	}
+	return servicePorts, nil
 }
 
 func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SKIPObject) {
@@ -225,11 +232,11 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			}
 			namespace = namespaces.Items[0].Name
 		}
-		targetApp, err := r.getTargetApplication(ctx, rule.Application, namespace)
+		targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, namespace)
 		if err != nil {
 			return err
 		}
-		rule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(int32(targetApp.Spec.Port)))}}
+		rule.Ports = targetAppPorts
 	}
 	return nil
 }
