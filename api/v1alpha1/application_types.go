@@ -3,13 +3,14 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"time"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -67,7 +68,7 @@ type ApplicationSpec struct {
 	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
-	Ingresses []string `json:"ingresses,omitempty"`
+	Ingresses *apiextensionsv1.JSON `json:"ingresses,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
@@ -432,19 +433,61 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
+type Ingresses struct {
+	Hostname string
+	Internal bool
+}
+
+func MarshalledIngresses(Ingresses interface{}) *apiextensionsv1.JSON {
+	IngressesJSON := &apiextensionsv1.JSON{}
+	var err error
+
+	IngressesJSON.Raw, err = json.Marshal(Ingresses)
+	if err == nil {
+		return IngressesJSON
+	}
+
+	return nil
+}
+
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {
+	var resultString []string
+	var resultObject []Ingresses
+	var errorsFound []error
+
 	hosts := NewCollection()
 
-	var errorsFound []error
-	for _, ingress := range s.Ingresses {
+	ingresses := MarshalledIngresses(s.Ingresses)
+	err := json.Unmarshal(ingresses.Raw, &resultString)
+	
+	
+	if err != nil {
+		err := json.Unmarshal(ingresses.Raw, &resultObject)
+		if err != nil {
+			errorsFound = append(errorsFound, err)
+			return HostCollection{}, errors.Join(errorsFound...)
+		}
+		
+		
+		for _, ingress := range resultObject {
+			fmt.Printf("############################### %v\n", ingress.Hostname)
+			err := hosts.Add(ingress.Hostname)
+			if err != nil {
+				errorsFound = append(errorsFound, err)
+			}
+		}
+		return HostCollection{}, nil
+	}
+	
+	for _, ingress := range resultString {
+		fmt.Printf("############################### %v\n", ingress)
 		err := hosts.Add(ingress)
 		if err != nil {
 			errorsFound = append(errorsFound, err)
-			continue
 		}
 	}
-
-	return hosts, errors.Join(errorsFound...)
+	
+	return HostCollection{}, nil
 }
 
 type MultiErr interface {

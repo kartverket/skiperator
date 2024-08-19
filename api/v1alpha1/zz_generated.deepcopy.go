@@ -77,8 +77,8 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	*out = *in
 	if in.Ingresses != nil {
 		in, out := &in.Ingresses, &out.Ingresses
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new(v1.JSON)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
