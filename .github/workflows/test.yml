@@ -24,7 +24,7 @@ jobs:
       - name: Install go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.2'
+          go-version: '1.23.1'
       - name: Create test cluster
         run: make setup-local
       - name: Run tests
