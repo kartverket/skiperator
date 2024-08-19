@@ -204,9 +204,17 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	// add an external link to argocd
-	ingresses := application.Spec.Ingresses
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		ctxLog.Error(err, "could not get hosts from application")
+	}
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
+	}
+	
+	var ingresses []string
+	for _, host := range hosts.AllHosts() {
+		ingresses = append(ingresses, host.Hostname)
 	}
 
 	if len(ingresses) > 0 {
