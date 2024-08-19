@@ -5,3 +5,4 @@ metadata:
 spec:
   image: image
   port: 8080
+---

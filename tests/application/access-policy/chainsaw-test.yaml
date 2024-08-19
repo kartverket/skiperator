@@ -32,3 +32,8 @@ spec:
             file: bad-policy-assert.yaml
         - error:
             file: bad-policy-error.yaml
+    - try:
+        - apply:
+            file: access-policy-istio.yaml
+        - assert:
+            file: access-policy-istio-assert.yaml

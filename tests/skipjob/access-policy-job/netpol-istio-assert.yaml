@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: istio-policy-job-skipjob
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+  labels:
+    app.kubernetes.io/managed-by: skiperator
+    skiperator.kartverket.no/controller: skipjob
+    skiperator.kartverket.no/skipjob: 'true'
+    skiperator.kartverket.no/skipjobName: istio-policy-job
+  ownerReferences:
+    - apiVersion: skiperator.kartverket.no/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: SKIPJob
+      name: istio-policy-job
+spec:
+  egress:
+    -  ports:
+         - port: 8080
+           protocol: TCP
+         - port: 15020
+           protocol: TCP
+       to:
+         - namespaceSelector:
+             matchLabels:
+               kubernetes.io/metadata.name: ns-with-istio
+           podSelector:
+             matchLabels:
+               app: istio-application
+  podSelector:
+    matchLabels:
+      app: istio-policy-job-skipjob
+  policyTypes:
+    - Egress

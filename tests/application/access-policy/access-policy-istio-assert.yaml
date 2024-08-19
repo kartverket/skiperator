@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: access-policy-to-istio-app
+spec:
+  egress:
+    -  ports:
+         - port: 8080
+           protocol: TCP
+         - port: 15020
+           protocol: TCP
+       to:
+         - namespaceSelector:
+             matchLabels:
+               kubernetes.io/metadata.name: ns-with-istio
+           podSelector:
+             matchLabels:
+               app: istio-application
+  podSelector:
+    matchLabels:
+      app: access-policy-to-istio-app
+  policyTypes:
+    - Egress

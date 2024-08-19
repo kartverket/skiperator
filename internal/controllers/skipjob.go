@@ -151,7 +151,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	for _, f := range resourceGeneration {
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate skipjob resource")
-			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
+			// At this point we don't have the gvk of the resource yet, so we can't set subresource status.
 			r.SetErrorState(ctx, skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure")
 			return common.RequeueWithError(err)
 		}
@@ -208,13 +208,10 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *ski
 
 func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1alpha1.SKIPJob) error {
 	for _, resource := range resources {
-		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
+		if err := r.SetSubresourceDefaults(resources, skipJob); err != nil {
 			return err
 		}
 		resourceutils.SetSKIPJobLabels(resource, skipJob)
-		if err := resourceutils.SetOwnerReference(skipJob, resource, r.GetScheme()); err != nil {
-			return err
-		}
 	}
 	return nil
 }

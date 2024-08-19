@@ -39,6 +39,8 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: access-policy-cron-job-skipjob
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
   ownerReferences:
     - apiVersion: skiperator.kartverket.no/v1alpha1
       blockOwnerDeletion: true
