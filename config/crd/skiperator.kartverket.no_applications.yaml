@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: applications.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -25,7 +25,6 @@ spec:
       openAPIV3Schema:
         description: |-
           Application
-
 
           Root object for Application resource. An application resource is a resource for easily managing a Dockerized container within the context of a Kartverket cluster.
           This allows product teams to avoid the need to set up networking on the cluster, as well as a lot of out of the box security features.
@@ -66,7 +65,6 @@ spec:
                           description: |-
                             InternalRule
 
-
                             The rules list specifies a list of applications. When no namespace is
                             specified it refers to an app in the current namespace. For apps in
                             other namespaces, namespace is required.
@@ -114,7 +112,6 @@ spec:
                                       If present, only traffic on the specified protocol AND port will be matched.
                                     x-kubernetes-int-or-string: true
                                   protocol:
-                                    default: TCP
                                     description: |-
                                       protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
                                       If not specified, this field defaults to TCP.
@@ -142,7 +139,6 @@ spec:
                           description: |-
                             ExternalRule
 
-
                             Describes a rule for allowing your Application to route traffic to external applications and hosts.
                           properties:
                             host:
@@ -151,7 +147,6 @@ spec:
                               description: |-
                                 Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
                                 Only required for TCP requests.
-
 
                                 Note: Hostname must always be defined even if IP is set statically
                               type: string
@@ -162,7 +157,6 @@ spec:
                               items:
                                 description: |-
                                   ExternalPort
-
 
                                   A custom port describing an external host
                                 properties:
@@ -199,7 +193,6 @@ spec:
                           description: |-
                             InternalRule
 
-
                             The rules list specifies a list of applications. When no namespace is
                             specified it refers to an app in the current namespace. For apps in
                             other namespaces, namespace is required.
@@ -247,7 +240,6 @@ spec:
                                       If present, only traffic on the specified protocol AND port will be matched.
                                     x-kubernetes-int-or-string: true
                                   protocol:
-                                    default: TCP
                                     description: |-
                                       protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
                                       If not specified, this field defaults to TCP.
@@ -272,7 +264,8 @@ spec:
                       format: int32
                       type: integer
                     protocol:
-                      default: TCP
+                      description: Protocol defines network protocols supported for
+                        things like container ports.
                       enum:
                       - TCP
                       - UDP
@@ -305,7 +298,6 @@ spec:
                   allowList:
                     description: |-
                       Allows specific endpoints. Common endpoints one might want to allow include /actuator/health, /actuator/startup, /actuator/info.
-
 
                       Note that endpoints are matched specifically on the input, so if you allow /actuator/health, you will *not* allow /actuator/health/
                     items:
@@ -363,9 +355,7 @@ spec:
                                 This field is effectively required, but due to backwards compatibility is
                                 allowed to be empty. Instances of this type with an empty value here are
                                 almost certainly wrong.
-                                TODO: Add other useful fields. apiVersion, kind, uid?
                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                               type: string
                             optional:
                               description: Specify whether the ConfigMap or its key
@@ -430,9 +420,7 @@ spec:
                                 This field is effectively required, but due to backwards compatibility is
                                 allowed to be empty. Instances of this type with an empty value here are
                                 almost certainly wrong.
-                                TODO: Add other useful fields. apiVersion, kind, uid?
                                 More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                               type: string
                             optional:
                               description: Specify whether the Secret or its key must
@@ -453,7 +441,6 @@ spec:
                   resource will be assigned as environment variables. Supports both configmaps
                   and secrets.
 
-
                   For mounting as files see FilesFrom.
                 items:
                   properties:
@@ -473,16 +460,13 @@ spec:
                 description: |-
                   Mounting volumes into the Deployment are done using the FilesFrom argument
 
-
                   FilesFrom supports ConfigMaps, Secrets and PVCs. The Application resource
                   assumes these have already been created by you, and will fail if this is not the case.
-
 
                   For mounting environment variables see EnvFrom.
                 items:
                   description: |-
                     FilesFrom
-
 
                     Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
                     One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
@@ -552,6 +536,10 @@ spec:
                         default: 2.8.0
                         description: Image version for the CloudSQL proxy sidecar.
                         type: string
+                    required:
+                    - connectionName
+                    - ip
+                    - serviceAccount
                     type: object
                 type: object
               idporten:
@@ -560,7 +548,6 @@ spec:
                   accessTokenLifetime:
                     description: |-
                       AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
-
 
                       If unspecified, defaults to `3600` seconds (1 hour).
                     maximum: 3600
@@ -593,7 +580,6 @@ spec:
                       Which type of integration you choose will provide guidance on which scopes you can use with the client.
                       A client can only have one integration type.
 
-
                       NB! It is not possible to change the integration type after creation.
                     enum:
                     - krr
@@ -625,7 +611,6 @@ spec:
                       You will not be able to add a scope to your client that conflicts with the client's IntegrationType.
                       For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.
 
-
                       Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
                       Default for IntegrationType `idporten` = ("openid", "profile")
                       IntegrationType `api_klient` have no Default, checkout Digdir documentation.
@@ -636,7 +621,6 @@ spec:
                     description: |-
                       SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
                       The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
-
 
                       If unspecified, defaults to `7200` seconds (2 hours).
                       Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.
@@ -659,7 +643,6 @@ spec:
                   The below hostnames will also have TLS certificates issued and be reachable on both
                   HTTP and HTTPS.
 
-
                   Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
                   They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
                   E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
@@ -680,7 +663,6 @@ spec:
                   Liveness probes define a resource that returns 200 OK when the app is running
                   as intended. Returning a non-200 code will make kubernetes restart the app.
                   Liveness is optional, but when provided, path and port are required
-
 
                   See Probe for structure definition.
                 properties:
@@ -886,7 +868,6 @@ spec:
                   An optional priority. Supported values are 'low', 'medium' and 'high'.
                   The default value is 'medium'.
 
-
                   Most workloads should not have to specify this field. If you think you
                   do, please consult with SKIP beforehand.
                 enum:
@@ -981,8 +962,8 @@ spec:
                 type: boolean
               replicas:
                 description: "The number of replicas can either be specified as a
-                  static number as follows:\n\n\n\treplicas: 2\n\n\nOr by specifying
-                  a range between min and max to enable HorizontalPodAutoscaling.\nThe
+                  static number as follows:\n\n\treplicas: 2\n\nOr by specifying a
+                  range between min and max to enable HorizontalPodAutoscaling.\nThe
                   default value for replicas is:\n\treplicas:\n\t\tmin: 2\n\t\tmax:
                   5\n\t\ttargetCpuUtilization: 80\nUsing autoscaling is the recommended
                   configuration for replicas."
@@ -1014,7 +995,6 @@ spec:
                       Limits set the maximum the app is allowed to use. Exceeding this limit will
                       make kubernetes kill the app and restart it.
 
-
                       Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
                     type: object
                   requests:
@@ -1028,7 +1008,6 @@ spec:
                       Requests set the initial allocation that is done for the app and will
                       thus be available to the app on startup. More is allocated on demand
                       until the limit is reached.
-
 
                       Requests can be set on the CPU and memory.
                     type: object
@@ -1097,7 +1076,6 @@ spec:
                   default of RollingUpdate will try to start the new pods before taking down the
                   old ones.
 
-
                   Valid values are: RollingUpdate, Recreate. Default is RollingUpdate
                 properties:
                   type:
@@ -1122,21 +1100,12 @@ spec:
             description: |-
               ApplicationStatus
 
-
               A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:
               conditions:
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -1177,12 +1146,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string

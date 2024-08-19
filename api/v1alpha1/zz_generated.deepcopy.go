@@ -166,7 +166,7 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	if in.GCP != nil {
 		in, out := &in.GCP, &out.GCP
 		*out = new(podtypes.GCP)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Labels != nil {
 		in, out := &in.Labels, &out.Labels
@@ -293,7 +293,7 @@ func (in *ContainerSettings) DeepCopyInto(out *ContainerSettings) {
 	if in.GCP != nil {
 		in, out := &in.GCP, &out.GCP
 		*out = new(podtypes.GCP)
-		**out = **in
+		(*in).DeepCopyInto(*out)
 	}
 	if in.RestartPolicy != nil {
 		in, out := &in.RestartPolicy, &out.RestartPolicy

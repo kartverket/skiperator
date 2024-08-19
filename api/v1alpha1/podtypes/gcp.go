@@ -3,6 +3,7 @@ package podtypes
 // GCP
 //
 // Configuration for interacting with Google Cloud Platform
+// +kubebuilder:object:generate=true
 type GCP struct {
 	// Configuration for authenticating a Pod with Google Cloud Platform
 	// For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
@@ -12,13 +13,13 @@ type GCP struct {
 	// https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
 	//
 	//+kubebuilder:validation:Optional
-	Auth Auth `json:"auth,omitempty"`
+	Auth *Auth `json:"auth,omitempty"`
 
 	// CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
 	// This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
 	//
 	//+kubebuilder:validation:Optional
-	CloudSQLProxy CloudSQLProxySettings `json:"cloudSqlProxy"`
+	CloudSQLProxy *CloudSQLProxySettings `json:"cloudSqlProxy,omitempty"`
 }
 
 // Auth

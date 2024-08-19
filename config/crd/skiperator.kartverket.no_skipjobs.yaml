@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.15.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: skipjobs.skiperator.kartverket.no
 spec:
   group: skiperator.kartverket.no
@@ -55,7 +55,6 @@ spec:
                     description: |-
                       AccessPolicy
 
-
                       Zero trust dictates that only applications with a reason for being able
                       to access another resource should be able to reach it. This is set up by
                       default by denying all ingress and egress traffic from the Pods in the
@@ -74,7 +73,6 @@ spec:
                             items:
                               description: |-
                                 InternalRule
-
 
                                 The rules list specifies a list of applications. When no namespace is
                                 specified it refers to an app in the current namespace. For apps in
@@ -124,7 +122,6 @@ spec:
                                           If present, only traffic on the specified protocol AND port will be matched.
                                         x-kubernetes-int-or-string: true
                                       protocol:
-                                        default: TCP
                                         description: |-
                                           protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
                                           If not specified, this field defaults to TCP.
@@ -152,7 +149,6 @@ spec:
                               description: |-
                                 ExternalRule
 
-
                                 Describes a rule for allowing your Application to route traffic to external applications and hosts.
                               properties:
                                 host:
@@ -161,7 +157,6 @@ spec:
                                   description: |-
                                     Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
                                     Only required for TCP requests.
-
 
                                     Note: Hostname must always be defined even if IP is set statically
                                   type: string
@@ -172,7 +167,6 @@ spec:
                                   items:
                                     description: |-
                                       ExternalPort
-
 
                                       A custom port describing an external host
                                     properties:
@@ -211,7 +205,6 @@ spec:
                               description: |-
                                 InternalRule
 
-
                                 The rules list specifies a list of applications. When no namespace is
                                 specified it refers to an app in the current namespace. For apps in
                                 other namespaces, namespace is required.
@@ -260,7 +253,6 @@ spec:
                                           If present, only traffic on the specified protocol AND port will be matched.
                                         x-kubernetes-int-or-string: true
                                       protocol:
-                                        default: TCP
                                         description: |-
                                           protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
                                           If not specified, this field defaults to TCP.
@@ -282,7 +274,8 @@ spec:
                           format: int32
                           type: integer
                         protocol:
-                          default: TCP
+                          description: Protocol defines network protocols supported
+                            for things like container ports.
                           enum:
                           - TCP
                           - UDP
@@ -336,9 +329,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the ConfigMap or its
@@ -404,9 +395,7 @@ spec:
                                     This field is effectively required, but due to backwards compatibility is
                                     allowed to be empty. Instances of this type with an empty value here are
                                     almost certainly wrong.
-                                    TODO: Add other useful fields. apiVersion, kind, uid?
                                     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                                    TODO: Drop `kubebuilder:default` when controller-gen doesn't need it https://github.com/kubernetes-sigs/kubebuilder/issues/3896.
                                   type: string
                                 optional:
                                   description: Specify whether the Secret or its key
@@ -441,7 +430,6 @@ spec:
                       description: |-
                         FilesFrom
 
-
                         Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
                         One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
                         NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
@@ -465,7 +453,6 @@ spec:
                   gcp:
                     description: |-
                       GCP
-
 
                       Configuration for interacting with Google Cloud Platform
                     properties:
@@ -514,6 +501,10 @@ spec:
                             default: 2.8.0
                             description: Image version for the CloudSQL proxy sidecar.
                             type: string
+                        required:
+                        - connectionName
+                        - ip
+                        - serviceAccount
                         type: object
                     type: object
                   image:
@@ -521,7 +512,6 @@ spec:
                   liveness:
                     description: |-
                       Probe
-
 
                       Type configuration for all types of Kubernetes probes.
                     properties:
@@ -607,7 +597,6 @@ spec:
                     description: |-
                       Probe
 
-
                       Type configuration for all types of Kubernetes probes.
                     properties:
                       failureThreshold:
@@ -661,7 +650,6 @@ spec:
                     description: |-
                       ResourceRequirements
 
-
                       A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.
                       For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes
                     properties:
@@ -676,7 +664,6 @@ spec:
                           Limits set the maximum the app is allowed to use. Exceeding this limit will
                           make kubernetes kill the app and restart it.
 
-
                           Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
                         type: object
                       requests:
@@ -690,7 +677,6 @@ spec:
                           Requests set the initial allocation that is done for the app and will
                           thus be available to the app on startup. More is allocated on demand
                           until the limit is reached.
-
 
                           Requests can be set on the CPU and memory.
                         type: object
@@ -709,7 +695,6 @@ spec:
                   startup:
                     description: |-
                       Probe
-
 
                       Type configuration for all types of Kubernetes probes.
                     properties:
@@ -857,21 +842,12 @@ spec:
             description: |-
               ApplicationStatus
 
-
               A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:
               conditions:
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
                       description: |-
@@ -912,12 +888,7 @@ spec:
                       - Unknown
                       type: string
                     type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string

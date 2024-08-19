@@ -149,9 +149,9 @@ func EnsurePrefix(s string, prefix string) string {
 }
 
 func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
-	return gcp != nil && gcp.CloudSQLProxy.Enabled
+	return gcp != nil && gcp.CloudSQLProxy != nil && gcp.CloudSQLProxy.Enabled
 }
 
 func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
-	return gcp != nil && gcp.Auth.ServiceAccount != ""
+	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
 }
