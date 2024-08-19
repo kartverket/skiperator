@@ -29,7 +29,7 @@ spec:
             file: skipjob-cron-error.yaml
     - try:
         - apply:
-            file: app-istio.yaml
+            file: ns-istio.yaml
         - apply:
             file: netpol-istio.yaml
         - assert:

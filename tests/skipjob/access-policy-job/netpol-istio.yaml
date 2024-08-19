@@ -1,4 +1,13 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: istio-application
+  namespace: ns-with-istio
+spec:
+  image: image
+  port: 8080
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob
 metadata:
   name: istio-policy-job
