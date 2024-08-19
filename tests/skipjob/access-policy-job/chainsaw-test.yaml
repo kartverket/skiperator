@@ -10,6 +10,8 @@ spec:
   steps:
     - try:
         - apply:
+            file: ns-istio.yaml
+        - apply:
             file: application.yaml
         - assert:
             file: application-assert.yaml
@@ -28,8 +30,6 @@ spec:
         - error:
             file: skipjob-cron-error.yaml
     - try:
-        - apply:
-            file: app-istio.yaml
         - apply:
             file: netpol-istio.yaml
         - assert:
