@@ -37,8 +37,16 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	accessPolicy := object.GetCommonSpec().AccessPolicy
 	var ingresses []string
 	var inboundPort int32
+
+	hosts, err := object.(*skiperatorv1alpha1.Application).Spec.Hosts()
+	if err != nil {
+		ctxLog.Error(err, "Failed to get hosts for networkpolicy", "type", r.GetType(), "namespace", namespace)
+	}
+
+	for  _, host := range hosts.AllHosts() {
+		ingresses = append(ingresses, host.Hostname)
+	}
 	if r.GetType() == reconciliation.ApplicationType {
-		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
 		inboundPort = int32(object.(*skiperatorv1alpha1.Application).Spec.Port)
 	}
 
