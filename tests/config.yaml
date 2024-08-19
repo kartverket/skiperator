@@ -3,7 +3,7 @@ kind: Configuration
 metadata:
   name: configuration
 spec:
-  parallel: 15
+  parallel: 10
   timeouts:
     delete: 60s
     assert: 60s
