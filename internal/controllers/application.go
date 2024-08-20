@@ -123,7 +123,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	//TODO do we need this actually?
+	// TODO do we need this actually?
 	isApplicationMarkedToBeDeleted := application.GetDeletionTimestamp() != nil
 	if isApplicationMarkedToBeDeleted {
 		if err = r.finalizeApplication(application, ctx); err != nil {

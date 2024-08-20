@@ -840,7 +840,7 @@ spec:
             type: object
           status:
             description: |-
-              ApplicationStatus
+              SkiperatorStatus
 
               A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:

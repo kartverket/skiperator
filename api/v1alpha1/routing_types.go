@@ -5,6 +5,7 @@ import (
 	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"time"
 )
 
 //+kubebuilder:object:root=true
@@ -116,4 +117,28 @@ func (in *Routing) GetDefaultLabels() map[string]string {
 
 func (in *Routing) GetCommonSpec() *CommonSpec {
 	panic("common spec not available for routing resource type")
+}
+
+func (in *Routing) SetDefaultStatus() {
+	var msg string
+
+	if in.Status.Summary.Status == "" {
+		msg = "Default Routing status, it has not initialized yet"
+	} else {
+		msg = "Routing is trying to reconcile"
+	}
+
+	in.Status.Summary = Status{
+		Status:    PENDING,
+		Message:   msg,
+		TimeStamp: time.Now().String(),
+	}
+
+	if in.Status.SubResources == nil {
+		in.Status.SubResources = make(map[string]Status)
+	}
+
+	if len(in.Status.Conditions) == 0 {
+		in.Status.Conditions = make([]metav1.Condition, 0)
+	}
 }

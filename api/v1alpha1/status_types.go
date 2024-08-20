@@ -5,7 +5,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ApplicationStatus
+// SkiperatorStatus
 //
 // A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
 // +kubebuilder:object:generate=true
