@@ -68,6 +68,20 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.DoNotRequeue()
 	}
 
+	tmpStatus := routing.GetStatus().DeepCopy()
+
+	routing.SetDefaultStatus()
+	statusDiff, err := common.GetObjectDiff(tmpStatus, routing.GetStatus())
+	if err != nil {
+		return common.RequeueWithError(err)
+	}
+
+	if len(statusDiff) > 0 {
+		rLog.Info("Status has changed", "diff", statusDiff)
+		err = r.GetClient().Status().Update(ctx, routing)
+		return reconcile.Result{Requeue: true}, err
+	}
+
 	if err := r.setDefaultSpec(ctx, routing); err != nil {
 		rLog.Error(err, "error when trying to set default spec")
 		r.SetErrorState(ctx, routing, err, "error when trying to set default spec", "DefaultSpecFailure")
