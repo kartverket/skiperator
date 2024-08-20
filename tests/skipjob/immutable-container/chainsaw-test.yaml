@@ -5,7 +5,7 @@ metadata:
   name: immutable-container
 spec:
   skip: false
-  concurrent: true
+  concurrent: false
   skipDelete: false
   steps:
     - try:

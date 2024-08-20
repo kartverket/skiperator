@@ -484,9 +484,6 @@ spec:
                               The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
                             pattern: ^[^:]+:[^:]+:[^:]+$
                             type: string
-                          enabled:
-                            default: false
-                            type: boolean
                           ip:
                             description: The IP address of the CloudSQL instance.
                               This is used to create a serviceentry for the CloudSQL
