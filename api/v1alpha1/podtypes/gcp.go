@@ -34,12 +34,6 @@ type Auth struct {
 }
 
 type CloudSQLProxySettings struct {
-	// Enables the sidecar for CloudSQL proxy
-
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:=false
-	Enabled bool `json:"enabled"`
-
 	// Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
 	// The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
 	//+kubebuilder:validation:Required
