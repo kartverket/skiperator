@@ -45,8 +45,10 @@ func preparePatch(new client.Object, old client.Object) {
 	case *batchv1.Job:
 		job := old.(*batchv1.Job)
 		definition := new.(*batchv1.Job)
-		maps.Copy(definition.Spec.Template.Labels, job.Spec.Template.Labels) //kubernetes adds labels on creation
-		definition.Spec.Selector = job.Spec.Selector                         //is set on creation
+		maps.Copy(definition.Spec.Template.Labels, job.Spec.Template.Labels) // kubernetes adds labels on creation
+		definition.Spec.Selector = job.Spec.Selector                         // immutable
+		definition.Spec.Template = job.Spec.Template                         // immutable
+		definition.Spec.Completions = job.Spec.Completions                   // immutable
 	}
 }
 
