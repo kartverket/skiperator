@@ -8,7 +8,6 @@ kind: Job
 metadata:
   name: minimal-job
   labels:
-    app: minimal-job-skipjob
     skiperator.kartverket.no/skipjob: "true"
     skiperator.kartverket.no/skipjobName: minimal-job
     app.kubernetes.io/managed-by:        "skiperator"
@@ -22,6 +21,7 @@ spec:
     metadata:
       labels:
         job-name: minimal-job
+        app: minimal-job-skipjob
         skiperator.kartverket.no/skipjob: "true"
         skiperator.kartverket.no/skipjobName: minimal-job
         app.kubernetes.io/managed-by: "skiperator"
@@ -50,3 +50,19 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       serviceAccountName: minimal-job-skipjob
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: minimal-job-skipjob
+    app.kubernetes.io/managed-by: skiperator
+    batch.kubernetes.io/job-name: minimal-job
+    job-name: minimal-job
+    skiperator.kartverket.no/controller: skipjob
+    skiperator.kartverket.no/skipjob: 'true'
+    skiperator.kartverket.no/skipjobName: minimal-job
+  ownerReferences:
+    - apiVersion: batch/v1
+      kind: Job
+      name: minimal-job

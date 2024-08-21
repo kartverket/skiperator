@@ -119,5 +119,9 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 		Suspend:                 skipJob.Spec.Job.Suspend,
 	}
 
+	// it's not a default label, maybe it could be?
+	// used for selecting workloads by netpols, grafana etc
+	jobSpec.Template.Labels["app"] = skipJob.KindPostFixedName()
+
 	return jobSpec
 }
