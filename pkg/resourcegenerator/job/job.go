@@ -55,7 +55,7 @@ func Generate(r reconciliation.Reconciliation) error {
 }
 
 func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
-	return batchv1.CronJobSpec{
+	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
 		ConcurrencyPolicy:       skipJob.Spec.Cron.ConcurrencyPolicy,
@@ -69,6 +69,11 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
 		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
 	}
+	// it's not a default label, maybe it could be?
+	// used for selecting workloads by netpols, grafana etc
+	spec.JobTemplate.Labels["app"] = skipJob.KindPostFixedName()
+
+	return spec
 }
 
 func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
