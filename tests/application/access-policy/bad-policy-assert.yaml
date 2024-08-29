@@ -10,6 +10,7 @@ spec:
       rules:
         - application: doesnt-exist
 status:
+  accessPolicies: InvalidConfig
   conditions:
     - type: InternalRulesValid
       status: "False"

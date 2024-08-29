@@ -5,6 +5,8 @@ metadata:
 spec:
   image: image
   port: 8080
+status:
+  accessPolicies: Ready
 ---
 apiVersion: v1
 kind: Service
