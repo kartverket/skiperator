@@ -224,7 +224,10 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			namespaceList = append(namespaceList, rule.Namespace)
 		case len(rule.NamespacesByLabel) != 0:
 			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
-			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
+			selectorString, err := metav1.LabelSelectorAsSelector(&selector)
+			if err != nil {
+			    return err
+			}
 			namespaces := &corev1.NamespaceList{}
 			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
 				return err
