@@ -212,31 +212,41 @@ func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SK
 	}
 }
 
-func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
+func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) error {
 	for i := range rules {
 		rule := &rules[i]
 		if len(rule.Ports) != 0 {
 			continue
 		}
-		if rule.Namespace != "" {
-			namespace = rule.Namespace
-		} else if len(rule.NamespacesByLabel) != 0 {
+		var namespaceList []string
+		switch {
+		case rule.Namespace != "":
+			namespaceList = append(namespaceList, rule.Namespace)
+		case len(rule.NamespacesByLabel) != 0:
 			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
 			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
 			namespaces := &corev1.NamespaceList{}
 			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
 				return err
 			}
-			if len(namespaces.Items) > 1 || len(namespaces.Items) == 0 {
-				return fmt.Errorf("expected exactly one namespace, but found %d", len(namespaces.Items))
+			for _, ns := range namespaces.Items {
+				namespaceList = append(namespaceList, ns.Name)
 			}
-			namespace = namespaces.Items[0].Name
+		default:
+			namespaceList = append(namespaceList, skipObjNamespace)
 		}
-		targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, namespace)
-		if err != nil {
-			return err
+
+		if len(namespaceList) == 0 {
+			return fmt.Errorf("expected namespace, but found none for rule %s", rule.Application)
 		}
-		rule.Ports = targetAppPorts
+
+		for _, ns := range namespaceList {
+			targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, ns)
+			if err != nil {
+				return err
+			}
+			rule.Ports = append(rule.Ports, targetAppPorts...)
+		}
 	}
 	return nil
 }

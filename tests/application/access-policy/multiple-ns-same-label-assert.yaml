@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: accesspolicy-app
+spec:
+  podSelector:
+    matchLabels:
+      app: accesspolicy-app
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              team: someteam
+          podSelector:
+            matchLabels:
+              app: app2
+      ports:
+        - port: 8085
+          protocol: TCP
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              team: eiet
+          podSelector:
+            matchLabels:
+              app: app
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 8082
+          protocol: TCP
+
