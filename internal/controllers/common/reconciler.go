@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -187,6 +188,9 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName string, namespace string) ([]networkingv1.NetworkPolicyPort, error) {
 	service := &corev1.Service{}
 	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, service); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("error when trying to get target application: %w", err)
 	}
 
@@ -226,7 +230,7 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
 			selectorString, err := metav1.LabelSelectorAsSelector(&selector)
 			if err != nil {
-			    return err
+				return err
 			}
 			namespaces := &corev1.NamespaceList{}
 			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
@@ -247,6 +251,9 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, ns)
 			if err != nil {
 				return err
+			}
+			if targetAppPorts == nil {
+				continue
 			}
 			rule.Ports = append(rule.Ports, targetAppPorts...)
 		}
