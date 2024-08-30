@@ -187,14 +187,14 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 
 func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName string, namespace string) ([]networkingv1.NetworkPolicyPort, error) {
 	service := &corev1.Service{}
+	var servicePorts []networkingv1.NetworkPolicyPort
+
 	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, service); err != nil {
 		if errors.IsNotFound(err) {
-			return nil, nil
+			return servicePorts, nil
 		}
-		return nil, fmt.Errorf("error when trying to get target application: %w", err)
+		return nil, fmt.Errorf("error when trying to get target application: %s", err.Error())
 	}
-
-	var servicePorts []networkingv1.NetworkPolicyPort
 
 	for _, port := range service.Spec.Ports {
 		servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
@@ -210,13 +210,16 @@ func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SK
 	}
 
 	if obj.GetCommonSpec().AccessPolicy.Outbound != nil {
-		if err := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); err != nil {
-			r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
+		if errs := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); len(errs) != 0 {
+			for _, err := range errs {
+				r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
+			}
 		}
 	}
 }
 
-func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) error {
+func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) []error {
+	var ruleErrors []error
 	for i := range rules {
 		rule := &rules[i]
 		if len(rule.Ports) != 0 {
@@ -230,11 +233,11 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
 			selectorString, err := metav1.LabelSelectorAsSelector(&selector)
 			if err != nil {
-				return err
+				ruleErrors = append(ruleErrors, fmt.Errorf("failed to create label selector: %w", err))
 			}
 			namespaces := &corev1.NamespaceList{}
-			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
-				return err
+			if err = r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
+				ruleErrors = append(ruleErrors, fmt.Errorf("failed to list namespaces: %w", err))
 			}
 			for _, ns := range namespaces.Items {
 				namespaceList = append(namespaceList, ns.Name)
@@ -244,19 +247,20 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 		}
 
 		if len(namespaceList) == 0 {
-			return fmt.Errorf("expected namespace, but found none for rule %s", rule.Application)
+			ruleErrors = append(ruleErrors, fmt.Errorf("expected namespace, but found none for application %s", rule.Application))
 		}
 
 		for _, ns := range namespaceList {
 			targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, ns)
 			if err != nil {
-				return err
+				ruleErrors = append(ruleErrors, err)
 			}
-			if targetAppPorts == nil {
+			if len(targetAppPorts) == 0 {
+				ruleErrors = append(ruleErrors, fmt.Errorf("no ports found for application %s in namespace %s", rule.Application, ns))
 				continue
 			}
 			rule.Ports = append(rule.Ports, targetAppPorts...)
 		}
 	}
-	return nil
+	return ruleErrors
 }

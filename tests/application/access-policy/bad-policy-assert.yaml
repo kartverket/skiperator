@@ -79,3 +79,6 @@ involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
   name: no-namespace-with-labels
+message: >-
+  failed to set ports for outbound rules: expected namespace, but found none for
+  application access-policy-other
