@@ -20,6 +20,9 @@ spec:
     - jsonPath: .status.summary.status
       name: Status
       type: string
+    - jsonPath: .status.accessPolicies
+      name: AccessPolicies
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -1099,6 +1102,9 @@ spec:
 
               A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
             properties:
+              accessPolicies:
+                description: Indicates if access policies are valid
+                type: string
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
@@ -1192,6 +1198,7 @@ spec:
                 - timestamp
                 type: object
             required:
+            - accessPolicies
             - conditions
             - subresources
             - summary

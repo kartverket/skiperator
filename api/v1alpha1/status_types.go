@@ -13,6 +13,8 @@ type SkiperatorStatus struct {
 	Summary      Status             `json:"summary"`
 	SubResources map[string]Status  `json:"subresources"`
 	Conditions   []metav1.Condition `json:"conditions"`
+	// Indicates if access policies are valid
+	AccessPolicies StatusNames `json:"accessPolicies"`
 }
 
 // Status
@@ -30,10 +32,12 @@ type Status struct {
 type StatusNames string
 
 const (
-	SYNCED      StatusNames = "Synced"
-	PROGRESSING StatusNames = "Progressing"
-	ERROR       StatusNames = "Error"
-	PENDING     StatusNames = "Pending"
+	SYNCED        StatusNames = "Synced"
+	PROGRESSING   StatusNames = "Progressing"
+	ERROR         StatusNames = "Error"
+	PENDING       StatusNames = "Pending"
+	READY         StatusNames = "Ready"
+	INVALIDCONFIG StatusNames = "InvalidConfig"
 )
 
 func (s *SkiperatorStatus) SetSummaryPending() {
@@ -62,6 +66,7 @@ func (s *SkiperatorStatus) SetSummaryProgressing() {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
 	s.SubResources = make(map[string]Status)
+	s.AccessPolicies = PENDING
 }
 
 func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {

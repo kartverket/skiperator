@@ -112,7 +112,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		panic("Cluster is not ready, missing servicemonitors.monitoring.coreos.com most likely")
 	}
 
-	application, err := r.getApplication(req, ctx)
+	application, err := r.getApplication(ctx, req)
 	if application == nil {
 		rLog.Info("Application not found, cleaning up watched resources", "application", req.Name)
 		if errs := r.cleanUpWatchedResources(ctx, req.NamespacedName); len(errs) > 0 {
@@ -243,13 +243,15 @@ func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Applica
 	accessPolicy := app.Spec.AccessPolicy
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
+		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
+		app.Status.AccessPolicies = skiperatorv1alpha1.READY
 	}
 	app.Status.Conditions = conditions
 }
 
-func (r *ApplicationReconciler) getApplication(req reconcile.Request, ctx context.Context) (*skiperatorv1alpha1.Application, error) {
+func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {
 	application := &skiperatorv1alpha1.Application{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, application); err != nil {
 		if errors.IsNotFound(err) {

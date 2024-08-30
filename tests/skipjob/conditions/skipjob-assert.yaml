@@ -3,6 +3,7 @@ kind: SKIPJob
 metadata:
   name: condition-finish
 status:
+  accessPolicies: Ready
   conditions:
     - type: Failed
       status: "False"
@@ -18,6 +19,7 @@ kind: SKIPJob
 metadata:
   name: condition-running
 status:
+  accessPolicies: Ready
   conditions:
     - type: Failed
       status: "False"
@@ -33,6 +35,7 @@ kind: SKIPJob
 metadata:
   name: condition-fail
 status:
+  accessPolicies: InvalidConfig
   conditions:
     - type: Failed
       status: "True"

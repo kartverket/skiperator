@@ -326,8 +326,10 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 	accessPolicy := skipJob.Spec.Container.AccessPolicy
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionFalse))
+		skipJob.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else {
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionTrue))
+		skipJob.Status.AccessPolicies = skiperatorv1alpha1.READY
 	}
 
 	return nil
