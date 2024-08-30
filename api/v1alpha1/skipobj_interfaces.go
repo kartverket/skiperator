@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 )
 
 type SKIPObject interface {
@@ -20,4 +21,26 @@ var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot pr
 type CommonSpec struct {
 	AccessPolicy *podtypes.AccessPolicy
 	GCP          *podtypes.GCP
+}
+
+func getVersionLabel(imageVersionString string) string {
+	parts := strings.Split(imageVersionString, ":")
+
+	// Implicitly assume version "latest" if no version is specified
+	if len(parts) < 2 {
+		return "latest"
+	}
+
+	versionPart := parts[1]
+
+	// Remove "@sha256" from version text if version includes a hash
+	if strings.Contains(versionPart, "@") {
+		versionPart = strings.Split(versionPart, "@")[0]
+	}
+
+	// Add build number to version if it is specified
+	if len(parts) > 2 {
+		return versionPart + "+" + parts[2]
+	}
+	return versionPart
 }
