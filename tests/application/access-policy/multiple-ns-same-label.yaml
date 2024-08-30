@@ -60,8 +60,16 @@ spec:
             team: someteam
     outbound:
       rules:
+        - application: idontexist
+        - application: idontexist
+          namespacesByLabel:
+            nonexisting: label
+        - application: idontexist
+          namespacesByLabel:
+              team: ateam
         - application: app
           namespacesByLabel:
             team: ateam
+
 
 
