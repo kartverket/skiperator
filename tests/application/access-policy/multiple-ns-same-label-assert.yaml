@@ -24,7 +24,7 @@ spec:
     - to:
         - namespaceSelector:
             matchLabels:
-              team: eiet
+              team: ateam
           podSelector:
             matchLabels:
               app: app

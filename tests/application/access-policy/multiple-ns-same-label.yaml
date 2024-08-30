@@ -1,22 +1,22 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: eiet-main
+  name: ateam-main
   labels:
-    team: eiet
+    team: ateam
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: eiet-feat
+  name: ateam-feat
   labels:
-    team: eiet
+    team: ateam
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
   name: app
-  namespace: eiet-main
+  namespace: ateam-main
 spec:
   image: image
   port: 8080
@@ -25,7 +25,7 @@ apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
   name: app
-  namespace: eiet-feat
+  namespace: ateam-feat
 spec:
   image: image
   port: 8082
@@ -62,6 +62,6 @@ spec:
       rules:
         - application: app
           namespacesByLabel:
-            team: eiet
+            team: ateam
 
 
