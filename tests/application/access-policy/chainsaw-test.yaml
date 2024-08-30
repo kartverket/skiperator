@@ -37,3 +37,8 @@ spec:
             file: access-policy-istio.yaml
         - assert:
             file: access-policy-istio-assert.yaml
+    - try:
+        - apply:
+            file: multiple-ns-same-label.yaml
+        - assert:
+            file: multiple-ns-same-label-assert.yaml
