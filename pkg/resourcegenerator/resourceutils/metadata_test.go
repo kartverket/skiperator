@@ -31,7 +31,7 @@ func TestSetResourceLabels(t *testing.T) {
 	}
 
 	SetApplicationLabels(sa, app)
-	assert.True(t, len(sa.GetLabels()) == 6)
+	assert.True(t, len(sa.GetLabels()) == 8)
 	assert.True(t, sa.GetLabels()["someLabel"] == "someValue")
 	assert.Empty(t, sa.GetLabels()["otherLabel"])
 }
