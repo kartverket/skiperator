@@ -43,6 +43,5 @@ func TestSetResourceLabels(t *testing.T) {
 
 	SetApplicationLabels(sa, app)
 	assert.Equal(t, expectedLabels, sa.GetLabels())
-	// assert.True(t, sa.GetLabels()["someLabel"] == "someValue")
 	assert.Empty(t, sa.GetLabels()["otherLabel"])
 }
