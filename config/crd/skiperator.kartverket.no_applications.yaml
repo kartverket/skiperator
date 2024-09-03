@@ -646,6 +646,34 @@ spec:
                 items:
                   type: string
                 type: array
+              istioSettings:
+                description: |-
+                  IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+                  interval for tracing is the only supported option.
+                properties:
+                  telemetry:
+                    description: Telemetry is a placeholder for all relevant telemetry
+                      types
+                    properties:
+                      tracing:
+                        items:
+                          description: |-
+                            Tracing contains relevant settings for tracing in the telemetry configuration
+                            NB: RandomSamplingPercentage actually uses a wrapped type of *wrappers.DoubleValue in the original struct, but due
+                            to incompatibalities with the kubebuilder code generator, we have chosen to use a simple int instead. This only allows
+                            for whole numbers, but this is sufficient for our use case.
+                          properties:
+                            randomSamplingPercentage:
+                              default: 10
+                              maximum: 100
+                              minimum: 0
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                required:
+                - telemetry
+                type: object
               labels:
                 additionalProperties:
                   type: string

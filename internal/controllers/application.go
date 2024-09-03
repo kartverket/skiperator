@@ -17,6 +17,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
@@ -31,6 +32,7 @@ import (
 	"golang.org/x/exp/maps"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
@@ -57,6 +59,7 @@ import (
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.istio.io,resources=telemetries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications;authorizationpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
@@ -84,6 +87,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
 			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
 		)).
+		Owns(&telemetryv1.Telemetry{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
 		Owns(&networkingv1beta1.VirtualService{}).
 		Owns(&securityv1beta1.PeerAuthentication{}).
@@ -195,6 +199,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		serviceentry.Generate,
 		gateway.Generate,
 		virtualservice.Generate,
+		telemetry.Generate,
 		hpa.Generate,
 		peerauthentication.Generate,
 		serviceaccount.Generate,

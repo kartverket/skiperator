@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -241,6 +242,12 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
+
+	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+	// interval for tracing is the only supported option.
+	//
+	//+kubebuilder:validation:Optional
+	IstioSettings *istiotypes.IstioSettings `json:"istioSettings,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -426,8 +433,9 @@ func (a *Application) GetDefaultLabels() map[string]string {
 
 func (a *Application) GetCommonSpec() *CommonSpec {
 	return &CommonSpec{
-		GCP:          a.Spec.GCP,
-		AccessPolicy: a.Spec.AccessPolicy,
+		GCP:           a.Spec.GCP,
+		AccessPolicy:  a.Spec.AccessPolicy,
+		IstioSettings: a.Spec.IstioSettings,
 	}
 }
 

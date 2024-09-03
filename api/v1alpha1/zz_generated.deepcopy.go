@@ -6,6 +6,7 @@ package v1alpha1
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -201,6 +202,11 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	if in.PodSettings != nil {
 		in, out := &in.PodSettings, &out.PodSettings
 		*out = new(podtypes.PodSettings)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.IstioSettings != nil {
+		in, out := &in.IstioSettings, &out.IstioSettings
+		*out = new(istiotypes.IstioSettings)
 		(*in).DeepCopyInto(*out)
 	}
 }
