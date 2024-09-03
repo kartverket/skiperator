@@ -30,8 +30,19 @@ func TestSetResourceLabels(t *testing.T) {
 		},
 	}
 
+	expectedLabels := map[string]string{
+		"app.kubernetes.io/name":                  "testapp",
+		"app.kubernetes.io/version":               "latest",
+		"app.kubernetes.io/managed-by":            "skiperator",
+		"skiperator.kartverket.no/controller":     "application",
+		"application.skiperator.no/app":           "testapp",
+		"application.skiperator.no/app-name":      "testapp",
+		"application.skiperator.no/app-namespace": "testns",
+		"someLabel": "someValue",
+	}
+
 	SetApplicationLabels(sa, app)
-	assert.True(t, len(sa.GetLabels()) == 8)
-	assert.True(t, sa.GetLabels()["someLabel"] == "someValue")
+	assert.Equal(t, expectedLabels, sa.GetLabels())
+	// assert.True(t, sa.GetLabels()["someLabel"] == "someValue")
 	assert.Empty(t, sa.GetLabels()["otherLabel"])
 }
