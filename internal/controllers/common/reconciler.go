@@ -12,6 +12,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -186,11 +187,14 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIP
 
 func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName string, namespace string) ([]networkingv1.NetworkPolicyPort, error) {
 	service := &corev1.Service{}
-	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, service); err != nil {
-		return nil, fmt.Errorf("error when trying to get target application: %w", err)
-	}
-
 	var servicePorts []networkingv1.NetworkPolicyPort
+
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, service); err != nil {
+		if errors.IsNotFound(err) {
+			return servicePorts, nil
+		}
+		return nil, fmt.Errorf("error when trying to get target application: %s", err.Error())
+	}
 
 	for _, port := range service.Spec.Ports {
 		servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
@@ -206,37 +210,57 @@ func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SK
 	}
 
 	if obj.GetCommonSpec().AccessPolicy.Outbound != nil {
-		if err := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); err != nil {
-			r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
+		if errs := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); len(errs) != 0 {
+			for _, err := range errs {
+				r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
+			}
 		}
 	}
 }
 
-func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, namespace string) error {
+func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) []error {
+	var ruleErrors []error
 	for i := range rules {
 		rule := &rules[i]
 		if len(rule.Ports) != 0 {
 			continue
 		}
-		if rule.Namespace != "" {
-			namespace = rule.Namespace
-		} else if len(rule.NamespacesByLabel) != 0 {
+		var namespaceList []string
+		switch {
+		case rule.Namespace != "":
+			namespaceList = append(namespaceList, rule.Namespace)
+		case len(rule.NamespacesByLabel) != 0:
 			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
-			selectorString, _ := metav1.LabelSelectorAsSelector(&selector)
+			selectorString, err := metav1.LabelSelectorAsSelector(&selector)
+			if err != nil {
+				ruleErrors = append(ruleErrors, fmt.Errorf("failed to create label selector: %w", err))
+			}
 			namespaces := &corev1.NamespaceList{}
-			if err := r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
-				return err
+			if err = r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
+				ruleErrors = append(ruleErrors, fmt.Errorf("failed to list namespaces: %w", err))
 			}
-			if len(namespaces.Items) > 1 || len(namespaces.Items) == 0 {
-				return fmt.Errorf("expected exactly one namespace, but found %d", len(namespaces.Items))
+			for _, ns := range namespaces.Items {
+				namespaceList = append(namespaceList, ns.Name)
 			}
-			namespace = namespaces.Items[0].Name
+		default:
+			namespaceList = append(namespaceList, skipObjNamespace)
 		}
-		targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, namespace)
-		if err != nil {
-			return err
+
+		if len(namespaceList) == 0 {
+			ruleErrors = append(ruleErrors, fmt.Errorf("expected namespace, but found none for application %s", rule.Application))
 		}
-		rule.Ports = targetAppPorts
+
+		for _, ns := range namespaceList {
+			targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, ns)
+			if err != nil {
+				ruleErrors = append(ruleErrors, err)
+			}
+			if len(targetAppPorts) == 0 {
+				ruleErrors = append(ruleErrors, fmt.Errorf("no ports found for application %s in namespace %s", rule.Application, ns))
+				continue
+			}
+			rule.Ports = append(rule.Ports, targetAppPorts...)
+		}
 	}
-	return nil
+	return ruleErrors
 }

@@ -124,6 +124,7 @@ spec:
         - application: access-policy-other
           namespace: access-policy-other
 status:
+  accessPolicies: Ready
   conditions:
     - type: InternalRulesValid
       status: "True"
