@@ -16,7 +16,6 @@ var (
 	DefaultBackoffLimit            = int32(6)
 
 	DefaultSuspend           = false
-	JobCreatedCondition      = "SKIPJobCreated"
 	ConditionRunning         = "Running"
 	ConditionFinished        = "Finished"
 	ConditionFailed          = "Failed"
@@ -35,6 +34,7 @@ type SKIPJobStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
+// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
 //
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {

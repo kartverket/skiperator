@@ -13,3 +13,5 @@ metadata:
 spec:
   image: image
   port: 8080
+status:
+  accessPolicies: Ready

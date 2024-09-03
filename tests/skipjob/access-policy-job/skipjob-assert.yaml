@@ -91,6 +91,7 @@ spec:
         rules:
           - application: minimal-application
 status:
+  accessPolicies: Ready
   conditions:
     - type: Failed
       status: "False"

@@ -29,8 +29,9 @@ spec:
             matchLabels:
               app: app
       ports:
-        - port: 8080
-          protocol: TCP
         - port: 8082
           protocol: TCP
+        - port: 8080
+          protocol: TCP
+
 
