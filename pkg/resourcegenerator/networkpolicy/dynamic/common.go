@@ -35,22 +35,20 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	}
 
 	accessPolicy := object.GetCommonSpec().AccessPolicy
-	var ingresses []string
+	var hosts = skiperatorv1alpha1.NewCollection()
 	var inboundPort int32
 
-	hosts, err := object.(*skiperatorv1alpha1.Application).Spec.Hosts()
-	if err != nil {
-		ctxLog.Error(err, "Failed to get hosts for networkpolicy", "type", r.GetType(), "namespace", namespace)
-	}
-
-	for  _, host := range hosts.AllHosts() {
-		ingresses = append(ingresses, host.Hostname)
-	}
 	if r.GetType() == reconciliation.ApplicationType {
+		var err error
+		hosts, err = object.(*skiperatorv1alpha1.Application).Spec.Hosts()
+		if err != nil {
+			ctxLog.Error(err, "Failed to get hosts for networkpolicy", "type", r.GetType(), "namespace", namespace)
+			return err
+		}
 		inboundPort = int32(object.(*skiperatorv1alpha1.Application).Spec.Port)
 	}
 
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)
+	ingressRules := getIngressRules(accessPolicy, hosts, r.IsIstioEnabled(), namespace, inboundPort)
 	egressRules := getEgressRules(accessPolicy, namespace)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -118,20 +116,14 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 }
 
 // TODO Clean up better
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, hostCollection skiperatorv1alpha1.HostCollection, istioEnabled bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if ingresses != nil && len(ingresses) > 0 {
-		if hasInternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(true, port))
-		}
-
-		if hasExternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(false, port))
-		}
+	for _, host := range hostCollection.AllHosts() {
+		ingressRules = append(ingressRules, getGatewayIngressRule(host.Internal, port))
 	}
 
-	// Allow grafana-agent to scrape
+	// Allow grafana-agent and Alloy to scrape
 	if istioEnabled {
 		promScrapeRuleGrafana := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
@@ -231,26 +223,6 @@ func getNamespaceSelector(rule podtypes.InternalRule, appNamespace string) *meta
 	}
 }
 
-func hasExternalIngress(ingresses []string) bool {
-	for _, hostname := range ingresses {
-		if !util.IsInternal(hostname) {
-			return true
-		}
-	}
-
-	return false
-}
-
-func hasInternalIngress(ingresses []string) bool {
-	for _, hostname := range ingresses {
-		if util.IsInternal(hostname) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPolicyIngressRule {
 	ingressRule := networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
@@ -259,6 +231,7 @@ func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPoli
 					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "istio-gateways"},
 				},
 				PodSelector: &metav1.LabelSelector{
+
 					MatchLabels: getIngressGatewayLabel(isInternal),
 				},
 			},

@@ -3,14 +3,13 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"time"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -454,40 +453,36 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	var resultString []string
 	var resultObject []Ingresses
 	var errorsFound []error
-
 	hosts := NewCollection()
 
 	ingresses := MarshalledIngresses(s.Ingresses)
 	err := json.Unmarshal(ingresses.Raw, &resultString)
-	
-	
+
 	if err != nil {
 		err := json.Unmarshal(ingresses.Raw, &resultObject)
 		if err != nil {
 			errorsFound = append(errorsFound, err)
-			return HostCollection{}, errors.Join(errorsFound...)
+			return NewCollection(), errors.Join(errorsFound...)
 		}
-		
-		
+
 		for _, ingress := range resultObject {
-			fmt.Printf("############################### %v\n", ingress.Hostname)
-			err := hosts.Add(ingress.Hostname)
+			err := hosts.AddObject(ingress.Hostname, ingress.Internal)
 			if err != nil {
 				errorsFound = append(errorsFound, err)
+				return NewCollection(), errors.Join(errorsFound...)
 			}
 		}
-		return HostCollection{}, nil
+		return hosts, nil
 	}
-	
+
 	for _, ingress := range resultString {
-		fmt.Printf("############################### %v\n", ingress)
-		err := hosts.Add(ingress)
+		err := hosts.AddObject(ingress, IsInternal(ingress))
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 		}
 	}
-	
-	return HostCollection{}, nil
+
+	return hosts, errors.Join(errorsFound...)
 }
 
 type MultiErr interface {
