@@ -211,11 +211,8 @@ func Generate(r reconciliation.Reconciliation) error {
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
 	}
-	
-	var ingresses []string
-	for _, host := range hosts.AllHosts() {
-		ingresses = append(ingresses, host.Hostname)
-	}
+
+	var ingresses = hosts.Hostnames()
 
 	if len(ingresses) > 0 {
 		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])

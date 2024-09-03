@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/nais/liberator/pkg/namegen"
@@ -13,26 +14,20 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
+	"reflect"
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"unicode"
 )
 
-//TODO Clean up this file, move functions to more appropriate files
+// TODO Clean up this file, move functions to more appropriate files
 
-var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
-
-func IsInternal(hostname string) bool {
-	return internalPattern.MatchString(hostname)
-}
-
-func GetIstioGatewayLabelSelector(hostname string) map[string]string {
-	if IsInternal(hostname) {
+func GetIstioGatewayLabelSelector(host *v1alpha1.Host) map[string]string {
+	if host.Internal {
 		return map[string]string{"app": "istio-ingress-internal"}
 	}
 	return map[string]string{"app": "istio-ingress-external"}
-
 }
 
 func GetHashForStructs(obj []interface{}) string {
@@ -146,6 +141,21 @@ func EnsurePrefix(s string, prefix string) string {
 		return prefix + s
 	}
 	return s
+}
+
+func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
+	aKind := reflect.ValueOf(a).Kind()
+	bKind := reflect.ValueOf(b).Kind()
+	if aKind != bKind {
+		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+	}
+	changelog, err := diff.Diff(a, b)
+
+	if len(changelog) == 0 {
+		return nil, err
+	}
+
+	return changelog, nil
 }
 
 func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {

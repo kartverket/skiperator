@@ -27,7 +27,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	for _, route := range routing.Spec.Routes {
 		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route
 	}
-
+	h, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
 	for netpolName, route := range uniqueTargetApps {
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -50,7 +53,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: util.GetIstioGatewaySelector(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
+								MatchLabels: util.GetIstioGatewayLabelSelector(h),
 							},
 						},
 					},
