@@ -32,7 +32,6 @@ func TestSetResourceLabels(t *testing.T) {
 
 	expectedLabels := map[string]string{
 		"app.kubernetes.io/name":                  "testapp",
-		"app.kubernetes.io/version":               "latest",
 		"app.kubernetes.io/managed-by":            "skiperator",
 		"skiperator.kartverket.no/controller":     "application",
 		"application.skiperator.no/app":           "testapp",

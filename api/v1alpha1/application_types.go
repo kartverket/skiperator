@@ -418,7 +418,6 @@ func (a *Application) SetStatus(status SkiperatorStatus) {
 func (a *Application) GetDefaultLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":                  a.Name,
-		"app.kubernetes.io/version":               getVersionLabel(a.Spec.Image),
 		"app.kubernetes.io/managed-by":            "skiperator",
 		"skiperator.kartverket.no/controller":     "application",
 		"application.skiperator.no/app":           a.Name,

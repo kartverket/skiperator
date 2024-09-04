@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
@@ -27,7 +28,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
-		Labels:    map[string]string{"app": skipJob.KindPostFixedName()},
+		Labels: map[string]string{
+			"app":                       skipJob.KindPostFixedName(),
+			"app.kubernetes.io/version": resourceutils.GetImageVersion(skipJob.Spec.Container.Image),
+		},
 	}
 	job := batchv1.Job{ObjectMeta: meta}
 	cronJob := batchv1.CronJob{ObjectMeta: meta}
@@ -72,6 +76,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
 	spec.JobTemplate.Labels["app"] = skipJob.KindPostFixedName()
+	spec.JobTemplate.Labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
 
 	return spec
 }
@@ -127,6 +132,7 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
 	jobSpec.Template.Labels["app"] = skipJob.KindPostFixedName()
+	jobSpec.Template.Labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
 
 	return jobSpec
 }
