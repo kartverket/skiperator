@@ -57,6 +57,7 @@ kind: Pod
 metadata:
   labels:
     app: minimal-job-skipjob
+    app.kubernetes.io/version: "5.34.0"
     app.kubernetes.io/managed-by: skiperator
     batch.kubernetes.io/job-name: minimal-job
     job-name: minimal-job
