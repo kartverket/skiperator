@@ -1,0 +1,38 @@
+# nonk8s
+apiVersion: "backstage.io/v1alpha1"
+kind: "Component"
+metadata:
+  name: "skiperator"
+  tags:
+  - "internal"
+spec:
+  type: "service"
+  lifecycle: "production"
+  owner: "skip"
+  system: "skip"
+---
+apiVersion: "backstage.io/v1alpha1"
+kind: "Group"
+metadata:
+  name: "security_champion_skiperator"
+  title: "Security Champion skiperator"
+spec:
+  type: "security_champion"
+  parent: "it_security_champions"
+  members:
+  - "omaen"
+  children:
+  - "resource:skiperator"
+---
+apiVersion: "backstage.io/v1alpha1"
+kind: "Resource"
+metadata:
+  name: "skiperator"
+  links:
+  - url: "https://github.com/kartverket/skiperator"
+    title: "skiperator på GitHub"
+spec:
+  type: "repo"
+  owner: "security_champion_skiperator"
+  dependencyOf:
+  - "component:skiperator"
