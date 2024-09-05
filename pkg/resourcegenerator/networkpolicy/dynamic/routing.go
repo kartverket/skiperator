@@ -28,6 +28,9 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route
 	}
 	h, err := routing.Spec.GetHost()
+	if routing.Spec.Internal != nil {
+		h.Internal = *routing.Spec.Internal
+	}
 	if err != nil {
 		return err
 	}

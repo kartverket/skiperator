@@ -41,6 +41,9 @@ type RoutingSpec struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
+
+	//+kubebuilder:validation:Optional
+	Internal *bool `json:"internal,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

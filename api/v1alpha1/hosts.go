@@ -30,8 +30,6 @@ func NewHost(hostname string) (*Host, error) {
 
 	var h Host
 
-	h.Internal = IsInternal(hostname)
-
 	// If hostname is separated by +, the user wants to use a custom certificate
 	results := strings.Split(hostname, hostnameSecretSeparator)
 
@@ -56,7 +54,7 @@ func NewHost(hostname string) (*Host, error) {
 	if err := domain.Check(h.Hostname); err != nil {
 		return nil, fmt.Errorf("%s: failed validation: %w", h.Hostname, err)
 	}
-
+	h.Internal = IsInternal(hostname)
 	return &h, nil
 }
 
@@ -68,28 +66,6 @@ func NewCollection() HostCollection {
 	return HostCollection{
 		hosts: map[string]*Host{},
 	}
-}
-
-func (hs *HostCollection) Add(hostname string) error {
-	h, err := NewHost(hostname)
-	if err != nil {
-		return err
-	}
-
-	existingValue, alreadyPresent := hs.hosts[h.Hostname]
-	switch alreadyPresent {
-	case true:
-		if existingValue.UsesCustomCert() {
-			return fmt.Errorf("host '%s' is already defined and using a custom certificate", existingValue.Hostname)
-		}
-		fallthrough
-	case false:
-		fallthrough
-	default:
-		hs.hosts[h.Hostname] = h
-	}
-
-	return nil
 }
 
 func (hs *HostCollection) AddObject(hostname string, internal bool) error {
