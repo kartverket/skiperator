@@ -1,0 +1,18 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: routes
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: chainsaw-routing-internal-flag
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - apply:
+            file: routing-internal-flag.yaml
+
+        - assert:
+            file: routing-internal-flag-assert.yaml

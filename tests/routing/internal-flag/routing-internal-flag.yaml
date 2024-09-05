@@ -1,0 +1,15 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: app-paths
+spec:
+  hostname: example.com
+  internal: true
+  routes:
+    - pathPrefix: /app1
+      targetApp: app-1
+      rewriteUri: true
+    - pathPrefix: /new-path
+      targetApp: app-2
+      rewriteUri: true
+
