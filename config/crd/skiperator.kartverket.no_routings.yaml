@@ -45,6 +45,8 @@ spec:
             properties:
               hostname:
                 type: string
+              internal:
+                type: boolean
               redirectToHTTPS:
                 default: true
                 type: boolean
