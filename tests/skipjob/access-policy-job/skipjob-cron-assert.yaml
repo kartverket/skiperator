@@ -24,6 +24,7 @@ spec:
   cron:
     schedule: "* * * * *"
 status:
+  accessPolicies: Ready
   conditions:
     - type: Failed
       status: "False"

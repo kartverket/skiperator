@@ -291,9 +291,6 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 	if err != nil {
 		return fmt.Errorf("failed to list jobs: %w", err)
 	}
-	if len(jobList.Items) == 0 {
-		return nil
-	}
 
 	//find last job to set conditions, cronjobs have multiple jobs
 	lastJob := &batchv1.Job{}
@@ -302,7 +299,14 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 			lastJob = &liveJob
 		}
 	}
-	if isFailed, failedJobMessage := isFailedJob(lastJob); isFailed {
+
+	if len(jobList.Items) == 0 {
+		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
+			r.getConditionRunning(skipJob, v1.ConditionFalse),
+			r.getConditionFinished(skipJob, v1.ConditionFalse),
+		}
+	} else if isFailed, failedJobMessage := isFailedJob(lastJob); isFailed {
 		skipJob.Status.Conditions = []v1.Condition{
 			r.getConditionFailed(skipJob, v1.ConditionTrue, &failedJobMessage),
 			r.getConditionRunning(skipJob, v1.ConditionFalse),

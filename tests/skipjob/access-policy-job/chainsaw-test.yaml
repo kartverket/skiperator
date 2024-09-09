@@ -34,3 +34,8 @@ spec:
             file: netpol-istio.yaml
         - assert:
             file: netpol-istio-assert.yaml
+    - try:
+        - apply:
+            file: status-ready-no-job.yaml
+        - assert:
+            file: status-ready-no-job-assert.yaml
