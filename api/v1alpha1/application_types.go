@@ -335,6 +335,11 @@ type PrometheusConfig struct {
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 }
 
+type Ingresses struct {
+	Hostname string
+	Internal bool
+}
+
 func NewDefaultReplicas() Replicas {
 	return Replicas{
 		Min:                  2,
@@ -442,16 +447,11 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
-type Ingresses struct {
-	Hostname string
-	Internal bool
-}
-
-func MarshalledIngresses(Ingresses interface{}) *apiextensionsv1.JSON {
+func MarshalledIngresses(ingresses interface{}) *apiextensionsv1.JSON {
 	IngressesJSON := &apiextensionsv1.JSON{}
 	var err error
 
-	IngressesJSON.Raw, err = json.Marshal(Ingresses)
+	IngressesJSON.Raw, err = json.Marshal(ingresses)
 	if err == nil {
 		return IngressesJSON
 	}
