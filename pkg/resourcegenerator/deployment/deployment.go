@@ -207,6 +207,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	hosts, err := application.Spec.Hosts()
 	if err != nil {
 		ctxLog.Error(err, "could not get hosts from application")
+		return err
 	}
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
