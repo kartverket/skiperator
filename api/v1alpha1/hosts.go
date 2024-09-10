@@ -68,7 +68,7 @@ func NewCollection() HostCollection {
 	}
 }
 
-func (hs *HostCollection) AddObject(hostname string, internal bool) error {
+func (hs *HostCollection) Add(hostname string, internal bool) error {
 	h, err := NewHost(hostname)
 	if err != nil {
 		return err
