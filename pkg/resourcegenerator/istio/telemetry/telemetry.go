@@ -25,43 +25,25 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	telemetry := telemetryv1.Telemetry{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: object.GetName()}}
 
-	if istioSettings == nil || istioSettings.Telemetry == nil || istioSettings.Telemetry.Tracing == nil {
-		telemetry.Spec.Tracing = append(telemetry.Spec.Tracing, GetDefaultTelemetryTracing())
-
-	} else if len(*istioSettings.Telemetry.Tracing) > 0 {
-		var telemetryTracing []*telemetryapiv1.Tracing
-		for _, tracingSetting := range *istioSettings.Telemetry.Tracing {
-			telemetryTracing = append(telemetryTracing, &telemetryapiv1.Tracing{
-				Providers: []*telemetryapiv1.ProviderRef{
-					{
-						Name: util.IstioTraceProvider,
-					},
+	var telemetryTracing []*telemetryapiv1.Tracing
+	for _, tracingSetting := range istioSettings.Telemetry.Tracing {
+		telemetryTracing = append(telemetryTracing, &telemetryapiv1.Tracing{
+			Providers: []*telemetryapiv1.ProviderRef{
+				{
+					Name: util.IstioTraceProvider,
 				},
-				RandomSamplingPercentage: util.PointTo(wrapperspb.DoubleValue{
-					Value: float64(tracingSetting.RandomSamplingPercentage),
-				}),
-			})
-		}
-		telemetry.Spec = telemetryapiv1.Telemetry{
-			Tracing: telemetryTracing,
-		}
-
+			},
+			RandomSamplingPercentage: util.PointTo(wrapperspb.DoubleValue{
+				Value: float64(tracingSetting.RandomSamplingPercentage),
+			}),
+		})
+	}
+	telemetry.Spec = telemetryapiv1.Telemetry{
+		Tracing: telemetryTracing,
 	}
 
 	r.AddResource(&telemetry)
 
 	ctxLog.Debug("Finished generating telemetry for skipobj", "skipobj", r.GetSKIPObject().GetName())
 	return nil
-}
-
-// TODO Is this the right way to set defaults?
-func GetDefaultTelemetryTracing() *telemetryapiv1.Tracing {
-	return &telemetryapiv1.Tracing{
-		Providers: []*telemetryapiv1.ProviderRef{
-			{
-				Name: util.IstioTraceProvider,
-			},
-		},
-		RandomSamplingPercentage: &wrapperspb.DoubleValue{Value: 10.0},
-	}
 }

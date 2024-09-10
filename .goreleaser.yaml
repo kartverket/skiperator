@@ -1,9 +1,8 @@
-project_name: skiperator
+version: 2
 
 builds:
   - env:
       - CGO_ENABLED=0
-    binary: bin/skiperator
     flags:
       - -trimpath
     ldflags:
@@ -22,21 +21,51 @@ builds:
       - osusergo
       - netgo
     main: ./cmd/skiperator/
-    id: skiperator
 
 archives:
-  - id: skiperator
-    builds:
+  - builds:
       - skiperator
     files:
       - README.md
+      - LICENSE
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
 
 dockers:
-  - extra_files:
-      - ./
-    dockerfile: Dockerfile
-    ids:
-      - skiperator
+  - image_templates:
+      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-amd64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/amd64"
+    goos: linux
+    goarch: amd64
+  - image_templates:
+      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-arm64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--pull"
+      - "--platform=linux/arm64"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/kartverket/skiperator:{{ .Tag }}"
+    image_templates:
+      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-arm64"
+      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-amd64"
 
 docker_signs:
   - artifacts: all
@@ -64,6 +93,6 @@ sboms:
 checksum:
   name_template: "checksums.txt"
 snapshot:
-  name_template: "{{ .Tag }}-dev"
+  version_template: "{{ .Tag }}-dev"
 changelog:
   sort: asc

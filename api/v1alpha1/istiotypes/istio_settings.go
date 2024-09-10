@@ -20,14 +20,15 @@ type Tracing struct {
 //
 // +kubebuilder:object:generate=true
 type Telemetry struct {
-	// +kubebuilder:validation:required
-	Tracing *[]Tracing `json:"tracing,omitempty"`
+	// +kubebuilder:validation:Optional
+	Tracing []*Tracing `json:"tracing,omitempty"`
 }
 
 // IstioSettings contains configuration settings for istio resources
 //
 // +kubebuilder:object:generate=true
 type IstioSettings struct {
-	// +kubebuilder:validation:optional
-	Telemetry *Telemetry `json:"telemetry"`
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={tracing: {{randomSamplingPercentage: 10}}}
+	Telemetry Telemetry `json:"telemetry"`
 }

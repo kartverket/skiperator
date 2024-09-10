@@ -1,0 +1,45 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: status-ready-no-job
+status:
+  accessPolicies: Ready
+  conditions:
+    - type: Failed
+      status: 'False'
+    - type: Running
+      status: 'False'
+    - type: Finished
+      status: 'False'
+    - message: Internal rules are valid
+      reason: ApplicationReconciled
+      status: 'True'
+      type: InternalRulesValid
+  subresources:
+    CronJob[status-ready-no-job]:
+      message: CronJob has finished synchronizing
+      status: Synced
+    ServiceAccount[status-ready-no-job-skipjob]:
+      message: ServiceAccount has finished synchronizing
+      status: Synced
+    ServiceEntry[skipjob-status-ready-no-job-egress-3da5ecd99bd5b65]:
+      message: ServiceEntry has finished synchronizing
+      status: Synced
+  summary:
+    message: All subresources synced
+    status: Synced
+spec:
+  container:
+    accessPolicy:
+      outbound:
+        external:
+          - host: data.helsecert.no
+    image: image
+  cron:
+    allowConcurrency: Allow
+    schedule: 0 6 * * *
+    suspend: false
+  job:
+    backoffLimit: 6
+    suspend: false
+    ttlSecondsAfterFinished: 3600

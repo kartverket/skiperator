@@ -2,8 +2,6 @@ name: Build and Deploy Skiperator
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron:  '0 0 * * *' # at 12:00 AM every day
   push:
     branches: [main]
     paths-ignore:
@@ -103,7 +101,7 @@ jobs:
       - name: Setup Golang environment
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.2'
+          go-version: '1.23.1'
 
       - name: Generate CRD and ClusterRole
         run: make generate

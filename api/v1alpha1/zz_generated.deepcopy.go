@@ -608,6 +608,11 @@ func (in *SKIPJobSpec) DeepCopyInto(out *SKIPJobSpec) {
 		(*in).DeepCopyInto(*out)
 	}
 	in.Container.DeepCopyInto(&out.Container)
+	if in.IstioSettings != nil {
+		in, out := &in.IstioSettings, &out.IstioSettings
+		*out = new(istiotypes.IstioSettings)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Prometheus != nil {
 		in, out := &in.Prometheus, &out.Prometheus
 		*out = new(PrometheusConfig)

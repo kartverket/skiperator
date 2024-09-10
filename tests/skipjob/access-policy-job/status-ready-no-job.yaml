@@ -1,0 +1,19 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: status-ready-no-job
+spec:
+  container:
+    accessPolicy:
+      outbound:
+        external:
+          - host: data.helsecert.no
+    image: image
+  cron:
+    allowConcurrency: Allow
+    schedule: "0 6 * * *"
+    suspend: false
+  job:
+    backoffLimit: 6
+    suspend: false
+    ttlSecondsAfterFinished: 3600
