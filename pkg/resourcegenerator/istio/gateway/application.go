@@ -4,6 +4,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -37,7 +38,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
 		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 
-		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h)
+		gateway.Spec.Selector = resourceutils.GetIstioGatewayLabelSelector(h)
 
 		gatewayServersToAdd := []*networkingv1beta1api.Server{}
 

@@ -1,6 +1,7 @@
 package resourceutils
 
 import (
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -15,4 +16,11 @@ func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 		return true
 	}
 	return false
+}
+
+func GetIstioGatewayLabelSelector(host *v1alpha1.Host) map[string]string {
+	if host.Internal {
+		return map[string]string{"app": "istio-ingress-internal"}
+	}
+	return map[string]string{"app": "istio-ingress-external"}
 }

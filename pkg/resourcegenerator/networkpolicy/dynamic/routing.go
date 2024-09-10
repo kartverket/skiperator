@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +57,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: util.GetIstioGatewaySelector(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewayLabelSelector(h),
+								MatchLabels: resourceutils.GetIstioGatewayLabelSelector(h),
 							},
 						},
 					},
