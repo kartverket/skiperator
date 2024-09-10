@@ -12,4 +12,3 @@ spec:
     - pathPrefix: /new-path
       targetApp: app-2
       rewriteUri: true
-
