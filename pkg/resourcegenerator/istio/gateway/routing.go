@@ -47,7 +47,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h)
+	gateway.Spec.Selector = resourceutils.GetIstioGatewayLabelSelector(h)
 	gateway.Spec.Servers = []*networkingv1beta1api.Server{
 		{
 			Hosts: []string{h.Hostname},

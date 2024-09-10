@@ -3,7 +3,6 @@ package util
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	"github.com/nais/liberator/pkg/namegen"
@@ -16,13 +15,6 @@ import (
 )
 
 // TODO Clean up this file, move functions to more appropriate files
-
-func GetIstioGatewayLabelSelector(host *v1alpha1.Host) map[string]string {
-	if host.Internal {
-		return map[string]string{"app": "istio-ingress-internal"}
-	}
-	return map[string]string{"app": "istio-ingress-external"}
-}
 
 func GetHashForStructs(obj []interface{}) string {
 	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
