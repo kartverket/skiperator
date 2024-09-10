@@ -460,23 +460,23 @@ func MarshalledIngresses(Ingresses interface{}) *apiextensionsv1.JSON {
 }
 
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {
-	var resultString []string
-	var resultObject []Ingresses
+	var ingressesAsString []string
+	var ingressesAsObject []Ingresses
 	var errorsFound []error
 	hosts := NewCollection()
 
 	ingresses := MarshalledIngresses(s.Ingresses)
-	err := json.Unmarshal(ingresses.Raw, &resultString)
+	err := json.Unmarshal(ingresses.Raw, &ingressesAsString)
 
 	if err != nil {
-		err := json.Unmarshal(ingresses.Raw, &resultObject)
+		err := json.Unmarshal(ingresses.Raw, &ingressesAsObject)
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 			return NewCollection(), errors.Join(errorsFound...)
 		}
 
-		for _, ingress := range resultObject {
-			err := hosts.AddObject(ingress.Hostname, ingress.Internal)
+		for _, ingress := range ingressesAsObject {
+			err := hosts.Add(ingress.Hostname, ingress.Internal)
 			if err != nil {
 				errorsFound = append(errorsFound, err)
 				return NewCollection(), errors.Join(errorsFound...)
@@ -485,8 +485,8 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 		return hosts, nil
 	}
 
-	for _, ingress := range resultString {
-		err := hosts.AddObject(ingress, IsInternal(ingress))
+	for _, ingress := range ingressesAsString {
+		err := hosts.Add(ingress, IsInternal(ingress))
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 		}
