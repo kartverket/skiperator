@@ -28,11 +28,8 @@ func Generate(r reconciliation.Reconciliation) error {
 	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
-		Labels: map[string]string{
-			"app":                       skipJob.KindPostFixedName(),
-			"app.kubernetes.io/version": getSkipJobVersion(skipJob),
-		},
 	}
+	setJobLabels(skipJob, meta.Labels)
 	job := batchv1.Job{ObjectMeta: meta}
 	cronJob := batchv1.CronJob{ObjectMeta: meta}
 
@@ -75,8 +72,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 	}
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
-	spec.JobTemplate.Labels["app"] = skipJob.KindPostFixedName()
-	spec.JobTemplate.Labels["app.kubernetes.io/version"] = getSkipJobVersion(skipJob)
+	setJobLabels(skipJob, spec.JobTemplate.Labels)
 
 	return spec
 }
@@ -131,15 +127,20 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
-	jobSpec.Template.Labels["app"] = skipJob.KindPostFixedName()
-	jobSpec.Template.Labels["app.kubernetes.io/version"] = getSkipJobVersion(skipJob)
+
+	setJobLabels(skipJob, jobSpec.Template.Labels)
 
 	return jobSpec
 }
 
-func getSkipJobVersion(skipJob *skiperatorv1alpha1.SKIPJob) string {
-	if skipJob.Spec.Container.Image != "" {
-		return resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
-	}
-	return ""
+//func getSkipJobVersion(skipJob *skiperatorv1alpha1.SKIPJob) string {
+//	if skipJob.Spec.Container.Image != "" {
+//		return resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+//	}
+//	return ""
+//}
+
+func setJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
+	labels["app"] = skipJob.KindPostFixedName()
+	labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
 }
