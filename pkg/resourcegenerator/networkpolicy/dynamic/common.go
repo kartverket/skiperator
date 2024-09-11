@@ -8,6 +8,8 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"slices"
+	"strings"
 )
 
 func init() {
@@ -95,6 +97,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []
 }
 
 func getEgressRule(outboundRule podtypes.InternalRule, namespace string) networkingv1.NetworkPolicyEgressRule {
+	slices.SortFunc(outboundRule.Ports, sortNetPolPorts)
 	egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
 			{
@@ -268,5 +271,23 @@ func getIngressGatewayLabel(isInternal bool) map[string]string {
 		return map[string]string{"app": "istio-ingress-internal"}
 	} else {
 		return map[string]string{"app": "istio-ingress-external"}
+	}
+}
+
+var sortNetPolPorts = func(a networkingv1.NetworkPolicyPort, b networkingv1.NetworkPolicyPort) int {
+	switch {
+	case a.Port.Type != b.Port.Type:
+		// different types, can't compare
+		return 0
+	case a.Port.Type == intstr.String && b.Port.Type == intstr.String:
+		// lexicographical order
+		return strings.Compare(a.Port.StrVal, b.Port.StrVal)
+	case a.Port.IntValue() < b.Port.IntValue():
+		return -1
+	case a.Port.IntValue() > b.Port.IntValue():
+		return 1
+	default:
+		// we should never be here ¯\_(ツ)_/¯
+		return 0
 	}
 }
