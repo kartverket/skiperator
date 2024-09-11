@@ -28,7 +28,9 @@ func Generate(r reconciliation.Reconciliation) error {
 	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
 		Name:      skipJob.Name,
+		Labels:    make(map[string]string),
 	}
+
 	setJobLabels(skipJob, meta.Labels)
 	job := batchv1.Job{ObjectMeta: meta}
 	cronJob := batchv1.CronJob{ObjectMeta: meta}
