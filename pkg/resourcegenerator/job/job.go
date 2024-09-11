@@ -30,7 +30,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		Name:      skipJob.Name,
 		Labels: map[string]string{
 			"app":                       skipJob.KindPostFixedName(),
-			"app.kubernetes.io/version": resourceutils.GetImageVersion(skipJob.Spec.Container.Image),
+			"app.kubernetes.io/version": getSkipJobVersion(skipJob),
 		},
 	}
 	job := batchv1.Job{ObjectMeta: meta}
@@ -76,7 +76,7 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
 	spec.JobTemplate.Labels["app"] = skipJob.KindPostFixedName()
-	spec.JobTemplate.Labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+	spec.JobTemplate.Labels["app.kubernetes.io/version"] = getSkipJobVersion(skipJob)
 
 	return spec
 }
@@ -132,7 +132,14 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
 	jobSpec.Template.Labels["app"] = skipJob.KindPostFixedName()
-	jobSpec.Template.Labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+	jobSpec.Template.Labels["app.kubernetes.io/version"] = getSkipJobVersion(skipJob)
 
 	return jobSpec
+}
+
+func getSkipJobVersion(skipJob *skiperatorv1alpha1.SKIPJob) string {
+	if skipJob.Spec.Container.Image != "" {
+		return resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+	}
+	return ""
 }
