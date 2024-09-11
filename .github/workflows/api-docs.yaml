@@ -1,0 +1,42 @@
+name: write api-docs to skip.kartverket.no
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'config/crd/**'
+jobs:
+  run-crdoc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          path: skiperator
+
+      - name: Run crdoc Docker container
+        run: |
+         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/skiperator/config/crd --output /workdir/api-docs.md
+
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          path: docs
+          repository: kartverket/skip.kartverket.no
+          ssh-key: ${{ secrets.SKIPDOCS_DEPLOY_KEY }}
+
+      - name: Copy generated output to target repo
+        run: |
+          cp api-docs.md docs/docs/13-skiperator/04-api-docs.md  
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.email "skiperator@kartverket.no"
+          git config --global user.name "GithubActions"
+          git add .
+          git commit -m "Update Skiperator api-docs"
+          git push origin main

@@ -7,12 +7,14 @@ on:
       - samples/**
       - README.md
       - CONTRIBUTING.md
+      - .github/workflows/api-docs.yaml
   push:
     paths-ignore:
       - doc/**
       - samples/**
       - README.md
       - CONTRIBUTING.md
+      - .github/workflows/api-docs.yaml
 
 jobs:
   test:
