@@ -175,6 +175,14 @@ type CronSettings struct {
 	//+kubebuilder:validation:Required
 	Schedule string `json:"schedule"`
 
+	// The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
+	// this will default to the time zone of the cluster.
+	//
+	// Example: "Europe/Oslo"
+	//
+	// +kubebuilder:validation:Optional
+	TimeZone *string `json:"timeZone,omitempty"`
+
 	// Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
 	// If unset, Jobs missing their deadline will be considered failed jobs and will not start.
 	//

@@ -780,6 +780,13 @@ spec:
                       If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
                       all running Pods will be terminated.
                     type: boolean
+                  timeZone:
+                    description: |-
+                      The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
+                      this will default to the time zone of the cluster.
+
+                      Example: "Europe/Oslo"
+                    type: string
                 required:
                 - schedule
                 type: object
