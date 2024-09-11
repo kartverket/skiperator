@@ -800,6 +800,8 @@ spec:
                       types
                     properties:
                       tracing:
+                        default:
+                        - randomSamplingPercentage: 10
                         items:
                           description: |-
                             Tracing contains relevant settings for tracing in the telemetry configuration

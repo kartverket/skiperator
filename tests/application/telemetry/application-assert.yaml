@@ -7,3 +7,10 @@ spec:
     - providers:
         - name: "otel-tracing"
       randomSamplingPercentage: 10.00
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: skiperator
+      application.skiperator.no/app: istio-based-app
+      application.skiperator.no/app-name: istio-based-app
+      application.skiperator.no/app-namespace: ($namespace)
+      skiperator.kartverket.no/controller: application

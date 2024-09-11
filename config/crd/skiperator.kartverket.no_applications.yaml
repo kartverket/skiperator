@@ -650,6 +650,10 @@ spec:
                   type: string
                 type: array
               istioSettings:
+                default:
+                  telemetry:
+                    tracing:
+                    - randomSamplingPercentage: 10
                 description: |-
                   IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
                   interval for tracing is the only supported option.
@@ -662,6 +666,8 @@ spec:
                       types
                     properties:
                       tracing:
+                        default:
+                        - randomSamplingPercentage: 10
                         items:
                           description: |-
                             Tracing contains relevant settings for tracing in the telemetry configuration
@@ -1123,7 +1129,6 @@ spec:
                 type: string
             required:
             - image
-            - istioSettings
             - port
             type: object
           status:

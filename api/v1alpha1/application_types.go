@@ -247,7 +247,8 @@ type ApplicationSpec struct {
 	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
 	// interval for tracing is the only supported option.
 	//
-	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
 	IstioSettings *istiotypes.IstioSettings `json:"istioSettings,omitempty"`
 }
 

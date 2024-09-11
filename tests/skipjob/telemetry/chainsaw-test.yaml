@@ -6,15 +6,14 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
-
   steps:
     - try:
         - create:
-            file: application.yaml
+            file: skipjob.yaml
         - assert:
-            file: application-assert.yaml
+            file: skipjob-assert.yaml
     - try:
         - apply:
-            file: application-custom-tracing.yaml
+            file: skipjob-custom-tracing.yaml
         - assert:
-            file: application-custom-tracing-assert.yaml
+            file: skipjob-custom-tracing-assert.yaml

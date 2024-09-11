@@ -21,6 +21,7 @@ type Tracing struct {
 // +kubebuilder:object:generate=true
 type Telemetry struct {
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:={{randomSamplingPercentage: 10}}
 	Tracing []*Tracing `json:"tracing,omitempty"`
 }
 
@@ -30,5 +31,5 @@ type Telemetry struct {
 type IstioSettings struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={tracing: {{randomSamplingPercentage: 10}}}
-	Telemetry Telemetry `json:"telemetry"`
+	Telemetry Telemetry `json:"telemetry,omitempty"`
 }
