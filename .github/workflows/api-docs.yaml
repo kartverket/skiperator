@@ -35,6 +35,7 @@ jobs:
 
       - name: Commit and push changes
         run: |
+          cd docs
           git config --global user.email "skiperator@kartverket.no"
           git config --global user.name "GithubActions"
           git add .
