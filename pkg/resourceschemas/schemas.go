@@ -86,6 +86,7 @@ func GetJobSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
 		&networkingv1.NetworkPolicyList{},
 		&corev1.ServiceAccountList{},
 		&networkingv1beta1.ServiceEntryList{},
+		&telemetryv1.TelemetryList{},
 		&corev1.ConfigMapList{},
 		&pov1.PodMonitorList{},
 	}, scheme)
