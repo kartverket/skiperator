@@ -873,7 +873,6 @@ spec:
                 type: object
             required:
             - container
-            - istioSettings
             type: object
             x-kubernetes-validations:
             - message: After creation of a SKIPJob you may not remove the Cron field
