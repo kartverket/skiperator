@@ -57,6 +57,7 @@ func Generate(r reconciliation.Reconciliation) error {
 func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
+		TimeZone:                skipJob.Spec.Cron.TimeZone,
 		StartingDeadlineSeconds: skipJob.Spec.Cron.StartingDeadlineSeconds,
 		ConcurrencyPolicy:       skipJob.Spec.Cron.ConcurrencyPolicy,
 		Suspend:                 skipJob.Spec.Cron.Suspend,
