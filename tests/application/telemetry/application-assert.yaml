@@ -1,7 +1,7 @@
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: istio-based-app
+  name: istio-based-app-application
 spec:
   tracing:
     - providers:

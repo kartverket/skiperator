@@ -1,7 +1,7 @@
 apiVersion: telemetry.istio.io/v1
 kind: Telemetry
 metadata:
-  name: minimal-job
+  name: minimal-job-skipjob
 spec:
   tracing:
     - providers:
