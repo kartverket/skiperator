@@ -22,14 +22,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	object := r.GetSKIPObject()
-
 	istioSettings := object.GetCommonSpec().IstioSettings
-
-	// Create name for resource from name and type, in lowercase
-
 	name := fmt.Sprintf("%s-%s", object.GetName(), strings.ToLower(string(r.GetType())))
-	telemetry := telemetryv1.Telemetry{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: name}}
 
+	telemetry := telemetryv1.Telemetry{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: name}}
 	var telemetryTracing []*telemetryapiv1.Tracing
 	for _, tracingSetting := range istioSettings.Telemetry.Tracing {
 		telemetryTracing = append(telemetryTracing, &telemetryapiv1.Tracing{
