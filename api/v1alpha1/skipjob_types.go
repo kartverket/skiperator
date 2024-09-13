@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"dario.cat/mergo"
 	"fmt"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -80,6 +81,14 @@ type SKIPJobSpec struct {
 	//
 	// +kubebuilder:validation:Required
 	Container ContainerSettings `json:"container"`
+
+	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+	// interval for tracing is the only supported option.
+	// By default, tracing is enabled with a random sampling percentage of 10%.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
+	IstioSettings *istiotypes.IstioSettings `json:"istioSettings,omitempty"`
 
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
@@ -287,7 +296,8 @@ func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
 
 func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
 	return &CommonSpec{
-		GCP:          skipJob.Spec.Container.GCP,
-		AccessPolicy: skipJob.Spec.Container.AccessPolicy,
+		GCP:           skipJob.Spec.Container.GCP,
+		AccessPolicy:  skipJob.Spec.Container.AccessPolicy,
+		IstioSettings: skipJob.Spec.IstioSettings,
 	}
 }

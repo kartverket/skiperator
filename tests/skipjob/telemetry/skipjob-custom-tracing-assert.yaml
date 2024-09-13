@@ -1,0 +1,15 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: minimal-job-skipjob
+spec:
+  tracing:
+    - providers:
+        - name: "otel-tracing"
+      randomSamplingPercentage: 75.00
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: skiperator
+      skiperator.kartverket.no/controller: skipjob
+      skiperator.kartverket.no/skipjob: "true"
+      skiperator.kartverket.no/skipjobName: minimal-job

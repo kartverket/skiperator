@@ -1,6 +1,8 @@
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	corev1 "k8s.io/api/core/v1"
+)
 
 /*
  *  SKIPNamespace is a wrapper for the kubernetes namespace resource, so we can utilize the SKIPObject interface

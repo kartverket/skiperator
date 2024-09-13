@@ -1,0 +1,16 @@
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: istio-based-app-application
+spec:
+  tracing:
+    - providers:
+        - name: "otel-tracing"
+      randomSamplingPercentage: 75.00
+  selector:
+    matchLabels:
+      app.kubernetes.io/managed-by: skiperator
+      application.skiperator.no/app: istio-based-app
+      application.skiperator.no/app-name: istio-based-app
+      application.skiperator.no/app-namespace: ($namespace)
+      skiperator.kartverket.no/controller: application

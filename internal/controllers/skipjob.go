@@ -9,12 +9,14 @@ import (
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -37,6 +39,7 @@ const (
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skipjobs;skipjobs/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=telemetry.istio.io,resources=telemetries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods;pods/ephemeralcontainers,verbs=get;list;watch;create;update;patch;delete
 
 // leave an empty line over this comment
@@ -74,6 +77,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1beta1.ServiceEntry{}).
+		Owns(&telemetryv1.Telemetry{}).
 		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
 		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs
 		Watches(&networkingv1.NetworkPolicy{}, handler.EnqueueRequestsFromMapFunc(r.getJobsToReconcile)).
@@ -146,6 +150,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		auth.Generate,
 		job.Generate,
 		podmonitor.Generate,
+		telemetry.Generate,
 	}
 
 	for _, f := range resourceGeneration {

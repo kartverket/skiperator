@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: telemetry
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml
+    - try:
+        - apply:
+            file: skipjob-custom-tracing.yaml
+        - assert:
+            file: skipjob-custom-tracing-assert.yaml

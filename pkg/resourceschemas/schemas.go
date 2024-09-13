@@ -12,6 +12,7 @@ import (
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
@@ -32,6 +33,7 @@ func AddSchemas(scheme *runtime.Scheme) {
 	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
 	utilruntime.Must(securityv1beta1.AddToScheme(scheme))
 	utilruntime.Must(networkingv1beta1.AddToScheme(scheme))
+	utilruntime.Must(telemetryv1.AddToScheme(scheme))
 	utilruntime.Must(certmanagerv1.AddToScheme(scheme))
 	utilruntime.Must(policyv1.AddToScheme(scheme))
 	utilruntime.Must(pov1.AddToScheme(scheme))
@@ -61,6 +63,7 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&corev1.ConfigMapList{},
 		&networkingv1beta1.ServiceEntryList{},
 		&networkingv1beta1.GatewayList{},
+		&telemetryv1.TelemetryList{},
 		&autoscalingv2.HorizontalPodAutoscalerList{},
 		&networkingv1beta1.VirtualServiceList{},
 		&securityv1beta1.PeerAuthenticationList{},
@@ -83,6 +86,7 @@ func GetJobSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
 		&networkingv1.NetworkPolicyList{},
 		&corev1.ServiceAccountList{},
 		&networkingv1beta1.ServiceEntryList{},
+		&telemetryv1.TelemetryList{},
 		&corev1.ConfigMapList{},
 		&pov1.PodMonitorList{},
 	}, scheme)

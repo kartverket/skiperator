@@ -649,6 +649,46 @@ spec:
                 items:
                   type: string
                 type: array
+              istioSettings:
+                default:
+                  telemetry:
+                    tracing:
+                    - randomSamplingPercentage: 10
+                description: |-
+                  IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+                  interval for tracing is the only supported option.
+                  By default, tracing is enabled with a random sampling percentage of 10%.
+                properties:
+                  telemetry:
+                    default:
+                      tracing:
+                      - randomSamplingPercentage: 10
+                    description: Telemetry is a placeholder for all relevant telemetry
+                      types, and may be extended in the future to configure additional
+                      telemetry settings.
+                    properties:
+                      tracing:
+                        default:
+                        - randomSamplingPercentage: 10
+                        description: Tracing is a list of tracing configurations for
+                          the telemetry resource. Normally only one tracing configuration
+                          is needed.
+                        items:
+                          description: Tracing contains relevant settings for tracing
+                            in the telemetry configuration
+                          properties:
+                            randomSamplingPercentage:
+                              default: 10
+                              description: |-
+                                RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
+                                Setting RandomSamplingPercentage to 0 will disable tracing.
+                              maximum: 100
+                              minimum: 0
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                type: object
               labels:
                 additionalProperties:
                   type: string

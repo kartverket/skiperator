@@ -11,6 +11,8 @@ var (
 	IstioMetricsPortNumber = intstr.FromInt32(15020)
 	IstioMetricsPortName   = intstr.FromString("istio-metrics")
 	IstioMetricsPath       = "/stats/prometheus"
+	// IstioTraceProvider Name of the trace provider set up in the istiod installation
+	IstioTraceProvider = "otel-tracing"
 
 	IstioRevisionLabel = "istio.io/rev"
 

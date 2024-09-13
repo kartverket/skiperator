@@ -163,6 +163,20 @@ spec:
             - name: smtp
               protocol: TCP
               port: 587
+  # podSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments.
+  podSettings:
+    annotations:
+      some-annotation: some-value
+    terminationGracePeriodSeconds: 30
+    disablePodSpreadTopologyConstraints: false
+  # istioSettings are used to configure istio specific resources. Currently, adjusting sampling interval for tracing is 
+  # the only supported option.
+  istioSettings:
+    telemetry:
+      tracing:
+        - randomSamplingPercentage: 10
+      
+
 ```
 
 ## SKIPJob reference
