@@ -3,11 +3,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -442,12 +440,6 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 		AccessPolicy:  a.Spec.AccessPolicy,
 		IstioSettings: a.Spec.IstioSettings,
 	}
-}
-
-// GetUniqueIdentifier returns a unique hash for the application based on its namespace, name and kind.
-func (a *Application) GetUniqueIdentifier() string {
-	hash := util.GenerateHashFromName(fmt.Sprintf("%s-%s-%s", a.Namespace, a.Name, a.Kind))
-	return fmt.Sprintf("%x", hash)
 }
 
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {

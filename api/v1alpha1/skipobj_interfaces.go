@@ -13,7 +13,6 @@ type SKIPObject interface {
 	SetStatus(status SkiperatorStatus)
 	GetDefaultLabels() map[string]string
 	GetCommonSpec() *CommonSpec
-	GetUniqueIdentifier() string
 }
 
 var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")

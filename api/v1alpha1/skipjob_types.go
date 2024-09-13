@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/pkg/util"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -293,10 +292,4 @@ func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
 		AccessPolicy:  skipJob.Spec.Container.AccessPolicy,
 		IstioSettings: skipJob.Spec.IstioSettings,
 	}
-}
-
-// GetUniqueIdentifier returns a unique hash for the application based on its namespace, name and kind.
-func (skipJob *SKIPJob) GetUniqueIdentifier() string {
-	hash := util.GenerateHashFromName(fmt.Sprintf("%s-%s-%s", skipJob.Namespace, skipJob.Name, skipJob.Kind))
-	return fmt.Sprintf("%x", hash)
 }
