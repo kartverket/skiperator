@@ -1,6 +1,10 @@
 package v1alpha1
 
-import corev1 "k8s.io/api/core/v1"
+import (
+	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
+)
 
 /*
  *  SKIPNamespace is a wrapper for the kubernetes namespace resource, so we can utilize the SKIPObject interface
@@ -25,4 +29,10 @@ func (n SKIPNamespace) GetDefaultLabels() map[string]string {
 
 func (n SKIPNamespace) GetCommonSpec() *CommonSpec {
 	panic("common spec not available for namespace resource type")
+}
+
+// GetUniqueIdentifier returns a unique hash for the application based on its namespace, name and kind.
+func (n SKIPNamespace) GetUniqueIdentifier() string {
+	hash := util.GenerateHashFromName(fmt.Sprintf("%s-%s", n.Name, n.Kind))
+	return fmt.Sprintf("%x", hash)
 }

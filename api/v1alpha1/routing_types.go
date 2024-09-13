@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -117,6 +118,12 @@ func (in *Routing) GetDefaultLabels() map[string]string {
 
 func (in *Routing) GetCommonSpec() *CommonSpec {
 	panic("common spec not available for routing resource type")
+}
+
+// GetUniqueIdentifier returns a unique hash for the application based on its namespace, name and kind.
+func (in *Routing) GetUniqueIdentifier() string {
+	hash := util.GenerateHashFromName(fmt.Sprintf("%s-%s-%s", in.Namespace, in.Name, in.Kind))
+	return fmt.Sprintf("%x", hash)
 }
 
 func (in *Routing) SetDefaultStatus() {

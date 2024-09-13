@@ -9,6 +9,7 @@ import (
 	"istio.io/api/type/v1beta1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -24,8 +25,10 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	istioSettings := object.GetCommonSpec().IstioSettings
 
-	// TODO: Should we add KindPostFixedName() for the SKIPObject interface and use that for the telemetry name to avoid conflicts?
-	telemetry := telemetryv1.Telemetry{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: object.GetName()}}
+	// Create name for resource from name and type, in lowercase
+
+	name := fmt.Sprintf("%s-%s", object.GetName(), strings.ToLower(string(r.GetType())))
+	telemetry := telemetryv1.Telemetry{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: name}}
 
 	var telemetryTracing []*telemetryapiv1.Tracing
 	for _, tracingSetting := range istioSettings.Telemetry.Tracing {
