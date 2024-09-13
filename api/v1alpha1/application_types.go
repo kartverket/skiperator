@@ -246,6 +246,7 @@ type ApplicationSpec struct {
 
 	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
 	// interval for tracing is the only supported option.
+	// By default, tracing is enabled with a random sampling percentage of 10%.
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
