@@ -7,7 +7,6 @@ require (
 	github.com/cert-manager/cert-manager v1.15.3
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.2
-	github.com/golang/protobuf v1.5.4
 	github.com/google/k8s-digester v0.1.15
 	github.com/kyverno/chainsaw v0.2.9
 	github.com/mitchellh/hashstructure/v2 v2.0.2
@@ -17,10 +16,10 @@ require (
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/protobuf v1.34.2
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
-	istio.io/api v1.22.3
-	istio.io/client-go v1.22.3
+	google.golang.org/protobuf v1.34.2
+	istio.io/api v1.23.1-0.20240821135524-978ac3b543c0
+	istio.io/client-go v1.23.1
 	k8s.io/api v0.31.0
 	k8s.io/apiextensions-apiserver v0.31.0
 	k8s.io/apimachinery v0.31.0
@@ -105,6 +104,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/cel-go v0.20.1 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
