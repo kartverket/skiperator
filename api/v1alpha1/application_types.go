@@ -6,6 +6,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -337,7 +338,7 @@ type PrometheusConfig struct {
 
 type Ingresses struct {
 	Hostname string
-	Internal bool
+	Internal *bool
 }
 
 func NewDefaultReplicas() Replicas {
@@ -476,7 +477,11 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 		}
 
 		for _, ingress := range ingressesAsObject {
-			err := hosts.Add(ingress.Hostname, ingress.Internal)
+			if ingress.Internal == nil {
+				ingress.Internal = util.PointTo(IsInternal(ingress.Hostname))
+			}
+
+			err := hosts.Add(ingress.Hostname, *ingress.Internal)
 			if err != nil {
 				errorsFound = append(errorsFound, err)
 				return NewCollection(), errors.Join(errorsFound...)
