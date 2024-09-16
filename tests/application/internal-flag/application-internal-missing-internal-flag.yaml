@@ -1,0 +1,9 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: app-missing-internal-flag
+spec:
+  image: image
+  port: 8000
+  ingresses:
+    - hostname: appmissinginternalflag.atkv3-dev.kartverket-intern.cloud

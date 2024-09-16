@@ -1,0 +1,76 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: app-internal-flag-ingress-56cd7aa901014e78
+spec:
+  selector:
+    app: istio-ingress-internal
+  servers:
+    - hosts:
+        - example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: chainsaw-routing-internal-flag-app-internal-flag-ingress-56cd7aa901014e78
+        mode: SIMPLE
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: app-internal-flag-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - app-internal-flag-ingress-56cd7aa901014e78
+  hosts:
+    - example.com
+  http:
+    - match:
+        - port: 80
+          withoutHeaders:
+            :path:
+              prefix: /.well-known/acme-challenge/
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - name: default-app-route
+      route:
+        - destination:
+            host: app-internal-flag
+            port:
+              number: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-internal-flag
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-internal
+      ports:
+        - port: 8000
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-internal-flag
+  policyTypes:
+    - Ingress
