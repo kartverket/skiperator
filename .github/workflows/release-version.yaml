@@ -119,7 +119,7 @@ jobs:
         run: |
           kubectl patch --type=merge --local \
             -f $BASE_DIR/kustomization.yaml \
-            -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{ github.ref_name }}"}]}' \
+            -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","newTag":"${{ github.ref_name }}"}]}' \
             -o yaml > $BASE_DIR/$TMP_FILE
 
           rm $BASE_DIR/kustomization.yaml
