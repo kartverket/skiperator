@@ -646,9 +646,7 @@ spec:
                   Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
                   They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
                   E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
-                items:
-                  type: string
-                type: array
+                x-kubernetes-preserve-unknown-fields: true
               istioSettings:
                 default:
                   telemetry:

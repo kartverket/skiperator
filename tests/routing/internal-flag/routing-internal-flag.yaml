@@ -1,14 +1,14 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Routing
 metadata:
-  name: app-paths
+  name: app-paths-internal-flag
 spec:
   hostname: example.com
   internal: true
   routes:
     - pathPrefix: /app1
-      targetApp: app-1
+      targetApp: internal-flag-app1
       rewriteUri: true
     - pathPrefix: /new-path
-      targetApp: app-2
+      targetApp: internal-flag-app2
       rewriteUri: true

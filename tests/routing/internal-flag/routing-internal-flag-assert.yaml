@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: app-paths-routing-ingress
+  name: app-paths-internal-flag-routing-ingress
 spec:
   selector:
     app: istio-ingress-internal
@@ -19,21 +19,21 @@ spec:
         number: 443
         protocol: HTTPS
       tls:
-        credentialName: chainsaw-routing-internal-flag-app-paths-routing-ingre-9441fe86
+        credentialName: chainsaw-routing-internal-flag-app-paths-internal-flag-67aee041
         mode: SIMPLE
 
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: app-paths-routing-ingress
+  name: app-paths-internal-flag-routing-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - app-paths-routing-ingress
+    - app-paths-internal-flag-routing-ingress
   hosts:
     - example.com
   http:
@@ -52,10 +52,10 @@ spec:
             prefix: /app1
       rewrite:
         uri: /
-      name: app-1
+      name: internal-flag-app1
       route:
         - destination:
-            host: app-1
+            host: internal-flag-app1
             port:
               number: 8000
     - match:
@@ -64,21 +64,21 @@ spec:
             prefix: /new-path
       rewrite:
         uri: /
-      name: app-2
+      name: internal-flag-app2
       route:
         - destination:
-            host: app-2
+            host: internal-flag-app2
             port:
               number: 9000
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: app-paths-app-2-istio-ingress
+  name: app-paths-internal-flag-internal-flag-app2-istio-ingress
 spec:
   podSelector:
     matchLabels:
-      app: app-2
+      app: internal-flag-app2
   policyTypes:
     - Ingress
   ingress:
@@ -92,3 +92,25 @@ spec:
       ports:
         - port: 9000
           protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-paths-internal-flag-internal-flag-app1-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-internal
+      ports:
+        - port: 8000
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: internal-flag-app1
+  policyTypes:
+    - Ingress

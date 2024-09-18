@@ -460,18 +460,6 @@ func MarshalledIngresses(ingresses interface{}) *apiextensionsv1.JSON {
 	return nil
 }
 
-func MarshalledIngresses(ingresses interface{}) *apiextensionsv1.JSON {
-	IngressesJSON := &apiextensionsv1.JSON{}
-	var err error
-
-	IngressesJSON.Raw, err = json.Marshal(ingresses)
-	if err == nil {
-		return IngressesJSON
-	}
-
-	return nil
-}
-
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	var ingressesAsString []string
 	var ingressesAsObject []Ingresses
