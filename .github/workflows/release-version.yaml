@@ -10,6 +10,17 @@ permissions:
   packages: write
   id-token: write
 
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+  RBAC_FILE_PATH: config/rbac/role.yaml
+  CRD_APP_FILE_PATH: config/crd/skiperator.kartverket.no_applications.yaml
+  CRD_JOB_FILE_PATH: config/crd/skiperator.kartverket.no_skipjobs.yaml
+  CRD_ROUTING_FILE_PATH: config/crd/skiperator.kartverket.no_routings.yaml
+  ARTIFACT_NAME: skiperator-artifact-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
@@ -49,3 +60,86 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  generate:
+    name: CRD and ClusterRole
+    needs: [ goreleaser ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Golang environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.1'
+
+      - name: Generate CRD and ClusterRole
+        run: make generate
+
+      - name: Upload CRD and ClusterRole
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            ${{ env.RBAC_FILE_PATH }}
+            ${{ env.CRD_APP_FILE_PATH }}
+            ${{ env.CRD_JOB_FILE_PATH }}
+            ${{ env.CRD_ROUTING_FILE_PATH }}
+
+  deploy-argo:
+    needs: [ goreleaser, generate ]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    env:
+      BASE_DIR: ./bases/skiperator-stable
+      TMP_FILE: tmp_kustomization.yaml
+    steps:
+      - uses: octo-sts/action@6177b4481c00308b3839969c3eca88c96a91775f # v1.0.0
+        id: octo-sts
+        with:
+          scope: kartverket/skip-apps
+          identity: skiperator
+
+      - name: Checkout apps repo
+        uses: actions/checkout@v4
+        with:
+          repository: kartverket/skip-apps
+          token: ${{ steps.octo-sts.outputs.token }}
+
+      - name: Download CRD and RBAC
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: config/
+
+      - name: Patch Image Digest
+        run: |
+          kubectl patch --type=merge --local \
+            -f $BASE_DIR/kustomization.yaml \
+            -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","newTag":"${{ github.ref_name }}"}]}' \
+            -o yaml > $BASE_DIR/$TMP_FILE
+
+          rm $BASE_DIR/kustomization.yaml
+          mv $BASE_DIR/$TMP_FILE $BASE_DIR/kustomization.yaml
+
+      - name: Update CRD and Role
+        run: |
+          cp -f -v $CRD_APP_FILE_PATH $BASE_DIR/crd.yaml
+          cp -f -v $CRD_JOB_FILE_PATH $BASE_DIR/skipjob-crd.yaml
+          cp -f -v $CRD_ROUTING_FILE_PATH $BASE_DIR/routing-crd.yaml
+          cp -f -v $RBAC_FILE_PATH $BASE_DIR/clusterrole.yaml
+          rm -rf config/
+
+      - name: Commit Changes to Repo
+        run: |
+          git config --global user.email "noreply@kartverket.no"
+          git config --global user.name "GitHub Actions"
+          git commit -aF- <<EOF
+          skiperator ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
+          EOF
+
+          git push
+
