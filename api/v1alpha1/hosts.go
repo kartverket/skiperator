@@ -111,6 +111,6 @@ func (hs *HostCollection) Count() int {
 	return len(hs.hosts)
 }
 
-func IsInternal(hostname string) bool {
+func isInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
