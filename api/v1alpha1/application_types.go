@@ -478,7 +478,7 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 
 		for _, ingress := range ingressesAsObject {
 			if ingress.Internal == nil {
-				ingress.Internal = util.PointTo(IsInternal(ingress.Hostname))
+				ingress.Internal = util.PointTo(isInternal(ingress.Hostname))
 			}
 
 			err := hosts.Add(ingress.Hostname, *ingress.Internal)
@@ -491,7 +491,7 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	}
 
 	for _, ingress := range ingressesAsString {
-		err := hosts.Add(ingress, IsInternal(ingress))
+		err := hosts.Add(ingress, isInternal(ingress))
 		if err != nil {
 			errorsFound = append(errorsFound, err)
 		}

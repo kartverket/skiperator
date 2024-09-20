@@ -54,7 +54,7 @@ func NewHost(hostname string) (*Host, error) {
 	if err := domain.Check(h.Hostname); err != nil {
 		return nil, fmt.Errorf("%s: failed validation: %w", h.Hostname, err)
 	}
-	h.Internal = IsInternal(hostname)
+	h.Internal = isInternal(hostname)
 	return &h, nil
 }
 
