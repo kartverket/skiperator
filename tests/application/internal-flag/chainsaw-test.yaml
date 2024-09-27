@@ -19,7 +19,7 @@ spec:
         - assert:
             file: application-internal-missing-internal-flag-assert.yaml
     - try:
-        - patch:
+        - apply:
             file: application-internal-missing-internal-flag-ext.yaml
         - assert:
             file: application-internal-missing-internal-flag-ext-assert.yaml

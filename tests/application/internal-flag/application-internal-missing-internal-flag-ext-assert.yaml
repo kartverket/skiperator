@@ -1,7 +1,7 @@
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
-  name: app-missing-internal-flag-ingress-56cd7aa901014e78
+  name: app-missing-internal-flag-ext-ingress-56cd7aa901014e78
 spec:
   selector:
     app: istio-ingress-external
@@ -19,21 +19,21 @@ spec:
         number: 443
         protocol: HTTPS
       tls:
-        credentialName: chainsaw-routing-internal-flag-app-missing-internal-flag-ingress-56cd7aa901014e78
+        credentialName: chainsaw-routing-internal-flag-app-missing-internal-flag-ext-ingress-56cd7aa901014e78
         mode: SIMPLE
 
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
 metadata:
-  name: app-missing-internal-flag-ingress
+  name: app-missing-internal-flag-ext-ingress
 spec:
   exportTo:
     - .
     - istio-system
     - istio-gateways
   gateways:
-    - app-missing-internal-flag-ingress-56cd7aa901014e78
+    - app-missing-internal-flag-ext-ingress-56cd7aa901014e78
   hosts:
     - example.com
   http:
@@ -49,14 +49,14 @@ spec:
     - name: default-app-route
       route:
         - destination:
-            host: app-missing-internal-flag
+            host: app-missing-internal-flag-ext
             port:
               number: 8000
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: app-missing-internal-flag
+  name: app-missing-internal-flag-ext
 spec:
   ingress:
     - from:
@@ -71,6 +71,6 @@ spec:
           protocol: TCP
   podSelector:
     matchLabels:
-      app: app-missing-internal-flag
+      app: app-missing-internal-flag-ext
   policyTypes:
     - Ingress
