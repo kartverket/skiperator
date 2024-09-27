@@ -31,5 +31,8 @@ spec:
             file: patch-application-set-0-assert.yaml
         - error:
             file: patch-application-set-0-error.yaml
-
-
+    - try:
+        - apply:
+            file: patch-application-scale-up-from-0.yaml
+        - assert:
+            file: patch-application-scale-up-from-0-assert.yaml
