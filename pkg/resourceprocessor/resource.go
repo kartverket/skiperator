@@ -33,8 +33,16 @@ func preparePatch(new client.Object, old client.Object) {
 	case *v1.Deployment:
 		deployment := old.(*v1.Deployment)
 		definition := new.(*v1.Deployment)
+
+		// Handling HPA.
+		// If the replicas field is not set in the definition, we should set it to 1 if the deployment has 0 replicas or HPA will not work.
+		// If the replicas field is set in the definition, we should use that value so we don't scale down.
 		if definition.Spec.Replicas == nil {
-			definition.Spec.Replicas = deployment.Spec.Replicas
+			if *deployment.Spec.Replicas == int32(0) {
+				definition.Spec.Replicas = util.PointTo(int32(1))
+			} else {
+				definition.Spec.Replicas = deployment.Spec.Replicas
+			}
 		}
 		// The command "kubectl rollout restart" puts an annotation on the deployment template in order to track
 		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
