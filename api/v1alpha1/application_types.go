@@ -469,10 +469,10 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	ingresses := MarshalledIngresses(s.Ingresses)
 	err := json.Unmarshal(ingresses.Raw, &ingressesAsString)
 
+	// If the ingress supplied is not a string, we assume it's an object
 	if err != nil {
-		err := json.Unmarshal(ingresses.Raw, &ingressesAsObject)
-		if err != nil {
-			errorsFound = append(errorsFound, err)
+		if mErr := json.Unmarshal(ingresses.Raw, &ingressesAsObject); mErr != nil {
+			errorsFound = append(errorsFound, mErr)
 			return NewCollection(), errors.Join(errorsFound...)
 		}
 
@@ -481,15 +481,14 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 				ingress.Internal = util.PointTo(isInternal(ingress.Hostname))
 			}
 
-			err := hosts.Add(ingress.Hostname, *ingress.Internal)
-			if err != nil {
-				errorsFound = append(errorsFound, err)
-				return NewCollection(), errors.Join(errorsFound...)
+			if aErr := hosts.Add(ingress.Hostname, *ingress.Internal); aErr != nil {
+				errorsFound = append(errorsFound, aErr)
 			}
 		}
-		return hosts, nil
+		return hosts, errors.Join(errorsFound...)
 	}
 
+	//Handle legacy ingress format
 	for _, ingress := range ingressesAsString {
 		err := hosts.Add(ingress, isInternal(ingress))
 		if err != nil {
