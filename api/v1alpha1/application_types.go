@@ -490,8 +490,8 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 
 	//Handle legacy ingress format
 	for _, ingress := range ingressesAsString {
-		bErr := hosts.Add(ingress, isInternal(ingress))
-		if bErr != nil {
+		err := hosts.Add(ingress, isInternal(ingress))
+		if err != nil {
 			errorsFound = append(errorsFound, err)
 		}
 	}
