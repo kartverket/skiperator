@@ -5,6 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
   labels:
+    app.kubernetes.io/name: minimal
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "application"
     application.skiperator.no/app: minimal
@@ -23,6 +24,7 @@ kind: Deployment
 metadata:
   name: minimal
   labels:
+    app.kubernetes.io/name: minimal
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "application"
     application.skiperator.no/app: minimal
@@ -123,6 +125,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
   labels:
+    app.kubernetes.io/name: minimal
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "application"
     application.skiperator.no/app: minimal
@@ -156,6 +159,8 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
   labels:
+    app.kubernetes.io/name: minimal
+    app.kubernetes.io/version: latest
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "application"
     application.skiperator.no/app: minimal
@@ -185,6 +190,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
   labels:
+    app.kubernetes.io/name: minimal
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "application"
     application.skiperator.no/app: minimal
