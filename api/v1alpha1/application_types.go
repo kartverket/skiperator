@@ -3,6 +3,7 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -336,7 +337,7 @@ type PrometheusConfig struct {
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 }
 
-type Ingresses struct {
+type Ingress struct {
 	Hostname string
 	Internal *bool
 }
@@ -448,29 +449,31 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
-func MarshalledIngresses(ingresses interface{}) *apiextensionsv1.JSON {
-	IngressesJSON := &apiextensionsv1.JSON{}
+func MarshalledIngresses(ingresses interface{}) (*apiextensionsv1.JSON, error) {
+	marshalled := &apiextensionsv1.JSON{}
 	var err error
 
-	IngressesJSON.Raw, err = json.Marshal(ingresses)
-	if err == nil {
-		return IngressesJSON
+	if marshalled.Raw, err = json.Marshal(ingresses); err != nil {
+		return nil, fmt.Errorf("could not marshal ingresses: %w", err)
 	}
 
-	return nil
+	return marshalled, nil
 }
 
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	var ingressesAsString []string
-	var ingressesAsObject []Ingresses
+	var ingressesAsObject []Ingress
 	var errorsFound []error
 	hosts := NewCollection()
 
-	ingresses := MarshalledIngresses(s.Ingresses)
-	err := json.Unmarshal(ingresses.Raw, &ingressesAsString)
+	ingresses, err := MarshalledIngresses(s.Ingresses)
+	if err != nil {
+		return hosts, err
+	}
+	aErr := json.Unmarshal(ingresses.Raw, &ingressesAsString)
 
 	// If the ingress supplied is not a string, we assume it's an object
-	if err != nil {
+	if aErr != nil {
 		if mErr := json.Unmarshal(ingresses.Raw, &ingressesAsObject); mErr != nil {
 			errorsFound = append(errorsFound, mErr)
 			return NewCollection(), errors.Join(errorsFound...)
