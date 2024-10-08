@@ -3,9 +3,11 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,7 +70,7 @@ type ApplicationSpec struct {
 	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
-	Ingresses []string `json:"ingresses,omitempty"`
+	Ingresses *apiextensionsv1.JSON `json:"ingresses,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
@@ -335,6 +337,11 @@ type PrometheusConfig struct {
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 }
 
+type Ingress struct {
+	Hostname string
+	Internal *bool
+}
+
 func NewDefaultReplicas() Replicas {
 	return Replicas{
 		Min:                  2,
@@ -442,15 +449,53 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
+func MarshalledIngresses(ingresses interface{}) (*apiextensionsv1.JSON, error) {
+	marshalled := &apiextensionsv1.JSON{}
+	var err error
+
+	if marshalled.Raw, err = json.Marshal(ingresses); err != nil {
+		return nil, fmt.Errorf("could not marshal ingresses: %w", err)
+	}
+
+	return marshalled, nil
+}
+
 func (s *ApplicationSpec) Hosts() (HostCollection, error) {
+	var ingressesAsString []string
+	var ingressesAsObject []Ingress
+	var errorsFound []error
 	hosts := NewCollection()
 
-	var errorsFound []error
-	for _, ingress := range s.Ingresses {
-		err := hosts.Add(ingress)
+	ingresses, err := MarshalledIngresses(s.Ingresses)
+	if err != nil {
+		return hosts, err
+	}
+	aErr := json.Unmarshal(ingresses.Raw, &ingressesAsString)
+
+	// If the ingress supplied is not a string, we assume it's an object
+	if aErr != nil {
+		if mErr := json.Unmarshal(ingresses.Raw, &ingressesAsObject); mErr != nil {
+			errorsFound = append(errorsFound, mErr)
+			return NewCollection(), errors.Join(errorsFound...)
+		}
+
+		for _, ingress := range ingressesAsObject {
+			if ingress.Internal == nil {
+				ingress.Internal = util.PointTo(isInternal(ingress.Hostname))
+			}
+
+			if aErr := hosts.Add(ingress.Hostname, *ingress.Internal); aErr != nil {
+				errorsFound = append(errorsFound, aErr)
+			}
+		}
+		return hosts, errors.Join(errorsFound...)
+	}
+
+	//Handle legacy ingress format
+	for _, ingress := range ingressesAsString {
+		err := hosts.Add(ingress, isInternal(ingress))
 		if err != nil {
 			errorsFound = append(errorsFound, err)
-			continue
 		}
 	}
 

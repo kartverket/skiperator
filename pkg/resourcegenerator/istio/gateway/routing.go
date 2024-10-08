@@ -2,10 +2,9 @@ package gateway
 
 import (
 	"fmt"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	networkingv1beta1api "istio.io/api/networking/v1beta1"
 	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +30,9 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if err != nil {
 		return err
 	}
+	if routing.Spec.Internal != nil {
+		h.Internal = *routing.Spec.Internal
+	}
 
 	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: routing.GetGatewayName()}}
 
@@ -44,7 +46,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)
+	gateway.Spec.Selector = resourceutils.GetIstioGatewayLabelSelector(h)
 	gateway.Spec.Servers = []*networkingv1beta1api.Server{
 		{
 			Hosts: []string{h.Hostname},
