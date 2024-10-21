@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/version: "1234567890123456"
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app.kubernetes.io/version: "1234567890123456"
