@@ -12,7 +12,7 @@ require (
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20240812234935-a9815b4627e5
 	github.com/nais/liberator v0.0.0-20240815094101-91196b536d03
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.76.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.77.1
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/zap v1.27.0
@@ -223,7 +223,7 @@ require (
 	k8s.io/component-base v0.31.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240827152857-f7e401e7b4c2 // indirect
-	k8s.io/utils v0.0.0-20240821151609-f90d01438635 // indirect
+	k8s.io/utils v0.0.0-20240902221715-702e33fdd3c3 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3 // indirect
 	sigs.k8s.io/gateway-api v1.1.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
