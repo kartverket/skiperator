@@ -3,16 +3,20 @@ package v1alpha1
 import (
 	"fmt"
 	"github.com/chmike/domain"
+	"regexp"
 	"strings"
 )
 
 const hostnameSecretSeparator = "+"
+
+var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
 
 // TODO: Add a mechanism for validating that the
 // hostname is covered by the CustomCertificateSecret if present
 type Host struct {
 	Hostname                string
 	CustomCertificateSecret *string
+	Internal                bool
 }
 
 type HostCollection struct {
@@ -25,6 +29,7 @@ func NewHost(hostname string) (*Host, error) {
 	}
 
 	var h Host
+
 	// If hostname is separated by +, the user wants to use a custom certificate
 	results := strings.Split(hostname, hostnameSecretSeparator)
 
@@ -49,7 +54,7 @@ func NewHost(hostname string) (*Host, error) {
 	if err := domain.Check(h.Hostname); err != nil {
 		return nil, fmt.Errorf("%s: failed validation: %w", h.Hostname, err)
 	}
-
+	h.Internal = isInternal(hostname)
 	return &h, nil
 }
 
@@ -63,14 +68,14 @@ func NewCollection() HostCollection {
 	}
 }
 
-func (hs *HostCollection) Add(hostname string) error {
+func (hs *HostCollection) Add(hostname string, internal bool) error {
 	h, err := NewHost(hostname)
 	if err != nil {
 		return err
 	}
 
+	h.Internal = internal
 	existingValue, alreadyPresent := hs.hosts[h.Hostname]
-
 	switch alreadyPresent {
 	case true:
 		if existingValue.UsesCustomCert() {
@@ -104,4 +109,8 @@ func (hs *HostCollection) Hostnames() []string {
 
 func (hs *HostCollection) Count() int {
 	return len(hs.hosts)
+}
+
+func isInternal(hostname string) bool {
+	return internalPattern.MatchString(hostname)
 }

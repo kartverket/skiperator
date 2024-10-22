@@ -1,0 +1,15 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: internal-flag-app1
+spec:
+  image: image
+  port: 8000
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: internal-flag-app2
+spec:
+  image: image
+  port: 9000

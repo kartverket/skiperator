@@ -8,32 +8,13 @@ import (
 	"github.com/nais/liberator/pkg/namegen"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
-	"k8s.io/client-go/tools/record"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
-	"unicode"
 )
 
-//TODO Clean up this file, move functions to more appropriate files
-
-var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
-
-func IsInternal(hostname string) bool {
-	return internalPattern.MatchString(hostname)
-}
-
-func GetIstioGatewayLabelSelector(hostname string) map[string]string {
-	if IsInternal(hostname) {
-		return map[string]string{"app": "istio-ingress-internal"}
-	}
-	return map[string]string{"app": "istio-ingress-external"}
-
-}
+// TODO Clean up this file, move functions to more appropriate files
 
 func GetHashForStructs(obj []interface{}) string {
 	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
@@ -55,35 +36,6 @@ func GetConfigMap(client client.Client, ctx context.Context, namespacedName type
 	err := client.Get(ctx, namespacedName, &configMap)
 
 	return configMap, err
-}
-
-func GetSecret(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Secret, error) {
-	secret := corev1.Secret{}
-
-	err := client.Get(ctx, namespacedName, &secret)
-
-	return secret, err
-}
-
-func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {
-	service := corev1.Service{}
-
-	err := client.Get(ctx, namespacedName, &service)
-
-	return service, err
-}
-
-func ErrIsMissingOrNil(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
-	if errors.IsNotFound(err) {
-		recorder.Eventf(
-			object,
-			corev1.EventTypeWarning, "Missing",
-			message,
-		)
-	} else if err != nil {
-		return false
-	}
-	return true
 }
 
 func ErrDoPanic(err error, message string) {
@@ -116,22 +68,8 @@ func GetPodAppAndTeamSelector(applicationName string, teamName string) map[strin
 	}
 }
 
-func HasUpperCaseLetter(word string) bool {
-	for _, letter := range word {
-		if unicode.IsUpper(letter) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
-}
-
-func GetGatewaySecretName(namespace string, name string) string {
-	return fmt.Sprintf("%s-%s-ingress", namespace, name)
 }
 
 func GetSecretName(prefix string, name string) (string, error) {

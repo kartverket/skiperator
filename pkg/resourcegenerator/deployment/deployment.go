@@ -204,10 +204,16 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	// add an external link to argocd
-	ingresses := application.Spec.Ingresses
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		ctxLog.Error(err, "could not get hosts from application")
+		return err
+	}
 	if deployment.Annotations == nil {
 		deployment.Annotations = make(map[string]string)
 	}
+
+	var ingresses = hosts.Hostnames()
 
 	if len(ingresses) > 0 {
 		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])

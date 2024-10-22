@@ -78,8 +78,8 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	*out = *in
 	if in.Ingresses != nil {
 		in, out := &in.Ingresses, &out.Ingresses
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new(v1.JSON)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
@@ -503,6 +503,11 @@ func (in *RoutingSpec) DeepCopyInto(out *RoutingSpec) {
 	}
 	if in.RedirectToHTTPS != nil {
 		in, out := &in.RedirectToHTTPS, &out.RedirectToHTTPS
+		*out = new(bool)
+		**out = **in
+	}
+	if in.Internal != nil {
+		in, out := &in.Internal, &out.Internal
 		*out = new(bool)
 		**out = **in
 	}

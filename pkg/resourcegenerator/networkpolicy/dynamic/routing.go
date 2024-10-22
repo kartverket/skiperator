@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,13 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	for _, route := range routing.Spec.Routes {
 		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route
 	}
-
+	h, err := routing.Spec.GetHost()
+	if routing.Spec.Internal != nil {
+		h.Internal = *routing.Spec.Internal
+	}
+	if err != nil {
+		return err
+	}
 	for netpolName, route := range uniqueTargetApps {
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -50,7 +57,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: util.GetIstioGatewaySelector(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
+								MatchLabels: resourceutils.GetIstioGatewayLabelSelector(h),
 							},
 						},
 					},
