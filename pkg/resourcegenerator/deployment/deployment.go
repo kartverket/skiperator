@@ -108,6 +108,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	} else {
 		podTemplateLabels = util.GetPodAppSelector(application.Name)
 	}
+	podTemplateLabels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(application.Spec.Image)
 
 	// Add annotations to pod template, safe-to-evict added due to issues
 	// with cluster-autoscaler and unable to evict pods with local volumes
