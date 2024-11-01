@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -15,7 +16,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
-	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -76,7 +77,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return nil
 		})).
 		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&istionetworkingv1beta1.ServiceEntry{}).
+		Owns(&istionetworkingv1.ServiceEntry{}).
 		Owns(&telemetryv1.Telemetry{}).
 		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
 		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs

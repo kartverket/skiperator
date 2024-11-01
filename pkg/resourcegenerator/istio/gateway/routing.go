@@ -6,8 +6,8 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
-	networkingv1beta1api "istio.io/api/networking/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1api "istio.io/api/networking/v1"
+	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -32,7 +32,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: routing.GetGatewayName()}}
+	gateway := networkingv1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: routing.Namespace, Name: routing.GetGatewayName()}}
 
 	var determinedCredentialName string
 	if h.UsesCustomCert() {
@@ -45,10 +45,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)
-	gateway.Spec.Servers = []*networkingv1beta1api.Server{
+	gateway.Spec.Servers = []*networkingv1api.Server{
 		{
 			Hosts: []string{h.Hostname},
-			Port: &networkingv1beta1api.Port{
+			Port: &networkingv1api.Port{
 				Number:   80,
 				Name:     "http",
 				Protocol: "HTTP",
@@ -56,13 +56,13 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		},
 		{
 			Hosts: []string{h.Hostname},
-			Port: &networkingv1beta1api.Port{
+			Port: &networkingv1api.Port{
 				Number:   443,
 				Name:     "https",
 				Protocol: "HTTPS",
 			},
-			Tls: &networkingv1beta1api.ServerTLSSettings{
-				Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
+			Tls: &networkingv1api.ServerTLSSettings{
+				Mode:           networkingv1api.ServerTLSSettings_SIMPLE,
 				CredentialName: determinedCredentialName,
 			},
 		},

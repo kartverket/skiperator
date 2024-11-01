@@ -6,7 +6,7 @@ metadata:
   namespace: istio-gateways
   name: test-ingresses-ingress-34888c0b0c2a4a2c
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: ingresses-ingress-34888c0b0c2a4a2c
@@ -18,14 +18,14 @@ metadata:
   namespace: istio-gateways
   name: test-ingresses-ingress-3a90cb5d70dc06a
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: ingresses-ingress-3a90cb5d70dc06a
 ---
 ### Common resources
 
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: ingresses-ingress

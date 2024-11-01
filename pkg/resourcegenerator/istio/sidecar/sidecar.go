@@ -2,9 +2,10 @@ package sidecar
 
 import (
 	"fmt"
+
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	networkingv1beta1api "istio.io/api/networking/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1api "istio.io/api/networking/v1"
+	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -17,11 +18,11 @@ func Generate(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("istio sidecar resource only supports the namespace type")
 	}
 
-	sidecar := networkingv1beta1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "sidecar"}}
+	sidecar := networkingv1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "sidecar"}}
 
-	sidecar.Spec = networkingv1beta1api.Sidecar{
-		OutboundTrafficPolicy: &networkingv1beta1api.OutboundTrafficPolicy{
-			Mode: networkingv1beta1api.OutboundTrafficPolicy_REGISTRY_ONLY,
+	sidecar.Spec = networkingv1api.Sidecar{
+		OutboundTrafficPolicy: &networkingv1api.OutboundTrafficPolicy{
+			Mode: networkingv1api.OutboundTrafficPolicy_REGISTRY_ONLY,
 		},
 	}
 

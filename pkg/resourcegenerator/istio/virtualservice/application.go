@@ -6,8 +6,8 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	networkingv1beta1api "istio.io/api/networking/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1api "istio.io/api/networking/v1"
+	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,7 +24,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("failed to cast object to Application")
 	}
 
-	virtualService := networkingv1beta1.VirtualService{
+	virtualService := networkingv1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      application.Name + "-ingress",
 			Namespace: application.Namespace,
@@ -37,21 +37,21 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 
 	if len(hosts.Hostnames()) > 0 {
-		virtualService.Spec = networkingv1beta1api.VirtualService{
+		virtualService.Spec = networkingv1api.VirtualService{
 			ExportTo: []string{".", "istio-system", "istio-gateways"},
 			Gateways: getGatewaysFromApplication(application),
 			Hosts:    hosts.Hostnames(),
-			Http:     []*networkingv1beta1api.HTTPRoute{},
+			Http:     []*networkingv1api.HTTPRoute{},
 		}
 
 		if application.Spec.RedirectToHTTPS != nil && *application.Spec.RedirectToHTTPS {
-			virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
+			virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1api.HTTPRoute{
 				Name: "redirect-to-https",
-				Match: []*networkingv1beta1api.HTTPMatchRequest{
+				Match: []*networkingv1api.HTTPMatchRequest{
 					{
-						WithoutHeaders: map[string]*networkingv1beta1api.StringMatch{
+						WithoutHeaders: map[string]*networkingv1api.StringMatch{
 							":path": {
-								MatchType: &networkingv1beta1api.StringMatch_Prefix{
+								MatchType: &networkingv1api.StringMatch_Prefix{
 									Prefix: "/.well-known/acme-challenge/",
 								},
 							},
@@ -59,20 +59,20 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 						Port: 80,
 					},
 				},
-				Redirect: &networkingv1beta1api.HTTPRedirect{
+				Redirect: &networkingv1api.HTTPRedirect{
 					Scheme:       "https",
 					RedirectCode: 308,
 				},
 			})
 		}
 
-		virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1beta1api.HTTPRoute{
+		virtualService.Spec.Http = append(virtualService.Spec.Http, &networkingv1api.HTTPRoute{
 			Name: "default-app-route",
-			Route: []*networkingv1beta1api.HTTPRouteDestination{
+			Route: []*networkingv1api.HTTPRouteDestination{
 				{
-					Destination: &networkingv1beta1api.Destination{
+					Destination: &networkingv1api.Destination{
 						Host: application.Name,
-						Port: &networkingv1beta1api.PortSelector{
+						Port: &networkingv1api.PortSelector{
 							Number: uint32(application.Spec.Port),
 						},
 					},

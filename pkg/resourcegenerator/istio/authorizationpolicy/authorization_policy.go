@@ -2,12 +2,13 @@ package authorizationpolicy
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
-	securityv1beta1api "istio.io/api/security/v1beta1"
+	securityv1api "istio.io/api/security/v1"
 	typev1beta1 "istio.io/api/type/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,29 +55,29 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getGeneralFromRule() []*securityv1beta1api.Rule_From {
-	return []*securityv1beta1api.Rule_From{
+func getGeneralFromRule() []*securityv1api.Rule_From {
+	return []*securityv1api.Rule_From{
 		{
-			Source: &securityv1beta1api.Source{
+			Source: &securityv1api.Source{
 				Namespaces: []string{"istio-gateways"},
 			},
 		},
 	}
 }
 
-func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths []string) securityv1beta1.AuthorizationPolicy {
-	return securityv1beta1.AuthorizationPolicy{
+func getDefaultDenyPolicy(application *skiperatorv1alpha1.Application, denyPaths []string) securityv1.AuthorizationPolicy {
+	return securityv1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
 			Name:      application.Name + "-deny",
 		},
-		Spec: securityv1beta1api.AuthorizationPolicy{
-			Action: securityv1beta1api.AuthorizationPolicy_DENY,
-			Rules: []*securityv1beta1api.Rule{
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: securityv1api.AuthorizationPolicy_DENY,
+			Rules: []*securityv1api.Rule{
 				{
-					To: []*securityv1beta1api.Rule_To{
+					To: []*securityv1api.Rule_To{
 						{
-							Operation: &securityv1beta1api.Operation{
+							Operation: &securityv1api.Operation{
 								Paths: denyPaths,
 							},
 						},

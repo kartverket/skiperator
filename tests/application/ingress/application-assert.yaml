@@ -14,7 +14,7 @@ spec:
   dnsNames:
     - example.com
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: ingresses-ingress-56cd7aa901014e78
@@ -45,14 +45,14 @@ metadata:
   namespace: istio-gateways
   name: ingress-ingresses-ingress-34888c0b0c2a4a2c
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: ingresses-ingress-34888c0b0c2a4a2c
 
 ### VirtualService, should exist one for both
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: ingresses-ingress

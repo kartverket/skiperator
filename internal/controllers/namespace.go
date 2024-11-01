@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -12,7 +13,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
-	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -37,7 +38,7 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&corev1.Namespace{}).
 		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&istionetworkingv1beta1.Sidecar{}).
+		Owns(&istionetworkingv1.Sidecar{}).
 		Owns(&corev1.Secret{}, builder.WithPredicates(
 			util.MatchesPredicate[*corev1.Secret](github.IsImagePullSecret),
 		)).

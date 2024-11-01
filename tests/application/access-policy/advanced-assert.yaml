@@ -62,7 +62,7 @@ spec:
         - port: 8080
           protocol: TCP
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: access-policy-egress-56cd7aa901014e78
@@ -80,7 +80,7 @@ spec:
       number: 80
       protocol: HTTP
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: access-policy-egress-3a90cb5d70dc06a
