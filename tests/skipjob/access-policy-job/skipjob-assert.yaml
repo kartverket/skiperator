@@ -33,7 +33,7 @@ spec:
   policyTypes:
     - Egress
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: skipjob-access-policy-job-egress-3a90cb5d70dc06a
@@ -50,7 +50,7 @@ spec:
       protocol: HTTPS
   resolution: DNS
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: skipjob-access-policy-job-egress-56cd7aa901014e78

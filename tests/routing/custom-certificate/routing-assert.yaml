@@ -15,7 +15,7 @@
 #    name: cluster-issuer
 #  secretName: chainsaw-routing-routes-some-routing-routing-ingress-b1dffede
 #---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: some-routing-routing-ingress

@@ -2,12 +2,13 @@ package peerauthentication
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
-	securityv1beta1api "istio.io/api/security/v1beta1"
+	securityv1api "istio.io/api/security/v1"
 	typev1beta1 "istio.io/api/type/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,14 +25,14 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 	ctxLog.Debug("Attempting to generate peer authentication for application", "application", application.Name)
 
-	peerAuthentication := securityv1beta1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
+	peerAuthentication := securityv1.PeerAuthentication{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
-	peerAuthentication.Spec = securityv1beta1api.PeerAuthentication{
+	peerAuthentication.Spec = securityv1api.PeerAuthentication{
 		Selector: &typev1beta1.WorkloadSelector{
 			MatchLabels: util.GetPodAppSelector(application.Name),
 		},
-		Mtls: &securityv1beta1api.PeerAuthentication_MutualTLS{
-			Mode: securityv1beta1api.PeerAuthentication_MutualTLS_STRICT,
+		Mtls: &securityv1api.PeerAuthentication_MutualTLS{
+			Mode: securityv1api.PeerAuthentication_MutualTLS_STRICT,
 		},
 	}
 

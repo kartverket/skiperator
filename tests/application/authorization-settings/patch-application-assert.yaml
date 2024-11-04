@@ -1,5 +1,5 @@
 
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-list-deny
@@ -21,7 +21,7 @@ spec:
     matchLabels:
       app: allow-list
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: allow-all-deny

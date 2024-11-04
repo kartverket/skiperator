@@ -1,4 +1,4 @@
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: custom-cert-duplicate-ingress-db284ad1b14a59a0
@@ -22,7 +22,7 @@ spec:
         credentialName: some-cert
         mode: SIMPLE
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: VirtualService
 metadata:
   name: custom-cert-duplicate-ingress
