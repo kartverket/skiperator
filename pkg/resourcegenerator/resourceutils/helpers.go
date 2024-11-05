@@ -35,7 +35,7 @@ func GetImageVersion(imageVersionString string) string {
 
 	// Add build number to version if it is specified
 	if len(parts) > 2 {
-		return versionPart + "+" + parts[2]
+		return versionPart + "-" + parts[2]
 	}
 	return versionPart
 }
