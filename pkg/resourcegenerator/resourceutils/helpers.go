@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+const LabelValueMaxLength int = 63
+
 func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 	replicas, err := skiperatorv1alpha1.GetStaticReplicas(jsonReplicas)
 	if err == nil && replicas == 0 {
@@ -19,26 +21,28 @@ func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 }
 
 func GetImageVersion(imageVersionString string) string {
-	parts := strings.Split(imageVersionString, ":")
+	// Find position of first "@", remove it and everything after it
+	if strings.Contains(imageVersionString, "@") {
+		imageVersionString = strings.Split(imageVersionString, "@")[0]
+		imageVersionString = imageVersionString + ":unknown"
+	}
 
-	// Implicitly assume version "latest" if no version is specified
-	if len(parts) > 2 {
+	// If no version is given, assume "latest"
+	if !strings.Contains(imageVersionString, ":") {
 		return "latest"
 	}
 
-	versionPart := parts[1]
+	// Split image string into parts
+	parts := strings.Split(imageVersionString, ":")
 
-	// Remove "@sha256" from version text if version includes a hash
-	if strings.Contains(versionPart, "@") {
-		versionPart = strings.Split(versionPart, "@")[0]
-	}
+	versionPart := parts[1]
 
 	// Replace "+" with "-" in version text if version includes one
 	versionPart = strings.ReplaceAll(versionPart, "+", "-")
 
 	// Limit label-value to 63 characters
-	if len(versionPart) > 63 {
-		versionPart = versionPart[:63]
+	if len(versionPart) > LabelValueMaxLength {
+		versionPart = versionPart[:LabelValueMaxLength]
 	}
 
 	// While first character is not [a-z0-9A-Z] then remove it
@@ -46,9 +50,5 @@ func GetImageVersion(imageVersionString string) string {
 		versionPart = versionPart[1:]
 	}
 
-	// Add build number to version if it is specified
-	//	if len(parts) > 2 {
-	//		return versionPart + "-" + parts[2]
-	//	}
 	return versionPart
 }
