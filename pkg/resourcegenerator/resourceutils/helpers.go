@@ -22,7 +22,7 @@ func GetImageVersion(imageVersionString string) string {
 	parts := strings.Split(imageVersionString, ":")
 
 	// Implicitly assume version "latest" if no version is specified
-	if len(parts) < 2 {
+	if len(parts) > 2 {
 		return "latest"
 	}
 
@@ -33,9 +33,22 @@ func GetImageVersion(imageVersionString string) string {
 		versionPart = strings.Split(versionPart, "@")[0]
 	}
 
-	// Add build number to version if it is specified
-	if len(parts) > 2 {
-		return versionPart + "-" + parts[2]
+	// Replace "+" with "-" in version text if version includes one
+	versionPart = strings.ReplaceAll(versionPart, "+", "-")
+
+	// Limit label-value to 63 characters
+	if len(versionPart) > 63 {
+		versionPart = versionPart[:63]
 	}
+
+	// While first character is not [a-z0-9A-Z] then remove it
+	for len(versionPart) > 0 && !((versionPart[0] >= 'a' && versionPart[0] <= 'z') || (versionPart[0] >= 'A' && versionPart[0] <= 'Z') || (versionPart[0] >= '0' && versionPart[0] <= '9')) {
+		versionPart = versionPart[1:]
+	}
+
+	// Add build number to version if it is specified
+	//	if len(parts) > 2 {
+	//		return versionPart + "-" + parts[2]
+	//	}
 	return versionPart
 }

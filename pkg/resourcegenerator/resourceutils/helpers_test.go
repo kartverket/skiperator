@@ -26,7 +26,7 @@ func TestVersions(t *testing.T) {
 		{"foo/bar:1.2.3+build.4", "1.2.3-build.4"},
 		{"foo/bar:1.2.3+somethingLongXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", "1.2.3-somethingLongXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"},
 		{"foo/bar:-1.2.3", "1.2.3"},
-		{"foo/bar:_1.2.3", "1.2.3"},
+		{"foo/bar:__1.2.3", "1.2.3"},
 		{"foo/bar:.1.2.3", "1.2.3"},
 	}
 
