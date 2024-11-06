@@ -3,6 +3,7 @@ package resourceutils
 import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"regexp"
 	"strings"
 )
 
@@ -20,6 +21,13 @@ func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 	return false
 }
 
+// MatchesRegex checks if a string matches a regexp
+func MatchesRegex(s string, pattern string) bool {
+	obj, err := regexp.Match(pattern, []byte(s))
+	return obj && err == nil
+}
+
+// GetImageVersion returns the version part of an image string
 func GetImageVersion(imageVersionString string) string {
 	// Find position of first "@", remove it and everything after it
 	if strings.Contains(imageVersionString, "@") {
@@ -45,8 +53,8 @@ func GetImageVersion(imageVersionString string) string {
 		versionPart = versionPart[:LabelValueMaxLength]
 	}
 
-	// While first character is not [a-z0-9A-Z] then remove it
-	for len(versionPart) > 0 && !((versionPart[0] >= 'a' && versionPart[0] <= 'z') || (versionPart[0] >= 'A' && versionPart[0] <= 'Z') || (versionPart[0] >= '0' && versionPart[0] <= '9')) {
+	// While first character is not part of regex [a-z0-9A-Z] then remove it
+	for len(versionPart) > 0 && !MatchesRegex(versionPart[:1], "[a-zA-Z0-9]") {
 		versionPart = versionPart[1:]
 	}
 
