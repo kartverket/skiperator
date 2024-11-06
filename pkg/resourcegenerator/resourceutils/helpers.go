@@ -22,7 +22,7 @@ func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 }
 
 // MatchesRegex checks if a string matches a regexp
-func MatchesRegex(s string, pattern string) bool {
+func matchesRegex(s string, pattern string) bool {
 	obj, err := regexp.Match(pattern, []byte(s))
 	return obj && err == nil
 }
