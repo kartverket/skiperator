@@ -145,5 +145,5 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 func setJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
-	labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(skipJob.Spec.Container.Image)
 }

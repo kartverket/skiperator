@@ -7,7 +7,10 @@ import (
 	"strings"
 )
 
-const LabelValueMaxLength int = 63
+func matchesRegex(s string, pattern string) bool {
+	obj, err := regexp.Match(pattern, []byte(s))
+	return obj && err == nil
+}
 
 func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 	replicas, err := skiperatorv1alpha1.GetStaticReplicas(jsonReplicas)
@@ -21,41 +24,43 @@ func ShouldScaleToZero(jsonReplicas *apiextensionsv1.JSON) bool {
 	return false
 }
 
-// MatchesRegex checks if a string matches a regexp
-func matchesRegex(s string, pattern string) bool {
-	obj, err := regexp.Match(pattern, []byte(s))
-	return obj && err == nil
-}
+// HumanReadableVersion returns the version part of an image string
+func HumanReadableVersion(imageReference string) string {
+	const LabelValueMaxLength = 63
 
-// GetImageVersion returns the version part of an image string
-func GetImageVersion(imageVersionString string) string {
+	var allowedChars = regexp.MustCompile(`[A-Za-z0-9_.-]`)
+
 	// Find position of first "@", remove it and everything after it
-	if strings.Contains(imageVersionString, "@") {
-		imageVersionString = strings.Split(imageVersionString, "@")[0]
-		imageVersionString = imageVersionString + ":unknown"
+	if strings.Contains(imageReference, "@") {
+		imageReference = strings.Split(imageReference, "@")[0]
 	}
 
-	// If no version is given, assume "latest"
-	if !strings.Contains(imageVersionString, ":") {
+	lastColonPos := strings.LastIndex(imageReference, ":")
+	if lastColonPos == -1 || lastColonPos == len(imageReference)-1 {
 		return "latest"
 	}
+	versionPart := imageReference[lastColonPos+1:]
+	imageReference = imageReference[:lastColonPos]
 
-	// Split image string into parts
-	parts := strings.Split(imageVersionString, ":")
+	// While first character is not part of regex [a-z0-9A-Z] then remove it
+	for len(versionPart) > 0 && !matchesRegex(versionPart[:1], "[a-zA-Z0-9]") {
+		versionPart = versionPart[1:]
+	}
 
-	versionPart := parts[1]
-
-	// Replace "+" with "-" in version text if version includes one
-	versionPart = strings.ReplaceAll(versionPart, "+", "-")
+	// For each character in versionPart, replace characters that are not allowed in label-value
+	var result strings.Builder
+	for _, c := range versionPart {
+		if allowedChars.MatchString(string(c)) {
+			result.WriteRune(c)
+		} else {
+			result.WriteRune('-')
+		}
+	}
+	versionPart = result.String()
 
 	// Limit label-value to 63 characters
 	if len(versionPart) > LabelValueMaxLength {
 		versionPart = versionPart[:LabelValueMaxLength]
-	}
-
-	// While first character is not part of regex [a-z0-9A-Z] then remove it
-	for len(versionPart) > 0 && !MatchesRegex(versionPart[:1], "[a-zA-Z0-9]") {
-		versionPart = versionPart[1:]
 	}
 
 	return versionPart

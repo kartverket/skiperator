@@ -37,7 +37,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	service := corev1.Service{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 	service.Labels = util.GetPodAppSelector(application.Name)
-	service.Labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(application.Spec.Image)
+	service.Labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(application.Spec.Image)
 
 	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
 	if r.IsIstioEnabled() {
