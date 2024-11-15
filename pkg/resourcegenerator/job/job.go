@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
@@ -135,13 +136,6 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 
 	return jobSpec
 }
-
-//func getSkipJobVersion(skipJob *skiperatorv1alpha1.SKIPJob) string {
-//	if skipJob.Spec.Container.Image != "" {
-//		return resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
-//	}
-//	return ""
-//}
 
 func setJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
