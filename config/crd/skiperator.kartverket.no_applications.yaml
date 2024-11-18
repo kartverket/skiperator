@@ -778,7 +778,7 @@ spec:
                             name:
                               description: |-
                                 The scope consumed by the application to gain access to an external organization API.
-                                Ensure that the NAV organization has been granted access to the scope prior to requesting access.
+                                Ensure that the Kartverket organization has been granted access to the scope prior to requesting access.
                               type: string
                           required:
                           - name
@@ -845,7 +845,7 @@ spec:
                             product:
                               description: |-
                                 The product-area your application belongs to e.g. arbeid, helse ...
-                                This will be included in the final scope `nav:<Product><Name>`.
+                                This will be included in the final scope `kartverk:<Product><Name>`.
                               pattern: ^[a-z0-9]+$
                               type: string
                             separator:
