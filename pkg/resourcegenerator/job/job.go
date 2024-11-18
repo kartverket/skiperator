@@ -2,7 +2,9 @@ package job
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
@@ -31,7 +33,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		Labels:    make(map[string]string),
 	}
 
-	setJobLabels(skipJob, meta.Labels)
+	setJobLabels(&ctxLog, skipJob, meta.Labels)
 	job := batchv1.Job{ObjectMeta: meta}
 	cronJob := batchv1.CronJob{ObjectMeta: meta}
 
@@ -47,17 +49,17 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if skipJob.Spec.Cron != nil {
-		cronJob.Spec = getCronJobSpec(skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
+		cronJob.Spec = getCronJobSpec(&ctxLog, skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&cronJob)
 	} else {
-		job.Spec = getJobSpec(skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
+		job.Spec = getJobSpec(&ctxLog, skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&job)
 	}
 
 	return nil
 }
 
-func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
+func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		TimeZone:                skipJob.Spec.Cron.TimeZone,
@@ -68,19 +70,19 @@ func getCronJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelS
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: skipJob.GetDefaultLabels(),
 			},
-			Spec: getJobSpec(skipJob, selector, podLabels, gcpIdentityConfigMap),
+			Spec: getJobSpec(logger, skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
 		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
 		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
 	}
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
-	setJobLabels(skipJob, spec.JobTemplate.Labels)
+	setJobLabels(logger, skipJob, spec.JobTemplate.Labels)
 
 	return spec
 }
 
-func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
+func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
 	envVars := skipJob.Spec.Container.Env
 
@@ -131,19 +133,12 @@ func getJobSpec(skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelec
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
 
-	setJobLabels(skipJob, jobSpec.Template.Labels)
+	setJobLabels(logger, skipJob, jobSpec.Template.Labels)
 
 	return jobSpec
 }
 
-//func getSkipJobVersion(skipJob *skiperatorv1alpha1.SKIPJob) string {
-//	if skipJob.Spec.Container.Image != "" {
-//		return resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
-//	}
-//	return ""
-//}
-
-func setJobLabels(skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
+func setJobLabels(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
-	labels["app.kubernetes.io/version"] = resourceutils.GetImageVersion(skipJob.Spec.Container.Image)
+	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Container.Image)
 }
