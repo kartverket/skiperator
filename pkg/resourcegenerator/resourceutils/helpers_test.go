@@ -3,6 +3,7 @@ package resourceutils
 import (
 	"testing"
 
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,9 +45,11 @@ func TestVersions(t *testing.T) {
 		{"registry:5000/foo/bar:1.2.3", "1.2.3"},
 	}
 
+	logger := log.NewLogger()
+
 	for _, tc := range testCases {
 		t.Run(tc.imageString, func(t *testing.T) {
-			actualValue := HumanReadableVersion(tc.imageString)
+			actualValue := HumanReadableVersion(&logger, tc.imageString)
 			assert.Equal(t, tc.expectedValue, actualValue)
 		})
 	}
