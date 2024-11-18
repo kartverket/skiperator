@@ -70,7 +70,7 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, sel
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: skipJob.GetDefaultLabels(),
 			},
-			Spec: getJobSpec(nil, skipJob, selector, podLabels, gcpIdentityConfigMap),
+			Spec: getJobSpec(logger, skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
 		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
 		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
