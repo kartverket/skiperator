@@ -3,15 +3,16 @@ package serviceentry
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
-	networkingv1beta1api "istio.io/api/networking/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1api "istio.io/api/networking/v1"
+	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -58,12 +59,12 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				return err
 			}
 
-			serviceEntry := networkingv1beta1.ServiceEntry{
+			serviceEntry := networkingv1.ServiceEntry{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: object.GetNamespace(),
 					Name:      serviceEntryName,
 				},
-				Spec: networkingv1beta1api.ServiceEntry{
+				Spec: networkingv1api.ServiceEntry{
 					// Avoid leaking service entry to other namespaces
 					ExportTo:   []string{".", "istio-system", "istio-gateways"},
 					Hosts:      []string{rule.Host},
@@ -82,11 +83,11 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networkingv1beta1api.ServicePort, error) {
-	var ports []*networkingv1beta1api.ServicePort
+func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networkingv1api.ServicePort, error) {
+	var ports []*networkingv1api.ServicePort
 
 	if len(externalPorts) == 0 {
-		ports = append(ports, &networkingv1beta1api.ServicePort{
+		ports = append(ports, &networkingv1api.ServicePort{
 			Name:     "https",
 			Number:   uint32(443),
 			Protocol: "HTTPS",
@@ -101,7 +102,7 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networki
 			return nil, errors.New(errorMessage)
 		}
 
-		ports = append(ports, &networkingv1beta1api.ServicePort{
+		ports = append(ports, &networkingv1api.ServicePort{
 			Name:     port.Name,
 			Number:   uint32(port.Port),
 			Protocol: port.Protocol,
@@ -112,12 +113,12 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networki
 	return ports, nil
 }
 
-func getIpData(ip string) (networkingv1beta1api.ServiceEntry_Resolution, []string, []*networkingv1beta1api.WorkloadEntry) {
+func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []*networkingv1api.WorkloadEntry) {
 	if ip == "" {
-		return networkingv1beta1api.ServiceEntry_DNS, nil, nil
+		return networkingv1api.ServiceEntry_DNS, nil, nil
 	}
 
-	return networkingv1beta1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1beta1api.WorkloadEntry{{Address: ip}}
+	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
 }
 
 func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) (*podtypes.AccessPolicy, error) {

@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"regexp"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
@@ -30,8 +32,8 @@ import (
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"golang.org/x/exp/maps"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	securityv1beta1 "istio.io/client-go/pkg/apis/security/v1beta1"
+	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -42,7 +44,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -83,18 +84,18 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
-		Owns(&networkingv1beta1.ServiceEntry{}).
-		Owns(&networkingv1beta1.Gateway{}, builder.WithPredicates(
-			util.MatchesPredicate[*networkingv1beta1.Gateway](isIngressGateway),
+		Owns(&istionetworkingv1.ServiceEntry{}).
+		Owns(&istionetworkingv1.Gateway{}, builder.WithPredicates(
+			util.MatchesPredicate[*istionetworkingv1.Gateway](isIngressGateway),
 		)).
 		Owns(&telemetryv1.Telemetry{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		Owns(&networkingv1beta1.VirtualService{}).
-		Owns(&securityv1beta1.PeerAuthentication{}).
+		Owns(&istionetworkingv1.VirtualService{}).
+		Owns(&securityv1.PeerAuthentication{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&securityv1beta1.AuthorizationPolicy{}).
+		Owns(&securityv1.AuthorizationPolicy{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
@@ -385,7 +386,7 @@ func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconc
 	return requests
 }
 
-func isIngressGateway(gateway *networkingv1beta1.Gateway) bool {
+func isIngressGateway(gateway *istionetworkingv1.Gateway) bool {
 	match, _ := regexp.MatchString("^.*-ingress-.*$", gateway.Name)
 
 	return match

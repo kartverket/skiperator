@@ -83,7 +83,7 @@ metadata:
   namespace: istio-gateways
 type: kubernetes.io/tls
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: Gateway
 metadata:
   name: custom-cert-ingress-dc2b250f77a411ad

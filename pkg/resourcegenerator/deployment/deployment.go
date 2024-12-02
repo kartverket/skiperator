@@ -3,13 +3,14 @@ package deployment
 import (
 	goerrors "errors"
 	"fmt"
+	"strings"
+
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
-	"strings"
 
 	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -108,6 +109,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	} else {
 		podTemplateLabels = util.GetPodAppSelector(application.Name)
 	}
+	podTemplateLabels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(&ctxLog, application.Spec.Image)
 
 	// Add annotations to pod template, safe-to-evict added due to issues
 	// with cluster-autoscaler and unable to evict pods with local volumes

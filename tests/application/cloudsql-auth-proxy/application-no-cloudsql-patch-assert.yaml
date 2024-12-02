@@ -135,7 +135,7 @@ spec:
       protocol: TCP
       appProtocol: http
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
   name: patchapp
@@ -146,7 +146,7 @@ spec:
   mtls:
     mode: STRICT
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: patchapp-egress-1aebaef7c2f133f8

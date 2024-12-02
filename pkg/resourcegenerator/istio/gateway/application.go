@@ -6,8 +6,8 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
-	networkingv1beta1api "istio.io/api/networking/v1beta1"
-	networkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	networkingv1api "istio.io/api/networking/v1"
+	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,15 +36,15 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	// Generate separate gateway for each ingress
 	for _, h := range hosts.AllHosts() {
 		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
-		gateway := networkingv1beta1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
+		gateway := networkingv1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 
 		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)
 
-		gatewayServersToAdd := []*networkingv1beta1api.Server{}
+		gatewayServersToAdd := []*networkingv1api.Server{}
 
-		baseHttpGatewayServer := &networkingv1beta1api.Server{
+		baseHttpGatewayServer := &networkingv1api.Server{
 			Hosts: []string{h.Hostname},
-			Port: &networkingv1beta1api.Port{
+			Port: &networkingv1api.Port{
 				Number:   80,
 				Name:     "http",
 				Protocol: "HTTP",
@@ -56,15 +56,15 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			determinedCredentialName = *h.CustomCertificateSecret
 		}
 
-		httpsGatewayServer := &networkingv1beta1api.Server{
+		httpsGatewayServer := &networkingv1api.Server{
 			Hosts: []string{h.Hostname},
-			Port: &networkingv1beta1api.Port{
+			Port: &networkingv1api.Port{
 				Number:   443,
 				Name:     "https",
 				Protocol: "HTTPS",
 			},
-			Tls: &networkingv1beta1api.ServerTLSSettings{
-				Mode:           networkingv1beta1api.ServerTLSSettings_SIMPLE,
+			Tls: &networkingv1api.ServerTLSSettings{
+				Mode:           networkingv1api.ServerTLSSettings_SIMPLE,
 				CredentialName: determinedCredentialName,
 			},
 		}

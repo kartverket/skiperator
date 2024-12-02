@@ -140,7 +140,7 @@ spec:
       protocol: TCP
       appProtocol: http
 ---
-apiVersion: security.istio.io/v1beta1
+apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
   name: randomapp
@@ -151,7 +151,7 @@ spec:
   mtls:
     mode: STRICT
 ---
-apiVersion: networking.istio.io/v1beta1
+apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
   name: randomapp-egress-8c1a523efec2f763

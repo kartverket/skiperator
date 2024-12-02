@@ -285,6 +285,7 @@ func (skipJob *SKIPJob) FillDefaultStatus() {
 
 func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
 	return map[string]string{
+		"app.kubernetes.io/name":              skipJob.Name,
 		"app.kubernetes.io/managed-by":        "skiperator",
 		"skiperator.kartverket.no/controller": "skipjob",
 		// Used by hahaha to know that the Pod should be watched for killing sidecars

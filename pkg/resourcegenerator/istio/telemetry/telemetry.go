@@ -2,14 +2,15 @@ package telemetry
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	telemetryapiv1 "istio.io/api/telemetry/v1"
-	"istio.io/api/type/v1beta1"
+	typev1beta1 "istio.io/api/type/v1beta1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -41,7 +42,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 	telemetry.Spec = telemetryapiv1.Telemetry{
 		Tracing: telemetryTracing,
-		Selector: &v1beta1.WorkloadSelector{
+		Selector: &typev1beta1.WorkloadSelector{
 			MatchLabels: object.GetDefaultLabels(),
 		},
 	}

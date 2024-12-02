@@ -39,5 +39,11 @@ jobs:
           git config --global user.email "skiperator@kartverket.no"
           git config --global user.name "GithubActions"
           git add .
-          git commit -m "Update Skiperator api-docs"
-          git push origin main
+          # Only commit if there are changes
+          git diff --cached --exit-code
+          if [ $? -eq 0 ]; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update Skiperator api-docs"
+            git push origin main
+          fi

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
@@ -13,7 +14,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
-	istionetworkingv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,9 +38,9 @@ type RoutingReconciler struct {
 func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Routing{}).
-		Owns(&istionetworkingv1beta1.Gateway{}).
+		Owns(&istionetworkingv1.Gateway{}).
 		Owns(&networkingv1.NetworkPolicy{}).
-		Owns(&istionetworkingv1beta1.VirtualService{}).
+		Owns(&istionetworkingv1.VirtualService{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.skiperatorRoutingCertRequests)).
 		Watches(
 			&skiperatorv1alpha1.Application{},
