@@ -34,6 +34,24 @@ func Generate(r reconciliation.Reconciliation) error {
 							CIDR: "10.40.0.0/16",
 						},
 					},
+					// Egress rule for internal load balancer on atgcp1-sandbox
+					{
+						IPBlock: &networkingv1.IPBlock{
+							CIDR: "10.142.5.0/28",
+						},
+					},
+					// Egress rule for internal load balancer on atgcp1-dev
+					{
+						IPBlock: &networkingv1.IPBlock{
+							CIDR: "10.142.3.0/28",
+						},
+					},
+					// Egress rule for internal load balancer on atgcp1-prod
+					{
+						IPBlock: &networkingv1.IPBlock{
+							CIDR: "10.142.1.0/28",
+						},
+					},
 					// Egress rule for Internet
 					{
 						IPBlock: &networkingv1.IPBlock{
