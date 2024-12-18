@@ -14,7 +14,11 @@ spec:
     - ipBlock:
         cidr: 10.40.0.0/16
     - ipBlock:
+        cidr: 10.142.5.10/32
+    - ipBlock:
         cidr: 10.142.3.10/32
+    - ipBlock:
+        cidr: 10.142.1.10/32
     - ipBlock:
         cidr: 0.0.0.0/0
         except:
