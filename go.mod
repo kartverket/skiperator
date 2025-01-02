@@ -25,7 +25,7 @@ require (
 	k8s.io/apimachinery v0.32.0
 	k8s.io/client-go v0.32.0
 	sigs.k8s.io/controller-runtime v0.19.3
-	sigs.k8s.io/controller-tools v0.16.4
+	sigs.k8s.io/controller-tools v0.17.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
 )
 
@@ -90,7 +90,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.12.1 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
-	github.com/fatih/color v1.17.0 // indirect
+	github.com/fatih/color v1.18.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
