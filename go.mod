@@ -14,7 +14,7 @@ require (
 	github.com/nais/liberator v0.0.0-20240815094101-91196b536d03
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.77.1
 	github.com/r3labs/diff/v3 v3.0.1
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 	google.golang.org/protobuf v1.35.2
