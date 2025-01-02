@@ -18,8 +18,8 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	google.golang.org/protobuf v1.36.1
-	istio.io/api v1.24.2
-	istio.io/client-go v1.24.2
+	istio.io/api v1.22.3
+	istio.io/client-go v1.22.3
 	k8s.io/api v0.32.0
 	k8s.io/apiextensions-apiserver v0.32.0
 	k8s.io/apimachinery v0.32.0
