@@ -1,4 +1,4 @@
-FROM golang:1.23 as builder
+FROM golang:1.23 AS builder
 WORKDIR /build
 
 COPY go.mod go.sum ./
@@ -8,7 +8,7 @@ COPY Makefile ./
 COPY . .
 RUN make
 
-FROM builder as test
+FROM builder AS test
 CMD ["make", "test"]
 
 FROM scratch
