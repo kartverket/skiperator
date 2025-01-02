@@ -16,7 +16,7 @@ require (
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
+	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67
 	google.golang.org/protobuf v1.35.2
 	istio.io/api v1.24.2
 	istio.io/client-go v1.24.2
