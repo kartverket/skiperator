@@ -122,8 +122,9 @@ spec:
   http:
     - match:
         - port: 80
-          uri:
-            prefix: /.well-known/acme-challenge/
+          withoutHeaders:
+            ':path':
+              prefix: /.well-known/acme-challenge/
       name: redirect-to-https
       redirect:
         redirectCode: 308
