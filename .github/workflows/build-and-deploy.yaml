@@ -82,8 +82,6 @@ jobs:
       actions: read
       security-events: write
     steps:
-      - name: Debug echo env variables
-        run: echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{needs.build.outputs.image_digest}}" >> $ENVVARS
       - name: Run Pharos
         uses: kartverket/pharos@v0.2.5
         with:
