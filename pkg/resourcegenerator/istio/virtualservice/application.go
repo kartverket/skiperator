@@ -49,13 +49,6 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 				Name: "redirect-to-https",
 				Match: []*networkingv1api.HTTPMatchRequest{
 					{
-						WithoutHeaders: map[string]*networkingv1api.StringMatch{
-							":path": {
-								MatchType: &networkingv1api.StringMatch_Prefix{
-									Prefix: "/.well-known/acme-challenge/",
-								},
-							},
-						},
 						Port: 80,
 					},
 				},
