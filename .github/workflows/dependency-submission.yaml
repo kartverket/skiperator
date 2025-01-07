@@ -1,0 +1,33 @@
+name: Publish dependencies to dependency graph
+
+on:
+  pull_request:
+  push:
+    branches:
+    - 'main'
+
+jobs:
+  dependency-submission:
+    permissions:
+      contents: write # Required for submitting dependencies
+      pull-requests: write # Required for dependency review comments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Golang environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.1'
+
+      # This will also publish transitive dependencies not in go.mod
+      - name: Run snapshot action
+        uses: actions/go-dependency-submission@v2
+
+      # Comment on PRs
+      - name: Perform dependency review
+        uses: actions/dependency-review-action@v4
+        if: github.event_name == 'pull_request'
+        with:
+          comment-summary-in-pr: on-failure
