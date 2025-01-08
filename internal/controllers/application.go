@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
 	"regexp"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -210,6 +211,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		servicemonitor.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
+		requestauthentication.Generate,
 		deployment.Generate,
 	}
 
