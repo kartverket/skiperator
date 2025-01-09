@@ -1,7 +1,5 @@
 package istiotypes
 
-import "istio.io/api/security/v1beta1"
-
 // Authentication specifies how incoming JWT's should be validated.
 //
 // +kubebuilder:object:generate=true
@@ -15,10 +13,10 @@ type Authentication struct {
 
 	// Where to find the JWT in the incoming request
 	//
-	// An enum value of HEADER means that the JWT is present in the `Authorization` as a Bearer Token.
-	// An enum value of COOKIE means that the JWT is present as a cookie called `BearerToken`.
+	// An enum value of `header` means that the JWT is present in the `Authorization` as a Bearer Token.
+	// An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
 	//
-	// +kubebuilder:validation:Enum=HEADER;COOKIE
+	// +kubebuilder:validation:Enum=header;cookie
 	TokenLocation *string `json:"tokenLocation,omitempty"`
 
 	// This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
@@ -34,5 +32,13 @@ type Authentication struct {
 	//	  claim: nested.key.group
 	//
 	// ```
-	OutputClaimToHeaders *[]*v1beta1.ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
+	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
+}
+
+type ClaimToHeader struct {
+	// The name of the HTTP-header for which the specified claim will be copied to.
+	Header string `json:"header"`
+
+	// The claim to be copied.
+	Claim string `json:"claim"`
 }

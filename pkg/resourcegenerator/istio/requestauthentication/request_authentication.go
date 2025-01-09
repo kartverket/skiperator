@@ -25,42 +25,32 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 	ctxLog.Debug("Attempting to generate RequestAuthentication for application", "application", application.Name)
-
-	providers := getIdentityProviders(r, application)
-	if provider != nil {
+	providers := getIdentityProvidersWithAuthenticationEnabled(application)
+	if providers != nil {
+		requestAuthentication := getRequestAuthentication(application, *providers)
+		ctxLog.Debug("Finished generating RequestAuthentication for application", "application", application.Name)
+		r.AddResource(&requestAuthentication)
 	}
-
-	requestAuthentication := getRequestAuthentication(application, providers)
-
-	ctxLog.Debug("Finished generating RequestAuthentication for application", "application", application.Name)
-	r.AddResource(&requestAuthentication)
-
 	return nil
 }
 
-func getIdentityProviders(r reconciliation.Reconciliation, application *skiperatorv1alpha1.Application) *[]IdentityProvider {
-	ctxLog := r.GetLogger()
-	switch {
-	case application.Spec.IDPorten != nil && application.Spec.Maskinporten == nil:
-		return &[]IdentityProvider{
-			MASKINPORTEN,
-		}
-	case application.Spec.IDPorten == nil && application.Spec.Maskinporten != nil:
-		return &[]IdentityProvider{
-			ID_PORTEN,
-		}
-	case application.Spec.IDPorten == nil && application.Spec.Maskinporten == nil:
-		return &[]IdentityProvider{
-			MASKINPORTEN, ID_PORTEN,
-		}
-	default:
-		ctxLog.Debug("No RequestAuthentication will be generated without the presence of neither IDPorten nor Maskinporten.")
+func getIdentityProvidersWithAuthenticationEnabled(application *skiperatorv1alpha1.Application) *[]IdentityProvider {
+	var providers []IdentityProvider
+	if application.Spec.IDPorten != nil && application.Spec.IDPorten.Enabled && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled {
+		providers = append(providers, ID_PORTEN)
+	}
+	if application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Enabled && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true {
+		providers = append(providers, MASKINPORTEN)
+	}
+	if len(providers) > 0 {
+		return &providers
+	} else {
 		return nil
 	}
 }
 
 func getRequestAuthentication(application *skiperatorv1alpha1.Application, providers []IdentityProvider) securityv1.RequestAuthentication {
-	jwtRules := make([]v1beta1.JWTRule, len(providers))
+	jwtRules := make([]*v1beta1.JWTRule, len(providers))
 	for i, provider := range providers {
 		if provider == ID_PORTEN {
 			jwtRules[i] = getJWTRule(application.Spec.IDPorten.Authentication, provider)
@@ -68,7 +58,6 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, provi
 			jwtRules[i] = getJWTRule(application.Spec.Maskinporten.Authentication, provider)
 		}
 	}
-
 	return securityv1.RequestAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: application.Namespace,
@@ -78,52 +67,48 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, provi
 			Selector: &typev1beta1.WorkloadSelector{
 				MatchLabels: util.GetPodAppSelector(application.Name),
 			},
-			JwtRules:,
+			JwtRules: jwtRules,
 		},
 	}
 }
 
-func getJWTRule(authentication *istiotypes.Authentication, provider IdentityProvider) v1beta1.JWTRule {
+func getJWTRule(authentication *istiotypes.Authentication, provider IdentityProvider) *v1beta1.JWTRule {
 	var forwardOriginalToken = true
 	if authentication.ForwardOriginalToken != nil {
 		forwardOriginalToken = *authentication.ForwardOriginalToken
 	}
-	var requestAuthentication = v1beta1.JWTRule{
+	var jwtRule = v1beta1.JWTRule{
 		Audiences:            []string{}, //TODO: Retrieve audience
 		ForwardOriginalToken: forwardOriginalToken,
 	}
-	if authentication.TokenLocation == &HEADER {
-		requestAuthentication.FromHeaders = []*v1beta1.JWTHeader{
-			{
-				Name:   "Authorization",
-				Prefix: "Bearer ",
-			},
+	if authentication.TokenLocation != nil && *authentication.TokenLocation == cookie {
+		jwtRule.FromCookies = []string{"BearerToken"}
+	}
+
+	if authentication.OutputClaimToHeaders != nil {
+		claimsToHeaders := make([]*v1beta1.ClaimToHeader, len(*authentication.OutputClaimToHeaders))
+		for i, claimToHeader := range *authentication.OutputClaimToHeaders {
+			claimsToHeaders[i] = &v1beta1.ClaimToHeader{
+				Header: claimToHeader.Header,
+				Claim:  claimToHeader.Claim,
+			}
 		}
-	} else if authentication.TokenLocation == &COOKIE {
-		requestAuthentication.FromCookies = []string{"BearerToken"}
+		jwtRule.OutputClaimToHeaders = claimsToHeaders
 	}
 
 	switch provider {
 	case ID_PORTEN:
-		requestAuthentication.Issuer = ""
-		requestAuthentication.JwksUri = ""
+		jwtRule.Issuer = "https://idporten.no"
+		jwtRule.JwksUri = "https://idporten.no/jwks.json"
 		if authentication.TokenLocation == nil {
-			requestAuthentication.FromCookies = []string{"BearerToken"}
+			jwtRule.FromCookies = []string{"BearerToken"}
 		}
 
 	case MASKINPORTEN:
-		requestAuthentication.Issuer = ""
-		requestAuthentication.JwksUri = ""
-		if authentication.TokenLocation == nil {
-			requestAuthentication.FromHeaders = []*v1beta1.JWTHeader{
-				{
-					Name:   "Authorization",
-					Prefix: "Bearer ",
-				},
-			}
-		}
+		jwtRule.Issuer = "https://maskinporten.no"
+		jwtRule.JwksUri = "https://maskinporten.no/jwk"
 	}
-	return requestAuthentication
+	return &jwtRule
 }
 
 type IdentityProvider string
@@ -134,6 +119,6 @@ var (
 )
 
 var (
-	HEADER = "HEADER"
-	COOKIE = "COOKIE"
+	header = "header"
+	cookie = "cookie"
 )

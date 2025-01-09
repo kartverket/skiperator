@@ -553,6 +553,55 @@ spec:
                     maximum: 3600
                     minimum: 1
                     type: integer
+                  authentication:
+                    description: Authentication specifies how incoming JWT's should
+                      be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JTW validation.
+                          If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardOriginalToken:
+                        description: If set to true, the original token will be kept
+                          for the upstream request. Default is true.
+                        type: boolean
+                      outputClaimToHeaders:
+                        description: "This field specifies a list of operations to
+                          copy the claim to HTTP headers on a successfully verified
+                          token.\nThe header specified in each operation in the list
+                          must be unique. Nested claims of type string/int/bool is
+                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
+                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
+                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
+                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              type: string
+                            header:
+                              description: The name of the HTTP-header for which the
+                                specified claim will be copied to.
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        type: array
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` as a Bearer Token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   clientName:
                     description: |-
                       The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
@@ -756,6 +805,55 @@ spec:
               maskinporten:
                 description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
                 properties:
+                  authentication:
+                    description: Authentication specifies how incoming JWT's should
+                      be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JTW validation.
+                          If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardOriginalToken:
+                        description: If set to true, the original token will be kept
+                          for the upstream request. Default is true.
+                        type: boolean
+                      outputClaimToHeaders:
+                        description: "This field specifies a list of operations to
+                          copy the claim to HTTP headers on a successfully verified
+                          token.\nThe header specified in each operation in the list
+                          must be unique. Nested claims of type string/int/bool is
+                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
+                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
+                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
+                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              type: string
+                            header:
+                              description: The name of the HTTP-header for which the
+                                specified claim will be copied to.
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        type: array
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` as a Bearer Token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   clientName:
                     description: |-
                       The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
