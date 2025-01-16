@@ -2,7 +2,6 @@ package authorizationpolicy
 
 import (
 	"fmt"
-
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -48,11 +47,63 @@ func Generate(r reconciliation.Reconciliation) error {
 			}
 		}
 	}
+	authConfig := r.GetAuthConfigs()
+	if authConfig == nil {
+		ctxLog.Debug("No auth config found. Skipping generating AuthorizationPolicy for JWT-validation for application", "application", application.Name)
+	} else {
+		ctxLog.Debug("Auth config found. Attempting to generate AuthorizationPolicy to validate JWT's for application", "application", application.Name)
+		jwtValidationAuthPolicy, err := getJwtValidationAuthPolicy(application, *authConfig)
+		if err != nil {
+			ctxLog.Error(err, "Failed to generate AuthorizationPolicy to validate JWT's for application", "application", application.Name)
+			return nil
+		} else {
+			ctxLog.Debug("Finished generating AuthorizationPolicy to validate JWT's for application", "application", application.Name)
+			r.AddResource(jwtValidationAuthPolicy)
+		}
+	}
 
 	ctxLog.Debug("Finished generating AuthorizationPolicy for application", "application", application.Name)
 	r.AddResource(&defaultDenyAuthPolicy)
 
 	return nil
+}
+
+func getJwtValidationAuthPolicy(application *skiperatorv1alpha1.Application, authConfigs []reconciliation.AuthConfig) (*securityv1.AuthorizationPolicy, error) {
+	//TODO: Make common rule if ignorePaths are equal or if they are not present
+	//TODO: Will AuthPolicy work if JWT is sent as BearerToken-Cookie
+	authPolicyRules := make([]*securityv1api.Rule, 0)
+	for _, authConfig := range authConfigs {
+		ruleTo := &securityv1api.Rule_To{}
+		if authConfig.NotPaths != nil {
+			ruleTo.Operation = &securityv1api.Operation{
+				NotPaths: *authConfig.NotPaths,
+			}
+		} else {
+			ruleTo.Operation = &securityv1api.Operation{
+				Paths: []string{"*"},
+			}
+		}
+		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
+			To: []*securityv1api.Rule_To{ruleTo},
+			When: []*securityv1api.Condition{
+				{
+					Key:    "request.auth.claims[iss]",
+					Values: []string{authConfig.ProviderURIs.IssuerURI},
+				},
+			},
+		})
+	}
+
+	return &securityv1.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name + "-require-jwt",
+		},
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: securityv1api.AuthorizationPolicy_ALLOW,
+			Rules:  authPolicyRules,
+		},
+	}, nil
 }
 
 func getGeneralFromRule() []*securityv1api.Rule_From {

@@ -559,13 +559,22 @@ spec:
                     properties:
                       enabled:
                         description: |-
-                          Whether to enable JTW validation.
+                          Whether to enable JWT validation.
                           If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
                       forwardOriginalToken:
                         description: If set to true, the original token will be kept
                           for the upstream request. Default is true.
                         type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must start with '/'.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
                       outputClaimToHeaders:
                         description: "This field specifies a list of operations to
                           copy the claim to HTTP headers on a successfully verified
@@ -589,6 +598,12 @@ spec:
                           - header
                           type: object
                         type: array
+                      secretName:
+                        description: |-
+                          The name of the kubernetes Secret containing OAuth2-credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
                       tokenLocation:
                         description: |-
                           Where to find the JWT in the incoming request
@@ -811,13 +826,22 @@ spec:
                     properties:
                       enabled:
                         description: |-
-                          Whether to enable JTW validation.
+                          Whether to enable JWT validation.
                           If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
                       forwardOriginalToken:
                         description: If set to true, the original token will be kept
                           for the upstream request. Default is true.
                         type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must start with '/'.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
                       outputClaimToHeaders:
                         description: "This field specifies a list of operations to
                           copy the claim to HTTP headers on a successfully verified
@@ -841,6 +865,12 @@ spec:
                           - header
                           type: object
                         type: array
+                      secretName:
+                        description: |-
+                          The name of the kubernetes Secret containing OAuth2-credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
                       tokenLocation:
                         description: |-
                           Where to find the JWT in the incoming request

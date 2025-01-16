@@ -4,9 +4,14 @@ package istiotypes
 //
 // +kubebuilder:object:generate=true
 type Authentication struct {
-	// Whether to enable JTW validation.
+	// Whether to enable JWT validation.
 	// If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
 	Enabled bool `json:"enabled"`
+
+	// The name of the kubernetes Secret containing OAuth2-credentials.
+	//
+	// If omitted, the associated client registration in the application manifest is used for JWT validation.
+	SecretName *string `json:"secretName,omitempty"`
 
 	// If set to true, the original token will be kept for the upstream request. Default is true.
 	ForwardOriginalToken *bool `json:"forwardOriginalToken,omitempty"`
@@ -33,6 +38,13 @@ type Authentication struct {
 	//
 	// ```
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
+
+	// IgnorePaths specifies paths that do not require an authenticated JWT.
+	//
+	// The specified paths must start with '/'.
+	// +listType=set
+	// +kubebuilder:validation:Items.Pattern="^/"
+	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
 }
 
 type ClaimToHeader struct {

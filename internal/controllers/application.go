@@ -190,8 +190,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
+	authConfigs, err := r.GetAuthConfigsForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "can't resolve auth config")
+	}
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -276,7 +280,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil)
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil)
 	return r.GetProcessor().Process(reconciliation)
 }
 

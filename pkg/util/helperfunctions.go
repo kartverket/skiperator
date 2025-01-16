@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
@@ -63,6 +64,33 @@ func GetSecret(client client.Client, ctx context.Context, namespacedName types.N
 	err := client.Get(ctx, namespacedName, &secret)
 
 	return secret, err
+}
+
+func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.IDPortenClient, error) {
+	idPortenClient := &nais_io_v1.IDPortenClient{}
+	if err := k8sClient.Get(ctx, namespacedName, idPortenClient); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("client error when trying to get idportenclient: %w", err)
+	}
+	return idPortenClient, nil
+}
+
+func GetMaskinPortenlient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.MaskinportenClient, error) {
+	maskinPortenClient := &nais_io_v1.MaskinportenClient{}
+	if err := k8sClient.Get(ctx, namespacedName, maskinPortenClient); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("client error when trying to get MaskinPortenClient: %w", err)
+	}
+	return maskinPortenClient, nil
+}
+
+func GetSecretData(client client.Client, ctx context.Context, namespacedName types.NamespacedName, dataKey string) ([]byte, error) {
+	secret, err := GetSecret(client, ctx, namespacedName)
+	return secret.Data[dataKey], err
 }
 
 func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {

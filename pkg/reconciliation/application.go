@@ -14,7 +14,7 @@ type ApplicationReconciliation struct {
 
 func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application,
 	logger log.Logger, istioEnabled bool, restConfig *rest.Config,
-	identityConfigMap *corev1.ConfigMap) *ApplicationReconciliation {
+	identityConfigMap *corev1.ConfigMap, authConfigs *[]AuthConfig) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
 		baseReconciliation: baseReconciliation{
 			ctx:               ctx,
@@ -23,6 +23,7 @@ func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1
 			restConfig:        restConfig,
 			identityConfigMap: identityConfigMap,
 			skipObject:        application,
+			authConfigs:       authConfigs,
 		},
 	}
 }

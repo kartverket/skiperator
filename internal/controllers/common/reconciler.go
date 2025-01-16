@@ -6,9 +6,11 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/nais/digdirator/pkg/secrets"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -139,6 +141,173 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	v, exists := namespace.Labels[util.IstioRevisionLabel]
 
 	return exists && len(v) > 0
+}
+
+func (r *ReconcilerBase) GetAuthConfigsForApplication(ctx context.Context, application *v1alpha1.Application) (*[]reconciliation.AuthConfig, error) {
+	identityProviderInfo, err := getIdentityProviderInfoWithAuthenticationEnabled(ctx, application, r.GetClient())
+	if err != nil {
+		return nil, fmt.Errorf("failed when getting identity provider info: %w", err)
+	}
+	var authConfigs []reconciliation.AuthConfig
+	for _, providerInfo := range *identityProviderInfo {
+		switch providerInfo.Provider {
+		case reconciliation.ID_PORTEN:
+			issuerURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.IDPortenIssuerKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenIssuerKey, err)
+			}
+			jwksURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.IDPortenJwksUriKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenJwksUriKey, err)
+			}
+			clientID, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.IDPortenClientIDKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenClientIDKey, err)
+			}
+			authConfigs = append(authConfigs, reconciliation.AuthConfig{
+				NotPaths: providerInfo.NotPaths,
+				ProviderURIs: reconciliation.ProviderURIs{
+					Provider:  reconciliation.ID_PORTEN,
+					IssuerURI: string(issuerURI),
+					JwksURI:   string(jwksURI),
+					ClientID:  string(clientID),
+				},
+			})
+		case reconciliation.MASKINPORTEN:
+			issuerURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.MaskinportenIssuerKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenIssuerKey, err)
+			}
+			jwksURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.MaskinportenJwksUriKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenJwksUriKey, err)
+			}
+			clientID, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      providerInfo.SecretName,
+			}, secrets.MaskinportenClientIDKey)
+			if err != nil {
+				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenClientIDKey, err)
+			}
+			authConfigs = append(authConfigs, reconciliation.AuthConfig{
+				NotPaths: providerInfo.NotPaths,
+				ProviderURIs: reconciliation.ProviderURIs{
+					Provider:  reconciliation.MASKINPORTEN,
+					IssuerURI: string(issuerURI),
+					JwksURI:   string(jwksURI),
+					ClientID:  string(clientID),
+				},
+			})
+		default:
+			return nil, fmt.Errorf("unknown provider: %s", providerInfo.Provider)
+		}
+	}
+	return &authConfigs, nil
+}
+
+func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, application *v1alpha1.Application, k8sClient client.Client) (*[]reconciliation.IdentityProviderInfo, error) {
+	var providerInfo []reconciliation.IdentityProviderInfo
+	if application.Spec.IDPorten != nil && application.Spec.IDPorten.Enabled && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled {
+		var secretName *string
+		var err error
+		if application.Spec.IDPorten.Authentication.SecretName != nil {
+			secretName = application.Spec.IDPorten.Authentication.SecretName
+		} else {
+			secretName, err = getSecretNameForIdentityProvider(k8sClient, ctx, types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      application.Name,
+			}, reconciliation.ID_PORTEN, application.UID)
+		}
+		if err != nil {
+			err := fmt.Errorf("failed to get secret name for IDPortenClient: %w", err)
+			return nil, err
+		}
+
+		var notPaths *[]string
+		if application.Spec.IDPorten.Authentication.IgnorePaths != nil {
+			notPaths = application.Spec.IDPorten.Authentication.IgnorePaths
+		} else {
+			notPaths = nil
+		}
+		providerInfo = append(providerInfo, reconciliation.IdentityProviderInfo{
+			Provider:   reconciliation.ID_PORTEN,
+			SecretName: *secretName,
+			NotPaths:   notPaths,
+		})
+	}
+	if application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Enabled && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true {
+		secretName, err := getSecretNameForIdentityProvider(k8sClient, ctx, types.NamespacedName{
+			Namespace: application.Namespace,
+			Name:      application.Name,
+		}, reconciliation.MASKINPORTEN, application.UID)
+		if err != nil {
+			err := fmt.Errorf("failed to get secret name for MaskinPortenClient: %w", err)
+			return nil, err
+		}
+
+		var notPaths *[]string
+		if application.Spec.IDPorten.Authentication.IgnorePaths != nil {
+			notPaths = application.Spec.IDPorten.Authentication.IgnorePaths
+		} else {
+			notPaths = nil
+		}
+		providerInfo = append(providerInfo, reconciliation.IdentityProviderInfo{
+			Provider:   reconciliation.MASKINPORTEN,
+			SecretName: *secretName,
+			NotPaths:   notPaths,
+		})
+	}
+	return &providerInfo, nil
+}
+
+func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName, provider reconciliation.IdentityProvider, applicationUID types.UID) (*string, error) {
+	switch provider {
+	case reconciliation.ID_PORTEN:
+		idPortenClient, err := util.GetIdPortenClient(k8sClient, ctx, namespacedName)
+		if err != nil {
+			err := fmt.Errorf("failed to get IDPortenClient: %w", namespacedName.String())
+			return nil, err
+		}
+		for _, ownerReference := range idPortenClient.OwnerReferences {
+			if ownerReference.UID == applicationUID {
+				return &idPortenClient.Spec.SecretName, nil
+			}
+		}
+		err = fmt.Errorf("no IPPortenClient with ownerRef to (%w) found", namespacedName.String())
+		return nil, err
+
+	case reconciliation.MASKINPORTEN:
+		maskinPortenClient, err := util.GetMaskinPortenlient(k8sClient, ctx, namespacedName)
+		if err != nil {
+			err := fmt.Errorf("failed to get IDPortenClient: %w", namespacedName.String())
+			return nil, err
+		}
+		for _, ownerReference := range maskinPortenClient.OwnerReferences {
+			if ownerReference.UID == applicationUID {
+				return &maskinPortenClient.Spec.SecretName, nil
+			}
+		}
+		err = fmt.Errorf("no IPPortenClient with ownerRef to (%w) found", namespacedName.String())
+		return nil, err
+
+	default:
+		return nil, fmt.Errorf("provider: %w not supported", provider)
+	}
 }
 
 func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {
