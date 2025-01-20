@@ -20,10 +20,10 @@ require (
 	google.golang.org/protobuf v1.36.1
 	istio.io/api v1.24.2
 	istio.io/client-go v1.24.2
-	k8s.io/api v0.32.0
+	k8s.io/api v0.32.1
 	k8s.io/apiextensions-apiserver v0.32.0
-	k8s.io/apimachinery v0.32.0
-	k8s.io/client-go v0.32.0
+	k8s.io/apimachinery v0.32.1
+	k8s.io/client-go v0.32.1
 	sigs.k8s.io/controller-runtime v0.19.3
 	sigs.k8s.io/controller-tools v0.17.1
 	sigs.k8s.io/kustomize/kyaml v0.18.1
