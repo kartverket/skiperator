@@ -14,7 +14,7 @@ extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' '
 #### TOOLS ####
 TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
-KIND_VERSION                       := v0.20.0
+KIND_VERSION                       := v0.26.0
 CHAINSAW_VERSION                   := $(call extract-version,github.com/kyverno/chainsaw)
 CONTROLLER_GEN_VERSION             := $(call extract-version,sigs.k8s.io/controller-tools)
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
