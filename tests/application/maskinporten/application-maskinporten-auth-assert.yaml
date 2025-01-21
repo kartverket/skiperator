@@ -1,0 +1,72 @@
+apiVersion: nais.io/v1
+kind: MaskinportenClient
+metadata:
+  name: maskinporten-test-client-with-auth
+spec:
+  scopes: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maskinporten-test-client-with-auth
+spec:
+  selector:
+    matchLabels:
+      app: maskinporten-test-client-with-auth
+  template:
+    spec:
+      containers:
+        - name: maskinporten-test-client-with-auth
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /var/run/secrets/skip/maskinporten
+              name: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+      volumes:
+        - emptyDir: {}
+          name: tmp
+        - name: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+          secret:
+            defaultMode: 420
+            secretName: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+---
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: maskinporten-test-client-with-auth-jwt-authn
+spec:
+  jwtRules:
+    - audiences:
+        - test-client-id-maskinporten
+      forwardOriginalToken: true
+      issuer: https://maskinporten.no/
+      jwksUri: https://maskinporten.no/jwk
+  selector:
+    matchLabels:
+      app: maskinporten-test-client-with-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: maskinporten-test-client-with-auth-auth-policy
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator*
+    - to:
+        - operation:
+            paths:
+              - '*'
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+  selector:
+    matchLabels:
+      app: maskinporten-test-client-with-auth

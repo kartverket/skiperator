@@ -2,9 +2,8 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-list-deny
+  name: allow-list-auth-policy
 spec:
-  action: DENY
   rules:
     - from:
         - source:
@@ -13,8 +12,6 @@ spec:
       to:
         - operation:
             paths:
-              - /actuator*
-            notPaths:
               - /actuator/info
               - /actuator/shutdown
   selector:
@@ -24,9 +21,8 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-all-deny
+  name: allow-all-auth-policy
 spec:
-  action: DENY
   rules:
     - from:
         - source:
@@ -34,7 +30,7 @@ spec:
               - istio-gateways
       to:
         - operation:
-            paths:
+            notPaths:
               - /actuator*
   selector:
     matchLabels:

@@ -9,3 +9,28 @@ spec:
     - example.com
   maskinporten:
     enabled: true
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: maskinporten-test-client-with-auth
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - example.com
+  maskinporten:
+    enabled: true
+    authentication:
+      enabled: true
+      secretName: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+data:
+  MASKINPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtbWFza2lucG9ydGVu #test-client-id-maskinporten
+  MASKINPORTEN_ISSUER: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8v #https://maskinporten.no/
+  MASKINPORTEN_JWKS_URI: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8vandr #https://maskinporten.no/jwk

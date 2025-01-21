@@ -50,7 +50,11 @@ func getGeneralFromRule() []*securityv1api.Rule_From {
 func getAuthorizationPolicy(application *skiperatorv1alpha1.Application, denyPaths []string, authConfigs *[]reconciliation.AuthConfig) *securityv1.AuthorizationPolicy {
 	authPolicyRules := []*securityv1api.Rule{
 		{
-			To:   []*securityv1api.Rule_To{},
+			To: []*securityv1api.Rule_To{
+				{
+					Operation: &securityv1api.Operation{},
+				},
+			},
 			From: getGeneralFromRule(),
 		},
 	}
@@ -59,7 +63,6 @@ func getAuthorizationPolicy(application *skiperatorv1alpha1.Application, denyPat
 		if application.Spec.AuthorizationSettings.AllowAll == true {
 			return nil
 		}
-		// As of now we only use one rule and one operation for all default denies. No need to loop over them all
 		if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
 			operation := authPolicyRules[0].To[0].Operation
 			for _, endpoint := range application.Spec.AuthorizationSettings.AllowList {

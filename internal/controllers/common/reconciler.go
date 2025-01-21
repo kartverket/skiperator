@@ -222,16 +222,24 @@ func (r *ReconcilerBase) GetAuthConfigsForApplication(ctx context.Context, appli
 
 func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, application *v1alpha1.Application, k8sClient client.Client) (*[]reconciliation.IdentityProviderInfo, error) {
 	var providerInfo []reconciliation.IdentityProviderInfo
-	if application.Spec.IDPorten != nil && application.Spec.IDPorten.Enabled && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled {
+	if application.Spec.IDPorten != nil && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled {
 		var secretName *string
 		var err error
 		if application.Spec.IDPorten.Authentication.SecretName != nil {
+			// If secret name is provided, use it regardless of whether IDPorten is enabled
 			secretName = application.Spec.IDPorten.Authentication.SecretName
+		} else if application.Spec.IDPorten.Enabled {
+			// If IDPorten is enabled but no secretName provided, retrieve the generated secret from IDPortenClient
+			secretName, err = getSecretNameForIdentityProvider(k8sClient, ctx,
+				types.NamespacedName{
+					Namespace: application.Namespace,
+					Name:      application.Name,
+				},
+				reconciliation.ID_PORTEN,
+				application.UID)
 		} else {
-			secretName, err = getSecretNameForIdentityProvider(k8sClient, ctx, types.NamespacedName{
-				Namespace: application.Namespace,
-				Name:      application.Name,
-			}, reconciliation.ID_PORTEN, application.UID)
+			// If IDPorten is not enabled and no secretName provided, return error
+			return nil, fmt.Errorf("JWT authentication requires either IDPorten to be enabled or a secretName to be provided")
 		}
 		if err != nil {
 			err := fmt.Errorf("failed to get secret name for IDPortenClient: %w", err)
@@ -250,19 +258,33 @@ func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, appli
 			NotPaths:   notPaths,
 		})
 	}
-	if application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Enabled && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true {
-		secretName, err := getSecretNameForIdentityProvider(k8sClient, ctx, types.NamespacedName{
-			Namespace: application.Namespace,
-			Name:      application.Name,
-		}, reconciliation.MASKINPORTEN, application.UID)
+	if application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true {
+		var secretName *string
+		var err error
+		if application.Spec.Maskinporten.Authentication.SecretName != nil {
+			// If secret name is provided, use it regardless of whether Maskinporten is enabled
+			secretName = application.Spec.Maskinporten.Authentication.SecretName
+		} else if application.Spec.Maskinporten.Enabled {
+			// If Maskinporten is enabled but no secretName provided, retrieve the generated secret from MaksinPortenClient
+			secretName, err = getSecretNameForIdentityProvider(k8sClient, ctx,
+				types.NamespacedName{
+					Namespace: application.Namespace,
+					Name:      application.Name,
+				},
+				reconciliation.MASKINPORTEN,
+				application.UID)
+		} else {
+			// If Maskinporten is not enabled and no secretName provided, return error
+			return nil, fmt.Errorf("JWT authentication requires either Maskinporten to be enabled or a secretName to be provided")
+		}
 		if err != nil {
 			err := fmt.Errorf("failed to get secret name for MaskinPortenClient: %w", err)
 			return nil, err
 		}
 
 		var notPaths *[]string
-		if application.Spec.IDPorten.Authentication.IgnorePaths != nil {
-			notPaths = application.Spec.IDPorten.Authentication.IgnorePaths
+		if application.Spec.Maskinporten.Authentication.IgnorePaths != nil {
+			notPaths = application.Spec.Maskinporten.Authentication.IgnorePaths
 		} else {
 			notPaths = nil
 		}
@@ -288,13 +310,13 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 				return &idPortenClient.Spec.SecretName, nil
 			}
 		}
-		err = fmt.Errorf("no IPPortenClient with ownerRef to (%w) found", namespacedName.String())
+		err = fmt.Errorf("no IDPortenClient with ownerRef to (%w) found", namespacedName.String())
 		return nil, err
 
 	case reconciliation.MASKINPORTEN:
 		maskinPortenClient, err := util.GetMaskinPortenlient(k8sClient, ctx, namespacedName)
 		if err != nil {
-			err := fmt.Errorf("failed to get IDPortenClient: %w", namespacedName.String())
+			err := fmt.Errorf("failed to get MaskinPortenClient: %w", namespacedName.String())
 			return nil, err
 		}
 		for _, ownerReference := range maskinPortenClient.OwnerReferences {
@@ -302,7 +324,7 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 				return &maskinPortenClient.Spec.SecretName, nil
 			}
 		}
-		err = fmt.Errorf("no IPPortenClient with ownerRef to (%w) found", namespacedName.String())
+		err = fmt.Errorf("no MaskinPortenClient with ownerRef to (%w) found", namespacedName.String())
 		return nil, err
 
 	default:

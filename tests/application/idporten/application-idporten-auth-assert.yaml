@@ -1,0 +1,76 @@
+apiVersion: nais.io/v1
+kind: IDPortenClient
+metadata:
+  name: idporten-test-client-with-auth
+spec:
+  scopes:
+    - "openid"
+    - "profile"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: idporten-test-client-with-auth
+spec:
+  selector:
+    matchLabels:
+      app: idporten-test-client-with-auth
+  template:
+    spec:
+      containers:
+        - name: idporten-test-client-with-auth
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /var/run/secrets/skip/idporten
+              name: "idporten-idporten-test-client-with-auth-c47dbf96"
+      volumes:
+        - emptyDir: {}
+          name: tmp
+        - name: "idporten-idporten-test-client-with-auth-c47dbf96"
+          secret:
+            defaultMode: 420
+            secretName: "idporten-idporten-test-client-with-auth-c47dbf96"
+---
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: idporten-test-client-with-auth-jwt-authn
+spec:
+  jwtRules:
+    - audiences:
+        - test-client-id-idporten
+      forwardOriginalToken: true
+      fromCookies:
+        - BearerToken
+      issuer: https://idporten.no
+      jwksUri: https://idporten.no/jwks.json
+  selector:
+    matchLabels:
+      app: idporten-test-client-with-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: idporten-test-client-with-auth-auth-policy
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator*
+    - to:
+        - operation:
+            paths:
+              - '*'
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://idporten.no
+  selector:
+    matchLabels:
+      app: idporten-test-client-with-auth
