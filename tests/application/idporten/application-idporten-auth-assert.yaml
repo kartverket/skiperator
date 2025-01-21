@@ -45,6 +45,9 @@ spec:
         - BearerToken
       issuer: https://idporten.no
       jwksUri: https://idporten.no/jwks.json
+      outputClaimToHeaders:
+        - claim: aud
+          header: Audience
   selector:
     matchLabels:
       app: idporten-test-client-with-auth

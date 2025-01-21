@@ -30,6 +30,9 @@ spec:
     authentication:
       enabled: true
       secretName: "idporten-idporten-test-client-with-auth-c47dbf96"
+      outputClaimToHeaders:
+        - claim: "aud"
+          header: "Audience"
 ---
 apiVersion: v1
 kind: Secret

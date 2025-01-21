@@ -41,6 +41,9 @@ spec:
       forwardOriginalToken: true
       issuer: https://maskinporten.no/
       jwksUri: https://maskinporten.no/jwk
+      outputClaimToHeaders:
+        - claim: aud
+          header: Audience
   selector:
     matchLabels:
       app: maskinporten-test-client-with-auth

@@ -24,6 +24,9 @@ spec:
     authentication:
       enabled: true
       secretName: "maskinporten-maskinporten-test-client-with-auth-64bbe0ca"
+      outputClaimToHeaders:
+        - claim: "aud"
+          header: "Audience"
 ---
 apiVersion: v1
 kind: Secret
