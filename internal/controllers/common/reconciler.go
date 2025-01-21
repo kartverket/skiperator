@@ -152,65 +152,37 @@ func (r *ReconcilerBase) GetAuthConfigsForApplication(ctx context.Context, appli
 	for _, providerInfo := range *identityProviderInfo {
 		switch providerInfo.Provider {
 		case reconciliation.ID_PORTEN:
-			issuerURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+			secretData, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
 				Namespace: application.Namespace,
 				Name:      providerInfo.SecretName,
-			}, secrets.IDPortenIssuerKey)
+			}, []string{secrets.IDPortenIssuerKey, secrets.IDPortenJwksUriKey, secrets.IDPortenClientIDKey})
 			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenIssuerKey, err)
-			}
-			jwksURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
-				Namespace: application.Namespace,
-				Name:      providerInfo.SecretName,
-			}, secrets.IDPortenJwksUriKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenJwksUriKey, err)
-			}
-			clientID, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
-				Namespace: application.Namespace,
-				Name:      providerInfo.SecretName,
-			}, secrets.IDPortenClientIDKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.IDPortenClientIDKey, err)
+				return nil, fmt.Errorf("failed when retrieving idporten secretData: %w", err)
 			}
 			authConfigs = append(authConfigs, reconciliation.AuthConfig{
 				NotPaths: providerInfo.NotPaths,
 				ProviderURIs: reconciliation.ProviderURIs{
 					Provider:  reconciliation.ID_PORTEN,
-					IssuerURI: string(issuerURI),
-					JwksURI:   string(jwksURI),
-					ClientID:  string(clientID),
+					IssuerURI: string(secretData[secrets.IDPortenIssuerKey]),
+					JwksURI:   string(secretData[secrets.IDPortenJwksUriKey]),
+					ClientID:  string(secretData[secrets.IDPortenClientIDKey]),
 				},
 			})
 		case reconciliation.MASKINPORTEN:
-			issuerURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
+			secretData, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
 				Namespace: application.Namespace,
 				Name:      providerInfo.SecretName,
-			}, secrets.MaskinportenIssuerKey)
+			}, []string{secrets.MaskinportenIssuerKey, secrets.MaskinportenJwksUriKey, secrets.MaskinportenClientIDKey})
 			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenIssuerKey, err)
-			}
-			jwksURI, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
-				Namespace: application.Namespace,
-				Name:      providerInfo.SecretName,
-			}, secrets.MaskinportenJwksUriKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenJwksUriKey, err)
-			}
-			clientID, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
-				Namespace: application.Namespace,
-				Name:      providerInfo.SecretName,
-			}, secrets.MaskinportenClientIDKey)
-			if err != nil {
-				return nil, fmt.Errorf("failed when retrieving %s: %w", secrets.MaskinportenClientIDKey, err)
+				return nil, fmt.Errorf("failed when retrieving maskinporten secretData: %w", err)
 			}
 			authConfigs = append(authConfigs, reconciliation.AuthConfig{
 				NotPaths: providerInfo.NotPaths,
 				ProviderURIs: reconciliation.ProviderURIs{
 					Provider:  reconciliation.MASKINPORTEN,
-					IssuerURI: string(issuerURI),
-					JwksURI:   string(jwksURI),
-					ClientID:  string(clientID),
+					IssuerURI: string(secretData[secrets.MaskinportenIssuerKey]),
+					JwksURI:   string(secretData[secrets.MaskinportenJwksUriKey]),
+					ClientID:  string(secretData[secrets.MaskinportenClientIDKey]),
 				},
 			})
 		default:

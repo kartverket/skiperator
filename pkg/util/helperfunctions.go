@@ -88,9 +88,13 @@ func GetMaskinPortenlient(k8sClient client.Client, ctx context.Context, namespac
 	return maskinPortenClient, nil
 }
 
-func GetSecretData(client client.Client, ctx context.Context, namespacedName types.NamespacedName, dataKey string) ([]byte, error) {
+func GetSecretData(client client.Client, ctx context.Context, namespacedName types.NamespacedName, dataKeys []string) (map[string][]byte, error) {
 	secret, err := GetSecret(client, ctx, namespacedName)
-	return secret.Data[dataKey], err
+	secretDataMap := map[string][]byte{}
+	for _, key := range dataKeys {
+		secretDataMap[key] = secret.Data[key]
+	}
+	return secretDataMap, err
 }
 
 func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {
