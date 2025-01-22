@@ -2,7 +2,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-list-auth-policy
+  name: allow-list-allow-paths
 spec:
   rules:
     - from:
@@ -21,8 +21,9 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-all-auth-policy
+  name: allow-all-default-deny
 spec:
+  action: DENY
   rules:
     - from:
         - source:
@@ -30,7 +31,7 @@ spec:
               - istio-gateways
       to:
         - operation:
-            notPaths:
+            paths:
               - /actuator*
   selector:
     matchLabels:

@@ -1,8 +1,9 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-auth-policy
+  name: application-default-deny
 spec:
+  action: DENY
   rules:
     - from:
         - source:
@@ -10,7 +11,7 @@ spec:
               - istio-gateways
       to:
         - operation:
-            notPaths:
+            paths:
               - /actuator*
   selector:
     matchLabels:

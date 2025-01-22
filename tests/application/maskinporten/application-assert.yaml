@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: maskinporten-test-client
+  name: application
 spec:
   selector:
     matchLabels:
-      app: maskinporten-test-client
+      app: application
   template:
     spec:
       containers:
-        - name: maskinporten-test-client
+        - name: application
           volumeMounts:
             - mountPath: /tmp
               name: tmp
             - mountPath: /var/run/secrets/skip/maskinporten
-              name: "maskinporten-maskinporten-test-client-25a0e813"
+              name: "maskinporten-application-07ab8a18"
       volumes:
         - emptyDir: {}
           name: tmp
-        - name: "maskinporten-maskinporten-test-client-25a0e813"
+        - name: "maskinporten-application-07ab8a18"
           secret:
             defaultMode: 420
-            secretName: "maskinporten-maskinporten-test-client-25a0e813"
+            secretName: "maskinporten-application-07ab8a18"

@@ -1,41 +1,7 @@
-apiVersion: nais.io/v1
-kind: IDPortenClient
-metadata:
-  name: idporten-test-client-with-auth
-spec:
-  scopes:
-    - "openid"
-    - "profile"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: idporten-test-client-with-auth
-spec:
-  selector:
-    matchLabels:
-      app: idporten-test-client-with-auth
-  template:
-    spec:
-      containers:
-        - name: idporten-test-client-with-auth
-          volumeMounts:
-            - mountPath: /tmp
-              name: tmp
-            - mountPath: /var/run/secrets/skip/idporten
-              name: "idporten-idporten-test-client-with-auth-c47dbf96"
-      volumes:
-        - emptyDir: {}
-          name: tmp
-        - name: "idporten-idporten-test-client-with-auth-c47dbf96"
-          secret:
-            defaultMode: 420
-            secretName: "idporten-idporten-test-client-with-auth-c47dbf96"
----
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
-  name: idporten-test-client-with-auth-jwt-authn
+  name: application-auth-jwt-authn
 spec:
   jwtRules:
     - audiences:
@@ -50,12 +16,12 @@ spec:
           header: Audience
   selector:
     matchLabels:
-      app: idporten-test-client-with-auth
+      app: application-auth
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: idporten-test-client-with-auth-auth-policy
+  name: application-auth-jwt-auth
 spec:
   rules:
     - from:
@@ -66,14 +32,54 @@ spec:
         - operation:
             notPaths:
               - /actuator*
-    - to:
-        - operation:
-            paths:
-              - '*'
       when:
         - key: request.auth.claims[iss]
           values:
             - https://idporten.no
   selector:
     matchLabels:
-      app: idporten-test-client-with-auth
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-settings-allow-paths
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /actuator/health
+              - /actuator/info
+  selector:
+    matchLabels:
+      app: application-auth-settings
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-settings-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator/health
+              - /actuator/info
+              - /actuator*
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://idporten.no
+  selector:
+    matchLabels:
+      app: application-auth-settings
+

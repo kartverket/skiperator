@@ -6,9 +6,11 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
+	"istio.io/api/security/v1beta1"
 	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -24,17 +26,103 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 	ctxLog.Debug("Attempting to generate AuthorizationPolicy for application", "application", application.Name)
 
-	defaultDenyPaths := []string{
-		"/actuator*",
+	if application.Spec.AuthorizationSettings != nil {
+		// Do not create an AuthorizationPolicy if allowAll is set to true
+		if application.Spec.AuthorizationSettings.AllowAll == true {
+			return nil
+		}
 	}
-	authPolicy := getAuthorizationPolicy(application, defaultDenyPaths, r.GetAuthConfigs())
+	defaultDenyPath := []string{"/actuator*"}
 
+	allowPaths := []string{}
+	if application.Spec.AuthorizationSettings != nil {
+		if application.Spec.AuthorizationSettings.AllowList != nil {
+			if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
+				allowPaths = application.Spec.AuthorizationSettings.AllowList
+			}
+		}
+	}
+	authConfigs := r.GetAuthConfigs()
+	if authConfigs != nil {
+		if len(*authConfigs) > 0 {
+			for _, authConfig := range *authConfigs {
+				if authConfig.NotPaths != nil {
+					allowPaths = append(allowPaths, *authConfig.NotPaths...)
+				}
+			}
+			r.AddResource(
+				getJwtValidationAuthPolicy(
+					types.NamespacedName{
+						Namespace: application.Namespace,
+						Name:      application.Name + "-jwt-auth",
+					},
+					application.Name,
+					*authConfigs,
+					allowPaths,
+					defaultDenyPath,
+				),
+			)
+		}
+	}
+
+	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
+	if len(allowPaths) > 0 {
+		r.AddResource(
+			getGeneralAuthPolicy(
+				types.NamespacedName{
+					Name:      application.Name + "-allow-paths",
+					Namespace: application.Namespace,
+				},
+				application.Name,
+				securityv1api.AuthorizationPolicy_ALLOW,
+				allowPaths,
+				[]string{},
+			),
+		)
+	} else {
+		r.AddResource(
+			getGeneralAuthPolicy(
+				types.NamespacedName{
+					Name:      application.Name + "-default-deny",
+					Namespace: application.Namespace,
+				},
+				application.Name,
+				securityv1api.AuthorizationPolicy_DENY,
+				defaultDenyPath,
+				allowPaths,
+			),
+		)
+	}
 	ctxLog.Debug("Finished generating AuthorizationPolicy for application", "application", application.Name)
-	if authPolicy != nil {
-		r.AddResource(authPolicy)
-	}
-
 	return nil
+}
+
+func getGeneralAuthPolicy(namespacedName types.NamespacedName, applicationName string, action v1beta1.AuthorizationPolicy_Action, paths []string, notPaths []string) *securityv1.AuthorizationPolicy {
+	return &securityv1.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespacedName.Namespace,
+			Name:      namespacedName.Name,
+		},
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: action,
+			Rules: []*securityv1api.Rule{
+				{
+					To: []*securityv1api.Rule_To{
+						{
+							Operation: &securityv1api.Operation{
+								Paths:    paths,
+								NotPaths: notPaths,
+							},
+						},
+					},
+					From: getGeneralFromRule(),
+				},
+			},
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: util.GetPodAppSelector(applicationName),
+			},
+		},
+	}
 }
 
 func getGeneralFromRule() []*securityv1api.Rule_From {
@@ -47,76 +135,40 @@ func getGeneralFromRule() []*securityv1api.Rule_From {
 	}
 }
 
-func getAuthorizationPolicy(application *skiperatorv1alpha1.Application, denyPaths []string, authConfigs *[]reconciliation.AuthConfig) *securityv1.AuthorizationPolicy {
-	authPolicyRules := []*securityv1api.Rule{
-		{
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, allowPaths []string, denyPaths []string) *securityv1.AuthorizationPolicy {
+	var authPolicyRules []*securityv1api.Rule
+
+	notPaths := allowPaths
+	notPaths = append(allowPaths, denyPaths...)
+	for _, authConfig := range authConfigs {
+		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
 			To: []*securityv1api.Rule_To{
 				{
-					Operation: &securityv1api.Operation{},
+					Operation: &securityv1api.Operation{
+						NotPaths: notPaths,
+					},
 				},
 			},
-			From: getGeneralFromRule(),
-		},
-	}
-
-	if application.Spec.AuthorizationSettings != nil {
-		if application.Spec.AuthorizationSettings.AllowAll == true {
-			return nil
-		}
-		if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
-			operation := authPolicyRules[0].To[0].Operation
-			for _, endpoint := range application.Spec.AuthorizationSettings.AllowList {
-				operation.Paths = append(operation.Paths, endpoint)
-			}
-			authPolicyRules[0].To[0].Operation = operation
-		} else {
-			authPolicyRules[0].To[0].Operation.NotPaths = denyPaths
-		}
-	} else {
-		authPolicyRules[0].To[0].Operation.NotPaths = denyPaths
-	}
-
-	if authConfigs != nil {
-		authPolicyRules = append(authPolicyRules, getJwtValidationRule(*authConfigs)...)
-	}
-
-	return &securityv1.AuthorizationPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: application.Namespace,
-			Name:      application.Name + "-auth-policy",
-		},
-		Spec: securityv1api.AuthorizationPolicy{
-			Action: securityv1api.AuthorizationPolicy_ALLOW,
-			Rules:  authPolicyRules,
-			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetPodAppSelector(application.Name),
-			},
-		},
-	}
-}
-
-func getJwtValidationRule(authConfigs []reconciliation.AuthConfig) []*securityv1api.Rule {
-	authPolicyRules := make([]*securityv1api.Rule, 0)
-	for _, authConfig := range authConfigs {
-		ruleTo := &securityv1api.Rule_To{}
-		if authConfig.NotPaths != nil {
-			ruleTo.Operation = &securityv1api.Operation{
-				NotPaths: *authConfig.NotPaths,
-			}
-		} else {
-			ruleTo.Operation = &securityv1api.Operation{
-				Paths: []string{"*"},
-			}
-		}
-		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
-			To: []*securityv1api.Rule_To{ruleTo},
 			When: []*securityv1api.Condition{
 				{
 					Key:    "request.auth.claims[iss]",
 					Values: []string{authConfig.ProviderURIs.IssuerURI},
 				},
 			},
+			From: getGeneralFromRule(),
 		})
 	}
-	return authPolicyRules
+	return &securityv1.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespacedName.Namespace,
+			Name:      namespacedName.Name,
+		},
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: securityv1api.AuthorizationPolicy_ALLOW,
+			Rules:  authPolicyRules,
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: util.GetPodAppSelector(applicationName),
+			},
+		},
+	}
 }

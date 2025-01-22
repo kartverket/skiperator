@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: idporten-test-client
+  name: application
 spec:
   image: image
   port: 8080
@@ -16,7 +16,7 @@ spec:
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: idporten-test-client-with-auth
+  name: application-auth
 spec:
   image: image
   port: 8080
@@ -29,7 +29,32 @@ spec:
       - "openid"
     authentication:
       enabled: true
-      secretName: "idporten-idporten-test-client-with-auth-c47dbf96"
+      secretName: "idporten-application-auth-f816cf66"
+      outputClaimToHeaders:
+        - claim: "aud"
+          header: "Audience"
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: application-auth-settings
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - example.com
+  authorizationSettings:
+    allowList:
+      - "/actuator/health"
+      - "/actuator/info"
+  idporten:
+    enabled: true
+    integrationType: "api_klient"
+    scopes:
+      - "openid"
+    authentication:
+      enabled: true
+      secretName: "idporten-application-auth-settings-64e091c3"
       outputClaimToHeaders:
         - claim: "aud"
           header: "Audience"
@@ -38,7 +63,17 @@ apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: "idporten-idporten-test-client-with-auth-c47dbf96"
+  name: "idporten-application-auth-f816cf66"
+data:
+  IDPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtaWRwb3J0ZW4= #test-client-id-idporten
+  IDPORTEN_ISSUER: aHR0cHM6Ly9pZHBvcnRlbi5ubw== #https://idporten.no
+  IDPORTEN_JWKS_URI: aHR0cHM6Ly9pZHBvcnRlbi5uby9qd2tzLmpzb24= #https://idporten.no/jwks.json
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: "idporten-application-auth-settings-64e091c3"
 data:
   IDPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtaWRwb3J0ZW4= #test-client-id-idporten
   IDPORTEN_ISSUER: aHR0cHM6Ly9pZHBvcnRlbi5ubw== #https://idporten.no
