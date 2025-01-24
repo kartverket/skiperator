@@ -149,7 +149,7 @@ func (r *ReconcilerBase) GetAuthConfigsForApplication(ctx context.Context, appli
 		return nil, fmt.Errorf("failed when getting identity provider info: %w", err)
 	}
 	var authConfigs []reconciliation.AuthConfig
-	for _, providerInfo := range *identityProviderInfo {
+	for _, providerInfo := range identityProviderInfo {
 		switch providerInfo.Provider {
 		case reconciliation.ID_PORTEN:
 			secretData, err := util.GetSecretData(r.GetClient(), ctx, types.NamespacedName{
@@ -189,10 +189,14 @@ func (r *ReconcilerBase) GetAuthConfigsForApplication(ctx context.Context, appli
 			return nil, fmt.Errorf("unknown provider: %s", providerInfo.Provider)
 		}
 	}
-	return &authConfigs, nil
+	if len(authConfigs) > 0 {
+		return &authConfigs, nil
+	} else {
+		return nil, nil
+	}
 }
 
-func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, application *v1alpha1.Application, k8sClient client.Client) (*[]reconciliation.IdentityProviderInfo, error) {
+func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, application *v1alpha1.Application, k8sClient client.Client) ([]reconciliation.IdentityProviderInfo, error) {
 	var providerInfo []reconciliation.IdentityProviderInfo
 	if application.Spec.IDPorten != nil && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled {
 		var secretName *string
@@ -266,7 +270,7 @@ func getIdentityProviderInfoWithAuthenticationEnabled(ctx context.Context, appli
 			NotPaths:   notPaths,
 		})
 	}
-	return &providerInfo, nil
+	return providerInfo, nil
 }
 
 func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName, provider reconciliation.IdentityProvider, applicationUID types.UID) (*string, error) {
@@ -274,7 +278,7 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 	case reconciliation.ID_PORTEN:
 		idPortenClient, err := util.GetIdPortenClient(k8sClient, ctx, namespacedName)
 		if err != nil {
-			err := fmt.Errorf("failed to get IDPortenClient: %w", namespacedName.String())
+			err := fmt.Errorf("failed to get IDPortenClient: %s", namespacedName.String())
 			return nil, err
 		}
 		for _, ownerReference := range idPortenClient.OwnerReferences {
@@ -282,13 +286,13 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 				return &idPortenClient.Spec.SecretName, nil
 			}
 		}
-		err = fmt.Errorf("no IDPortenClient with ownerRef to (%w) found", namespacedName.String())
+		err = fmt.Errorf("no IDPortenClient with ownerRef to '%s' found", namespacedName.String())
 		return nil, err
 
 	case reconciliation.MASKINPORTEN:
 		maskinPortenClient, err := util.GetMaskinPortenlient(k8sClient, ctx, namespacedName)
 		if err != nil {
-			err := fmt.Errorf("failed to get MaskinPortenClient: %w", namespacedName.String())
+			err := fmt.Errorf("failed to get MaskinPortenClient: %s", namespacedName.String())
 			return nil, err
 		}
 		for _, ownerReference := range maskinPortenClient.OwnerReferences {
@@ -296,11 +300,11 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 				return &maskinPortenClient.Spec.SecretName, nil
 			}
 		}
-		err = fmt.Errorf("no MaskinPortenClient with ownerRef to (%w) found", namespacedName.String())
+		err = fmt.Errorf("no MaskinPortenClient with ownerRef to (%s) found", namespacedName.String())
 		return nil, err
 
 	default:
-		return nil, fmt.Errorf("provider: %w not supported", provider)
+		return nil, fmt.Errorf("provider: %s not supported", provider)
 	}
 }
 
