@@ -281,6 +281,10 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 			err := fmt.Errorf("failed to get IDPortenClient: %s", namespacedName.String())
 			return nil, err
 		}
+		if idPortenClient == nil {
+			err := fmt.Errorf("IDPortenClient: '%s' not found", namespacedName.String())
+			return nil, err
+		}
 		for _, ownerReference := range idPortenClient.OwnerReferences {
 			if ownerReference.UID == applicationUID {
 				return &idPortenClient.Spec.SecretName, nil
@@ -293,6 +297,10 @@ func getSecretNameForIdentityProvider(k8sClient client.Client, ctx context.Conte
 		maskinPortenClient, err := util.GetMaskinPortenlient(k8sClient, ctx, namespacedName)
 		if err != nil {
 			err := fmt.Errorf("failed to get MaskinPortenClient: %s", namespacedName.String())
+			return nil, err
+		}
+		if maskinPortenClient == nil {
+			err := fmt.Errorf("IDPortenClient: '%s' not found", namespacedName.String())
 			return nil, err
 		}
 		for _, ownerReference := range maskinPortenClient.OwnerReferences {
