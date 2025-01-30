@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -186,4 +187,12 @@ func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
 
 func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
+}
+
+func IsIDPortenAuthenticationEnabled(application *skiperatorv1alpha1.Application) bool {
+	return application.Spec.IDPorten != nil && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled
+}
+
+func IsMaskinPortenAuthenticationEnabled(application *skiperatorv1alpha1.Application) bool {
+	return application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true
 }

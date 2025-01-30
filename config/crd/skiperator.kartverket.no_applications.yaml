@@ -573,6 +573,7 @@ spec:
                           The specified paths must start with '/'.
                         items:
                           type: string
+                        maxItems: 50
                         type: array
                         x-kubernetes-list-type: set
                       outputClaimToHeaders:
@@ -840,6 +841,7 @@ spec:
                           The specified paths must start with '/'.
                         items:
                           type: string
+                        maxItems: 50
                         type: array
                         x-kubernetes-list-type: set
                       outputClaimToHeaders:
