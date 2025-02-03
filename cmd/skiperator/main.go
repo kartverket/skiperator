@@ -3,6 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/flags"
@@ -10,9 +13,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
-	"os"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
-	"strings"
 
 	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
@@ -69,6 +70,11 @@ func main() {
 
 	detectK8sVersion(kubeconfig)
 
+	pprofBindAddr := ""
+	if flags.FeatureFlags.EnableProfiling {
+		pprofBindAddr = ":8281"
+	}
+
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
@@ -76,6 +82,7 @@ func main() {
 		LeaderElectionNamespace: *leaderElectionNamespace,
 		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
+		PprofBindAddress:        pprofBindAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
