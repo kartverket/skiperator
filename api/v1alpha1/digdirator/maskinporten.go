@@ -1,6 +1,9 @@
 package digdirator
 
-import nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+import (
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+)
 
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L376
 //
@@ -15,4 +18,7 @@ type Maskinporten struct {
 
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
+
+	// Authentication specifies how incoming JWT's should be validated.
+	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
 }

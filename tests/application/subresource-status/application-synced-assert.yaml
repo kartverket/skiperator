@@ -21,7 +21,7 @@ status:
     message: All subresources synced
     status: Synced
   subresources:
-    AuthorizationPolicy[working-deny]:
+    AuthorizationPolicy[working-default-deny]:
       message: AuthorizationPolicy has finished synchronizing
       status: Synced
     Certificate[chainsaw-subresource-labels-working-ingress-214f400d5abb9c1c]:

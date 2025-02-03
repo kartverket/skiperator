@@ -1,6 +1,6 @@
 apiVersion: nais.io/v1
 kind: MaskinportenClient
 metadata:
-  name: maskinporten-test-client
+  name: application
 spec:
   scopes: {}

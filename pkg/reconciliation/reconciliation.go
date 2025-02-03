@@ -28,6 +28,7 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
+	GetAuthConfigs() *[]AuthConfig
 }
 
 type baseReconciliation struct {
@@ -38,6 +39,32 @@ type baseReconciliation struct {
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
 	skipObject        v1alpha1.SKIPObject
+	authConfigs       *[]AuthConfig
+}
+
+type AuthConfig struct {
+	NotPaths     *[]string
+	ProviderURIs ProviderURIs
+}
+
+type ProviderURIs struct {
+	Provider  IdentityProvider
+	IssuerURI string
+	JwksURI   string
+	ClientID  string
+}
+
+var (
+	MASKINPORTEN IdentityProvider = "MASKINPORTEN"
+	ID_PORTEN    IdentityProvider = "ID_PORTEN"
+)
+
+type IdentityProvider string
+
+type IdentityProviderInfo struct {
+	Provider   IdentityProvider
+	SecretName string
+	NotPaths   *[]string
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -70,4 +97,8 @@ func (b *baseReconciliation) GetRestConfig() *rest.Config {
 
 func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
+}
+
+func (b *baseReconciliation) GetAuthConfigs() *[]AuthConfig {
+	return b.authConfigs
 }
