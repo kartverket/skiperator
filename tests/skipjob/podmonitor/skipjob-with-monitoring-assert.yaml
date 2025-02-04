@@ -55,6 +55,7 @@ spec:
   podMetricsEndpoints:
     - targetPort: istio-metrics
       path: "/stats/prometheus"
+      interval: "60s"
       metricRelabelings:
         - action: drop
           regex: istio_request_bytes_bucket|istio_response_bytes_bucket|istio_request_duration_milliseconds_bucket

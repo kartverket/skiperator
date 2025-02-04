@@ -1,16 +1,21 @@
-package servicemonitor
+package prometheus
 
 import (
 	"fmt"
+	"strings"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
-func Generate(r reconciliation.Reconciliation) error {
+func init() {
+	multiGenerator.Register(reconciliation.ApplicationType, generateForApplication)
+}
+
+func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in service monitor", r.GetType())
@@ -33,6 +38,11 @@ func Generate(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
+	scrapeInterval, err := getScrapeInterval(application.Spec.Prometheus)
+	if err != nil {
+		return err
+	}
+
 	serviceMonitor.Spec = pov1.ServiceMonitorSpec{
 		Selector: metav1.LabelSelector{
 			MatchLabels: util.GetPodAppSelector(application.Name),
@@ -44,6 +54,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			{
 				Path:       util.IstioMetricsPath,
 				TargetPort: &util.IstioMetricsPortName,
+				Interval:   *scrapeInterval,
 				MetricRelabelConfigs: []pov1.RelabelConfig{
 					{
 						Action:       "drop",

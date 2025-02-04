@@ -947,6 +947,12 @@ spec:
                     description: The port number or name where metrics are exposed
                       (at the Pod level).
                     x-kubernetes-int-or-string: true
+                  scrapeInterval:
+                    default: 60s
+                    description: |-
+                      ScrapeInterval specfies the interval at which Prometheus should scrape the metrics. The interval must be
+                      specified as a number of seconds or minutes, e.g. "30s" or "1m". The scrape interval must be at least 15 seconds.
+                    type: string
                 required:
                 - port
                 type: object

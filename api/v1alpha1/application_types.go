@@ -3,6 +3,8 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -10,7 +12,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"time"
 )
 
 // +kubebuilder:object:root=true
@@ -333,6 +334,14 @@ type PrometheusConfig struct {
 	//+kubebuilder:default:=false
 	//+kubebuilder:validation:Optional
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
+
+	// ScrapeInterval specfies the interval at which Prometheus should scrape the metrics. The interval must be
+	// specified as a number of seconds or minutes, e.g. "30s" or "1m". The scrape interval must be at least 15 seconds.
+	//
+	//+kubebuilder:default:="60s"
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:pattern:="^([0-9]+[sm])+$"
+	ScrapeInterval string `json:"scrapeInterval,omitempty"`
 }
 
 func NewDefaultReplicas() Replicas {

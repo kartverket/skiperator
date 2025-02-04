@@ -1,16 +1,21 @@
-package podmonitor
+package prometheus
 
 import (
 	"fmt"
+	"strings"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
-func Generate(r reconciliation.Reconciliation) error {
+func init() {
+	multiGenerator.Register(reconciliation.JobType, generateForSkipJob)
+}
+
+func generateForSkipJob(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate podmonitor for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
@@ -22,6 +27,11 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if skipJob.Spec.Prometheus == nil {
 		return nil
+	}
+
+	scrapeInterval, err := getScrapeInterval(skipJob.Spec.Prometheus)
+	if err != nil {
+		return err
 	}
 
 	podMonitor := pov1.PodMonitor{ObjectMeta: metav1.ObjectMeta{
@@ -41,6 +51,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			{
 				Path:       util.IstioMetricsPath,
 				TargetPort: &util.IstioMetricsPortName,
+				Interval:   *scrapeInterval,
 			},
 		},
 	}

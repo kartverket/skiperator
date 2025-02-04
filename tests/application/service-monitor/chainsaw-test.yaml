@@ -7,6 +7,10 @@ spec:
   concurrent: true
   skipDelete: false
   namespace: service-monitor-ns
+  timeouts:
+    apply: 30s
+    assert: 30s
+    error: 30s
   steps:
     - try:
         - apply:
@@ -23,3 +27,14 @@ spec:
             file: patch-application-allowall.yaml
         - assert:
             file: patch-application-allowall-assert.yaml
+    - try:
+        - apply:
+            file: application-simple-custom-interval.yaml
+        - assert:
+            file: application-simple-custom-interval-assert.yaml
+        - apply:
+            file: application-simple-custom-interval-invalid.yaml
+        - assert:
+            file: application-simple-custom-interval-invalid-assert.yaml
+        - error:
+            file: application-simple-custom-interval-invalid-error.yaml
