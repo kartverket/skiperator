@@ -7,10 +7,6 @@ spec:
   concurrent: true
   skipDelete: false
   namespace: service-monitor-ns
-  timeouts:
-    apply: 30s
-    assert: 30s
-    error: 30s
   steps:
     - try:
         - apply:
