@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
@@ -36,6 +37,8 @@ const (
 	ConditionRunning  = "Running"
 	ConditionFinished = "Finished"
 	ConditionFailed   = "Failed"
+
+	skipJobFinalizer = "skip.statkart.no/finalizer"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skipjobs;skipjobs/status,verbs=get;list;watch;update
@@ -97,6 +100,14 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
+	isSkipJobMarkedToBeDeleted := skipJob.GetDeletionTimestamp() != nil
+	if isSkipJobMarkedToBeDeleted {
+		if err = r.finalizeSkipJob(skipJob, ctx); err != nil {
+			return ctrl.Result{}, err
+		}
+		return common.DoNotRequeue()
+	}
+
 	tmpSkipJob := skipJob.DeepCopy()
 	//TODO make sure we don't update the skipjob/application/routing after this step, it will cause endless reconciliations
 	//check that resource request limit 0.3 doesn't overwrite to 300m
@@ -121,9 +132,11 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	// Finalizer check is due to a bug when updating using controller-runtime
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
-	if len(specDiff) > 0 {
+	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpSkipJob, skipJobFinalizer) && ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer)) {
+		rLog.Debug("Queuing for spec diff")
 		err = r.GetClient().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -206,6 +219,10 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *ski
 	if err := skipJob.FillDefaultSpec(); err != nil {
 		return fmt.Errorf("error when trying to fill default spec: %w", err)
 	}
+	if !ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
+		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer)
+	}
+
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	skipJob.FillDefaultStatus()
 
@@ -218,6 +235,17 @@ func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJ
 			return err
 		}
 		resourceutils.SetSKIPJobLabels(resource, skipJob)
+	}
+	return nil
+}
+
+func (r *SKIPJobReconciler) finalizeSkipJob(skipJob *skiperatorv1alpha1.SKIPJob, ctx context.Context) error {
+	if ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
+		ctrlutil.RemoveFinalizer(skipJob, skipJobFinalizer)
+		err := r.GetClient().Update(ctx, skipJob)
+		if err != nil {
+			return fmt.Errorf("something went wrong when trying to finalize SKIPJob: %w", err)
+		}
 	}
 	return nil
 }
