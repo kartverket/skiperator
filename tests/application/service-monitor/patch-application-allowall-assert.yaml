@@ -9,6 +9,7 @@ spec:
   endpoints:
     - targetPort: istio-metrics
       path: /stats/prometheus
+      interval: "60s"
   selector:
     matchLabels:
       app: some-monitored-app-1

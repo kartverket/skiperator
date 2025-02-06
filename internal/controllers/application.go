@@ -24,10 +24,10 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/servicemonitor"
 	"github.com/kartverket/skiperator/pkg/util"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -207,7 +207,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		networkpolicy.Generate,
 		authorizationpolicy.Generate,
 		pdb.Generate,
-		servicemonitor.Generate,
+		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
 		deployment.Generate,
