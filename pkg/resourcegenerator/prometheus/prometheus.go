@@ -5,13 +5,11 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	prommodel "github.com/prometheus/common/model"
 )
 
 var (
 	multiGenerator        = generator.NewMulti()
 	defaultScrapeInterval = pov1.Duration("60s")
-	minimumInterval, _    = prommodel.ParseDuration("15s")
 )
 
 func Generate(r reconciliation.Reconciliation) error {
