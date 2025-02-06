@@ -9,7 +9,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"regexp"
+	"net"
 	"slices"
 	"strings"
 )
@@ -18,8 +18,6 @@ func init() {
 	multiGenerator.Register(reconciliation.ApplicationType, generateForCommon)
 	multiGenerator.Register(reconciliation.JobType, generateForCommon)
 }
-
-var ipAddress = regexp.MustCompile("^((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}$")
 
 // TODO fix mess
 func generateForCommon(r reconciliation.Reconciliation) error {
@@ -98,7 +96,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []
 	}
 
 	for _, externalRule := range accessPolicy.Outbound.External {
-		if externalRule.Ports == nil || externalRule.Ip == "" || !ipAddress.MatchString(externalRule.Ip) {
+		if externalRule.Ports == nil || externalRule.Ip == "" || net.ParseIP(externalRule.Ip) == nil {
 			continue
 		}
 		egressRules = append(egressRules, getIPExternalRule(externalRule))
