@@ -563,8 +563,9 @@ spec:
                           If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
                       forwardOriginalToken:
-                        description: If set to true, the original token will be kept
-                          for the upstream request. Default is true.
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
                         type: boolean
                       ignorePaths:
                         description: |-
@@ -606,10 +607,11 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
+                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
-                          An enum value of `header` means that the JWT is present in the `Authorization` as a Bearer Token.
+                          An enum value of `header` means that the JWT is present in the `Authorization`-header as a Bearer Token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
                         enum:
                         - header
@@ -831,8 +833,9 @@ spec:
                           If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
                       forwardOriginalToken:
-                        description: If set to true, the original token will be kept
-                          for the upstream request. Default is true.
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
                         type: boolean
                       ignorePaths:
                         description: |-
@@ -874,10 +877,11 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
+                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
-                          An enum value of `header` means that the JWT is present in the `Authorization` as a Bearer Token.
+                          An enum value of `header` means that the JWT is present in the `Authorization`-header as a Bearer Token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
                         enum:
                         - header

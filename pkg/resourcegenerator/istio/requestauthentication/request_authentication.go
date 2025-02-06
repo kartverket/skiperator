@@ -4,6 +4,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/pkg/jwtAuth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
@@ -30,7 +31,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	authConfig := r.GetAuthConfigs()
 
 	if authConfig == nil {
-		ctxLog.Debug("No RequestAuthentication to generate. No auth config provided for", "application", application.Name)
+		ctxLog.Debug("No RequestAuthentication to generate. No jwtAuth config provided for", "application", application.Name)
 	} else {
 		requestAuthentication := getRequestAuthentication(application, *authConfig)
 		r.AddResource(&requestAuthentication)
@@ -39,14 +40,14 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []reconciliation.AuthConfig) securityv1.RequestAuthentication {
+func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []jwtAuth.AuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
-	for i, authConfig := range authConfigs {
-		switch authConfig.ProviderURIs.Provider {
-		case reconciliation.ID_PORTEN:
-			jwtRules[i] = getJWTRule(application.Spec.IDPorten.Authentication, authConfig.ProviderURIs)
-		case reconciliation.MASKINPORTEN:
-			jwtRules[i] = getJWTRule(application.Spec.Maskinporten.Authentication, authConfig.ProviderURIs)
+	for i, config := range authConfigs {
+		switch config.ProviderURIs.Provider {
+		case jwtAuth.ID_PORTEN:
+			jwtRules[i] = getJWTRule(application.Spec.IDPorten.Authentication, config.ProviderURIs)
+		case jwtAuth.MASKINPORTEN:
+			jwtRules[i] = getJWTRule(application.Spec.Maskinporten.Authentication, config.ProviderURIs)
 		}
 	}
 	return securityv1.RequestAuthentication{
@@ -63,15 +64,11 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 	}
 }
 
-func getJWTRule(authentication *istiotypes.Authentication, providerURIs reconciliation.ProviderURIs) *v1beta1.JWTRule {
-	var forwardOriginalToken = true
-	if authentication.ForwardOriginalToken != nil {
-		forwardOriginalToken = *authentication.ForwardOriginalToken
-	}
+func getJWTRule(authentication *istiotypes.Authentication, providerURIs jwtAuth.ProviderURIs) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
-		ForwardOriginalToken: forwardOriginalToken,
+		ForwardOriginalToken: authentication.ForwardOriginalToken,
 	}
-	if (authentication.TokenLocation != nil && *authentication.TokenLocation == "cookie") || (authentication.TokenLocation == nil && providerURIs.Provider == reconciliation.ID_PORTEN) {
+	if authentication.TokenLocation == "cookie" {
 		jwtRule.FromCookies = []string{"BearerToken"}
 	}
 	if authentication.OutputClaimToHeaders != nil {

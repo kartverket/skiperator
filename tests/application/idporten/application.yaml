@@ -30,6 +30,7 @@ spec:
     authentication:
       enabled: true
       secretName: "idporten-application-auth-f816cf66"
+      tokenLocation: cookie
       outputClaimToHeaders:
         - claim: "aud"
           header: "Audience"

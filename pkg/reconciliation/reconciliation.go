@@ -3,6 +3,7 @@ package reconciliation
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/jwtAuth"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -28,7 +29,7 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
-	GetAuthConfigs() *[]AuthConfig
+	GetAuthConfigs() *jwtAuth.AuthConfigs
 }
 
 type baseReconciliation struct {
@@ -39,32 +40,7 @@ type baseReconciliation struct {
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
 	skipObject        v1alpha1.SKIPObject
-	authConfigs       *[]AuthConfig
-}
-
-type AuthConfig struct {
-	NotPaths     *[]string
-	ProviderURIs ProviderURIs
-}
-
-type ProviderURIs struct {
-	Provider  IdentityProvider
-	IssuerURI string
-	JwksURI   string
-	ClientID  string
-}
-
-var (
-	MASKINPORTEN IdentityProvider = "MASKINPORTEN"
-	ID_PORTEN    IdentityProvider = "ID_PORTEN"
-)
-
-type IdentityProvider string
-
-type IdentityProviderInfo struct {
-	Provider   IdentityProvider
-	SecretName string
-	NotPaths   *[]string
+	authConfigs       *jwtAuth.AuthConfigs
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -99,6 +75,6 @@ func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
 }
 
-func (b *baseReconciliation) GetAuthConfigs() *[]AuthConfig {
+func (b *baseReconciliation) GetAuthConfigs() *jwtAuth.AuthConfigs {
 	return b.authConfigs
 }
