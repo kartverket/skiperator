@@ -38,11 +38,6 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	scrapeInterval, err := getScrapeInterval(application.Spec.Prometheus)
-	if err != nil {
-		return err
-	}
-
 	serviceMonitor.Spec = pov1.ServiceMonitorSpec{
 		Selector: metav1.LabelSelector{
 			MatchLabels: util.GetPodAppSelector(application.Name),
@@ -54,7 +49,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			{
 				Path:       util.IstioMetricsPath,
 				TargetPort: &util.IstioMetricsPortName,
-				Interval:   *scrapeInterval,
+				Interval:   getScrapeInterval(application.Spec.Prometheus),
 				MetricRelabelConfigs: []pov1.RelabelConfig{
 					{
 						Action:       "drop",

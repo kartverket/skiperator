@@ -28,9 +28,5 @@ spec:
             file: application-simple-custom-interval.yaml
         - assert:
             file: application-simple-custom-interval-assert.yaml
-        - apply:
-            file: application-simple-custom-interval-invalid.yaml
-        - assert:
-            file: application-simple-custom-interval-invalid-assert.yaml
         - error:
-            file: application-simple-custom-interval-invalid-error.yaml
+            file: application-simple-custom-interval-invalid.yaml

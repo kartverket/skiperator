@@ -29,11 +29,6 @@ func generateForSkipJob(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	scrapeInterval, err := getScrapeInterval(skipJob.Spec.Prometheus)
-	if err != nil {
-		return err
-	}
-
 	podMonitor := pov1.PodMonitor{ObjectMeta: metav1.ObjectMeta{
 		Name:      skipJob.Name + "-monitor",
 		Namespace: skipJob.Namespace,
@@ -51,7 +46,7 @@ func generateForSkipJob(r reconciliation.Reconciliation) error {
 			{
 				Path:       util.IstioMetricsPath,
 				TargetPort: &util.IstioMetricsPortName,
-				Interval:   *scrapeInterval,
+				Interval:   getScrapeInterval(skipJob.Spec.Prometheus),
 			},
 		},
 	}

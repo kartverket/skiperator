@@ -11,7 +11,7 @@ spec:
   podMetricsEndpoints:
     - targetPort: istio-metrics
       path: "/stats/prometheus"
-      interval: "99s"
+      interval: "100s"
   selector:
     matchLabels:
       app: podmonitor

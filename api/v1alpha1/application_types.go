@@ -335,12 +335,14 @@ type PrometheusConfig struct {
 	//+kubebuilder:validation:Optional
 	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
 
-	// ScrapeInterval specfies the interval at which Prometheus should scrape the metrics. The interval must be
-	// specified as a number of seconds or minutes, e.g. "30s" or "1m". The scrape interval must be at least 15 seconds.
+	// ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
+	// The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
+	// If minutes ("Xm") are used, the value must be at least 1m.
 	//
 	//+kubebuilder:default:="60s"
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:pattern:="^([0-9]+[sm])+$"
+	//+kubebuilder:validation:XValidation:rule="self == '' || self.matches('^([0-9]+[sm])+$')",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be empty (default applies) or in the format of <number>s or <number>m.'"
+	//+kubebuilder:validation:XValidation:rule="self == '' || (self.endsWith('m') && int(self.split('m')[0]) >= 1) || (self.endsWith('s') && int(self.split('s')[0]) >= 15 && int(self.split('s')[0]) % 5 == 0)",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be at least 15s (if using <s>) and divisible by 5, or at least 1m (if using <m>).'"
 	ScrapeInterval string `json:"scrapeInterval,omitempty"`
 }
 
