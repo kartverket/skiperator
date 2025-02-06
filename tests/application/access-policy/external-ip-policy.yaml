@@ -1,0 +1,18 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: external-ip-policy
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: xkcd.com
+        - host: backstage-db-sandbox
+          ip: 22.134.52.36
+          ports:
+            - name: sql
+              port: 5432
+              protocol: TCP
+
