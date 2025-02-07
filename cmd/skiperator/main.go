@@ -55,6 +55,7 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Development: !*isDeployment,
 		Level:       parsedLogLevel,
+		DestWriter:  os.Stdout,
 	})))
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))

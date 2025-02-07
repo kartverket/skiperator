@@ -23,3 +23,10 @@ spec:
             file: patch-application-allowall.yaml
         - assert:
             file: patch-application-allowall-assert.yaml
+    - try:
+        - apply:
+            file: application-simple-custom-interval.yaml
+        - assert:
+            file: application-simple-custom-interval-assert.yaml
+        - error:
+            file: application-simple-custom-interval-invalid.yaml

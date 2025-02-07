@@ -14,7 +14,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/podmonitor"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -163,7 +163,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		serviceentry.Generate,
 		auth.Generate,
 		job.Generate,
-		podmonitor.Generate,
+		prometheus.Generate,
 		telemetry.Generate,
 	}
 
