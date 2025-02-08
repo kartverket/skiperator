@@ -189,10 +189,10 @@ func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
 }
 
-func IsIDPortenAuthenticationEnabled(application *skiperatorv1alpha1.Application) bool {
+func IsIDPortenAuthenticationEnabled(application skiperatorv1alpha1.Application) bool {
 	return application.Spec.IDPorten != nil && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled
 }
 
-func IsMaskinPortenAuthenticationEnabled(application *skiperatorv1alpha1.Application) bool {
+func IsMaskinPortenAuthenticationEnabled(application skiperatorv1alpha1.Application) bool {
 	return application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true
 }
