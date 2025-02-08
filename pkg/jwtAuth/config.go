@@ -90,7 +90,7 @@ func GetAuthConfigsForApplication(k8sClient client.Client, ctx context.Context, 
 	}
 }
 
-func (authConfigs AuthConfigs) GetAllowedPaths(authorizationSettings *skiperatorv1alpha1.AuthorizationSettings) []string {
+func (authConfigs *AuthConfigs) GetAllowedPaths(authorizationSettings *skiperatorv1alpha1.AuthorizationSettings) []string {
 	allowPaths := []string{}
 	if authorizationSettings != nil {
 		if authorizationSettings.AllowList != nil {
@@ -99,9 +99,11 @@ func (authConfigs AuthConfigs) GetAllowedPaths(authorizationSettings *skiperator
 			}
 		}
 	}
-	for _, config := range authConfigs {
-		if config.NotPaths != nil {
-			allowPaths = append(allowPaths, *config.NotPaths...)
+	if authConfigs != nil {
+		for _, config := range *authConfigs {
+			if config.NotPaths != nil {
+				allowPaths = append(allowPaths, *config.NotPaths...)
+			}
 		}
 	}
 	return allowPaths

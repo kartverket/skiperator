@@ -40,7 +40,7 @@ type CloudSQLProxySettings struct {
 	//+kubebuilder:validation:Pattern=`^[^:]+:[^:]+:[^:]+$`
 	ConnectionName string `json:"connectionName,omitempty"`
 
-	// Service account used by cloudsql jwtAuth proxy. This service account must have the roles/cloudsql.client role.
+	// Service account used by cloudsql auth proxy. This service account must have the roles/cloudsql.client role.
 	//+kubebuilder:validation:Required
 	ServiceAccount string `json:"serviceAccount,omitempty"`
 

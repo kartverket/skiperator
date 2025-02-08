@@ -76,7 +76,7 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 			},
 			When: []*securityv1api.Condition{
 				{
-					Key:    "request.jwtAuth.claims[iss]",
+					Key:    "request.auth.claims[iss]",
 					Values: []string{authConfig.ProviderURIs.IssuerURI},
 				},
 			},

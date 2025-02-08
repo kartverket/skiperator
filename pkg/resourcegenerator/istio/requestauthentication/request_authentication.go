@@ -31,7 +31,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	authConfig := r.GetAuthConfigs()
 
 	if authConfig == nil {
-		ctxLog.Debug("No RequestAuthentication to generate. No jwtAuth config provided for", "application", application.Name)
+		ctxLog.Debug("No RequestAuthentication to generate. No auth config provided for", "application", application.Name)
 	} else {
 		requestAuthentication := getRequestAuthentication(application, *authConfig)
 		r.AddResource(&requestAuthentication)
