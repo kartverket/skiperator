@@ -39,12 +39,8 @@ func GetAuthConfigsForApplication(k8sClient client.Client, ctx context.Context, 
 
 func (authConfigs *AuthConfigs) GetAllowedPaths(authorizationSettings *skiperatorv1alpha1.AuthorizationSettings) []string {
 	var allowPaths []string
-	if authorizationSettings != nil {
-		if authorizationSettings.AllowList != nil {
-			if len(authorizationSettings.AllowList) > 0 {
-				allowPaths = authorizationSettings.AllowList
-			}
-		}
+	if authorizationSettings != nil && authorizationSettings.AllowList != nil && len(authorizationSettings.AllowList) > 0 {
+		allowPaths = authorizationSettings.AllowList
 	}
 	if authConfigs != nil {
 		for _, config := range *authConfigs {

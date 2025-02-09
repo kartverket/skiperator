@@ -78,7 +78,7 @@ func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedN
 	return idPortenClient, nil
 }
 
-func GetMaskinPortenlient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.MaskinportenClient, error) {
+func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.MaskinportenClient, error) {
 	maskinPortenClient := &nais_io_v1.MaskinportenClient{}
 	if err := k8sClient.Get(ctx, namespacedName, maskinPortenClient); err != nil {
 		if errors.IsNotFound(err) {

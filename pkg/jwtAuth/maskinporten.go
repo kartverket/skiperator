@@ -35,7 +35,7 @@ func (i *MaskinportenOps) GetSecret(k8sClient client.Client, ctx context.Context
 			return &secret, nil
 		}
 		namespacedName.Name = application.Name
-		maskinportenClient, err := util.GetMaskinPortenlient(k8sClient, ctx, namespacedName)
+		maskinportenClient, err := util.GetMaskinportenClient(k8sClient, ctx, namespacedName)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MaskinportenClient: %s", namespacedName.String())
 		}
