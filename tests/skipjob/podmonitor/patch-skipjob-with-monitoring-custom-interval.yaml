@@ -1,0 +1,17 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: podmonitor
+spec:
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(2000)"
+  prometheus:
+    path: /metrics
+    port: 8080
+    allowAllMetrics: true
+    scrapeInterval: "100s"

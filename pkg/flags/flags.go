@@ -14,11 +14,13 @@ var FeatureFlags *Features
 // environment variables.
 type Features struct {
 	DisablePodTopologySpreadConstraints bool
+	EnableProfiling                     bool
 }
 
 func init() {
 	FeatureFlags = &Features{
 		DisablePodTopologySpreadConstraints: getEnvWithFallback("DISABLE_PTSC", false),
+		EnableProfiling:                     getEnvWithFallback("ENABLE_PROFILING", false),
 	}
 }
 

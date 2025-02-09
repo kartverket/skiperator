@@ -20,6 +20,11 @@ spec:
             file: patch-skipjob-with-monitoring-assert.yaml
     - try:
         - patch:
+            file: patch-skipjob-with-monitoring-custom-interval.yaml
+        - assert:
+            file: patch-skipjob-with-monitoring-custom-interval-assert.yaml
+    - try:
+        - patch:
             file: patch-skipjob-remove-monitoring.yaml
         - error:
             file: patch-skipjob-remove-monitoring-error.yaml
