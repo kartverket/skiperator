@@ -4,6 +4,7 @@ import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
 	"istio.io/api/security/v1beta1"
@@ -11,10 +12,6 @@ import (
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	DefaultDenyPath = "/actuator*"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -59,23 +56,13 @@ func Generate(r reconciliation.Reconciliation) error {
 				},
 				application.Name,
 				securityv1api.AuthorizationPolicy_DENY,
-				[]string{DefaultDenyPath},
+				[]string{authorizationpolicy.DefaultDenyPath},
 				allowedPaths,
 			),
 		)
 	}
 	ctxLog.Debug("Finished generating default AuthorizationPolicy for application", "application", application.Name)
 	return nil
-}
-
-func GetGeneralFromRule() []*securityv1api.Rule_From {
-	return []*securityv1api.Rule_From{
-		{
-			Source: &securityv1api.Source{
-				Namespaces: []string{"istio-gateways"},
-			},
-		},
-	}
 }
 
 func getAuthPolicy(namespacedName types.NamespacedName, applicationName string, action v1beta1.AuthorizationPolicy_Action, paths []string, notPaths []string) *securityv1.AuthorizationPolicy {
@@ -96,7 +83,7 @@ func getAuthPolicy(namespacedName types.NamespacedName, applicationName string, 
 							},
 						},
 					},
-					From: GetGeneralFromRule(),
+					From: authorizationpolicy.GetGeneralFromRule(),
 				},
 			},
 			Selector: &typev1beta1.WorkloadSelector{

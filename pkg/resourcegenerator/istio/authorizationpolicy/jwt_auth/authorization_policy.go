@@ -5,7 +5,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/jwtAuth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
 	typev1beta1 "istio.io/api/type/v1beta1"
@@ -31,15 +31,8 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	allowPaths := []string{}
-	if application.Spec.AuthorizationSettings != nil {
-		if application.Spec.AuthorizationSettings.AllowList != nil {
-			if len(application.Spec.AuthorizationSettings.AllowList) > 0 {
-				allowPaths = application.Spec.AuthorizationSettings.AllowList
-			}
-		}
-	}
 	authConfigs := r.GetAuthConfigs()
+	allowedPaths := authConfigs.GetAllowedPaths(application.Spec.AuthorizationSettings)
 	if authConfigs != nil {
 		if len(*authConfigs) > 0 {
 			r.AddResource(
@@ -50,8 +43,8 @@ func Generate(r reconciliation.Reconciliation) error {
 					},
 					application.Name,
 					*authConfigs,
-					allowPaths,
-					[]string{default_deny.DefaultDenyPath},
+					allowedPaths,
+					[]string{authorizationpolicy.DefaultDenyPath},
 				),
 			)
 		}
@@ -80,7 +73,7 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 					Values: []string{authConfig.ProviderURIs.IssuerURI},
 				},
 			},
-			From: default_deny.GetGeneralFromRule(),
+			From: authorizationpolicy.GetGeneralFromRule(),
 		})
 	}
 	return &securityv1.AuthorizationPolicy{
