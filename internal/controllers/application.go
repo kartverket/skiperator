@@ -292,7 +292,7 @@ func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alp
 		ctrlutil.RemoveFinalizer(application, applicationFinalizer)
 		err := r.GetClient().Update(ctx, application)
 		if err != nil {
-			return fmt.Errorf("Something went wrong when trying to finalize application. %w", err)
+			return fmt.Errorf("something went wrong when trying to finalize application. %w", err)
 		}
 	}
 

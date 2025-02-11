@@ -42,3 +42,8 @@ spec:
             file: multiple-ns-same-label.yaml
         - assert:
             file: multiple-ns-same-label-assert.yaml
+    - try:
+        - apply:
+            file: external-ip-policy.yaml
+        - assert:
+            file: external-ip-policy-assert.yaml
