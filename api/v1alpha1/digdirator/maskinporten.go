@@ -35,7 +35,10 @@ const MaskinPortenName = "maskinporten"
 
 func (i *Maskinporten) IsEnabled() bool {
 	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
-	
+}
+
+func (i *Maskinporten) GetAuthSpec() istiotypes.Authentication {
+	return *i.Authentication
 }
 
 func (i *Maskinporten) GetDigdiratorName() DigdiratorName {

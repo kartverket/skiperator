@@ -97,6 +97,10 @@ func (i *IDPorten) IsEnabled() bool {
 	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
 }
 
+func (i *IDPorten) GetAuthSpec() istiotypes.Authentication {
+	return *i.Authentication
+}
+
 func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 	return IDPortenName
 }

@@ -1,6 +1,7 @@
 package digdirator
 
 import (
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -20,6 +21,7 @@ type DigdiratorClients struct {
 
 type DigdiratorProvider interface {
 	IsEnabled() bool
+	GetAuthSpec() istiotypes.Authentication
 	GetDigdiratorName() DigdiratorName
 	GetProvidedSecretName() *string
 	GetIgnoredPaths() []string

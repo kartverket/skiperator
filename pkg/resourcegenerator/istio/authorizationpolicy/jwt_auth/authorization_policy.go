@@ -46,7 +46,7 @@ func Generate(r reconciliation.Reconciliation) error {
 				application.Name,
 				*authConfigs,
 				allowedPaths,
-				[]string{authorizationpolicy.DefaultDenyPath},
+				authorizationpolicy.DefaultDenyPath,
 			),
 		)
 	}
@@ -54,11 +54,11 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, allowPaths []string, denyPaths []string) *securityv1.AuthorizationPolicy {
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, allowPaths []string, denyPath string) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 
 	notPaths := allowPaths
-	notPaths = append(allowPaths, denyPaths...)
+	notPaths = append(allowPaths, denyPath)
 	for _, authConfig := range authConfigs {
 		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
 			To: []*securityv1api.Rule_To{

@@ -192,7 +192,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
-	authConfigs, err := r.GetAuthConfigsForApplication(ctx, application)
+	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
 	if err != nil {
 		rLog.Error(err, "can't resolve auth config")
 	}
@@ -421,7 +421,7 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	return nil
 }
 
-func (r *ApplicationReconciler) GetAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*AuthConfigs, error) {
+func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*AuthConfigs, error) {
 	if application == nil {
 		return nil, fmt.Errorf("cannot retrieve AuthConfigs for nil application")
 	}
@@ -457,6 +457,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
 	return &AuthConfig{
+		Spec:     digdiratorProvider.GetAuthSpec(),
 		NotPaths: digdiratorProvider.GetIgnoredPaths(),
 		ProviderURIs: digdirator.DigdiratorURIs{
 			Name:      digdiratorProvider.GetDigdiratorName(),
