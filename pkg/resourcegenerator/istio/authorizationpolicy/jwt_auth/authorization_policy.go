@@ -32,21 +32,23 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	authConfigs := r.GetAuthConfigs()
 	allowedPaths := authConfigs.GetAllowedPaths(application.Spec.AuthorizationSettings)
-	if authConfigs != nil {
-		if len(*authConfigs) > 0 {
-			r.AddResource(
-				getJwtValidationAuthPolicy(
-					types.NamespacedName{
-						Namespace: application.Namespace,
-						Name:      application.Name + "-jwt-auth",
-					},
-					application.Name,
-					*authConfigs,
-					allowedPaths,
-					[]string{authorizationpolicy.DefaultDenyPath},
-				),
-			)
-		}
+	if authConfigs == nil {
+		ctxLog.Debug("No auth configs provided for application. Skipping generating JWT-auth AuthorizationPolicy", "application", application.Name)
+		return nil
+	}
+	if len(*authConfigs) > 0 {
+		r.AddResource(
+			getJwtValidationAuthPolicy(
+				types.NamespacedName{
+					Namespace: application.Namespace,
+					Name:      application.Name + "-jwt-auth",
+				},
+				application.Name,
+				*authConfigs,
+				allowedPaths,
+				[]string{authorizationpolicy.DefaultDenyPath},
+			),
+		)
 	}
 	ctxLog.Debug("Finished generating JWT-auth AuthorizationPolicy for application", "application", application.Name)
 	return nil

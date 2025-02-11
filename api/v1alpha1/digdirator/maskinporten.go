@@ -5,6 +5,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L376
@@ -33,7 +34,8 @@ type MaskinportenClient struct {
 const MaskinPortenName = "maskinporten"
 
 func (i *Maskinporten) IsEnabled() bool {
-	return i.Enabled && i.Authentication.Enabled
+	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
+	
 }
 
 func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
@@ -68,7 +70,7 @@ func (i *Maskinporten) GetClientIDKey() string {
 
 func (i *Maskinporten) GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorClients) (*[]v1.OwnerReference, error) {
 	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	return &digdiratorClients.MaskinPortenClient.Client.OwnerReferences, nil
@@ -76,7 +78,7 @@ func (i *Maskinporten) GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorC
 
 func (i *Maskinporten) GetGeneratedDigdiratorSecret(digdiratorClients DigdiratorClients) (*string, error) {
 	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	return &digdiratorClients.MaskinPortenClient.Client.Spec.SecretName, nil

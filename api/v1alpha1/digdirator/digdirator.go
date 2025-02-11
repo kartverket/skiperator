@@ -30,10 +30,3 @@ type DigdiratorProvider interface {
 	GetGeneratedDigdiratorSecret(digdiratorClients DigdiratorClients) (*string, error)
 	HandleDigdiratorClientError(digdiratorClients DigdiratorClients) error
 }
-
-func GetDigdiratorImplementations() []DigdiratorProvider {
-	return []DigdiratorProvider{
-		&IDPorten{},
-		&Maskinporten{},
-	}
-}

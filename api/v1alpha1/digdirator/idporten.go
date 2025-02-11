@@ -94,7 +94,7 @@ type IdPortenClient struct {
 const IDPortenName DigdiratorName = "idporten"
 
 func (i *IDPorten) IsEnabled() bool {
-	return i.Enabled && i.Authentication.Enabled
+	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
 }
 
 func (i *IDPorten) GetDigdiratorName() DigdiratorName {
@@ -129,7 +129,7 @@ func (i *IDPorten) GetClientIDKey() string {
 
 func (i *IDPorten) GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorClients) (*[]v1.OwnerReference, error) {
 	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	return &digdiratorClients.IdPortenClient.Client.OwnerReferences, nil
@@ -137,7 +137,7 @@ func (i *IDPorten) GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorClien
 
 func (i *IDPorten) GetGeneratedDigdiratorSecret(digdiratorClients DigdiratorClients) (*string, error) {
 	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	return &digdiratorClients.IdPortenClient.Client.Spec.SecretName, nil

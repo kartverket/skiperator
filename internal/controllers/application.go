@@ -427,7 +427,7 @@ func (r *ApplicationReconciler) GetAuthConfigsForApplication(ctx context.Context
 	}
 	var authConfigs AuthConfigs
 
-	for _, provider := range digdirator.GetDigdiratorImplementations() {
+	for _, provider := range getDigdiratorImplementations(*application) {
 		if provider.IsEnabled() {
 			authConfig, err := r.getAuthConfig(ctx, *application, provider)
 			if err != nil {
@@ -444,23 +444,27 @@ func (r *ApplicationReconciler) GetAuthConfigsForApplication(ctx context.Context
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*AuthConfig, error) {
-	if digdiratorProvider.IsEnabled() {
-		secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
-		}
-		return &AuthConfig{
-			NotPaths: digdiratorProvider.GetIgnoredPaths(),
-			ProviderURIs: digdirator.DigdiratorURIs{
-				Name:      digdiratorProvider.GetDigdiratorName(),
-				IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
-				JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),
-				ClientID:  string(secret.Data[digdiratorProvider.GetClientIDKey()]),
-			},
-		}, nil
+func getDigdiratorImplementations(application skiperatorv1alpha1.Application) []digdirator.DigdiratorProvider {
+	return []digdirator.DigdiratorProvider{
+		application.Spec.IDPorten,
+		application.Spec.Maskinporten,
 	}
-	return nil, fmt.Errorf("digdirator authentication not enabled for application: (%s, %s)", application.Name, application.Namespace)
+}
+
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*AuthConfig, error) {
+	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
+	}
+	return &AuthConfig{
+		NotPaths: digdiratorProvider.GetIgnoredPaths(),
+		ProviderURIs: digdirator.DigdiratorURIs{
+			Name:      digdiratorProvider.GetDigdiratorName(),
+			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
+			JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),
+			ClientID:  string(secret.Data[digdiratorProvider.GetClientIDKey()]),
+		},
+	}, nil
 }
 
 func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
