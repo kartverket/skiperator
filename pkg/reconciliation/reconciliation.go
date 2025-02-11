@@ -3,7 +3,7 @@ package reconciliation
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/jwtAuth"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -19,6 +19,13 @@ const (
 	RoutingType     ObjectType = "Routing"
 )
 
+type AuthConfigs []AuthConfig
+
+type AuthConfig struct {
+	NotPaths     []string
+	ProviderURIs digdirator.DigdiratorURIs
+}
+
 type Reconciliation interface {
 	GetLogger() log.Logger
 	GetCtx() context.Context //TODO: remove ctx from this interface
@@ -29,7 +36,7 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
-	GetAuthConfigs() *jwtAuth.AuthConfigs
+	GetAuthConfigs() *AuthConfigs
 }
 
 type baseReconciliation struct {
@@ -40,7 +47,7 @@ type baseReconciliation struct {
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
 	skipObject        v1alpha1.SKIPObject
-	authConfigs       *jwtAuth.AuthConfigs
+	authConfigs       *AuthConfigs
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -75,6 +82,21 @@ func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
 }
 
-func (b *baseReconciliation) GetAuthConfigs() *jwtAuth.AuthConfigs {
+func (b *baseReconciliation) GetAuthConfigs() *AuthConfigs {
 	return b.authConfigs
+}
+
+func (authConfigs *AuthConfigs) GetAllowedPaths(authorizationSettings *v1alpha1.AuthorizationSettings) []string {
+	var allowPaths []string
+	if authorizationSettings != nil && authorizationSettings.AllowList != nil && len(authorizationSettings.AllowList) > 0 {
+		allowPaths = authorizationSettings.AllowList
+	}
+	if authConfigs != nil {
+		for _, config := range *authConfigs {
+			if config.NotPaths != nil {
+				allowPaths = append(allowPaths, config.NotPaths...)
+			}
+		}
+	}
+	return allowPaths
 }

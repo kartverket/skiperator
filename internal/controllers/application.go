@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/jwtAuth"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	defaultDenyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"regexp"
@@ -192,7 +192,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
-	authConfigs, err := jwtAuth.GetAuthConfigsForApplication(r.GetClient(), ctx, application)
+	authConfigs, err := r.GetAuthConfigsForApplication(ctx, application)
 	if err != nil {
 		rLog.Error(err, "can't resolve auth config")
 	}
@@ -419,4 +419,105 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 		}
 	}
 	return nil
+}
+
+func (r *ApplicationReconciler) GetAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*AuthConfigs, error) {
+	if application == nil {
+		return nil, fmt.Errorf("cannot retrieve AuthConfigs for nil application")
+	}
+	var authConfigs AuthConfigs
+
+	for _, provider := range digdirator.GetDigdiratorImplementations() {
+		if provider.IsEnabled() {
+			authConfig, err := r.getAuthConfig(ctx, *application, provider)
+			if err != nil {
+				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
+			}
+			authConfigs = append(authConfigs, *authConfig)
+		}
+	}
+
+	if len(authConfigs) > 0 {
+		return &authConfigs, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*AuthConfig, error) {
+	if digdiratorProvider.IsEnabled() {
+		secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
+		}
+		return &AuthConfig{
+			NotPaths: digdiratorProvider.GetIgnoredPaths(),
+			ProviderURIs: digdirator.DigdiratorURIs{
+				Name:      digdiratorProvider.GetDigdiratorName(),
+				IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
+				JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),
+				ClientID:  string(secret.Data[digdiratorProvider.GetClientIDKey()]),
+			},
+		}, nil
+	}
+	return nil, fmt.Errorf("digdirator authentication not enabled for application: (%s, %s)", application.Name, application.Namespace)
+}
+
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
+	namespacedName := types.NamespacedName{
+		Namespace: application.Namespace,
+	}
+	if digdiratorProvider.GetProvidedSecretName() != nil {
+		namespacedName.Name = *digdiratorProvider.GetProvidedSecretName()
+		secret, err := util.GetSecret(r.GetClient(), ctx, namespacedName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to retrieve provided digdiratorProvider secret: '%s': %w", namespacedName, err)
+		}
+		return &secret, nil
+	}
+	namespacedName.Name = application.Name
+
+	digdiratorClients := r.getDigdiratorClients(ctx, namespacedName)
+	ownerReferences, err := digdiratorProvider.GetDigdiratorClientOwnerRef(digdiratorClients)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve ownerRefs from digdiratorClient %s: %w", namespacedName, err)
+	}
+	secretName, err := digdiratorProvider.GetGeneratedDigdiratorSecret(digdiratorClients)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve secret from digdiratorClient %s: %w", namespacedName, err)
+	}
+
+	return r.getDigdiratorExistingSecret(ctx, application, *ownerReferences, *secretName)
+}
+
+func (r *ApplicationReconciler) getDigdiratorClients(ctx context.Context, namespacedName types.NamespacedName) digdirator.DigdiratorClients {
+	idPortenClient, idPortenClientError := util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
+	maskinportenClient, maskinportenClientError := util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
+	return digdirator.DigdiratorClients{
+		IdPortenClient: digdirator.IdPortenClient{
+			Client: idPortenClient,
+			Error:  idPortenClientError,
+		},
+		MaskinPortenClient: digdirator.MaskinportenClient{
+			Client: maskinportenClient,
+			Error:  maskinportenClientError,
+		},
+	}
+}
+
+func (r *ApplicationReconciler) getDigdiratorExistingSecret(ctx context.Context, application skiperatorv1alpha1.Application, ownerReferences []metav1.OwnerReference, secretName string) (*corev1.Secret, error) {
+	for _, ownerReference := range ownerReferences {
+		if ownerReference.UID == application.UID {
+			secretName := types.NamespacedName{
+				Namespace: application.Namespace,
+				Name:      secretName,
+			}
+			secret, err := util.GetSecret(r.GetClient(), ctx, secretName)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve existing digdirator secret: '%s': %w", secretName.String(), err)
+			}
+			return &secret, nil
+		}
+	}
+	return nil, nil
 }

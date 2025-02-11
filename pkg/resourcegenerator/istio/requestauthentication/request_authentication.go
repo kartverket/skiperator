@@ -3,8 +3,8 @@ package requestauthentication
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/pkg/jwtAuth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
@@ -40,13 +40,13 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []jwtAuth.AuthConfig) securityv1.RequestAuthentication {
+func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []reconciliation.AuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
 	for i, config := range authConfigs {
-		switch config.ProviderURIs.Provider {
-		case jwtAuth.ID_PORTEN:
+		switch config.ProviderURIs.Name {
+		case digdirator.IDPortenName:
 			jwtRules[i] = getJWTRule(application.Spec.IDPorten.Authentication, config.ProviderURIs)
-		case jwtAuth.MASKINPORTEN:
+		case digdirator.MaskinPortenName:
 			jwtRules[i] = getJWTRule(application.Spec.Maskinporten.Authentication, config.ProviderURIs)
 		}
 	}
@@ -64,7 +64,7 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 	}
 }
 
-func getJWTRule(authentication *istiotypes.Authentication, providerURIs jwtAuth.ProviderURIs) *v1beta1.JWTRule {
+func getJWTRule(authentication *istiotypes.Authentication, providerURIs digdirator.DigdiratorURIs) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
 		ForwardOriginalToken: authentication.ForwardOriginalToken,
 	}

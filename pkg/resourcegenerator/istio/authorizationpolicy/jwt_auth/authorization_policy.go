@@ -3,7 +3,6 @@ package jwt_auth
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/jwtAuth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -53,7 +52,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []jwtAuth.AuthConfig, allowPaths []string, denyPaths []string) *securityv1.AuthorizationPolicy {
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, allowPaths []string, denyPaths []string) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 
 	notPaths := allowPaths
