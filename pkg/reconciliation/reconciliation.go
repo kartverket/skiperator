@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -22,6 +23,7 @@ const (
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
+	Spec         istiotypes.Authentication
 	NotPaths     []string
 	ProviderURIs digdirator.DigdiratorURIs
 }

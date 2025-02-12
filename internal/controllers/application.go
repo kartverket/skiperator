@@ -292,7 +292,7 @@ func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alp
 		ctrlutil.RemoveFinalizer(application, applicationFinalizer)
 		err := r.GetClient().Update(ctx, application)
 		if err != nil {
-			return fmt.Errorf("Something went wrong when trying to finalize application. %w", err)
+			return fmt.Errorf("something went wrong when trying to finalize application. %w", err)
 		}
 	}
 
@@ -451,6 +451,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
 	return &AuthConfig{
+		Spec:     digdiratorProvider.GetAuthSpec(),
 		NotPaths: digdiratorProvider.GetIgnoredPaths(),
 		ProviderURIs: digdirator.DigdiratorURIs{
 			Name:      digdiratorProvider.GetDigdiratorName(),

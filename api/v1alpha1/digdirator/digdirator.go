@@ -2,6 +2,7 @@ package digdirator
 
 import (
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -16,6 +17,7 @@ type DigdiratorURIs struct {
 
 type DigdiratorProvider interface {
 	IsEnabled() bool
+	GetAuthSpec() istiotypes.Authentication
 	GetDigdiratorName() DigdiratorName
 	GetProvidedSecretName() *string
 	GetIgnoredPaths() []string

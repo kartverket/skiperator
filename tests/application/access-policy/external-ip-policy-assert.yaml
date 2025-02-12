@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-ip-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: external-ip-policy
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 5432
+      to:
+        - ipBlock:
+            cidr: 22.134.52.36/32
+  policyTypes:
+    - Egress

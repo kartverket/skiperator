@@ -3,8 +3,6 @@ package requestauthentication
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
@@ -43,12 +41,7 @@ func Generate(r reconciliation.Reconciliation) error {
 func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []reconciliation.AuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
 	for i, config := range authConfigs {
-		switch config.ProviderURIs.Name {
-		case digdirator.IDPortenName:
-			jwtRules[i] = getJWTRule(application.Spec.IDPorten.Authentication, config.ProviderURIs)
-		case digdirator.MaskinPortenName:
-			jwtRules[i] = getJWTRule(application.Spec.Maskinporten.Authentication, config.ProviderURIs)
-		}
+		jwtRules[i] = getJWTRule(config)
 	}
 	return securityv1.RequestAuthentication{
 		ObjectMeta: metav1.ObjectMeta{
@@ -64,16 +57,16 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 	}
 }
 
-func getJWTRule(authentication *istiotypes.Authentication, providerURIs digdirator.DigdiratorURIs) *v1beta1.JWTRule {
+func getJWTRule(authConfig reconciliation.AuthConfig) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
-		ForwardOriginalToken: authentication.ForwardOriginalToken,
+		ForwardOriginalToken: authConfig.Spec.ForwardOriginalToken,
 	}
-	if authentication.TokenLocation == "cookie" {
+	if authConfig.Spec.TokenLocation == "cookie" {
 		jwtRule.FromCookies = []string{"BearerToken"}
 	}
-	if authentication.OutputClaimToHeaders != nil {
-		claimsToHeaders := make([]*v1beta1.ClaimToHeader, len(*authentication.OutputClaimToHeaders))
-		for i, claimToHeader := range *authentication.OutputClaimToHeaders {
+	if authConfig.Spec.OutputClaimToHeaders != nil {
+		claimsToHeaders := make([]*v1beta1.ClaimToHeader, len(*authConfig.Spec.OutputClaimToHeaders))
+		for i, claimToHeader := range *authConfig.Spec.OutputClaimToHeaders {
 			claimsToHeaders[i] = &v1beta1.ClaimToHeader{
 				Header: claimToHeader.Header,
 				Claim:  claimToHeader.Claim,
@@ -82,9 +75,9 @@ func getJWTRule(authentication *istiotypes.Authentication, providerURIs digdirat
 		jwtRule.OutputClaimToHeaders = claimsToHeaders
 	}
 
-	jwtRule.Issuer = providerURIs.IssuerURI
-	jwtRule.JwksUri = providerURIs.JwksURI
-	jwtRule.Audiences = []string{providerURIs.ClientID}
+	jwtRule.Issuer = authConfig.ProviderURIs.IssuerURI
+	jwtRule.JwksUri = authConfig.ProviderURIs.JwksURI
+	jwtRule.Audiences = []string{authConfig.ProviderURIs.ClientID}
 
 	return &jwtRule
 }

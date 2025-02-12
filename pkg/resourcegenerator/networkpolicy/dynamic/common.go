@@ -5,9 +5,11 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"net"
 	"slices"
 	"strings"
 )
@@ -93,7 +95,39 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []
 		egressRules = append(egressRules, getEgressRule(rule, appNamespace))
 	}
 
+	for _, externalRule := range accessPolicy.Outbound.External {
+		if externalRule.Ports == nil || externalRule.Ip == "" || net.ParseIP(externalRule.Ip) == nil {
+			continue
+		}
+		egressRules = append(egressRules, getIPExternalRule(externalRule))
+	}
+
 	return egressRules
+}
+
+func getIPExternalRule(externalRule podtypes.ExternalRule) networkingv1.NetworkPolicyEgressRule {
+	externalRuleForIP := networkingv1.NetworkPolicyEgressRule{
+		To: []networkingv1.NetworkPolicyPeer{
+			{
+				IPBlock: &networkingv1.IPBlock{
+					CIDR: externalRule.Ip + "/32",
+				},
+			},
+		},
+		Ports: mapExternalPortsToNetworkPolicyPorts(externalRule.Ports),
+	}
+	return externalRuleForIP
+}
+
+func mapExternalPortsToNetworkPolicyPorts(externalPorts []podtypes.ExternalPort) []networkingv1.NetworkPolicyPort {
+	var ports []networkingv1.NetworkPolicyPort
+	for _, externalPort := range externalPorts {
+		ports = append(ports, networkingv1.NetworkPolicyPort{
+			Port:     util.PointTo(intstr.FromInt(externalPort.Port)),
+			Protocol: util.PointTo(v1.ProtocolTCP),
+		})
+	}
+	return ports
 }
 
 func getEgressRule(outboundRule podtypes.InternalRule, namespace string) networkingv1.NetworkPolicyEgressRule {
