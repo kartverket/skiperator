@@ -1,6 +1,7 @@
 package digdirator
 
 import (
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -13,11 +14,6 @@ type DigdiratorURIs struct {
 	ClientID  string
 }
 
-type DigdiratorClients struct {
-	IdPortenClient     IdPortenClient
-	MaskinPortenClient MaskinportenClient
-}
-
 type DigdiratorProvider interface {
 	IsEnabled() bool
 	GetDigdiratorName() DigdiratorName
@@ -26,7 +22,25 @@ type DigdiratorProvider interface {
 	GetIssuerKey() string
 	GetJwksKey() string
 	GetClientIDKey() string
-	GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorClients) (*[]v1.OwnerReference, error)
-	GetGeneratedDigdiratorSecret(digdiratorClients DigdiratorClients) (*string, error)
-	HandleDigdiratorClientError(digdiratorClients DigdiratorClients) error
+}
+
+type DigdiratorClient interface {
+	GetOwnerReferences() []v1.OwnerReference
+	GetSecretName() string
+}
+
+type MaskinportenClient struct {
+	nais_io_v1.MaskinportenClient
+}
+
+func (m *MaskinportenClient) GetSecretName() string {
+	return m.Spec.SecretName
+}
+
+type IDPortenClient struct {
+	nais_io_v1.IDPortenClient
+}
+
+func (i *IDPortenClient) GetSecretName() string {
+	return i.Spec.SecretName
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
-	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
@@ -67,8 +67,8 @@ func GetSecret(client client.Client, ctx context.Context, namespacedName types.N
 	return secret, err
 }
 
-func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.IDPortenClient, error) {
-	idPortenClient := &nais_io_v1.IDPortenClient{}
+func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*digdirator.IDPortenClient, error) {
+	idPortenClient := &digdirator.IDPortenClient{}
 	if err := k8sClient.Get(ctx, namespacedName, idPortenClient); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -78,8 +78,8 @@ func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedN
 	return idPortenClient, nil
 }
 
-func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*nais_io_v1.MaskinportenClient, error) {
-	maskinPortenClient := &nais_io_v1.MaskinportenClient{}
+func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*digdirator.MaskinportenClient, error) {
+	maskinPortenClient := &digdirator.MaskinportenClient{}
 	if err := k8sClient.Get(ctx, namespacedName, maskinPortenClient); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil

@@ -1,11 +1,9 @@
 package digdirator
 
 import (
-	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Based off NAIS' IDPorten specification as seen here:
@@ -125,30 +123,4 @@ func (i *IDPorten) GetJwksKey() string {
 
 func (i *IDPorten) GetClientIDKey() string {
 	return secrets.IDPortenClientIDKey
-}
-
-func (i *IDPorten) GetDigdiratorClientOwnerRef(digdiratorClients DigdiratorClients) (*[]v1.OwnerReference, error) {
-	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err != nil {
-		return nil, err
-	}
-	return &digdiratorClients.IdPortenClient.Client.OwnerReferences, nil
-}
-
-func (i *IDPorten) GetGeneratedDigdiratorSecret(digdiratorClients DigdiratorClients) (*string, error) {
-	err := i.HandleDigdiratorClientError(digdiratorClients)
-	if err != nil {
-		return nil, err
-	}
-	return &digdiratorClients.IdPortenClient.Client.Spec.SecretName, nil
-}
-
-func (i *IDPorten) HandleDigdiratorClientError(digdiratorClients DigdiratorClients) error {
-	if digdiratorClients.IdPortenClient.Error != nil {
-		return fmt.Errorf("failed to get IDPortenClient: %w", digdiratorClients.IdPortenClient.Error)
-	}
-	if digdiratorClients.IdPortenClient.Client == nil {
-		return fmt.Errorf("IDPortenClient not found")
-	}
-	return nil
 }
