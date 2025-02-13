@@ -24,7 +24,8 @@ type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
 	Spec         istiotypes.Authentication
-	NotPaths     []string
+	Paths        []string
+	IgnorePaths  []string
 	ProviderURIs digdirator.DigdiratorURIs
 }
 
@@ -95,8 +96,8 @@ func (authConfigs *AuthConfigs) GetAllowedPaths(authorizationSettings *v1alpha1.
 	}
 	if authConfigs != nil {
 		for _, config := range *authConfigs {
-			if config.NotPaths != nil {
-				allowPaths = append(allowPaths, config.NotPaths...)
+			if config.IgnorePaths != nil {
+				allowPaths = append(allowPaths, config.IgnorePaths...)
 			}
 		}
 	}

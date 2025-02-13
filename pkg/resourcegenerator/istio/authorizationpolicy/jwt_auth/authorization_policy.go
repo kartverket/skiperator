@@ -31,7 +31,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	authConfigs := r.GetAuthConfigs()
-	allowedPaths := authConfigs.GetAllowedPaths(application.Spec.AuthorizationSettings)
 	if authConfigs == nil {
 		ctxLog.Debug("No auth configs provided for application. Skipping generating JWT-auth AuthorizationPolicy", "application", application.Name)
 		return nil
@@ -45,7 +44,7 @@ func Generate(r reconciliation.Reconciliation) error {
 				},
 				application.Name,
 				*authConfigs,
-				allowedPaths,
+				application.Spec.AuthorizationSettings,
 				authorizationpolicy.DefaultDenyPath,
 			),
 		)
@@ -54,24 +53,22 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, allowPaths []string, denyPath string) *securityv1.AuthorizationPolicy {
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, authorizationSettings *skiperatorv1alpha1.AuthorizationSettings, denyPath string) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
-
-	notPaths := allowPaths
-	notPaths = append(allowPaths, denyPath)
 	for _, authConfig := range authConfigs {
 		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
 			To: []*securityv1api.Rule_To{
 				{
 					Operation: &securityv1api.Operation{
-						NotPaths: notPaths,
+						Paths:    authConfig.Paths,
+						NotPaths: authConfig.IgnorePaths,
 					},
 				},
 			},
 			When: []*securityv1api.Condition{
 				{
-					Key:    "request.auth.claims[iss]",
-					Values: []string{authConfig.ProviderURIs.IssuerURI},
+					Key:    "request.auth.claims[aud]",
+					Values: []string{authConfig.ProviderURIs.ClientID},
 				},
 			},
 			From: authorizationpolicy.GetGeneralFromRule(),

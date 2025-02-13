@@ -451,8 +451,9 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
 	return &AuthConfig{
-		Spec:     digdiratorProvider.GetAuthSpec(),
-		NotPaths: digdiratorProvider.GetIgnoredPaths(),
+		Spec:        digdiratorProvider.GetAuthSpec(),
+		Paths:       digdiratorProvider.GetPaths(),
+		IgnorePaths: digdiratorProvider.GetIgnoredPaths(),
 		ProviderURIs: digdirator.DigdiratorURIs{
 			Name:      digdiratorProvider.GetDigdiratorName(),
 			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),

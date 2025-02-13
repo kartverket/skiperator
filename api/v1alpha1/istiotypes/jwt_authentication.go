@@ -41,6 +41,14 @@ type Authentication struct {
 	// ```
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
 
+	// Paths specifies paths that require an authenticated JWT.
+	//
+	// The specified paths must start with '/'.
+	// +listType=set
+	// +kubebuilder:validation:Items.Pattern="^/"
+	// +kubebuilder:validation:MaxItems=50
+	Paths *[]string `json:"paths,omitempty"`
+
 	// IgnorePaths specifies paths that do not require an authenticated JWT.
 	//
 	// The specified paths must start with '/'.

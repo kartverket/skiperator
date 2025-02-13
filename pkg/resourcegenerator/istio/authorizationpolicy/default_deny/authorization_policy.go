@@ -31,7 +31,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	allowedPaths := r.GetAuthConfigs().GetAllowedPaths(application.Spec.AuthorizationSettings)
+	var allowedPaths []string
+	if application.Spec.AuthorizationSettings != nil {
+		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
+	}
 
 	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
 	if len(allowedPaths) > 0 {

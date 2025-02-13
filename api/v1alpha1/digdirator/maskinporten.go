@@ -4,6 +4,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L376
@@ -24,6 +25,18 @@ type Maskinporten struct {
 	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
 }
 
+type MaskinportenClient struct {
+	Client nais_io_v1.MaskinportenClient
+}
+
+func (m *MaskinportenClient) GetOwnerReferences() []v1.OwnerReference {
+	return m.Client.GetOwnerReferences()
+}
+
+func (m *MaskinportenClient) GetSecretName() string {
+	return m.Client.Spec.SecretName
+}
+
 const MaskinPortenName = "maskinporten"
 
 func (i *Maskinporten) IsEnabled() bool {
@@ -40,6 +53,16 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 
 func (i *Maskinporten) GetProvidedSecretName() *string {
 	return i.Authentication.SecretName
+}
+
+func (i *Maskinporten) GetPaths() []string {
+	var paths []string
+	if i.IsEnabled() {
+		if i.Authentication.Paths != nil {
+			paths = append(paths, *i.Authentication.Paths...)
+		}
+	}
+	return paths
 }
 
 func (i *Maskinporten) GetIgnoredPaths() []string {

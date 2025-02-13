@@ -600,6 +600,16 @@ spec:
                           - header
                           type: object
                         type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must start with '/'.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
                       secretName:
                         description: |-
                           The name of the kubernetes Secret containing OAuth2-credentials.
@@ -870,6 +880,16 @@ spec:
                           - header
                           type: object
                         type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must start with '/'.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
                       secretName:
                         description: |-
                           The name of the kubernetes Secret containing OAuth2-credentials.

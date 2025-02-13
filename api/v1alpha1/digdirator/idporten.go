@@ -4,6 +4,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // Based off NAIS' IDPorten specification as seen here:
@@ -84,9 +85,16 @@ type IDPorten struct {
 	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
 }
 
-type IdPortenClient struct {
-	Client *nais_io_v1.IDPortenClient
-	Error  error
+type IDPortenClient struct {
+	Client nais_io_v1.IDPortenClient
+}
+
+func (i *IDPortenClient) GetSecretName() string {
+	return i.Client.Spec.SecretName
+}
+
+func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
+	return i.Client.GetOwnerReferences()
 }
 
 const IDPortenName DigdiratorName = "idporten"
@@ -105,6 +113,16 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 
 func (i *IDPorten) GetProvidedSecretName() *string {
 	return i.Authentication.SecretName
+}
+
+func (i *IDPorten) GetPaths() []string {
+	var paths []string
+	if i.IsEnabled() {
+		if i.Authentication.Paths != nil {
+			paths = append(paths, *i.Authentication.Paths...)
+		}
+	}
+	return paths
 }
 
 func (i *IDPorten) GetIgnoredPaths() []string {

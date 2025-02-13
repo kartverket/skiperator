@@ -23,6 +23,15 @@ func (in *Authentication) DeepCopyInto(out *Authentication) {
 			copy(*out, *in)
 		}
 	}
+	if in.Paths != nil {
+		in, out := &in.Paths, &out.Paths
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+	}
 	if in.IgnorePaths != nil {
 		in, out := &in.IgnorePaths, &out.IgnorePaths
 		*out = new([]string)
