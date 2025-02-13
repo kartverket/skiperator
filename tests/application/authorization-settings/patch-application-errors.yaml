@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-list-deny
+  name: allow-list-default-deny
 spec:
   action: DENY
   rules:

@@ -3,8 +3,11 @@ package util
 import (
 	"context"
 	"fmt"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"
 	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
@@ -63,6 +66,32 @@ func GetSecret(client client.Client, ctx context.Context, namespacedName types.N
 	err := client.Get(ctx, namespacedName, &secret)
 
 	return secret, err
+}
+
+func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*digdirator.IDPortenClient, error) {
+	idPortenClient := &nais_io_v1.IDPortenClient{}
+	if err := k8sClient.Get(ctx, namespacedName, idPortenClient); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("client error when trying to get idportenclient: %w", err)
+	}
+	return &digdirator.IDPortenClient{
+		Client: *idPortenClient,
+	}, nil
+}
+
+func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*digdirator.MaskinportenClient, error) {
+	maskinPortenClient := &nais_io_v1.MaskinportenClient{}
+	if err := k8sClient.Get(ctx, namespacedName, maskinPortenClient); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("client error when trying to get MaskinPortenClient: %w", err)
+	}
+	return &digdirator.MaskinportenClient{
+		Client: *maskinPortenClient,
+	}, nil
 }
 
 func GetService(client client.Client, ctx context.Context, namespacedName types.NamespacedName) (corev1.Service, error) {
@@ -154,4 +183,12 @@ func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
 
 func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
+}
+
+func IsIDPortenAuthenticationEnabled(application skiperatorv1alpha1.Application) bool {
+	return application.Spec.IDPorten != nil && application.Spec.IDPorten.Authentication != nil && application.Spec.IDPorten.Authentication.Enabled
+}
+
+func IsMaskinPortenAuthenticationEnabled(application skiperatorv1alpha1.Application) bool {
+	return application.Spec.Maskinporten != nil && application.Spec.Maskinporten.Authentication != nil && application.Spec.Maskinporten.Authentication.Enabled == true
 }

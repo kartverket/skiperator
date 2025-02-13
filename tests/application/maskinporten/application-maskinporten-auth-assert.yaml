@@ -1,0 +1,82 @@
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: application-auth-jwt-authn
+spec:
+  jwtRules:
+    - audiences:
+        - test-client-id-maskinporten
+      forwardOriginalToken: true
+      issuer: https://maskinporten.no/
+      jwksUri: https://maskinporten.no/jwk
+      outputClaimToHeaders:
+        - claim: aud
+          header: Audience
+  selector:
+    matchLabels:
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator*
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+  selector:
+    matchLabels:
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-settings-allow-paths
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /actuator/health
+              - /actuator/info
+  selector:
+    matchLabels:
+      app: application-auth-settings
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-settings-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator/health
+              - /actuator/info
+              - /actuator*
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+  selector:
+    matchLabels:
+      app: application-auth-settings
