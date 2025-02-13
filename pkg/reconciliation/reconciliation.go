@@ -89,17 +89,10 @@ func (b *baseReconciliation) GetAuthConfigs() *AuthConfigs {
 	return b.authConfigs
 }
 
-func (authConfigs *AuthConfigs) GetAllowedPaths(authorizationSettings *v1alpha1.AuthorizationSettings) []string {
-	var allowPaths []string
-	if authorizationSettings != nil && authorizationSettings.AllowList != nil && len(authorizationSettings.AllowList) > 0 {
-		allowPaths = authorizationSettings.AllowList
+func (a *AuthConfigs) GetIgnoredPaths() []string {
+	var ignoredPaths []string
+	for _, config := range *a {
+		ignoredPaths = append(ignoredPaths, config.IgnorePaths...)
 	}
-	if authConfigs != nil {
-		for _, config := range *authConfigs {
-			if config.IgnorePaths != nil {
-				allowPaths = append(allowPaths, config.IgnorePaths...)
-			}
-		}
-	}
-	return allowPaths
+	return ignoredPaths
 }

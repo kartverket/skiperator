@@ -51,6 +51,21 @@ func Generate(r reconciliation.Reconciliation) error {
 			),
 		)
 	} else {
+		authConfigsIgnoredPaths := r.GetAuthConfigs().GetIgnoredPaths()
+		if len(authConfigsIgnoredPaths) > 0 {
+			r.AddResource(
+				getAuthPolicy(
+					types.NamespacedName{
+						Name:      application.Name + "-allow-paths",
+						Namespace: application.Namespace,
+					},
+					application.Name,
+					securityv1api.AuthorizationPolicy_ALLOW,
+					authConfigsIgnoredPaths,
+					[]string{},
+				),
+			)
+		}
 		r.AddResource(
 			getAuthPolicy(
 				types.NamespacedName{
@@ -64,6 +79,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			),
 		)
 	}
+
 	ctxLog.Debug("Finished generating default AuthorizationPolicy for application", "application", application.Name)
 	return nil
 }

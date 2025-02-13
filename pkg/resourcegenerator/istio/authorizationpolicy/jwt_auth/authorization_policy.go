@@ -56,16 +56,30 @@ func Generate(r reconciliation.Reconciliation) error {
 func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, authorizationSettings *skiperatorv1alpha1.AuthorizationSettings, denyPath string) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 	for _, authConfig := range authConfigs {
+		var ruleTo securityv1api.Rule_To
+		if len(authConfig.Paths) == 0 && len(authConfig.IgnorePaths) == 0 {
+			ruleTo = securityv1api.Rule_To{
+				Operation: &securityv1api.Operation{
+					Paths: []string{"*"},
+				},
+			}
+		} else {
+			ruleTo = securityv1api.Rule_To{
+				Operation: &securityv1api.Operation{
+					Paths:    authConfig.Paths,
+					NotPaths: authConfig.IgnorePaths,
+				},
+			}
+		}
 		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
 			To: []*securityv1api.Rule_To{
-				{
-					Operation: &securityv1api.Operation{
-						Paths:    authConfig.Paths,
-						NotPaths: authConfig.IgnorePaths,
-					},
-				},
+				&ruleTo,
 			},
 			When: []*securityv1api.Condition{
+				{
+					Key:    "request.auth.claims[iss]",
+					Values: []string{authConfig.ProviderURIs.IssuerURI},
+				},
 				{
 					Key:    "request.auth.claims[aud]",
 					Values: []string{authConfig.ProviderURIs.ClientID},
