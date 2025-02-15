@@ -1,0 +1,12 @@
+creation_rules:
+- path_regex: \.risc\.yaml$
+  shamir_threshold: 2
+  key_groups:
+  - age:
+    - age145s860ux96jvx6d7nwvzar588qjmgv5p47sp6nmmt2jnmhqh4scqcuk0mg
+    gcp_kms:
+    - resource_id: 
+        projects/skip-prod-bda1/locations/europe-north1/keyRings/skip-prod-risc-key-ring/cryptoKeys/skip-prod-risc-crypto-key
+  - age:
+    - age18e0t6ve0vdxqzzjt7rxf0r6vzc37fhs5cad2qz40r02c3spzgvvq8uxz23
+    - age1kjpgclkjev08aa8l2uy277gn0cngrkrkazt240405ezqywkm5axqt3d3tq
