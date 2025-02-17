@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	defaultDenyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
+	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
+	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"regexp"
 
@@ -98,6 +99,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&securityv1.RequestAuthentication{}).
 		Owns(&securityv1.AuthorizationPolicy{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
@@ -212,13 +214,14 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		peerauthentication.Generate,
 		serviceaccount.Generate,
 		networkpolicy.Generate,
-		defaultDenyAuthPolicy.Generate,
+		denyAuthPolicy.Generate,
+		allowAuthPolicy.Generate,
 		jwtAuthPolicy.Generate,
+		requestauthentication.Generate,
 		pdb.Generate,
 		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
-		requestauthentication.Generate,
 		deployment.Generate,
 	}
 
@@ -437,8 +440,8 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 			authConfigs = append(authConfigs, *authConfig)
 		}
 	}
-
 	if len(authConfigs) > 0 {
+		authConfigs.UpdatePaths()
 		return &authConfigs, nil
 	} else {
 		return nil, nil

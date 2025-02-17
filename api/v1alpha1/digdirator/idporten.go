@@ -100,7 +100,7 @@ func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 const IDPortenName DigdiratorName = "idporten"
 
 func (i *IDPorten) IsEnabled() bool {
-	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
+	return i != nil && i.Authentication != nil && i.Authentication.Enabled
 }
 
 func (i *IDPorten) GetAuthSpec() istiotypes.Authentication {

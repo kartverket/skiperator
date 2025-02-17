@@ -14,8 +14,6 @@ spec:
             file: application-maskinporten-assert.yaml
         - assert:
             file: application-assert.yaml
-        - assert:
-            file: application-maskinporten-auth-assert.yaml
     - try:
         - apply:
             file: patch-application.yaml

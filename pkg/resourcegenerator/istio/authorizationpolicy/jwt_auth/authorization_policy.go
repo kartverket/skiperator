@@ -35,6 +35,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Debug("No auth configs provided for application. Skipping generating JWT-auth AuthorizationPolicy", "application", application.Name)
 		return nil
 	}
+
 	if len(*authConfigs) > 0 {
 		r.AddResource(
 			getJwtValidationAuthPolicy(

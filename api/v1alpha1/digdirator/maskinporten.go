@@ -40,7 +40,7 @@ func (m *MaskinportenClient) GetSecretName() string {
 const MaskinPortenName = "maskinporten"
 
 func (i *Maskinporten) IsEnabled() bool {
-	return i != nil && i.Enabled && i.Authentication != nil && i.Authentication.Enabled
+	return i != nil && i.Authentication != nil && i.Authentication.Enabled
 }
 
 func (i *Maskinporten) GetAuthSpec() istiotypes.Authentication {

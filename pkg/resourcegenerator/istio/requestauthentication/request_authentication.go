@@ -26,15 +26,15 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ctxLog.Debug("Attempting to generate RequestAuthentication for application", "application", application.Name)
 
-	authConfig := r.GetAuthConfigs()
+	authConfigs := r.GetAuthConfigs()
 
-	if authConfig == nil {
-		ctxLog.Debug("No RequestAuthentication to generate. No auth config provided for", "application", application.Name)
-	} else {
-		requestAuthentication := getRequestAuthentication(application, *authConfig)
-		r.AddResource(&requestAuthentication)
-		ctxLog.Debug("Finished generating RequestAuthentication for application", "application", application.Name)
+	if authConfigs == nil {
+		ctxLog.Debug("No auth configs provided for application. Skipping generating RequestAuthentication", "application", application.Name)
+		return nil
 	}
+	requestAuthentication := getRequestAuthentication(application, *authConfigs)
+	r.AddResource(&requestAuthentication)
+	ctxLog.Debug("Finished generating RequestAuthentication for application", "application", application.Name)
 	return nil
 }
 

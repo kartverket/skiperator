@@ -90,9 +90,45 @@ func (b *baseReconciliation) GetAuthConfigs() *AuthConfigs {
 }
 
 func (a *AuthConfigs) GetIgnoredPaths() []string {
+	// Her må ignoredPaths utvides KUN hvis en ignorePath ikke inntreffer i andre authConfigs sine paths
 	var ignoredPaths []string
-	for _, config := range *a {
-		ignoredPaths = append(ignoredPaths, config.IgnorePaths...)
+	if a != nil {
+		for i1, config1 := range *a {
+			for _, ignoredPath := range config1.IgnorePaths {
+				for i2, config2 := range *a {
+					if i1 != i2 {
+						encountered := map[string]bool{}
+						for _, path := range config2.Paths {
+							if ignoredPath == path {
+								encountered[ignoredPath] = true
+							}
+						}
+						if !encountered[ignoredPath] {
+							ignoredPaths = append(ignoredPaths, ignoredPath)
+						}
+					}
+				}
+			}
+		}
 	}
 	return ignoredPaths
+}
+
+func (a *AuthConfigs) UpdatePaths() {
+	if a != nil {
+		for i1, config1 := range *a {
+			encountered := map[string]bool{}
+			for i2, config2 := range *a {
+				if i1 != i2 {
+					for _, path := range config2.Paths {
+						if !encountered[path] {
+							encountered[path] = true
+							config1.IgnorePaths = append(config1.IgnorePaths, config2.Paths...)
+						}
+					}
+				}
+			}
+			(*a)[i1] = config1
+		}
+	}
 }

@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: application
+  name: maskinporten-test-client
 spec:
   image: image
   port: 8080
@@ -9,63 +9,3 @@ spec:
     - example.com
   maskinporten:
     enabled: true
----
-apiVersion: skiperator.kartverket.no/v1alpha1
-kind: Application
-metadata:
-  name: application-auth
-spec:
-  image: image
-  port: 8080
-  ingresses:
-    - example.com
-  maskinporten:
-    enabled: true
-    authentication:
-      enabled: true
-      secretName: "maskinporten-application-auth-6ef1ddb7"
-      outputClaimToHeaders:
-        - claim: "aud"
-          header: "Audience"
----
-apiVersion: skiperator.kartverket.no/v1alpha1
-kind: Application
-metadata:
-  name: application-auth-settings
-spec:
-  image: image
-  port: 8080
-  ingresses:
-    - example.com
-  authorizationSettings:
-    allowList:
-      - "/actuator/health"
-      - "/actuator/info"
-  maskinporten:
-    enabled: true
-    authentication:
-      enabled: true
-      secretName: "maskinporten-application-auth-settings-543a9f28"
-      outputClaimToHeaders:
-        - claim: "aud"
-          header: "Audience"
----
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: "maskinporten-application-auth-6ef1ddb7"
-data:
-  MASKINPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtbWFza2lucG9ydGVu #test-client-id-maskinporten
-  MASKINPORTEN_ISSUER: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8v #https://maskinporten.no/
-  MASKINPORTEN_JWKS_URI: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8vandr #https://maskinporten.no/jwk
----
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: "maskinporten-application-auth-settings-543a9f28"
-data:
-  MASKINPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtbWFza2lucG9ydGVu #test-client-id-maskinporten
-  MASKINPORTEN_ISSUER: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8v #https://maskinporten.no/
-  MASKINPORTEN_JWKS_URI: aHR0cHM6Ly9tYXNraW5wb3J0ZW4ubm8vandr #https://maskinporten.no/jwk

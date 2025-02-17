@@ -5,13 +5,56 @@ metadata:
 spec:
   jwtRules:
     - audiences:
+        - test-client-id-idporten
+      forwardOriginalToken: true
+      issuer: https://idporten.no
+      jwksUri: https://idporten.no/jwks.json
+    - audiences:
         - test-client-id-maskinporten
       forwardOriginalToken: true
       issuer: https://maskinporten.no/
       jwksUri: https://maskinporten.no/jwk
-      outputClaimToHeaders:
-        - claim: aud
-          header: Audience
+  selector:
+    matchLabels:
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-default-deny
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /publicEndpoint
+              - /loginIdPorten
+            paths:
+              - /actuator*
+  selector:
+    matchLabels:
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-allow-paths
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /publicEndpoint
+              - /loginIdPorten
   selector:
     matchLabels:
       app: application-auth
@@ -29,21 +72,15 @@ spec:
       to:
         - operation:
             notPaths:
-              - /actuator*
+              - /loginIdPorten
+              - /secureMaskinPorten
       when:
         - key: request.auth.claims[iss]
           values:
-            - https://maskinporten.no/
-  selector:
-    matchLabels:
-      app: application-auth
----
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: application-auth-settings-allow-paths
-spec:
-  rules:
+            - https://idporten.no
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-idporten
     - from:
         - source:
             namespaces:
@@ -51,32 +88,15 @@ spec:
       to:
         - operation:
             paths:
-              - /actuator/health
-              - /actuator/info
-  selector:
-    matchLabels:
-      app: application-auth-settings
----
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: application-auth-settings-jwt-auth
-spec:
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            notPaths:
-              - /actuator/health
-              - /actuator/info
-              - /actuator*
+              - /secureMaskinPorten
       when:
         - key: request.auth.claims[iss]
           values:
             - https://maskinporten.no/
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-maskinporten
   selector:
     matchLabels:
-      app: application-auth-settings
+      app: application-auth
+

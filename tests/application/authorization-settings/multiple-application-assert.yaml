@@ -35,3 +35,25 @@ spec:
   selector:
     matchLabels:
       app: allow-list
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-list-default-deny
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /actuator/health
+              - /actuator/info
+            paths:
+              - /actuator*
+  selector:
+    matchLabels:
+      app: allow-list

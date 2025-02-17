@@ -1,24 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: application
+  name: idporten-test-client
 spec:
   selector:
     matchLabels:
-      app: application
+      app: idporten-test-client
   template:
     spec:
       containers:
-        - name: application
+        - name: idporten-test-client
           volumeMounts:
             - mountPath: /tmp
               name: tmp
             - mountPath: /var/run/secrets/skip/idporten
-              name: "idporten-application-4749490d"
+              name: "idporten-idporten-test-client-5dd0f829"
       volumes:
         - emptyDir: {}
           name: tmp
-        - name: "idporten-application-4749490d"
+        - name: "idporten-idporten-test-client-5dd0f829"
           secret:
             defaultMode: 420
-            secretName: "idporten-application-4749490d"
+            secretName: "idporten-idporten-test-client-5dd0f829"

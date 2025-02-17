@@ -1,4 +1,4 @@
-package default_deny
+package allow
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Error(err, "Failed to generate default AuthorizationPolicy")
 		return err
 	}
-	ctxLog.Debug("Attempting to generate default deny AuthorizationPolicy for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate allow AuthorizationPolicy for application", "application", application.Name)
 
 	if application.Spec.AuthorizationSettings != nil {
 		// Do not create an AuthorizationPolicy if allowAll is set to true
@@ -32,19 +32,21 @@ func Generate(r reconciliation.Reconciliation) error {
 		allowedPaths = append(allowedPaths, r.GetAuthConfigs().GetIgnoredPaths()...)
 	}
 
-	r.AddResource(
-		authorizationpolicy.GetAuthPolicy(
-			types.NamespacedName{
-				Name:      application.Name + "-default-deny",
-				Namespace: application.Namespace,
-			},
-			application.Name,
-			securityv1api.AuthorizationPolicy_DENY,
-			[]string{authorizationpolicy.DefaultDenyPath},
-			allowedPaths,
-		),
-	)
-
-	ctxLog.Debug("Finished generating default AuthorizationPolicy for application", "application", application.Name)
+	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
+	if len(allowedPaths) > 0 {
+		r.AddResource(
+			authorizationpolicy.GetAuthPolicy(
+				types.NamespacedName{
+					Name:      application.Name + "-allow-paths",
+					Namespace: application.Namespace,
+				},
+				application.Name,
+				securityv1api.AuthorizationPolicy_ALLOW,
+				allowedPaths,
+				[]string{},
+			),
+		)
+	}
+	ctxLog.Debug("Finished generating allow AuthorizationPolicy for application", "application", application.Name)
 	return nil
 }

@@ -14,5 +14,5 @@ spec:
             paths:
               - /actuator*
             notPaths:
-              - /actuator/health
               - /actuator/info
+              - /actuator/health
