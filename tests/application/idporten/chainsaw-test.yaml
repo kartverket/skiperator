@@ -11,9 +11,9 @@ spec:
         - create:
             file: application.yaml
         - assert:
-            file: application-digdirator-assert.yaml
-        - assert:
             file: application-assert.yaml
+        - assert:
+            file: application-idporten-assert.yaml
     - try:
         - apply:
             file: patch-application.yaml
