@@ -1,11 +1,12 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: maskinporten-test-client
+  name: application-auth
 spec:
   image: image
   port: 8080
   ingresses:
     - example.com
-  maskinporten:
-    enabled: true
+  authorizationSettings:
+    allowList:
+      - "/publicEndpoint"

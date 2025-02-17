@@ -1,0 +1,60 @@
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: application-auth-jwt-authn
+spec:
+  jwtRules:
+    - audiences:
+        - efdaa164-4b95-4a40-b3d3-de4e552524e7
+      forwardOriginalToken: true
+      issuer: https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/v2.0
+      jwksUri: https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/discovery/v2.0/keys
+    - audiences:
+        - 657baca6-b383-42bf-9a88-c87ce2fdcd14
+      forwardOriginalToken: true
+      issuer: https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/v2.0
+      jwksUri: https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/discovery/v2.0/keys
+  selector:
+    matchLabels:
+      app: application-auth
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-auth-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /loginIdPorten
+              - /secureMaskinPorten
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://idporten.no
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-idporten
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /secureMaskinPorten
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-maskinporten
+  selector:
+    matchLabels:
+      app: application-auth
