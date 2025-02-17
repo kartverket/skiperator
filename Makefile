@@ -47,7 +47,7 @@ run-local: build install-skiperator
 	./bin/skiperator
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-jwker-crds install-digdirator-crds install-skiperator
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
 
 
@@ -84,6 +84,11 @@ install-cert-manager:
 install-prometheus-crds:
 	@echo "Installing prometheus crds"
 	@kubectl apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v$(PROMETHEUS_VERSION)/stripped-down-crds.yaml --context $(SKIPERATOR_CONTEXT)
+
+.PHONY: install-jwker-crds
+install-jwker-crds:
+	@echo "Installing jwker crds"
+	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/refs/heads/main/config/crd/bases/nais.io_jwkers.yaml --context $(SKIPERATOR_CONTEXT)
 
 .PHONY: install-digdirator-crds
 install-digdirator-crds:
