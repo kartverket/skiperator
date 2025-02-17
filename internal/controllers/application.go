@@ -21,6 +21,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/jwker"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
@@ -98,6 +99,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&securityv1.AuthorizationPolicy{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
+		Owns(&nais_io_v1.Jwker{}).
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
@@ -176,11 +178,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	//We try to feed the access policy with port values dynamically,
-	//if unsuccessfull we just don't set ports, and rely on podselectors
+	// We try to feed the access policy with port values dynamically,
+	// if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, application)
 
-	//Start the actual reconciliation
+	// Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop", "application", application.Name)
 	r.SetProgressingState(ctx, application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
@@ -188,11 +190,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
-	} //TODO Error state?
+	} // TODO Error state?
 
 	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
-	//TODO status and conditions in application object
+	// TODO status and conditions in application object
 	funcs := []reconciliationFunc{
 		certificate.Generate,
 		service.Generate,
@@ -210,13 +212,14 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
+		jwker.Generate,
 		deployment.Generate,
 	}
 
 	for _, f := range funcs {
 		if err = f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate application resource")
-			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
+			// At this point we don't have the gvk of the resource yet, so we can't set subresource status.
 			r.SetErrorState(ctx, application, err, "failed to generate application resource", "ResourceGenerationFailure")
 			return common.RequeueWithError(err)
 		}
@@ -298,9 +301,9 @@ func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []clie
 		resourceutils.SetApplicationLabels(resource, app)
 	}
 
-	//TODO should try to combine this with the above
+	// TODO should try to combine this with the above
 	resourceLabelsWithNoMatch := resourceutils.FindResourceLabelErrors(app, resources)
-	for k, _ := range resourceLabelsWithNoMatch {
+	for k := range resourceLabelsWithNoMatch {
 		r.EmitWarningEvent(app, "MistypedLabel", fmt.Sprintf("Resource label %s not a generated resource", k))
 	}
 	return nil
@@ -316,7 +319,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 	}
 
 	// Add labels to application
-	//TODO can we skip a step here?
+	// TODO can we skip a step here?
 	if application.Labels == nil {
 		application.Labels = make(map[string]string)
 	}
