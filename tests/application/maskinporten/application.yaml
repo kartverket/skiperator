@@ -9,3 +9,9 @@ spec:
     - example.com
   maskinporten:
     enabled: true
+    scopes:
+      exposes:
+        - enabled: true
+          name: 'something'
+          product: 'another'
+          separator: '.'
