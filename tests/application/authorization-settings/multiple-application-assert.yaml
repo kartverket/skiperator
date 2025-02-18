@@ -49,9 +49,6 @@ spec:
               - istio-gateways
       to:
         - operation:
-            notPaths:
-              - /actuator/health
-              - /actuator/info
             paths:
               - /actuator*
   selector:

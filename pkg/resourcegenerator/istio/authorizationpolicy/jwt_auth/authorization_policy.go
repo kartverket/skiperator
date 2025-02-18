@@ -3,6 +3,7 @@ package jwt_auth
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -45,8 +46,6 @@ func Generate(r reconciliation.Reconciliation) error {
 				},
 				application.Name,
 				*authConfigs,
-				application.Spec.AuthorizationSettings,
-				authorizationpolicy.DefaultDenyPath,
 			),
 		)
 	}
@@ -54,14 +53,14 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []reconciliation.AuthConfig, authorizationSettings *skiperatorv1alpha1.AuthorizationSettings, denyPath string) *securityv1.AuthorizationPolicy {
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []auth.AuthConfig) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 	for _, authConfig := range authConfigs {
 		var ruleTo securityv1api.Rule_To
 		if len(authConfig.Paths) == 0 && len(authConfig.IgnorePaths) == 0 {
 			ruleTo = securityv1api.Rule_To{
 				Operation: &securityv1api.Operation{
-					Paths: []string{"*"},
+					Paths: []string{"/*"},
 				},
 			}
 		} else {

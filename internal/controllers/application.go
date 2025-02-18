@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
 	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
@@ -152,6 +153,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
+	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "unable to resolve auth config for application", "application", application.Name)
+	}
+
 	// Copy application so we can check for diffs. Should be none on existing applications.
 	tmpApplication := application.DeepCopy()
 
@@ -194,10 +200,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
-	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
-	if err != nil {
-		rLog.Error(err, "can't resolve auth config")
-	}
 
 	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
 
@@ -424,8 +426,8 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	return nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*AuthConfigs, error) {
-	var authConfigs AuthConfigs
+func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
+	var authConfigs jwtAuth.AuthConfigs
 
 	providers := []digdirator.DigdiratorProvider{
 		application.Spec.IDPorten,
@@ -441,19 +443,19 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 		}
 	}
 	if len(authConfigs) > 0 {
-		authConfigs.UpdatePaths()
+		authConfigs.IgnorePathsFromOtherAuthConfigs()
 		return &authConfigs, nil
 	} else {
 		return nil, nil
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*AuthConfig, error) {
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
 	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
-	return &AuthConfig{
+	return &jwtAuth.AuthConfig{
 		Spec:        digdiratorProvider.GetAuthSpec(),
 		Paths:       digdiratorProvider.GetPaths(),
 		IgnorePaths: digdiratorProvider.GetIgnoredPaths(),
@@ -490,7 +492,6 @@ func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, applica
 	}
 
 	return &secret, nil
-
 }
 
 func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, digdiratorProvider digdirator.DigdiratorProvider, application skiperatorv1alpha1.Application) (*string, error) {

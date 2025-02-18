@@ -3,6 +3,7 @@ package requestauthentication
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
@@ -38,7 +39,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []reconciliation.AuthConfig) securityv1.RequestAuthentication {
+func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []auth.AuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
 	for i, config := range authConfigs {
 		jwtRules[i] = getJWTRule(config)
@@ -57,7 +58,7 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 	}
 }
 
-func getJWTRule(authConfig reconciliation.AuthConfig) *v1beta1.JWTRule {
+func getJWTRule(authConfig auth.AuthConfig) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
 		ForwardOriginalToken: authConfig.Spec.ForwardOriginalToken,
 	}

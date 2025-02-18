@@ -26,12 +26,6 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	var allowedPaths []string
-	if application.Spec.AuthorizationSettings != nil {
-		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
-		allowedPaths = append(allowedPaths, r.GetAuthConfigs().GetIgnoredPaths()...)
-	}
-
 	r.AddResource(
 		authorizationpolicy.GetAuthPolicy(
 			types.NamespacedName{
@@ -41,7 +35,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			application.Name,
 			securityv1api.AuthorizationPolicy_DENY,
 			[]string{authorizationpolicy.DefaultDenyPath},
-			allowedPaths,
+			[]string{},
 		),
 	)
 

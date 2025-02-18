@@ -7,6 +7,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const IDPortenName DigdiratorName = "idporten"
+
 // Based off NAIS' IDPorten specification as seen here:
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
 //
@@ -96,8 +98,6 @@ func (i *IDPortenClient) GetSecretName() string {
 func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 	return i.Client.GetOwnerReferences()
 }
-
-const IDPortenName DigdiratorName = "idporten"
 
 func (i *IDPorten) IsEnabled() bool {
 	return i != nil && i.Authentication != nil && i.Authentication.Enabled
