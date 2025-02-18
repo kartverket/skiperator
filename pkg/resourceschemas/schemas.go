@@ -74,6 +74,7 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&securityv1.AuthorizationPolicyList{},
 		&nais_io_v1.MaskinportenClientList{},
 		&nais_io_v1.IDPortenClientList{},
+		&nais_io_v1.JwkerList{},
 		&pov1.ServiceMonitorList{},
 		&pov1.PodMonitorList{},
 		&certmanagerv1.CertificateList{},

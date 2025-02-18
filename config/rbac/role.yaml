@@ -116,6 +116,7 @@ rules:
   - nais.io
   resources:
   - idportenclients
+  - jwkers
   - maskinportenclients
   verbs:
   - create

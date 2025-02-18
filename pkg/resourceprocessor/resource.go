@@ -2,6 +2,7 @@ package resourceprocessor
 
 import (
 	"github.com/kartverket/skiperator/pkg/util"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -23,6 +24,8 @@ func requirePatch(obj client.Object) bool {
 	case *v1.Deployment:
 		return true
 	case *batchv1.Job:
+		return true
+	case *nais_io_v1.Jwker:
 		return true
 	}
 	return false
@@ -57,6 +60,8 @@ func preparePatch(new client.Object, old client.Object) {
 		definition.Spec.Selector = job.Spec.Selector                         // immutable
 		definition.Spec.Template = job.Spec.Template                         // immutable
 		definition.Spec.Completions = job.Spec.Completions                   // immutable
+	case *nais_io_v1.Jwker:
+		copyRequiredData(new, old)
 	}
 }
 
@@ -86,7 +91,14 @@ func diffBetween(old client.Object, new client.Object) bool {
 		if jobHash != jobDefinitionHash {
 			return true
 		}
+	case *nais_io_v1.Jwker:
+		jwker := old.(*nais_io_v1.Jwker)
+		definition := new.(*nais_io_v1.Jwker)
+		jwkerHash := util.GetHashForStructs([]interface{}{&jwker.Spec})
+		definitionHash := util.GetHashForStructs([]interface{}{&definition.Spec})
+		return jwkerHash != definitionHash
 	}
+
 	return true
 }
 

@@ -22,6 +22,11 @@ type AccessPolicy struct {
 	//
 	//+kubebuilder:validation:Optional
 	Outbound *OutboundPolicy `json:"outbound,omitempty"`
+
+	// TokenX enables the use of TokenX for authentication and authorization.
+	//
+	//+kubebuilder:validation:Optional
+	TokenX bool `json:"tokenX,omitempty"`
 }
 
 // InboundPolicy

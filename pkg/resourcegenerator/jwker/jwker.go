@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,6 +26,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if application.Spec.AccessPolicy == nil {
+		return nil
+	}
+
+	if !application.Spec.AccessPolicy.TokenX {
 		return nil
 	}
 
@@ -51,6 +57,28 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Finished generating jwker resource for application", "application", application.Name)
 
 	return nil
+}
+
+func GetJwkerEnvVariables(secretName string) []corev1.EnvVar {
+	variableNames := []string{"TOKEN_X_PRIVATE_JWK", "TOKEN_X_CLIENT_ID", "TOKEN_X_TOKEN_ENDPOINT", "TOKEN_X_JWKS_URI"}
+
+	// and push jwker secrets to environment
+	variables := []corev1.EnvVar{}
+	for _, variableName := range variableNames {
+		variables = append(variables, corev1.EnvVar{
+			Name: variableName,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: variableName,
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: secretName,
+					},
+					Optional: util.PointTo(true),
+				},
+			},
+		})
+	}
+	return variables
 }
 
 // Assumes application.Spec.AccessPolicy is not nil
@@ -101,4 +129,8 @@ func GenerateJwkerAccessPolicy(application *skiperatorv1alpha1.Application) (*na
 
 func GetJwkerSecretName(name string) (string, error) {
 	return util.GetSecretName("jwker", name)
+}
+
+func TokenXSpecifiedInSpec(accessPolicy *podtypes.AccessPolicy) bool {
+	return accessPolicy != nil && accessPolicy.TokenX
 }

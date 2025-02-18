@@ -7,6 +7,7 @@ import (
 
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/jwker"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pod"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
@@ -101,6 +102,18 @@ func Generate(r reconciliation.Reconciliation) error {
 		)
 	}
 
+	if jwker.TokenXSpecifiedInSpec(application.Spec.AccessPolicy) {
+		secretName, err := jwker.GetJwkerSecretName(application.Name)
+		if err != nil {
+			ctxLog.Error(err, "could not get jwker secret name")
+			return err
+		}
+		skiperatorContainer.Env = append(
+			skiperatorContainer.Env,
+			jwker.GetJwkerEnvVariables(secretName)...,
+		)
+	}
+
 	skiperatorContainer.VolumeMounts = containerVolumeMounts
 
 	var podTemplateLabels map[string]string
@@ -170,8 +183,8 @@ func Generate(r reconciliation.Reconciliation) error {
 		),
 	}
 
-	//we need to set the pod labels like this as its a template, not a resource.
-	//TODO: figure out a smoother solution?
+	// we need to set the pod labels like this as its a template, not a resource.
+	// TODO: figure out a smoother solution?
 	resourceutils.SetApplicationLabels(&podForDeploymentTemplate, application)
 	resourceutils.SetCommonAnnotations(&podForDeploymentTemplate)
 
@@ -217,7 +230,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
 	if err != nil {
-		//TODO fix this
+		// TODO fix this
 		// Exclude dummy image used in tests for decreased verbosity
 		if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
 			ctxLog.Error(err, "could not resolve container image to digest")

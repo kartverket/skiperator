@@ -254,6 +254,10 @@ spec:
                           type: object
                         type: array
                     type: object
+                  tokenX:
+                    description: TokenX enables the use of TokenX for authentication
+                      and authorization.
+                    type: boolean
                 type: object
               additionalPorts:
                 description: |-
