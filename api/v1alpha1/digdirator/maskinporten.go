@@ -7,6 +7,8 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const MaskinPortenName = "maskinporten"
+
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L376
 //
 // +kubebuilder:object:generate=true
@@ -36,8 +38,6 @@ func (m *MaskinportenClient) GetOwnerReferences() []v1.OwnerReference {
 func (m *MaskinportenClient) GetSecretName() string {
 	return m.Client.Spec.SecretName
 }
-
-const MaskinPortenName = "maskinporten"
 
 func (i *Maskinporten) IsEnabled() bool {
 	return i != nil && i.Authentication != nil && i.Authentication.Enabled

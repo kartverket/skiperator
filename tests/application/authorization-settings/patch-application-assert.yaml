@@ -1,4 +1,3 @@
-
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -33,9 +32,6 @@ spec:
         - operation:
             paths:
               - /actuator*
-            notPaths:
-              - /actuator/info
-              - /actuator/shutdown
   selector:
     matchLabels:
       app: allow-list

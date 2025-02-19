@@ -21,7 +21,26 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-two-jwt-auth
+  name: application-two-default-deny
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /actuator*
+  selector:
+    matchLabels:
+      app: application-two
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-two-allow-paths
 spec:
   rules:
     - from:
@@ -31,6 +50,29 @@ spec:
       to:
         - operation:
             paths:
+              - /publicEndpoint
+              - /loginIdPorten
+  selector:
+    matchLabels:
+      app: application-two
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-two-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /loginIdPorten
+              - /secureMaskinPorten
+            paths:
+              - /secureIdPorten
               - /commonSecureEndpoint
       when:
         - key: request.auth.claims[iss]
@@ -45,6 +87,8 @@ spec:
               - istio-gateways
       to:
         - operation:
+            notPaths:
+              - /secureIdPorten
             paths:
               - /secureMaskinPorten
               - /commonSecureEndpoint

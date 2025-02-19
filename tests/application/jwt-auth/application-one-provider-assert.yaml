@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: RequestAuthentication
 metadata:
-  name: application-auth-jwt-authn
+  name: application-one-jwt-authn
 spec:
   jwtRules:
     - audiences:
@@ -9,19 +9,14 @@ spec:
       forwardOriginalToken: true
       issuer: https://idporten.no
       jwksUri: https://idporten.no/jwks.json
-    - audiences:
-        - test-client-id-maskinporten
-      forwardOriginalToken: true
-      issuer: https://maskinporten.no/
-      jwksUri: https://maskinporten.no/jwk
   selector:
     matchLabels:
-      app: application-auth
+      app: application-one
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-auth-default-deny
+  name: application-one-default-deny
 spec:
   action: DENY
   rules:
@@ -31,19 +26,16 @@ spec:
               - istio-gateways
       to:
         - operation:
-            notPaths:
-              - /publicEndpoint
-              - /loginIdPorten
             paths:
               - /actuator*
   selector:
     matchLabels:
-      app: application-auth
+      app: application-one
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-auth-allow-paths
+  name: application-one-allow-paths
 spec:
   rules:
     - from:
@@ -57,12 +49,12 @@ spec:
               - /loginIdPorten
   selector:
     matchLabels:
-      app: application-auth
+      app: application-one
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-auth-jwt-auth
+  name: application-one-jwt-auth
 spec:
   rules:
     - from:
@@ -73,7 +65,6 @@ spec:
         - operation:
             notPaths:
               - /loginIdPorten
-              - /secureMaskinPorten
       when:
         - key: request.auth.claims[iss]
           values:
@@ -81,22 +72,7 @@ spec:
         - key: request.auth.claims[aud]
           values:
             - test-client-id-idporten
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /secureMaskinPorten
-      when:
-        - key: request.auth.claims[iss]
-          values:
-            - https://maskinporten.no/
-        - key: request.auth.claims[aud]
-          values:
-            - test-client-id-maskinporten
   selector:
     matchLabels:
-      app: application-auth
+      app: application-one
 

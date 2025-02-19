@@ -1,7 +1,7 @@
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:
-  name: application-auth
+  name: application-two
 spec:
   image: image
   port: 8080
@@ -19,6 +19,10 @@ spec:
       enabled: true
       ignorePaths:
         - "/loginIdPorten"
+        - "/secureMaskinPorten"
+      paths:
+        - "/secureIdPorten"
+        - "/commonSecureEndpoint"
   maskinporten:
     enabled: false
     authentication:
@@ -26,12 +30,13 @@ spec:
       secretName: "maskinporten-secret"
       paths:
         - "/secureMaskinPorten"
+        - "/commonSecureEndpoint"
 ---
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
-  name: "idporten-application-auth-f816cf66"
+  name: "idporten-application-two-d9b5b566"
 data:
   IDPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtaWRwb3J0ZW4= #test-client-id-idporten
   IDPORTEN_ISSUER: aHR0cHM6Ly9pZHBvcnRlbi5ubw== #https://idporten.no
