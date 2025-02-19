@@ -22,8 +22,3 @@ spec:
           secret:
             defaultMode: 420
             secretName: "idporten-idporten-test-client-5dd0f829"
-
-
-
-
-

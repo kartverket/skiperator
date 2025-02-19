@@ -1,6 +1,13 @@
 package digdirator
 
-import nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+import (
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/nais/digdirator/pkg/secrets"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const IDPortenName DigdiratorName = "idporten"
 
 // Based off NAIS' IDPorten specification as seen here:
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
@@ -75,4 +82,67 @@ type IDPorten struct {
 	// +kubebuilder:validation:Minimum=3600
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
+
+	// Authentication specifies how incoming JWT's should be validated.
+	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
+}
+
+type IDPortenClient struct {
+	Client nais_io_v1.IDPortenClient
+}
+
+func (i *IDPortenClient) GetSecretName() string {
+	return i.Client.Spec.SecretName
+}
+
+func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
+	return i.Client.GetOwnerReferences()
+}
+
+func (i *IDPorten) IsEnabled() bool {
+	return i != nil && i.Authentication != nil && i.Authentication.Enabled
+}
+
+func (i *IDPorten) GetAuthSpec() istiotypes.Authentication {
+	return *i.Authentication
+}
+
+func (i *IDPorten) GetDigdiratorName() DigdiratorName {
+	return IDPortenName
+}
+
+func (i *IDPorten) GetProvidedSecretName() *string {
+	return i.Authentication.SecretName
+}
+
+func (i *IDPorten) GetPaths() []string {
+	var paths []string
+	if i.IsEnabled() {
+		if i.Authentication.Paths != nil {
+			paths = append(paths, *i.Authentication.Paths...)
+		}
+	}
+	return paths
+}
+
+func (i *IDPorten) GetIgnoredPaths() []string {
+	var ignoredPaths []string
+	if i.IsEnabled() {
+		if i.Authentication.IgnorePaths != nil {
+			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
+		}
+	}
+	return ignoredPaths
+}
+
+func (i *IDPorten) GetIssuerKey() string {
+	return secrets.IDPortenIssuerKey
+}
+
+func (i *IDPorten) GetJwksKey() string {
+	return secrets.IDPortenJwksUriKey
+}
+
+func (i *IDPorten) GetClientIDKey() string {
+	return secrets.IDPortenClientIDKey
 }

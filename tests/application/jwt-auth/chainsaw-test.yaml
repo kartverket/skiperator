@@ -1,7 +1,7 @@
 apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
-  name: idporten
+  name: jwt-auth
 spec:
   skip: false
   concurrent: true
@@ -9,15 +9,18 @@ spec:
   steps:
     - try:
         - create:
-            file: application.yaml
+            file: application-one-provider.yaml
         - assert:
-            file: application-assert.yaml
-        - assert:
-            file: application-idporten-assert.yaml
+            file: application-one-provider-assert.yaml
     - try:
-        - apply:
+        - create:
+            file: application-two-providers.yaml
+        - assert:
+            file: application-two-providers-assert.yaml
+    - try:
+        - update:
             file: patch-application.yaml
         - assert:
             file: patch-application-assert.yaml
         - error:
-            file: patch-application-idporten-errors.yaml
+            file: patch-application-errors.yaml

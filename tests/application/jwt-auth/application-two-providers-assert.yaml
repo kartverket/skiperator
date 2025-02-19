@@ -1,0 +1,105 @@
+apiVersion: security.istio.io/v1
+kind: RequestAuthentication
+metadata:
+  name: application-two-jwt-authn
+spec:
+  jwtRules:
+    - audiences:
+        - test-client-id-idporten
+      forwardOriginalToken: true
+      issuer: https://idporten.no
+      jwksUri: https://idporten.no/jwks.json
+    - audiences:
+        - test-client-id-maskinporten
+      forwardOriginalToken: true
+      issuer: https://maskinporten.no/
+      jwksUri: https://maskinporten.no/jwk
+  selector:
+    matchLabels:
+      app: application-two
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-two-default-deny
+spec:
+  action: DENY
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /actuator*
+  selector:
+    matchLabels:
+      app: application-two
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-two-allow-paths
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /publicEndpoint
+              - /loginIdPorten
+  selector:
+    matchLabels:
+      app: application-two
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: application-two-jwt-auth
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /loginIdPorten
+              - /secureMaskinPorten
+            paths:
+              - /secureIdPorten
+              - /commonSecureEndpoint
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://idporten.no
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-idporten
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            notPaths:
+              - /secureIdPorten
+            paths:
+              - /secureMaskinPorten
+              - /commonSecureEndpoint
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-maskinporten
+  selector:
+    matchLabels:
+      app: application-two
+

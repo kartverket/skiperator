@@ -38,7 +38,6 @@ func TestStatusDiffWithTimestamp(t *testing.T) {
 			},
 		},
 	}
-
 	tmpStatus := status.DeepCopy()
 	status.Summary.TimeStamp = time.Now().String()
 	status.Conditions[0].LastTransitionTime = v1.Now()

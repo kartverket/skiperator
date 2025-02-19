@@ -3,9 +3,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
