@@ -16,6 +16,27 @@ type AuthConfig struct {
 }
 
 func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
+	var ignoredPaths map[string]string
+	var allowPaths map[string]string
+	if authConfigs != nil {
+		for _, config := range *authConfigs {
+			for _, ignoredPath := range config.IgnorePaths {
+				ignoredPaths[ignoredPath] = ignoredPath
+			}
+			for _, allowPath := range config.Paths {
+				allowPaths[allowPath] = allowPath
+			}
+		}
+
+		for _, path := range allowPaths {
+			if _, ok := ignoredPaths[path]; ok {
+				delete(ignoredPaths, path)
+			}
+
+		}
+	}
+	return maps.Values(ignoredPaths)
+}
 	var ignoredPaths []string
 	if authConfigs != nil {
 		for _, config := range *authConfigs {
