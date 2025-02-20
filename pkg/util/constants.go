@@ -21,6 +21,9 @@ var (
 		"istio_response_bytes_bucket",
 		"istio_request_duration_milliseconds_bucket",
 	}
+	IstioTokenSecretSource    = "/etc/istio/config/token-secret.yaml"
+	IstioHmacSecretSource     = "/etc/istio/config/hmac-secret.yaml"
+	IstioCredentialsDirectory = "/etc/istio/config"
 )
 
 // A security context for use in pod containers created by Skiperator

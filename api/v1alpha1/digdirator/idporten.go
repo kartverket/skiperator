@@ -83,6 +83,9 @@ type IDPorten struct {
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
 
+	// AutoLogin sets up [OAuth2 authorization code flow](https://datatracker.ietf.org/doc/html/rfc6749) with ID-porten as identity provider.
+	AutoLogin *istiotypes.AutoLogin `json:"autoLogin,omitempty"`
+
 	// Authentication specifies how incoming JWT's should be validated.
 	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
 }

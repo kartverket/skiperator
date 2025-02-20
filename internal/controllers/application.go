@@ -8,6 +8,7 @@ import (
 	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
 	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/envoyfilter"
 	"regexp"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -216,6 +217,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		peerauthentication.Generate,
 		serviceaccount.Generate,
 		networkpolicy.Generate,
+		envoyfilter.Generate,
 		denyAuthPolicy.Generate,
 		allowAuthPolicy.Generate,
 		jwtAuthPolicy.Generate,

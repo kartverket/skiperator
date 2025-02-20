@@ -30,11 +30,3 @@ type AutoLogin struct {
 	// +kubebuilder:validation:MaxItems=50
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
 }
-
-type ClaimToHeader struct {
-	// The name of the HTTP-header for which the specified claim will be copied to.
-	Header string `json:"header"`
-
-	// The claim to be copied.
-	Claim string `json:"claim"`
-}
