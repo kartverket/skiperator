@@ -15,7 +15,7 @@ spec:
     integrationType: "api_klient"
     scopes:
       - "openid"
-    authentication:
+    requestAuthentication:
       enabled: true
       ignorePaths:
         - "/loginIdPorten"

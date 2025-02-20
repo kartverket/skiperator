@@ -87,7 +87,7 @@ type IDPorten struct {
 	AutoLogin *istiotypes.AutoLogin `json:"autoLogin,omitempty"`
 
 	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.Authentication `json:"authentication,omitempty"`
+	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type IDPortenClient struct {
@@ -106,7 +106,7 @@ func (i *IDPorten) IsEnabled() bool {
 	return i != nil && i.Authentication != nil && i.Authentication.Enabled
 }
 
-func (i *IDPorten) GetAuthSpec() istiotypes.Authentication {
+func (i *IDPorten) GetAuthSpec() istiotypes.RequestAuthentication {
 	return *i.Authentication
 }
 
