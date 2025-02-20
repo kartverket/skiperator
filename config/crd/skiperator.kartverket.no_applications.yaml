@@ -554,7 +554,7 @@ spec:
                     minimum: 1
                     type: integer
                   authentication:
-                    description: Authentication specifies how incoming JWT's should
+                    description: Authentication specifies how incoming JWTs should
                       be validated.
                     properties:
                       enabled:
