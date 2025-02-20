@@ -60,7 +60,7 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 
 func getJWTRule(authConfig auth.AuthConfig) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
-		ForwardOriginalToken: authConfig.Spec.ForwardOriginalToken,
+		ForwardOriginalToken: authConfig.Spec.ForwardJwt,
 	}
 	if authConfig.Spec.TokenLocation == "cookie" {
 		jwtRule.FromCookies = []string{"BearerToken"}

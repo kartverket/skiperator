@@ -560,9 +560,9 @@ spec:
                       enabled:
                         description: |-
                           Whether to enable JWT validation.
-                          If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
-                      forwardOriginalToken:
+                      forwardJwt:
                         default: true
                         description: If set to `true`, the original token will be
                           kept for the upstream request. Defaults to `true`.
@@ -571,7 +571,8 @@ spec:
                         description: |-
                           IgnorePaths specifies paths that do not require an authenticated JWT.
 
-                          The specified paths must start with '/'.
+                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wilcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -592,7 +593,7 @@ spec:
                               description: The claim to be copied.
                               type: string
                             header:
-                              description: The name of the HTTP-header for which the
+                              description: The name of the HTTP header for which the
                                 specified claim will be copied to.
                               type: string
                           required:
@@ -604,7 +605,8 @@ spec:
                         description: |-
                           Paths specifies paths that require an authenticated JWT.
 
-                          The specified paths must start with '/'.
+                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wilcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -612,7 +614,7 @@ spec:
                         x-kubernetes-list-type: set
                       secretName:
                         description: |-
-                          The name of the kubernetes Secret containing OAuth2-credentials.
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
 
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
@@ -621,7 +623,7 @@ spec:
                         description: |-
                           Where to find the JWT in the incoming request
 
-                          An enum value of `header` means that the JWT is present in the `Authorization`-header as a Bearer Token.
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
                         enum:
                         - header
@@ -840,9 +842,9 @@ spec:
                       enabled:
                         description: |-
                           Whether to enable JWT validation.
-                          If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
                         type: boolean
-                      forwardOriginalToken:
+                      forwardJwt:
                         default: true
                         description: If set to `true`, the original token will be
                           kept for the upstream request. Defaults to `true`.
@@ -851,7 +853,8 @@ spec:
                         description: |-
                           IgnorePaths specifies paths that do not require an authenticated JWT.
 
-                          The specified paths must start with '/'.
+                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wilcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -872,7 +875,7 @@ spec:
                               description: The claim to be copied.
                               type: string
                             header:
-                              description: The name of the HTTP-header for which the
+                              description: The name of the HTTP header for which the
                                 specified claim will be copied to.
                               type: string
                           required:
@@ -884,7 +887,8 @@ spec:
                         description: |-
                           Paths specifies paths that require an authenticated JWT.
 
-                          The specified paths must start with '/'.
+                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wilcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -892,7 +896,7 @@ spec:
                         x-kubernetes-list-type: set
                       secretName:
                         description: |-
-                          The name of the kubernetes Secret containing OAuth2-credentials.
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
 
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
@@ -901,7 +905,7 @@ spec:
                         description: |-
                           Where to find the JWT in the incoming request
 
-                          An enum value of `header` means that the JWT is present in the `Authorization`-header as a Bearer Token.
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
                         enum:
                         - header

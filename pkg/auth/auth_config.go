@@ -10,7 +10,7 @@ import (
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
-	Spec         istiotypes.Authentication
+	Spec         istiotypes.RequestAuthentication
 	Paths        []string
 	IgnorePaths  []string
 	ProviderURIs digdirator.DigdiratorURIs

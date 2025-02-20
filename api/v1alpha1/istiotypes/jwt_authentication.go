@@ -1,25 +1,25 @@
 package istiotypes
 
-// Authentication specifies how incoming JWT's should be validated.
+// RequestAuthentication specifies how incoming JWTs should be validated.
 //
 // +kubebuilder:object:generate=true
-type Authentication struct {
+type RequestAuthentication struct {
 	// Whether to enable JWT validation.
-	// If enabled, incoming JWT's will be validated against the issuer specified in the app registration and the generated audience.
+	// If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
 	Enabled bool `json:"enabled"`
 
-	// The name of the kubernetes Secret containing OAuth2-credentials.
+	// The name of the Kubernetes Secret containing OAuth2 credentials.
 	//
 	// If omitted, the associated client registration in the application manifest is used for JWT validation.
 	SecretName *string `json:"secretName,omitempty"`
 
 	// If set to `true`, the original token will be kept for the upstream request. Defaults to `true`.
 	// +kubebuilder:default=true
-	ForwardOriginalToken bool `json:"forwardOriginalToken,omitempty"`
+	ForwardJwt bool `json:"forwardJwt,omitempty"`
 
 	// Where to find the JWT in the incoming request
 	//
-	// An enum value of `header` means that the JWT is present in the `Authorization`-header as a Bearer Token.
+	// An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
 	// An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
 	//
 	// +kubebuilder:validation:Enum=header;cookie
@@ -43,23 +43,25 @@ type Authentication struct {
 
 	// Paths specifies paths that require an authenticated JWT.
 	//
-	// The specified paths must start with '/'.
+	// The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+	// The paths can also contain the wilcard operator '*', but only at the end.
 	// +listType=set
-	// +kubebuilder:validation:Items.Pattern="^/"
+	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
 	Paths *[]string `json:"paths,omitempty"`
 
 	// IgnorePaths specifies paths that do not require an authenticated JWT.
 	//
-	// The specified paths must start with '/'.
+	// The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
+	// The paths can also contain the wilcard operator '*', but only at the end.
 	// +listType=set
-	// +kubebuilder:validation:Items.Pattern="^/"
+	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
 }
 
 type ClaimToHeader struct {
-	// The name of the HTTP-header for which the specified claim will be copied to.
+	// The name of the HTTP header for which the specified claim will be copied to.
 	Header string `json:"header"`
 
 	// The claim to be copied.

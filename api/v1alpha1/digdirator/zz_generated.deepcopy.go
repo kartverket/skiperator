@@ -43,7 +43,7 @@ func (in *IDPorten) DeepCopyInto(out *IDPorten) {
 	}
 	if in.Authentication != nil {
 		in, out := &in.Authentication, &out.Authentication
-		*out = new(istiotypes.Authentication)
+		*out = new(istiotypes.RequestAuthentication)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -73,7 +73,7 @@ func (in *Maskinporten) DeepCopyInto(out *Maskinporten) {
 	}
 	if in.Authentication != nil {
 		in, out := &in.Authentication, &out.Authentication
-		*out = new(istiotypes.Authentication)
+		*out = new(istiotypes.RequestAuthentication)
 		(*in).DeepCopyInto(*out)
 	}
 }
