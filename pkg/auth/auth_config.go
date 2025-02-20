@@ -17,8 +17,8 @@ type AuthConfig struct {
 }
 
 func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
-	var ignoredPaths map[string]string
-	var allowPaths map[string]string
+	ignoredPaths := map[string]string{}
+	allowPaths := map[string]string{}
 	if authConfigs != nil {
 		for _, config := range *authConfigs {
 			for _, ignoredPath := range config.IgnorePaths {

@@ -24,7 +24,7 @@ type Maskinporten struct {
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
 	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.RequestAuthentication `json:"authentication,omitempty"`
+	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type MaskinportenClient struct {

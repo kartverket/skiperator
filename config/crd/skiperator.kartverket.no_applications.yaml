@@ -553,8 +553,60 @@ spec:
                     maximum: 3600
                     minimum: 1
                     type: integer
-                  authentication:
-                    description: Authentication specifies how incoming JWTs should
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal
+                    type: string
+                  clientURI:
+                    description: ClientURI is the URL shown to the user at ID-porten
+                      when displaying a 'back' button or on errors.
+                    pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
+                    type: string
+                  enabled:
+                    description: |-
+                      Whether to enable provisioning of an ID-porten client.
+                      If enabled, an ID-porten client be provisioned.
+                    type: boolean
+                  frontchannelLogoutPath:
+                    description: |-
+                      FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
+                      initiated a logout elsewhere as part of a single logout (front channel logout) process.
+                    pattern: ^\/.*$
+                    type: string
+                  integrationType:
+                    description: |-
+                      IntegrationType is used to make sensible choices for your client.
+                      Which type of integration you choose will provide guidance on which scopes you can use with the client.
+                      A client can only have one integration type.
+
+                      NB! It is not possible to change the integration type after creation.
+                    enum:
+                    - krr
+                    - idporten
+                    - api_klient
+                    type: string
+                  postLogoutRedirectPath:
+                    description: |-
+                      PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
+                      that will be appended to the ingress
+                    pattern: ^\/.*$
+                    type: string
+                  postLogoutRedirectURIs:
+                    description: |-
+                      PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
+                      has been initiated and performed by the application.
+                    items:
+                      pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
+                      type: string
+                    type: array
+                  redirectPath:
+                    description: RedirectPath is a valid path that ID-porten redirects
+                      back to after a successful authorization request.
+                    pattern: ^\/.*$
+                    type: string
+                  requestAuthentication:
+                    description: Authentication specifies how incoming JWT's should
                       be validated.
                     properties:
                       enabled:
@@ -632,58 +684,6 @@ spec:
                     required:
                     - enabled
                     type: object
-                  clientName:
-                    description: |-
-                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-                      Meant to be a human-readable name for separating clients in the portal
-                    type: string
-                  clientURI:
-                    description: ClientURI is the URL shown to the user at ID-porten
-                      when displaying a 'back' button or on errors.
-                    pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
-                    type: string
-                  enabled:
-                    description: |-
-                      Whether to enable provisioning of an ID-porten client.
-                      If enabled, an ID-porten client be provisioned.
-                    type: boolean
-                  frontchannelLogoutPath:
-                    description: |-
-                      FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
-                      initiated a logout elsewhere as part of a single logout (front channel logout) process.
-                    pattern: ^\/.*$
-                    type: string
-                  integrationType:
-                    description: |-
-                      IntegrationType is used to make sensible choices for your client.
-                      Which type of integration you choose will provide guidance on which scopes you can use with the client.
-                      A client can only have one integration type.
-
-                      NB! It is not possible to change the integration type after creation.
-                    enum:
-                    - krr
-                    - idporten
-                    - api_klient
-                    type: string
-                  postLogoutRedirectPath:
-                    description: |-
-                      PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
-                      that will be appended to the ingress
-                    pattern: ^\/.*$
-                    type: string
-                  postLogoutRedirectURIs:
-                    description: |-
-                      PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
-                      has been initiated and performed by the application.
-                    items:
-                      pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
-                      type: string
-                    type: array
-                  redirectPath:
-                    description: RedirectPath is a valid path that ID-porten redirects
-                      back to after a successful authorization request.
-                    pattern: ^\/.*$
-                    type: string
                   scopes:
                     description: |-
                       Register different oauth2 Scopes on your client.
@@ -835,7 +835,16 @@ spec:
               maskinporten:
                 description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
                 properties:
-                  authentication:
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal
+                    type: string
+                  enabled:
+                    description: If enabled, provisions and configures a Maskinporten
+                      client with consumed scopes and/or Exposed scopes with DigDir.
+                    type: boolean
+                  requestAuthentication:
                     description: Authentication specifies how incoming JWT's should
                       be validated.
                     properties:
@@ -914,15 +923,6 @@ spec:
                     required:
                     - enabled
                     type: object
-                  clientName:
-                    description: |-
-                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-                      Meant to be a human-readable name for separating clients in the portal
-                    type: string
-                  enabled:
-                    description: If enabled, provisions and configures a Maskinporten
-                      client with consumed scopes and/or Exposed scopes with DigDir.
-                    type: boolean
                   scopes:
                     description: Schema to configure Maskinporten clients with consumed
                       scopes and/or exposed scopes.

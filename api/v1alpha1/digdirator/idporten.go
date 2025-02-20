@@ -84,7 +84,7 @@ type IDPorten struct {
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
 
 	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.RequestAuthentication `json:"authentication,omitempty"`
+	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type IDPortenClient struct {
