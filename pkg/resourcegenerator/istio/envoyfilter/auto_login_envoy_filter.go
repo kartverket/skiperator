@@ -78,6 +78,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		},
 	}
 
+	r.AddResource(&autoLoginEnvoyFilter)
 	ctxLog.Debug("Finished generating auto login EnvoyFilter for application", "application", application.Name)
 	return nil
 }
