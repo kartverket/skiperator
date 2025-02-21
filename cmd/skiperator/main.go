@@ -10,6 +10,8 @@ import (
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
+	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -87,6 +89,11 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+		setupLog.Error(err, "unable to configure usage metrics")
 		os.Exit(1)
 	}
 
