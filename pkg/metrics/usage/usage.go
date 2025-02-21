@@ -13,7 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-const metricsRefreshInterval = 30 * time.Second
+const (
+	metricsRefreshInterval        = 30 * time.Second
+	maxApiserverOperationDuration = 20 * time.Second
+)
 
 var (
 	logger  log.Logger
@@ -55,14 +58,18 @@ func NewUsageMetrics(k8sConfig *rest.Config, log log.Logger) error {
 	// Start a background goroutine to update metrics periodically
 	go func() {
 		// initial update
-		updateMetrics(context.Background())
+		initialCtx, initialCancel := apiserverCtx()
+		updateMetrics(initialCtx)
+		initialCancel()
 		// regular update
 		ticker := time.NewTicker(metricsRefreshInterval)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				updateMetrics(context.Background())
+				ctx, cancel := apiserverCtx()
+				updateMetrics(ctx)
+				cancel()
 			}
 		}
 	}()
@@ -101,4 +108,9 @@ func valueOrDefault(value string) string {
 		return unknownValue
 	}
 	return value
+}
+
+func apiserverCtx() (context.Context, context.CancelFunc) {
+	b := context.Background()
+	return context.WithTimeout(b, maxApiserverOperationDuration)
 }
