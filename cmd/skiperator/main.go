@@ -92,10 +92,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
-		setupLog.Error(err, "unable to configure usage metrics")
-		os.Exit(1)
-	}
+	// Run leader-specific tasks when elected
+	go func() {
+		<-mgr.Elected() // Wait until this instance is elected as leader
+		setupLog.Info("I am the captain now – configuring usage metrics")
+		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+			setupLog.Error(err, "unable to configure usage metrics")
+		}
+	}()
 
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller"), resourceschemas.GetApplicationSchemas(mgr.GetScheme())),
