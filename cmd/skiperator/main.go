@@ -10,6 +10,8 @@ import (
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
+	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
@@ -89,6 +91,15 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+
+	// Run leader-specific tasks when elected
+	go func() {
+		<-mgr.Elected() // Wait until this instance is elected as leader
+		setupLog.Info("I am the captain now – configuring usage metrics")
+		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+			setupLog.Error(err, "unable to configure usage metrics")
+		}
+	}()
 
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller"), resourceschemas.GetApplicationSchemas(mgr.GetScheme())),
