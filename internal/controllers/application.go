@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
 	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/envoyfilter"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/secret"
 	v1alpha4 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"regexp"
+	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -22,17 +27,13 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
@@ -109,6 +110,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
@@ -387,6 +389,27 @@ func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) b
 	}
 
 	return true
+}
+
+func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0)
+
+	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
+	if strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: secret.Namespace,
+				Name:      secret.Labels["app"],
+			},
+		})
+	}
+
+	return requests
 }
 
 func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconcile.Request {

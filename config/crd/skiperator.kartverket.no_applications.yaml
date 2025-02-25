@@ -647,8 +647,8 @@ spec:
                     pattern: ^\/.*$
                     type: string
                   requestAuthentication:
-                    description: Authentication specifies how incoming JWT's should
-                      be validated.
+                    description: RequestAuthentication specifies how incoming JWT's
+                      should be validated.
                     properties:
                       enabled:
                         description: |-
@@ -886,8 +886,8 @@ spec:
                       client with consumed scopes and/or Exposed scopes with DigDir.
                     type: boolean
                   requestAuthentication:
-                    description: Authentication specifies how incoming JWT's should
-                      be validated.
+                    description: RequestAuthentication specifies how incoming JWT's
+                      should be validated.
                     properties:
                       enabled:
                         description: |-

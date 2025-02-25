@@ -23,8 +23,8 @@ type Maskinporten struct {
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
-	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+	// RequestAuthentication specifies how incoming JWT's should be validated.
+	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type MaskinportenClient struct {
@@ -40,11 +40,11 @@ func (m *MaskinportenClient) GetSecretName() string {
 }
 
 func (i *Maskinporten) RequestAuthEnabled() bool {
-	return i != nil && i.Authentication != nil && i.Authentication.Enabled
+	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
 func (i *Maskinporten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
-	return *i.Authentication
+	return *i.RequestAuthentication
 }
 
 func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
@@ -52,14 +52,14 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *Maskinporten) GetProvidedRequestAuthSecretName() *string {
-	return i.Authentication.SecretName
+	return i.RequestAuthentication.SecretName
 }
 
 func (i *Maskinporten) GetRequestAuthPaths() []string {
 	var paths []string
 	if i.RequestAuthEnabled() {
-		if i.Authentication.Paths != nil {
-			paths = append(paths, *i.Authentication.Paths...)
+		if i.RequestAuthentication.Paths != nil {
+			paths = append(paths, *i.RequestAuthentication.Paths...)
 		}
 	}
 	return paths
@@ -68,8 +68,8 @@ func (i *Maskinporten) GetRequestAuthPaths() []string {
 func (i *Maskinporten) GetRequestAuthIgnoredPaths() []string {
 	var ignoredPaths []string
 	if i.RequestAuthEnabled() {
-		if i.Authentication.IgnorePaths != nil {
-			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
+		if i.RequestAuthentication.IgnorePaths != nil {
+			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
 		}
 	}
 	return ignoredPaths

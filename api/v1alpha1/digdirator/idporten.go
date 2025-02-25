@@ -87,8 +87,8 @@ type IDPorten struct {
 	// AutoLogin sets up [OAuth2 authorization code flow](https://datatracker.ietf.org/doc/html/rfc6749) with ID-porten as identity provider.
 	AutoLogin *istiotypes.AutoLogin `json:"autoLogin,omitempty"`
 
-	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+	// RequestAuthentication specifies how incoming JWT's should be validated.
+	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type IDPortenClient struct {
@@ -104,11 +104,11 @@ func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 }
 
 func (i *IDPorten) RequestAuthEnabled() bool {
-	return i != nil && i.Authentication != nil && i.Authentication.Enabled
+	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
 func (i *IDPorten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
-	return *i.Authentication
+	return *i.RequestAuthentication
 }
 
 func (i *IDPorten) GetDigdiratorName() DigdiratorName {
@@ -116,14 +116,14 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *IDPorten) GetProvidedRequestAuthSecretName() *string {
-	return i.Authentication.SecretName
+	return i.RequestAuthentication.SecretName
 }
 
 func (i *IDPorten) GetRequestAuthPaths() []string {
 	var paths []string
 	if i.RequestAuthEnabled() {
-		if i.Authentication.Paths != nil {
-			paths = append(paths, *i.Authentication.Paths...)
+		if i.RequestAuthentication.Paths != nil {
+			paths = append(paths, *i.RequestAuthentication.Paths...)
 		}
 	}
 	return paths
@@ -132,8 +132,8 @@ func (i *IDPorten) GetRequestAuthPaths() []string {
 func (i *IDPorten) GetRequestAuthIgnoredPaths() []string {
 	var ignoredPaths []string
 	if i.RequestAuthEnabled() {
-		if i.Authentication.IgnorePaths != nil {
-			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
+		if i.RequestAuthentication.IgnorePaths != nil {
+			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
 		}
 	}
 	return ignoredPaths
