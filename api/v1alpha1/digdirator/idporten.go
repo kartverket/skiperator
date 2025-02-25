@@ -103,8 +103,11 @@ func (i *IDPorten) IsRequestAuthEnabled() bool {
 	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
-func (i *IDPorten) GetAuthSpec() istiotypes.RequestAuthentication {
-	return *i.RequestAuthentication
+func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuthentication {
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication
+	}
+	return nil
 }
 
 func (i *IDPorten) GetDigdiratorName() DigdiratorName {
@@ -112,7 +115,10 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *IDPorten) GetProvidedSecretName() *string {
-	return i.RequestAuthentication.SecretName
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication.SecretName
+	}
+	return nil
 }
 
 func (i *IDPorten) GetPaths() []string {
