@@ -1,6 +1,7 @@
 package digdirator
 
 import (
+	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -102,11 +103,11 @@ func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 	return i.Client.GetOwnerReferences()
 }
 
-func (i *IDPorten) IsEnabled() bool {
+func (i *IDPorten) RequestAuthEnabled() bool {
 	return i != nil && i.Authentication != nil && i.Authentication.Enabled
 }
 
-func (i *IDPorten) GetAuthSpec() istiotypes.RequestAuthentication {
+func (i *IDPorten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
 	return *i.Authentication
 }
 
@@ -114,13 +115,13 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 	return IDPortenName
 }
 
-func (i *IDPorten) GetProvidedSecretName() *string {
+func (i *IDPorten) GetProvidedRequestAuthSecretName() *string {
 	return i.Authentication.SecretName
 }
 
-func (i *IDPorten) GetPaths() []string {
+func (i *IDPorten) GetRequestAuthPaths() []string {
 	var paths []string
-	if i.IsEnabled() {
+	if i.RequestAuthEnabled() {
 		if i.Authentication.Paths != nil {
 			paths = append(paths, *i.Authentication.Paths...)
 		}
@@ -128,9 +129,9 @@ func (i *IDPorten) GetPaths() []string {
 	return paths
 }
 
-func (i *IDPorten) GetIgnoredPaths() []string {
+func (i *IDPorten) GetRequestAuthIgnoredPaths() []string {
 	var ignoredPaths []string
-	if i.IsEnabled() {
+	if i.RequestAuthEnabled() {
 		if i.Authentication.IgnorePaths != nil {
 			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
 		}
@@ -148,4 +149,57 @@ func (i *IDPorten) GetJwksKey() string {
 
 func (i *IDPorten) GetClientIDKey() string {
 	return secrets.IDPortenClientIDKey
+}
+
+func (i *IDPorten) GetTokenEndpointKey() string {
+	return secrets.IDPortenTokenEndpointKey
+}
+
+func (i *IDPorten) AutoLoginEnabled() bool {
+	return i != nil && i.AutoLogin != nil && i.AutoLogin.Enabled
+}
+
+func (i *IDPorten) GetAutoLoginSpec() istiotypes.AutoLogin {
+	return *i.AutoLogin
+}
+
+func (i *IDPorten) GetProvidedAutoLoginSecretName() *string {
+	return i.AutoLogin.SecretName
+}
+
+func (i *IDPorten) GetAuthorizationEndpoint() string {
+	//TODO: Open PR in nais/digdirator to include authorization endpoint for ID-porten so that this can be extracted from the Secret
+	return "https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/oauth2/v2.0/authorize"
+}
+
+func (i *IDPorten) GetRedirectPathKey() string {
+	return secrets.IDPortenRedirectURIKey
+}
+
+func (i *IDPorten) GetSignoutPath() string {
+	return i.PostLogoutRedirectPath
+}
+
+func (i *IDPorten) GetAuthScopes() ([]string, error) {
+	if i.Enabled {
+		if i.AutoLogin.AuthScopes != nil {
+			return *i.AutoLogin.AuthScopes, nil
+		}
+		return i.Scopes, nil
+	}
+	if i.AutoLogin.AuthScopes == nil {
+		return nil, fmt.Errorf("auth scopes must be specified for auto login when client registration happened outside of application manifest")
+	}
+	return *i.AutoLogin.AuthScopes, nil
+}
+
+func (i *IDPorten) GetAutoLoginIgnoredPaths() []string {
+	if i.AutoLogin.IgnorePaths != nil {
+		return *i.AutoLogin.IgnorePaths
+	}
+	return []string{}
+}
+
+func (i *IDPorten) GetClientSecretKey() string {
+	return "IDPORTEN_CLIENT_SECRET" //TODO: This should be read by digdirator in the same way as for client id
 }

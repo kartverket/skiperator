@@ -15,16 +15,17 @@ type ApplicationReconciliation struct {
 
 func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application,
 	logger log.Logger, istioEnabled bool, restConfig *rest.Config,
-	identityConfigMap *corev1.ConfigMap, authConfigs *auth.AuthConfigs) *ApplicationReconciliation {
+	identityConfigMap *corev1.ConfigMap, requestAuthConfigs *auth.RequestAuthConfigs, autoLoginConfig *auth.AutoLoginConfig) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
 		baseReconciliation: baseReconciliation{
-			ctx:               ctx,
-			logger:            logger,
-			istioEnabled:      istioEnabled,
-			restConfig:        restConfig,
-			identityConfigMap: identityConfigMap,
-			skipObject:        application,
-			authConfigs:       authConfigs,
+			ctx:                ctx,
+			logger:             logger,
+			istioEnabled:       istioEnabled,
+			restConfig:         restConfig,
+			identityConfigMap:  identityConfigMap,
+			skipObject:         application,
+			requestAuthConfigs: requestAuthConfigs,
+			autoLoginConfig:    autoLoginConfig,
 		},
 	}
 }

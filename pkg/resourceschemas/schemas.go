@@ -6,12 +6,12 @@ package resourceschemas
  */
 import (
 	"fmt"
-
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
+	"istio.io/client-go/pkg/apis/networking/v1alpha3"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -32,6 +32,7 @@ func AddSchemas(scheme *runtime.Scheme) {
 	utilruntime.Must(goclientscheme.AddToScheme(scheme))
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
+	utilruntime.Must(v1alpha3.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 	utilruntime.Must(istionetworkingv1.AddToScheme(scheme))
 	utilruntime.Must(telemetryv1.AddToScheme(scheme))
@@ -73,6 +74,7 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&networkingv1.NetworkPolicyList{},
 		&securityv1.RequestAuthenticationList{},
 		&securityv1.AuthorizationPolicyList{},
+		&v1alpha3.EnvoyFilterList{},
 		&nais_io_v1.MaskinportenClientList{},
 		&nais_io_v1.IDPortenClientList{},
 		&pov1.ServiceMonitorList{},

@@ -1,7 +1,6 @@
 package envoyfilter
 
 import (
-	"encoding/json"
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -20,15 +19,34 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Error(err, "Failed to generate auto login EnvoyFilter")
 		return err
 	}
-	ctxLog.Debug("Attempting to auto login EnvoyFilter for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate auto login EnvoyFilter for application", "application", application.Name)
 
-	oAuthClusterConfigPatchValueAsPbStruct, err := convertToPbStruct(config_patch.GetOAuthClusterConfigPatchValue("test"))
+	autoLoginConfig := r.GetAutoLoginConfig()
+
+	if autoLoginConfig == nil {
+		ctxLog.Debug("No auto login config provided for application. Skipping generating envoy filter", "application", application.Name)
+		return nil
+	}
+
+	oAuthClusterConfigPatchValueAsPbStruct, err := structpb.NewStruct(config_patch.GetOAuthClusterConfigPatchValue(autoLoginConfig.ProviderURIs.HostName))
 	if err != nil {
 		ctxLog.Error(err, "failed to convert OAuth cluster config patch to protobuf")
+		return err
 	}
-	oAuthSidecarConfigPatchValueAsPbStruct, err := convertToPbStruct(config_patch.GetOAuthSidecarConfigPatchValue())
+	oAuthSidecarConfigPatchValueAsPbStruct, err := structpb.NewStruct(
+		config_patch.GetOAuthSidecarConfigPatchValue(
+			autoLoginConfig.ProviderURIs.TokenURI,
+			autoLoginConfig.ProviderURIs.AuthorizationURI,
+			autoLoginConfig.ProviderURIs.RedirectPath,
+			autoLoginConfig.ProviderURIs.SignoutPath,
+			autoLoginConfig.IgnorePaths,
+			autoLoginConfig.ProviderURIs.ClientID,
+			autoLoginConfig.AuthScopes,
+		),
+	)
 	if err != nil {
 		ctxLog.Error(err, "failed to convert OAuth sidecar config patch to protobuf")
+		return err
 	}
 
 	autoLoginEnvoyFilter := v1alpha4.EnvoyFilter{
@@ -81,16 +99,4 @@ func Generate(r reconciliation.Reconciliation) error {
 	r.AddResource(&autoLoginEnvoyFilter)
 	ctxLog.Debug("Finished generating auto login EnvoyFilter for application", "application", application.Name)
 	return nil
-}
-
-func convertToPbStruct[T any](v T) (*structpb.Struct, error) {
-	jsonBytes, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	var rawMap map[string]interface{}
-	if err := json.Unmarshal(jsonBytes, &rawMap); err != nil {
-		return nil, err
-	}
-	return structpb.NewStruct(rawMap)
 }

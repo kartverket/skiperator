@@ -67,7 +67,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 	integrationType := application.Spec.IDPorten.IntegrationType
 	if integrationType == "" {
 		// No scopes => idporten
-		// Scopes    => api_klient
+		// AuthScopes    => api_klient
 		if len(application.Spec.IDPorten.Scopes) == 0 {
 			integrationType = string(digdiratorTypes.IntegrationTypeIDPorten)
 		} else {

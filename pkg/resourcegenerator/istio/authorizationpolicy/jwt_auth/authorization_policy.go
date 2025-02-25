@@ -31,9 +31,9 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	authConfigs := r.GetAuthConfigs()
+	authConfigs := r.GetRequestAuthConfigs()
 	if authConfigs == nil {
-		ctxLog.Debug("No auth configs provided for application. Skipping generating JWT-auth AuthorizationPolicy", "application", application.Name)
+		ctxLog.Debug("No request auth configs provided for application. Skipping generating JWT-auth AuthorizationPolicy", "application", application.Name)
 		return nil
 	}
 
@@ -53,7 +53,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []auth.AuthConfig) *securityv1.AuthorizationPolicy {
+func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []auth.RequestAuthConfig) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 	for _, authConfig := range authConfigs {
 		var ruleTo securityv1api.Rule_To

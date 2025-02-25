@@ -29,18 +29,20 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
-	GetAuthConfigs() *auth.AuthConfigs
+	GetRequestAuthConfigs() *auth.RequestAuthConfigs
+	GetAutoLoginConfig() *auth.AutoLoginConfig
 }
 
 type baseReconciliation struct {
-	ctx               context.Context
-	logger            log.Logger
-	resources         []client.Object
-	istioEnabled      bool
-	restConfig        *rest.Config
-	identityConfigMap *corev1.ConfigMap
-	skipObject        v1alpha1.SKIPObject
-	authConfigs       *auth.AuthConfigs
+	ctx                context.Context
+	logger             log.Logger
+	resources          []client.Object
+	istioEnabled       bool
+	restConfig         *rest.Config
+	identityConfigMap  *corev1.ConfigMap
+	skipObject         v1alpha1.SKIPObject
+	requestAuthConfigs *auth.RequestAuthConfigs
+	autoLoginConfig    *auth.AutoLoginConfig
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -75,6 +77,10 @@ func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
 }
 
-func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
-	return b.authConfigs
+func (b *baseReconciliation) GetRequestAuthConfigs() *auth.RequestAuthConfigs {
+	return b.requestAuthConfigs
+}
+
+func (b *baseReconciliation) GetAutoLoginConfig() *auth.AutoLoginConfig {
+	return b.autoLoginConfig
 }

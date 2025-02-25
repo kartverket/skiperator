@@ -41,6 +41,11 @@ func (in *IDPorten) DeepCopyInto(out *IDPorten) {
 		*out = new(int)
 		**out = **in
 	}
+	if in.AutoLogin != nil {
+		in, out := &in.AutoLogin, &out.AutoLogin
+		*out = new(istiotypes.AutoLogin)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Authentication != nil {
 		in, out := &in.Authentication, &out.Authentication
 		*out = new(istiotypes.RequestAuthentication)

@@ -14,14 +14,6 @@ type AutoLogin struct {
 	// If omitted, the associated client registration in the application manifest is used for user login.
 	SecretName *string `json:"secretName,omitempty"`
 
-	// Paths specifies the routes that require a JWT and will redirect to the user login page if absent.
-	//
-	// The specified paths must start with '/'.
-	// +listType=set
-	// +kubebuilder:validation:Items.Pattern="^/"
-	// +kubebuilder:validation:MaxItems=50
-	Paths *[]string `json:"paths,omitempty"`
-
 	// IgnorePaths specifies the routes that do not require a JWT and will not redirect to the user login page if absent.
 	//
 	// The specified paths must start with '/'.
@@ -29,4 +21,13 @@ type AutoLogin struct {
 	// +kubebuilder:validation:Items.Pattern="^/"
 	// +kubebuilder:validation:MaxItems=50
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
+
+	// AuthScopes specifies which scopes that should be used when the application authorizes towards the identity provider.
+	//
+	// The specified scopes must be a sub-set of the scopes granted for the app-registration.
+	// Required when the associated client registration is not a part of the application manifest.
+	// If omitted, the scopes from the associated client registration in the application manifest is used.
+	// +listType=set
+	// +kubebuilder:validation:MaxItems=10
+	AuthScopes *[]string `json:"authScopes,omitempty"`
 }

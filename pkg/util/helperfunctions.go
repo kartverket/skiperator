@@ -2,6 +2,8 @@ package util
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -15,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
+	"net/url"
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -182,4 +185,32 @@ func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
 
 func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
+}
+
+func GetHostname(uri string) (*string, error) {
+	parsedURL, err := url.Parse(uri)
+	if err != nil {
+		return nil, err
+	}
+	hostname := parsedURL.Hostname()
+	return &hostname, nil
+}
+
+func GetPathFromUri(uri string) (*string, error) {
+	parsedUri, err := url.Parse(uri)
+	if err != nil || parsedUri.Scheme == "" || parsedUri.Host == "" {
+		return nil, fmt.Errorf("'%s' is an invalid uri", uri)
+	}
+	path := parsedUri.Path
+	return &path, nil
+}
+
+func GenerateHMACSecret(size int) (*string, error) {
+	secret := make([]byte, size)
+	_, err := rand.Read(secret)
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate HMAC secret: %w", err)
+	}
+	base64EncodedSecret := base64.StdEncoding.EncodeToString(secret)
+	return &base64EncodedSecret, nil
 }

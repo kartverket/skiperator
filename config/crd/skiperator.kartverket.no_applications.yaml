@@ -553,6 +553,47 @@ spec:
                     maximum: 3600
                     minimum: 1
                     type: integer
+                  autoLogin:
+                    description: AutoLogin sets up [OAuth2 authorization code flow](https://datatracker.ietf.org/doc/html/rfc6749)
+                      with ID-porten as identity provider.
+                    properties:
+                      authScopes:
+                        description: |-
+                          AuthScopes specifies which scopes that should be used when the application authorizes towards the identity provider.
+
+                          The specified scopes must be a sub-set of the scopes granted for the app-registration.
+                          Required when the associated client registration is not a part of the application manifest.
+                          If omitted, the scopes from the associated client registration in the application manifest is used.
+                        items:
+                          type: string
+                        maxItems: 10
+                        type: array
+                        x-kubernetes-list-type: set
+                      enabled:
+                        description: |-
+                          Whether to enable auto login.
+                          If enabled, requests that do not include a JWT in the 'BearerToken' cookie
+                          will be redirected to the user login page.
+                        type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies the routes that do not require a JWT and will not redirect to the user login page if absent.
+
+                          The specified paths must start with '/'.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      secretName:
+                        description: |-
+                          The name of the kubernetes Secret containing OAuth2-credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for user login.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   clientName:
                     description: |-
                       The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal

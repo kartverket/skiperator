@@ -29,7 +29,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	var allowedPaths []string
 	if application.Spec.AuthorizationSettings != nil {
 		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
-		allowedPaths = append(allowedPaths, r.GetAuthConfigs().GetIgnoredPaths()...)
+		allowedPaths = append(allowedPaths, r.GetRequestAuthConfigs().GetIgnoredPaths()...)
 	}
 
 	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths

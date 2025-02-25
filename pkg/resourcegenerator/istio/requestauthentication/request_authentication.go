@@ -27,10 +27,10 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ctxLog.Debug("Attempting to generate RequestAuthentication for application", "application", application.Name)
 
-	authConfigs := r.GetAuthConfigs()
+	authConfigs := r.GetRequestAuthConfigs()
 
 	if authConfigs == nil {
-		ctxLog.Debug("No auth configs provided for application. Skipping generating RequestAuthentication", "application", application.Name)
+		ctxLog.Debug("No request auth configs provided for application. Skipping generating RequestAuthentication", "application", application.Name)
 		return nil
 	}
 	requestAuthentication := getRequestAuthentication(application, *authConfigs)
@@ -39,7 +39,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []auth.AuthConfig) securityv1.RequestAuthentication {
+func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []auth.RequestAuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
 	for i, config := range authConfigs {
 		jwtRules[i] = getJWTRule(config)
@@ -58,7 +58,7 @@ func getRequestAuthentication(application *skiperatorv1alpha1.Application, authC
 	}
 }
 
-func getJWTRule(authConfig auth.AuthConfig) *v1beta1.JWTRule {
+func getJWTRule(authConfig auth.RequestAuthConfig) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
 		ForwardOriginalToken: authConfig.Spec.ForwardJwt,
 	}

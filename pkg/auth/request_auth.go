@@ -7,16 +7,16 @@ import (
 	"slices"
 )
 
-type AuthConfigs []AuthConfig
+type RequestAuthConfigs []RequestAuthConfig
 
-type AuthConfig struct {
+type RequestAuthConfig struct {
 	Spec         istiotypes.RequestAuthentication
 	Paths        []string
 	IgnorePaths  []string
 	ProviderURIs digdirator.DigdiratorURIs
 }
 
-func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
+func (authConfigs *RequestAuthConfigs) GetIgnoredPaths() []string {
 	ignoredPaths := map[string]string{}
 	allowPaths := map[string]string{}
 	if authConfigs != nil {
@@ -39,7 +39,7 @@ func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
 	return maps.Values(ignoredPaths)
 }
 
-func (authConfigs *AuthConfigs) IgnorePathsFromOtherAuthConfigs() {
+func (authConfigs *RequestAuthConfigs) IgnorePathsFromOtherRequestAuthConfigs() {
 	if authConfigs != nil {
 		for index, config := range *authConfigs {
 			for otherIndex, otherConfig := range *authConfigs {

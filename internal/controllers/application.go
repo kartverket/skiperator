@@ -9,6 +9,8 @@ import (
 	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
 	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/envoyfilter"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/secret"
+	v1alpha4 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"regexp"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -103,6 +105,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&securityv1.RequestAuthentication{}).
 		Owns(&securityv1.AuthorizationPolicy{}).
+		Owns(&v1alpha4.EnvoyFilter{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
@@ -154,9 +157,15 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
+	requestAuthConfigs, err := r.getRequestAuthConfigsForApplication(ctx, application)
 	if err != nil {
-		rLog.Error(err, "unable to resolve auth config for application", "application", application.Name)
+		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
+	}
+
+	autoLoginConfig, err := r.getAutoLoginConfigForApplication(ctx, application)
+	fmt.Println(autoLoginConfig)
+	if err != nil {
+		rLog.Error(err, "unable to resolve auto login config for application", "application", application.Name)
 	}
 
 	// Copy application so we can check for diffs. Should be none on existing applications.
@@ -202,7 +211,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, requestAuthConfigs, autoLoginConfig)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -218,6 +227,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		serviceaccount.Generate,
 		networkpolicy.Generate,
 		envoyfilter.Generate,
+		secret.Generate,
 		denyAuthPolicy.Generate,
 		allowAuthPolicy.Generate,
 		jwtAuthPolicy.Generate,
@@ -290,7 +300,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil)
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil, nil)
 	return r.GetProcessor().Process(reconciliation)
 }
 
@@ -428,39 +438,77 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	return nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
-	var authConfigs jwtAuth.AuthConfigs
+func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AutoLoginConfig, error) {
+	idportenSpec := application.Spec.IDPorten
+	if idportenSpec.AutoLoginEnabled() {
+		authScopes, err := idportenSpec.GetAuthScopes()
+		if err != nil {
+			return nil, fmt.Errorf("error getting auth scopes: %w", err)
+		}
+		authConfigSecret, err := r.getAuthConfigSecret(ctx, *application, idportenSpec, idportenSpec.GetProvidedAutoLoginSecretName())
+		if err != nil {
+			return nil, fmt.Errorf("error getting auth secret: %w", err)
+		}
+		hostname, err := util.GetHostname(string(authConfigSecret.Data[idportenSpec.GetIssuerKey()]))
+		if err != nil {
+			return nil, fmt.Errorf("error getting hostname for %s: %w", idportenSpec.GetDigdiratorName(), err)
+		}
+		redirectPath, err := util.GetPathFromUri(string(authConfigSecret.Data[idportenSpec.GetRedirectPathKey()]))
+		if err != nil {
+			return nil, fmt.Errorf("error getting redirect path for %s: %w", idportenSpec.GetDigdiratorName(), err)
+		}
+		return &jwtAuth.AutoLoginConfig{
+			Spec:        application.Spec.IDPorten.GetAutoLoginSpec(),
+			IsEnabled:   idportenSpec.AutoLoginEnabled(),
+			IgnorePaths: application.Spec.IDPorten.GetAutoLoginIgnoredPaths(),
+			ProviderURIs: digdirator.DigdiratorURIs{
+				HostName:         *hostname,
+				TokenURI:         string(authConfigSecret.Data[idportenSpec.GetTokenEndpointKey()]),
+				ClientID:         string(authConfigSecret.Data[idportenSpec.GetClientIDKey()]),
+				AuthorizationURI: idportenSpec.GetAuthorizationEndpoint(),
+				RedirectPath:     *redirectPath,
+				SignoutPath:      idportenSpec.GetSignoutPath(),
+			},
+			AuthScopes:   authScopes,
+			ClientSecret: string(authConfigSecret.Data[idportenSpec.GetClientSecretKey()]),
+		}, nil
+	}
+	return nil, nil
+}
+
+func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.RequestAuthConfigs, error) {
+	var requestAuthConfigs jwtAuth.RequestAuthConfigs
 
 	providers := []digdirator.DigdiratorProvider{
 		application.Spec.IDPorten,
 		application.Spec.Maskinporten,
 	}
 	for _, provider := range providers {
-		if provider.IsEnabled() {
-			authConfig, err := r.getAuthConfig(ctx, *application, provider)
+		if provider.RequestAuthEnabled() {
+			authConfig, err := r.getRequestAuthConfig(ctx, *application, provider)
 			if err != nil {
 				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
 			}
-			authConfigs = append(authConfigs, *authConfig)
+			requestAuthConfigs = append(requestAuthConfigs, *authConfig)
 		}
 	}
-	if len(authConfigs) > 0 {
-		authConfigs.IgnorePathsFromOtherAuthConfigs()
-		return &authConfigs, nil
+	if len(requestAuthConfigs) > 0 {
+		requestAuthConfigs.IgnorePathsFromOtherRequestAuthConfigs()
+		return &requestAuthConfigs, nil
 	} else {
 		return nil, nil
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
-	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
+func (r *ApplicationReconciler) getRequestAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.RequestAuthConfig, error) {
+	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider, digdiratorProvider.GetProvidedRequestAuthSecretName())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
-	return &jwtAuth.AuthConfig{
-		Spec:        digdiratorProvider.GetAuthSpec(),
-		Paths:       digdiratorProvider.GetPaths(),
-		IgnorePaths: digdiratorProvider.GetIgnoredPaths(),
+	return &jwtAuth.RequestAuthConfig{
+		Spec:        digdiratorProvider.GetRequestAuthSpec(),
+		Paths:       digdiratorProvider.GetRequestAuthPaths(),
+		IgnorePaths: digdiratorProvider.GetRequestAuthIgnoredPaths(),
 		ProviderURIs: digdirator.DigdiratorURIs{
 			Name:      digdiratorProvider.GetDigdiratorName(),
 			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
@@ -470,12 +518,12 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	}, nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider, providedSecretName *string) (*corev1.Secret, error) {
 	var secretName *string
 	var err error
 
-	if digdiratorProvider.GetProvidedSecretName() != nil {
-		secretName = digdiratorProvider.GetProvidedSecretName()
+	if providedSecretName != nil {
+		secretName = providedSecretName
 	} else {
 		secretName, err = r.getDigdiratorSecretName(ctx, digdiratorProvider, application)
 		if err != nil {

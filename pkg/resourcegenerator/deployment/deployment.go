@@ -136,6 +136,11 @@ func Generate(r reconciliation.Reconciliation) error {
 			// "failed scraping application metrics: error scraping http://localhost:80/metrics"
 			generatedSpecAnnotations["prometheus.istio.io/merge-metrics"] = "false"
 		}
+		autoLoginConfig := r.GetAutoLoginConfig()
+		if autoLoginConfig != nil && autoLoginConfig.IsEnabled {
+			generatedSpecAnnotations["sidecar.istio.io/userVolume"] = "[{\"name\": \"istio-oauth2\", \"secret\": { \"secretName\": \"auto-login-envoy-secret\"}}]"
+			generatedSpecAnnotations["sidecar.istio.io/userVolumeMount"] = "[{\"name\": \"istio-oauth2\", \"mountPath\": \"/etc/istio/config\", \"readonly\": true }]"
+		}
 	}
 
 	if application.Spec.PodSettings != nil && len(application.Spec.PodSettings.Annotations) > 0 {

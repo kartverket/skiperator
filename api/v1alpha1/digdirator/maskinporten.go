@@ -39,11 +39,11 @@ func (m *MaskinportenClient) GetSecretName() string {
 	return m.Client.Spec.SecretName
 }
 
-func (i *Maskinporten) IsEnabled() bool {
+func (i *Maskinporten) RequestAuthEnabled() bool {
 	return i != nil && i.Authentication != nil && i.Authentication.Enabled
 }
 
-func (i *Maskinporten) GetAuthSpec() istiotypes.RequestAuthentication {
+func (i *Maskinporten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
 	return *i.Authentication
 }
 
@@ -51,13 +51,13 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 	return MaskinPortenName
 }
 
-func (i *Maskinporten) GetProvidedSecretName() *string {
+func (i *Maskinporten) GetProvidedRequestAuthSecretName() *string {
 	return i.Authentication.SecretName
 }
 
-func (i *Maskinporten) GetPaths() []string {
+func (i *Maskinporten) GetRequestAuthPaths() []string {
 	var paths []string
-	if i.IsEnabled() {
+	if i.RequestAuthEnabled() {
 		if i.Authentication.Paths != nil {
 			paths = append(paths, *i.Authentication.Paths...)
 		}
@@ -65,9 +65,9 @@ func (i *Maskinporten) GetPaths() []string {
 	return paths
 }
 
-func (i *Maskinporten) GetIgnoredPaths() []string {
+func (i *Maskinporten) GetRequestAuthIgnoredPaths() []string {
 	var ignoredPaths []string
-	if i.IsEnabled() {
+	if i.RequestAuthEnabled() {
 		if i.Authentication.IgnorePaths != nil {
 			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
 		}
@@ -85,4 +85,8 @@ func (i *Maskinporten) GetJwksKey() string {
 
 func (i *Maskinporten) GetClientIDKey() string {
 	return secrets.MaskinportenClientIDKey
+}
+
+func (i *Maskinporten) GetTokenEndpointKey() string {
+	return secrets.MaskinportenTokenEndpointKey
 }
