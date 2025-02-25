@@ -41,18 +41,13 @@ func (in *IDPorten) DeepCopyInto(out *IDPorten) {
 		*out = new(int)
 		**out = **in
 	}
-<<<<<<< HEAD
 	if in.AutoLogin != nil {
 		in, out := &in.AutoLogin, &out.AutoLogin
 		*out = new(istiotypes.AutoLogin)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Authentication != nil {
-		in, out := &in.Authentication, &out.Authentication
-=======
 	if in.RequestAuthentication != nil {
 		in, out := &in.RequestAuthentication, &out.RequestAuthentication
->>>>>>> add-jwt-authentication
 		*out = new(istiotypes.RequestAuthentication)
 		(*in).DeepCopyInto(*out)
 	}

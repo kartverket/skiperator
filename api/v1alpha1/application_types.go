@@ -470,7 +470,7 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 }
 
 func (s *ApplicationSpec) IsRequestAuthEnabled() bool {
-	return (s.IDPorten != nil && s.IDPorten.IsRequestAuthEnabled()) || (s.Maskinporten != nil && s.Maskinporten.IsRequestAuthEnabled())
+	return (s.IDPorten != nil && s.IDPorten.RequestAuthEnabled()) || (s.Maskinporten != nil && s.Maskinporten.RequestAuthEnabled())
 }
 
 type MultiErr interface {
