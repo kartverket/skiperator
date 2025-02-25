@@ -26,6 +26,12 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
+	defaultDenyPath := authorizationpolicy.DefaultDenyPath
+	if application.Spec.IsRequestAuthEnabled() && r.GetAuthConfigs() == nil {
+		defaultDenyPath = "*"
+		ctxLog.Debug("No auth config provided. Defaults to deny-all AuthorizationPolicy for application", "application", application.Name)
+	}
+
 	r.AddResource(
 		authorizationpolicy.GetAuthPolicy(
 			types.NamespacedName{
@@ -34,7 +40,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			},
 			application.Name,
 			securityv1api.AuthorizationPolicy_DENY,
-			[]string{authorizationpolicy.DefaultDenyPath},
+			[]string{defaultDenyPath},
 			[]string{},
 		),
 	)

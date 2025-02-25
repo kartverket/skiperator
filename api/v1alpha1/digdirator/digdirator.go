@@ -20,7 +20,7 @@ type DigdiratorClient interface {
 }
 
 type DigdiratorProvider interface {
-	IsEnabled() bool
+	IsRequestAuthEnabled() bool
 	GetAuthSpec() istiotypes.RequestAuthentication
 	GetDigdiratorName() DigdiratorName
 	GetProvidedSecretName() *string

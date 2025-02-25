@@ -469,6 +469,10 @@ func (s *ApplicationSpec) Hosts() (HostCollection, error) {
 	return hosts, errors.Join(errorsFound...)
 }
 
+func (s *ApplicationSpec) IsRequestAuthEnabled() bool {
+	return (s.IDPorten != nil && s.IDPorten.IsRequestAuthEnabled()) || (s.Maskinporten != nil && s.Maskinporten.IsRequestAuthEnabled())
+}
+
 type MultiErr interface {
 	Unwrap() []error
 }

@@ -41,8 +41,8 @@ func (in *IDPorten) DeepCopyInto(out *IDPorten) {
 		*out = new(int)
 		**out = **in
 	}
-	if in.Authentication != nil {
-		in, out := &in.Authentication, &out.Authentication
+	if in.RequestAuthentication != nil {
+		in, out := &in.RequestAuthentication, &out.RequestAuthentication
 		*out = new(istiotypes.RequestAuthentication)
 		(*in).DeepCopyInto(*out)
 	}
@@ -71,8 +71,8 @@ func (in *Maskinporten) DeepCopyInto(out *Maskinporten) {
 		*out = new(v1.MaskinportenScope)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Authentication != nil {
-		in, out := &in.Authentication, &out.Authentication
+	if in.RequestAuthentication != nil {
+		in, out := &in.RequestAuthentication, &out.RequestAuthentication
 		*out = new(istiotypes.RequestAuthentication)
 		(*in).DeepCopyInto(*out)
 	}

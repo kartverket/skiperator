@@ -23,8 +23,8 @@ type Maskinporten struct {
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
-	// Authentication specifies how incoming JWT's should be validated.
-	Authentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+	// RequestAuthentication specifies how incoming JWT's should be validated.
+	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
 type MaskinportenClient struct {
@@ -39,12 +39,12 @@ func (m *MaskinportenClient) GetSecretName() string {
 	return m.Client.Spec.SecretName
 }
 
-func (i *Maskinporten) IsEnabled() bool {
-	return i != nil && i.Authentication != nil && i.Authentication.Enabled
+func (i *Maskinporten) IsRequestAuthEnabled() bool {
+	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
 func (i *Maskinporten) GetAuthSpec() istiotypes.RequestAuthentication {
-	return *i.Authentication
+	return *i.RequestAuthentication
 }
 
 func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
@@ -52,14 +52,14 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *Maskinporten) GetProvidedSecretName() *string {
-	return i.Authentication.SecretName
+	return i.RequestAuthentication.SecretName
 }
 
 func (i *Maskinporten) GetPaths() []string {
 	var paths []string
-	if i.IsEnabled() {
-		if i.Authentication.Paths != nil {
-			paths = append(paths, *i.Authentication.Paths...)
+	if i.IsRequestAuthEnabled() {
+		if i.RequestAuthentication.Paths != nil {
+			paths = append(paths, *i.RequestAuthentication.Paths...)
 		}
 	}
 	return paths
@@ -67,9 +67,9 @@ func (i *Maskinporten) GetPaths() []string {
 
 func (i *Maskinporten) GetIgnoredPaths() []string {
 	var ignoredPaths []string
-	if i.IsEnabled() {
-		if i.Authentication.IgnorePaths != nil {
-			ignoredPaths = append(ignoredPaths, *i.Authentication.IgnorePaths...)
+	if i.IsRequestAuthEnabled() {
+		if i.RequestAuthentication.IgnorePaths != nil {
+			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
 		}
 	}
 	return ignoredPaths

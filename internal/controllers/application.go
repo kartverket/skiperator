@@ -13,6 +13,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"regexp"
+	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -384,12 +385,10 @@ func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Re
 		return nil
 	}
 
-	// Check if secret is owned by digdirator with type idporten.digdirator.nais.io or maskinporten.digdirator.nais.io
-	isDigdiratorSecret := secret.Labels["type"] == "idporten.digdirator.nais.io" || secret.Labels["type"] == "maskinporten.digdirator.nais.io"
-
 	requests := make([]reconcile.Request, 0)
 
-	if isDigdiratorSecret {
+	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
+	if strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: secret.Namespace,
@@ -458,7 +457,7 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 		application.Spec.Maskinporten,
 	}
 	for _, provider := range providers {
-		if provider.IsEnabled() {
+		if provider.IsRequestAuthEnabled() {
 			authConfig, err := r.getAuthConfig(ctx, *application, provider)
 			if err != nil {
 				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
