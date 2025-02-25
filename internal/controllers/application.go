@@ -483,10 +483,11 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", digdiratorProvider.GetDigdiratorName())
 	}
 	return &jwtAuth.AuthConfig{
-		Spec:        *requestAuthSpec,
-		Paths:       digdiratorProvider.GetPaths(),
-		IgnorePaths: digdiratorProvider.GetIgnoredPaths(),
-		ProviderURIs: digdirator.DigdiratorURIs{
+		Spec:          *requestAuthSpec,
+		Paths:         digdiratorProvider.GetPaths(),
+		IgnorePaths:   digdiratorProvider.GetIgnoredPaths(),
+		TokenLocation: digdiratorProvider.GetTokenLocation(),
+		ProviderInfo: digdirator.DigdiratorInfo{
 			Name:      digdiratorProvider.GetDigdiratorName(),
 			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
 			JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),

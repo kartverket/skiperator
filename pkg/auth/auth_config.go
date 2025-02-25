@@ -10,10 +10,11 @@ import (
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
-	Spec         istiotypes.RequestAuthentication
-	Paths        []string
-	IgnorePaths  []string
-	ProviderURIs digdirator.DigdiratorURIs
+	Spec          istiotypes.RequestAuthentication
+	Paths         []string
+	IgnorePaths   []string
+	TokenLocation string
+	ProviderInfo  digdirator.DigdiratorInfo
 }
 
 func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {

@@ -22,9 +22,11 @@ type RequestAuthentication struct {
 	// An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
 	// An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
 	//
+	// If omitted, its default value depends on the provider type:
+	// - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+	// - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
 	// +kubebuilder:validation:Enum=header;cookie
-	// +kubebuilder:default=header
-	TokenLocation string `json:"tokenLocation,omitempty"`
+	TokenLocation *string `json:"tokenLocation,omitempty"`
 
 	// This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
 	// The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.

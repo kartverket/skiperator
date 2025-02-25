@@ -671,12 +671,15 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
-                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
                           An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
                         enum:
                         - header
                         - cookie
@@ -910,12 +913,15 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
-                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
                           An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
                         enum:
                         - header
                         - cookie

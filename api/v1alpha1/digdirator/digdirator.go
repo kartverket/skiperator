@@ -7,7 +7,7 @@ import (
 
 type DigdiratorName string
 
-type DigdiratorURIs struct {
+type DigdiratorInfo struct {
 	Name      DigdiratorName
 	IssuerURI string
 	JwksURI   string
@@ -29,4 +29,5 @@ type DigdiratorProvider interface {
 	GetIssuerKey() string
 	GetJwksKey() string
 	GetClientIDKey() string
+	GetTokenLocation() string
 }

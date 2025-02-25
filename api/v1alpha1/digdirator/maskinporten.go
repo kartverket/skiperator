@@ -92,3 +92,10 @@ func (i *Maskinporten) GetJwksKey() string {
 func (i *Maskinporten) GetClientIDKey() string {
 	return secrets.MaskinportenClientIDKey
 }
+
+func (i *Maskinporten) GetTokenLocation() string {
+	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
+		return *i.RequestAuthentication.TokenLocation
+	}
+	return "header"
+}

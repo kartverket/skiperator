@@ -78,11 +78,11 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 			When: []*securityv1api.Condition{
 				{
 					Key:    "request.auth.claims[iss]",
-					Values: []string{authConfig.ProviderURIs.IssuerURI},
+					Values: []string{authConfig.ProviderInfo.IssuerURI},
 				},
 				{
 					Key:    "request.auth.claims[aud]",
-					Values: []string{authConfig.ProviderURIs.ClientID},
+					Values: []string{authConfig.ProviderInfo.ClientID},
 				},
 			},
 			From: authorizationpolicy.GetGeneralFromRule(),

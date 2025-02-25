@@ -152,3 +152,10 @@ func (i *IDPorten) GetJwksKey() string {
 func (i *IDPorten) GetClientIDKey() string {
 	return secrets.IDPortenClientIDKey
 }
+
+func (i *IDPorten) GetTokenLocation() string {
+	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
+		return *i.RequestAuthentication.TokenLocation
+	}
+	return "cookie"
+}

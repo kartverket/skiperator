@@ -30,6 +30,11 @@ func (in *RequestAuthentication) DeepCopyInto(out *RequestAuthentication) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.TokenLocation != nil {
+		in, out := &in.TokenLocation, &out.TokenLocation
+		*out = new(string)
+		**out = **in
+	}
 	if in.OutputClaimToHeaders != nil {
 		in, out := &in.OutputClaimToHeaders, &out.OutputClaimToHeaders
 		*out = new([]ClaimToHeader)
