@@ -9,7 +9,7 @@ type AutoLoginConfig struct {
 	Spec         istiotypes.AutoLogin
 	IsEnabled    bool
 	IgnorePaths  []string
-	ProviderURIs digdirator.DigdiratorURIs
+	ProviderURIs digdirator.DigdiratorInfo
 	AuthScopes   []string
 	ClientSecret string
 }

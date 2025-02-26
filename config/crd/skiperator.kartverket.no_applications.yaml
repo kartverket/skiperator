@@ -597,7 +597,7 @@ spec:
                   clientName:
                     description: |-
                       The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-                      Meant to be a human-readable name for separating clients in the portal
+                      Meant to be a human-readable name for separating clients in the portal.
                     type: string
                   clientURI:
                     description: ClientURI is the URL shown to the user at ID-porten
@@ -607,7 +607,7 @@ spec:
                   enabled:
                     description: |-
                       Whether to enable provisioning of an ID-porten client.
-                      If enabled, an ID-porten client be provisioned.
+                      If enabled, an ID-porten client will be provisioned.
                     type: boolean
                   frontchannelLogoutPath:
                     description: |-
@@ -647,7 +647,7 @@ spec:
                     pattern: ^\/.*$
                     type: string
                   requestAuthentication:
-                    description: RequestAuthentication specifies how incoming JWT's
+                    description: RequestAuthentication specifies how incoming JWTs
                       should be validated.
                     properties:
                       enabled:
@@ -664,8 +664,8 @@ spec:
                         description: |-
                           IgnorePaths specifies paths that do not require an authenticated JWT.
 
-                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-                          The paths can also contain the wilcard operator '*', but only at the end.
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -684,22 +684,27 @@ spec:
                           properties:
                             claim:
                               description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
                               type: string
                             header:
                               description: The name of the HTTP header for which the
                                 specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
                               type: string
                           required:
                           - claim
                           - header
                           type: object
+                        maxItems: 10
                         type: array
                       paths:
                         description: |-
                           Paths specifies paths that require an authenticated JWT.
 
-                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-                          The paths can also contain the wilcard operator '*', but only at the end.
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -712,12 +717,15 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
-                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
                           An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
                         enum:
                         - header
                         - cookie
@@ -886,7 +894,7 @@ spec:
                       client with consumed scopes and/or Exposed scopes with DigDir.
                     type: boolean
                   requestAuthentication:
-                    description: RequestAuthentication specifies how incoming JWT's
+                    description: RequestAuthentication specifies how incoming JWTs
                       should be validated.
                     properties:
                       enabled:
@@ -903,8 +911,8 @@ spec:
                         description: |-
                           IgnorePaths specifies paths that do not require an authenticated JWT.
 
-                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-                          The paths can also contain the wilcard operator '*', but only at the end.
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -923,22 +931,27 @@ spec:
                           properties:
                             claim:
                               description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
                               type: string
                             header:
                               description: The name of the HTTP header for which the
                                 specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
                               type: string
                           required:
                           - claim
                           - header
                           type: object
+                        maxItems: 10
                         type: array
                       paths:
                         description: |-
                           Paths specifies paths that require an authenticated JWT.
 
-                          The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-                          The paths can also contain the wilcard operator '*', but only at the end.
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
                         items:
                           type: string
                         maxItems: 50
@@ -951,12 +964,15 @@ spec:
                           If omitted, the associated client registration in the application manifest is used for JWT validation.
                         type: string
                       tokenLocation:
-                        default: header
                         description: |-
                           Where to find the JWT in the incoming request
 
                           An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
                           An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
                         enum:
                         - header
                         - cookie

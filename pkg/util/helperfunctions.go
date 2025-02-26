@@ -187,6 +187,7 @@ func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
 }
 
+<<<<<<< HEAD
 func GetHostname(uri string) (*string, error) {
 	parsedURL, err := url.Parse(uri)
 	if err != nil {
@@ -213,4 +214,12 @@ func GenerateHMACSecret(size int) (*string, error) {
 	}
 	base64EncodedSecret := base64.StdEncoding.EncodeToString(secret)
 	return &base64EncodedSecret, nil
+}
+
+func ValidateUri(uri string) error {
+	if parsedURL, err := url.ParseRequestURI(uri); err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
+		return nil
+	} else {
+		return fmt.Errorf("invalid URI: %s", uri)
+	}
 }

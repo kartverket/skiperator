@@ -16,11 +16,11 @@ const IDPortenName DigdiratorName = "idporten"
 // +kubebuilder:object:generate=true
 type IDPorten struct {
 	// The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-	// Meant to be a human-readable name for separating clients in the portal
+	// Meant to be a human-readable name for separating clients in the portal.
 	ClientName *string `json:"clientName,omitempty"`
 
 	// Whether to enable provisioning of an ID-porten client.
-	// If enabled, an ID-porten client be provisioned.
+	// If enabled, an ID-porten client will be provisioned.
 	Enabled bool `json:"enabled"`
 
 	// AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
@@ -87,7 +87,7 @@ type IDPorten struct {
 	// AutoLogin sets up [OAuth2 authorization code flow](https://datatracker.ietf.org/doc/html/rfc6749) with ID-porten as identity provider.
 	AutoLogin *istiotypes.AutoLogin `json:"autoLogin,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWT's should be validated.
+	// RequestAuthentication specifies how incoming JWTs should be validated.
 	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
@@ -103,12 +103,15 @@ func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 	return i.Client.GetOwnerReferences()
 }
 
-func (i *IDPorten) RequestAuthEnabled() bool {
+func (i *IDPorten) IsRequestAuthEnabled() bool {
 	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
-func (i *IDPorten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
-	return *i.RequestAuthentication
+func (i *IDPorten) GetRequestAuthSpec() *istiotypes.RequestAuthentication {
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication
+	}
+	return nil
 }
 
 func (i *IDPorten) GetDigdiratorName() DigdiratorName {
@@ -116,7 +119,10 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *IDPorten) GetProvidedRequestAuthSecretName() *string {
-	return i.RequestAuthentication.SecretName
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication.SecretName
+	}
+	return nil
 }
 
 func (i *IDPorten) GetRequestAuthPaths() []string {
@@ -202,4 +208,11 @@ func (i *IDPorten) GetAutoLoginIgnoredPaths() []string {
 
 func (i *IDPorten) GetClientSecretKey() string {
 	return "IDPORTEN_CLIENT_SECRET" //TODO: This should be read by digdirator in the same way as for client id
+}
+
+func (i *IDPorten) GetTokenLocation() string {
+	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
+		return *i.RequestAuthentication.TokenLocation
+	}
+	return "cookie"
 }

@@ -17,6 +17,7 @@ spec:
       - "openid"
     requestAuthentication:
       enabled: true
+      tokenLocation: "header"
       ignorePaths:
         - "/loginIdPorten"
         - "/secureMaskinPorten"

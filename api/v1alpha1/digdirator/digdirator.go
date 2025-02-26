@@ -7,7 +7,7 @@ import (
 
 type DigdiratorName string
 
-type DigdiratorURIs struct {
+type DigdiratorInfo struct {
 	Name             DigdiratorName
 	HostName         string
 	IssuerURI        string
@@ -37,8 +37,8 @@ type LoginProvider interface {
 }
 
 type DigdiratorProvider interface {
-	RequestAuthEnabled() bool
-	GetRequestAuthSpec() istiotypes.RequestAuthentication
+	IsRequestAuthEnabled() bool
+	GetRequestAuthSpec() *istiotypes.RequestAuthentication
 	GetDigdiratorName() DigdiratorName
 	GetProvidedRequestAuthSecretName() *string
 	GetRequestAuthPaths() []string
@@ -47,4 +47,5 @@ type DigdiratorProvider interface {
 	GetJwksKey() string
 	GetClientIDKey() string
 	GetTokenEndpointKey() string
+	GetTokenLocation() string
 }

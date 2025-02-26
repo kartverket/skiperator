@@ -23,7 +23,7 @@ type Maskinporten struct {
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWT's should be validated.
+	// RequestAuthentication specifies how incoming JWTs should be validated.
 	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
@@ -39,12 +39,15 @@ func (m *MaskinportenClient) GetSecretName() string {
 	return m.Client.Spec.SecretName
 }
 
-func (i *Maskinporten) RequestAuthEnabled() bool {
+func (i *Maskinporten) IsRequestAuthEnabled() bool {
 	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
 }
 
-func (i *Maskinporten) GetRequestAuthSpec() istiotypes.RequestAuthentication {
-	return *i.RequestAuthentication
+func (i *Maskinporten) GetRequestAuthSpec() *istiotypes.RequestAuthentication {
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication
+	}
+	return nil
 }
 
 func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
@@ -52,7 +55,10 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *Maskinporten) GetProvidedRequestAuthSecretName() *string {
-	return i.RequestAuthentication.SecretName
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication.SecretName
+	}
+	return nil
 }
 
 func (i *Maskinporten) GetRequestAuthPaths() []string {
@@ -89,4 +95,11 @@ func (i *Maskinporten) GetClientIDKey() string {
 
 func (i *Maskinporten) GetTokenEndpointKey() string {
 	return secrets.MaskinportenTokenEndpointKey
+}
+
+func (i *Maskinporten) GetTokenLocation() string {
+	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
+		return *i.RequestAuthentication.TokenLocation
+	}
+	return "header"
 }

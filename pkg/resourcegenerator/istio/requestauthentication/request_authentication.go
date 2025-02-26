@@ -62,7 +62,7 @@ func getJWTRule(authConfig auth.RequestAuthConfig) *v1beta1.JWTRule {
 	var jwtRule = v1beta1.JWTRule{
 		ForwardOriginalToken: authConfig.Spec.ForwardJwt,
 	}
-	if authConfig.Spec.TokenLocation == "cookie" {
+	if authConfig.TokenLocation == "cookie" {
 		jwtRule.FromCookies = []string{"BearerToken"}
 	}
 	if authConfig.Spec.OutputClaimToHeaders != nil {
@@ -76,9 +76,9 @@ func getJWTRule(authConfig auth.RequestAuthConfig) *v1beta1.JWTRule {
 		jwtRule.OutputClaimToHeaders = claimsToHeaders
 	}
 
-	jwtRule.Issuer = authConfig.ProviderURIs.IssuerURI
-	jwtRule.JwksUri = authConfig.ProviderURIs.JwksURI
-	jwtRule.Audiences = []string{authConfig.ProviderURIs.ClientID}
+	jwtRule.Issuer = authConfig.ProviderInfo.IssuerURI
+	jwtRule.JwksUri = authConfig.ProviderInfo.JwksURI
+	jwtRule.Audiences = []string{authConfig.ProviderInfo.ClientID}
 
 	return &jwtRule
 }

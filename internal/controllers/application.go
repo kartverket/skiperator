@@ -3,45 +3,41 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
-	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
-	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
-	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/envoyfilter"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/secret"
-	v1alpha4 "istio.io/client-go/pkg/apis/networking/v1alpha3"
-	"regexp"
-	"strings"
-
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/internal/controllers/common"
+	authconfig "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/envoyfilter"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/pdb"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/secret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
 	"github.com/kartverket/skiperator/pkg/util"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"golang.org/x/exp/maps"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
+	v1alpha4 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -53,6 +49,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"maps"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,6 +58,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -159,17 +158,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	requestAuthConfigs, err := r.getRequestAuthConfigsForApplication(ctx, application)
-	if err != nil {
-		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
-	}
-
-	autoLoginConfig, err := r.getAutoLoginConfigForApplication(ctx, application)
-	fmt.Println(autoLoginConfig)
-	if err != nil {
-		rLog.Error(err, "unable to resolve auto login config for application", "application", application.Name)
-	}
-
 	// Copy application so we can check for diffs. Should be none on existing applications.
 	tmpApplication := application.DeepCopy()
 
@@ -213,6 +201,16 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
 
+	requestAuthConfigs, err := r.getRequestAuthConfigsForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
+	}
+
+	autoLoginConfig, err := r.getAutoLoginConfigForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "unable to resolve auto login config for application", "application", application.Name)
+	}
+
 	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, requestAuthConfigs, autoLoginConfig)
 
 	//TODO status and conditions in application object
@@ -230,9 +228,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		networkpolicy.Generate,
 		envoyfilter.Generate,
 		secret.Generate,
-		denyAuthPolicy.Generate,
-		allowAuthPolicy.Generate,
-		jwtAuthPolicy.Generate,
+		default_deny.Generate,
+		allow.Generate,
+		jwt_auth.Generate,
 		requestauthentication.Generate,
 		pdb.Generate,
 		prometheus.Generate,
@@ -400,7 +398,7 @@ func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Re
 	requests := make([]reconcile.Request, 0)
 
 	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
-	if strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
+	if secret.Labels != nil && strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: secret.Namespace,
@@ -461,7 +459,7 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	return nil
 }
 
-func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AutoLoginConfig, error) {
+func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*authconfig.AutoLoginConfig, error) {
 	idportenSpec := application.Spec.IDPorten
 	if idportenSpec.AutoLoginEnabled() {
 		authScopes, err := idportenSpec.GetAuthScopes()
@@ -480,11 +478,11 @@ func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Con
 		if err != nil {
 			return nil, fmt.Errorf("error getting redirect path for %s: %w", idportenSpec.GetDigdiratorName(), err)
 		}
-		return &jwtAuth.AutoLoginConfig{
+		return &authconfig.AutoLoginConfig{
 			Spec:        application.Spec.IDPorten.GetAutoLoginSpec(),
 			IsEnabled:   idportenSpec.AutoLoginEnabled(),
 			IgnorePaths: application.Spec.IDPorten.GetAutoLoginIgnoredPaths(),
-			ProviderURIs: digdirator.DigdiratorURIs{
+			ProviderURIs: digdirator.DigdiratorInfo{
 				HostName:         *hostname,
 				TokenURI:         string(authConfigSecret.Data[idportenSpec.GetTokenEndpointKey()]),
 				ClientID:         string(authConfigSecret.Data[idportenSpec.GetClientIDKey()]),
@@ -499,15 +497,15 @@ func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Con
 	return nil, nil
 }
 
-func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.RequestAuthConfigs, error) {
-	var requestAuthConfigs jwtAuth.RequestAuthConfigs
+func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*authconfig.RequestAuthConfig, error) {
+	var requestAuthConfigs authconfig.RequestAuthConfigs
 
 	providers := []digdirator.DigdiratorProvider{
 		application.Spec.IDPorten,
 		application.Spec.Maskinporten,
 	}
 	for _, provider := range providers {
-		if provider.RequestAuthEnabled() {
+		if provider.IsRequestAuthEnabled() {
 			authConfig, err := r.getRequestAuthConfig(ctx, *application, provider)
 			if err != nil {
 				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
@@ -523,20 +521,40 @@ func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.
 	}
 }
 
-func (r *ApplicationReconciler) getRequestAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.RequestAuthConfig, error) {
+func (r *ApplicationReconciler) getRequestAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*authconfig.RequestAuthConfig, error) {
 	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider, digdiratorProvider.GetProvidedRequestAuthSecretName())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
 	}
-	return &jwtAuth.RequestAuthConfig{
-		Spec:        digdiratorProvider.GetRequestAuthSpec(),
-		Paths:       digdiratorProvider.GetRequestAuthPaths(),
-		IgnorePaths: digdiratorProvider.GetRequestAuthIgnoredPaths(),
-		ProviderURIs: digdirator.DigdiratorURIs{
+	requestAuthSpec := digdiratorProvider.GetRequestAuthSpec()
+	if requestAuthSpec == nil {
+		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", digdiratorProvider.GetDigdiratorName())
+	}
+
+	issuerUri := string(secret.Data[digdiratorProvider.GetIssuerKey()])
+	if err := util.ValidateUri(issuerUri); err != nil {
+		return nil, err
+	}
+	jwksUri := string(secret.Data[digdiratorProvider.GetJwksKey()])
+	if err := util.ValidateUri(jwksUri); err != nil {
+		return nil, err
+	}
+
+	clientId := string(secret.Data[digdiratorProvider.GetClientIDKey()])
+	if clientId == "" {
+		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", digdiratorProvider.GetDigdiratorName())
+	}
+
+	return &authconfig.RequestAuthConfig{
+		Spec:          *requestAuthSpec,
+		Paths:         digdiratorProvider.GetRequestAuthPaths(),
+		IgnorePaths:   digdiratorProvider.GetRequestAuthIgnoredPaths(),
+		TokenLocation: digdiratorProvider.GetTokenLocation(),
+		ProviderInfo: digdirator.DigdiratorInfo{
 			Name:      digdiratorProvider.GetDigdiratorName(),
-			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
-			JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),
-			ClientID:  string(secret.Data[digdiratorProvider.GetClientIDKey()]),
+			IssuerURI: issuerUri,
+			JwksURI:   jwksUri,
+			ClientID:  clientId,
 		},
 	}, nil
 }
