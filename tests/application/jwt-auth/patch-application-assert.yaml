@@ -1,26 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-list-allow-paths
-spec:
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /actuator/info
-              - /actuator/shutdown
-  selector:
-    matchLabels:
-      app: allow-list
----
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: allow-list-default-deny
+  name: application-two-default-deny
 spec:
   action: DENY
   rules:
@@ -34,14 +15,13 @@ spec:
               - /actuator*
   selector:
     matchLabels:
-      app: allow-list
+      app: application-two
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-all-default-deny
+  name: application-two-allow-paths
 spec:
-  action: DENY
   rules:
     - from:
         - source:
@@ -50,7 +30,7 @@ spec:
       to:
         - operation:
             paths:
-              - /actuator*
+              - /publicEndpoint
   selector:
     matchLabels:
-      app: allow-all
+      app: application-two

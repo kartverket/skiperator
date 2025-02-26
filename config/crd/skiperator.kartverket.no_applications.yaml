@@ -556,7 +556,7 @@ spec:
                   clientName:
                     description: |-
                       The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-                      Meant to be a human-readable name for separating clients in the portal
+                      Meant to be a human-readable name for separating clients in the portal.
                     type: string
                   clientURI:
                     description: ClientURI is the URL shown to the user at ID-porten
@@ -566,7 +566,7 @@ spec:
                   enabled:
                     description: |-
                       Whether to enable provisioning of an ID-porten client.
-                      If enabled, an ID-porten client be provisioned.
+                      If enabled, an ID-porten client will be provisioned.
                     type: boolean
                   frontchannelLogoutPath:
                     description: |-
@@ -605,6 +605,93 @@ spec:
                       back to after a successful authorization request.
                     pattern: ^\/.*$
                     type: string
+                  requestAuthentication:
+                    description: RequestAuthentication specifies how incoming JWTs
+                      should be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JWT validation.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardJwt:
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
+                        type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      outputClaimToHeaders:
+                        description: "This field specifies a list of operations to
+                          copy the claim to HTTP headers on a successfully verified
+                          token.\nThe header specified in each operation in the list
+                          must be unique. Nested claims of type string/int/bool is
+                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
+                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
+                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
+                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
+                              type: string
+                            header:
+                              description: The name of the HTTP header for which the
+                                specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        maxItems: 10
+                        type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      secretName:
+                        description: |-
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   scopes:
                     description: |-
                       Register different oauth2 Scopes on your client.
@@ -765,6 +852,93 @@ spec:
                     description: If enabled, provisions and configures a Maskinporten
                       client with consumed scopes and/or Exposed scopes with DigDir.
                     type: boolean
+                  requestAuthentication:
+                    description: RequestAuthentication specifies how incoming JWTs
+                      should be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JWT validation.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardJwt:
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
+                        type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      outputClaimToHeaders:
+                        description: "This field specifies a list of operations to
+                          copy the claim to HTTP headers on a successfully verified
+                          token.\nThe header specified in each operation in the list
+                          must be unique. Nested claims of type string/int/bool is
+                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
+                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
+                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
+                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
+                              type: string
+                            header:
+                              description: The name of the HTTP header for which the
+                                specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        maxItems: 10
+                        type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      secretName:
+                        description: |-
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                          - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                          - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   scopes:
                     description: Schema to configure Maskinporten clients with consumed
                       scopes and/or exposed scopes.

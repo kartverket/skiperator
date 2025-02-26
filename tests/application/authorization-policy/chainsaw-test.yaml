@@ -17,5 +17,5 @@ spec:
             ref:
               apiVersion: skiperator.kartverket.no/v1alpha1
               kind: Application
-              name: authorization-policy
+              name: application
 

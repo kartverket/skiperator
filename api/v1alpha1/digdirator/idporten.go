@@ -1,6 +1,13 @@
 package digdirator
 
-import nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+import (
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/nais/digdirator/pkg/secrets"
+	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const IDPortenName DigdiratorName = "idporten"
 
 // Based off NAIS' IDPorten specification as seen here:
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
@@ -8,11 +15,11 @@ import nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 // +kubebuilder:object:generate=true
 type IDPorten struct {
 	// The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-	// Meant to be a human-readable name for separating clients in the portal
+	// Meant to be a human-readable name for separating clients in the portal.
 	ClientName *string `json:"clientName,omitempty"`
 
 	// Whether to enable provisioning of an ID-porten client.
-	// If enabled, an ID-porten client be provisioned.
+	// If enabled, an ID-porten client will be provisioned.
 	Enabled bool `json:"enabled"`
 
 	// AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
@@ -75,4 +82,80 @@ type IDPorten struct {
 	// +kubebuilder:validation:Minimum=3600
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
+
+	// RequestAuthentication specifies how incoming JWTs should be validated.
+	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+}
+
+type IDPortenClient struct {
+	Client nais_io_v1.IDPortenClient
+}
+
+func (i *IDPortenClient) GetSecretName() string {
+	return i.Client.Spec.SecretName
+}
+
+func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
+	return i.Client.GetOwnerReferences()
+}
+
+func (i *IDPorten) IsRequestAuthEnabled() bool {
+	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
+}
+
+func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuthentication {
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication
+	}
+	return nil
+}
+
+func (i *IDPorten) GetDigdiratorName() DigdiratorName {
+	return IDPortenName
+}
+
+func (i *IDPorten) GetProvidedSecretName() *string {
+	if i != nil && i.RequestAuthentication != nil {
+		return i.RequestAuthentication.SecretName
+	}
+	return nil
+}
+
+func (i *IDPorten) GetPaths() []string {
+	var paths []string
+	if i.IsRequestAuthEnabled() {
+		if i.RequestAuthentication.Paths != nil {
+			paths = append(paths, *i.RequestAuthentication.Paths...)
+		}
+	}
+	return paths
+}
+
+func (i *IDPorten) GetIgnoredPaths() []string {
+	var ignoredPaths []string
+	if i.IsRequestAuthEnabled() {
+		if i.RequestAuthentication.IgnorePaths != nil {
+			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
+		}
+	}
+	return ignoredPaths
+}
+
+func (i *IDPorten) GetIssuerKey() string {
+	return secrets.IDPortenIssuerKey
+}
+
+func (i *IDPorten) GetJwksKey() string {
+	return secrets.IDPortenJwksUriKey
+}
+
+func (i *IDPorten) GetClientIDKey() string {
+	return secrets.IDPortenClientIDKey
+}
+
+func (i *IDPorten) GetTokenLocation() string {
+	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
+		return *i.RequestAuthentication.TokenLocation
+	}
+	return "cookie"
 }

@@ -19,7 +19,7 @@ spec:
 status:
   conditions: []
   subresources:
-    AuthorizationPolicy[badport-deny]:
+    AuthorizationPolicy[badport-default-deny]:
       message: AuthorizationPolicy has finished synchronizing
       status: Synced
     Certificate[chainsaw-subresource-labels-badport-ingress-214f400d5abb9c1c]:

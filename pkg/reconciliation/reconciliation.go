@@ -3,6 +3,7 @@ package reconciliation
 import (
 	"context"
 	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
@@ -28,6 +29,7 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
+	GetAuthConfigs() *auth.AuthConfigs
 }
 
 type baseReconciliation struct {
@@ -38,6 +40,7 @@ type baseReconciliation struct {
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
 	skipObject        v1alpha1.SKIPObject
+	authConfigs       *auth.AuthConfigs
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -70,4 +73,8 @@ func (b *baseReconciliation) GetRestConfig() *rest.Config {
 
 func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
+}
+
+func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
+	return b.authConfigs
 }

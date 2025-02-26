@@ -1,0 +1,31 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: jwt-auth
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application-one-provider.yaml
+        - assert:
+            file: application-one-provider-assert.yaml
+    - try:
+        - create:
+            file: application-one-provider-with-secret.yaml
+        - assert:
+            file: application-one-provider-with-secret-assert.yaml
+    - try:
+        - create:
+            file: application-two-providers.yaml
+        - assert:
+            file: application-two-providers-assert.yaml
+    - try:
+        - update:
+            file: patch-application.yaml
+        - assert:
+            file: patch-application-assert.yaml
+        - error:
+            file: patch-application-errors.yaml

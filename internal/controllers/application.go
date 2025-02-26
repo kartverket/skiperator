@@ -3,11 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"regexp"
-
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/internal/controllers/common"
+	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
@@ -15,9 +15,12 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
@@ -44,6 +47,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,6 +55,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -95,10 +100,12 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&policyv1.PodDisruptionBudget{}).
 		Owns(&networkingv1.NetworkPolicy{}).
+		Owns(&securityv1.RequestAuthentication{}).
 		Owns(&securityv1.AuthorizationPolicy{}).
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
@@ -190,7 +197,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
+	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
+	}
+
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -205,7 +217,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		peerauthentication.Generate,
 		serviceaccount.Generate,
 		networkpolicy.Generate,
-		authorizationpolicy.Generate,
+		default_deny.Generate,
+		allow.Generate,
+		jwt_auth.Generate,
+		requestauthentication.Generate,
 		pdb.Generate,
 		prometheus.Generate,
 		idporten.Generate,
@@ -274,7 +289,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil)
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil)
 	return r.GetProcessor().Process(reconciliation)
 }
 
@@ -363,6 +378,27 @@ func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) b
 	return true
 }
 
+func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {
+	secret, ok := obj.(*corev1.Secret)
+	if !ok {
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0)
+
+	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
+	if secret.Labels != nil && strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: secret.Namespace,
+				Name:      secret.Labels["app"],
+			},
+		})
+	}
+
+	return requests
+}
+
 func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconcile.Request {
 	cert, ok := obj.(*certmanagerv1.Certificate)
 	if !ok {
@@ -410,4 +446,124 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 		}
 	}
 	return nil
+}
+
+func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
+	var authConfigs jwtAuth.AuthConfigs
+
+	providers := []digdirator.DigdiratorProvider{
+		application.Spec.IDPorten,
+		application.Spec.Maskinporten,
+	}
+	for _, provider := range providers {
+		if provider.IsRequestAuthEnabled() {
+			authConfig, err := r.getAuthConfig(ctx, *application, provider)
+			if err != nil {
+				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
+			}
+			authConfigs = append(authConfigs, *authConfig)
+		}
+	}
+	if len(authConfigs) > 0 {
+		authConfigs.IgnorePathsFromOtherAuthConfigs()
+		return &authConfigs, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
+	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
+	}
+	requestAuthSpec := digdiratorProvider.GetAuthSpec()
+	if requestAuthSpec == nil {
+		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", digdiratorProvider.GetDigdiratorName())
+	}
+
+	issuerUri := string(secret.Data[digdiratorProvider.GetIssuerKey()])
+	if err := util.ValidateUri(issuerUri); err != nil {
+		return nil, err
+	}
+	jwksUri := string(secret.Data[digdiratorProvider.GetJwksKey()])
+	if err := util.ValidateUri(jwksUri); err != nil {
+		return nil, err
+	}
+
+	clientId := string(secret.Data[digdiratorProvider.GetClientIDKey()])
+	if clientId == "" {
+		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", digdiratorProvider.GetDigdiratorName())
+	}
+
+	return &jwtAuth.AuthConfig{
+		Spec:          *requestAuthSpec,
+		Paths:         digdiratorProvider.GetPaths(),
+		IgnorePaths:   digdiratorProvider.GetIgnoredPaths(),
+		TokenLocation: digdiratorProvider.GetTokenLocation(),
+		ProviderInfo: digdirator.DigdiratorInfo{
+			Name:      digdiratorProvider.GetDigdiratorName(),
+			IssuerURI: issuerUri,
+			JwksURI:   jwksUri,
+			ClientID:  clientId,
+		},
+	}, nil
+}
+
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
+	var secretName *string
+	var err error
+
+	if digdiratorProvider.GetProvidedSecretName() != nil {
+		secretName = digdiratorProvider.GetProvidedSecretName()
+	} else {
+		secretName, err = r.getDigdiratorSecretName(ctx, digdiratorProvider, application)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	namespacedName := types.NamespacedName{
+		Name:      *secretName,
+		Namespace: application.Namespace,
+	}
+
+	secret, err := util.GetSecret(r.GetClient(), ctx, namespacedName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &secret, nil
+}
+
+func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, digdiratorProvider digdirator.DigdiratorProvider, application skiperatorv1alpha1.Application) (*string, error) {
+	var digdiratorClient digdirator.DigdiratorClient
+	var err error
+
+	namespacedName := types.NamespacedName{
+		Name:      application.Name,
+		Namespace: application.Namespace,
+	}
+
+	if digdiratorProvider.GetDigdiratorName() == digdirator.MaskinPortenName {
+		digdiratorClient, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		digdiratorClient, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	ownershipRefs := digdiratorClient.GetOwnerReferences()
+	secretName := digdiratorClient.GetSecretName()
+
+	for _, ownershipRef := range ownershipRefs {
+		if ownershipRef.UID == application.UID {
+			return &secretName, nil
+		}
+	}
+
+	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
 }
