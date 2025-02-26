@@ -11,6 +11,7 @@ type RequestAuthentication struct {
 	// The name of the Kubernetes Secret containing OAuth2 credentials.
 	//
 	// If omitted, the associated client registration in the application manifest is used for JWT validation.
+	// +kubebuilder:validation:Optional
 	SecretName *string `json:"secretName,omitempty"`
 
 	// If set to `true`, the original token will be kept for the upstream request. Defaults to `true`.
@@ -26,6 +27,7 @@ type RequestAuthentication struct {
 	// - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
 	// - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
 	// +kubebuilder:validation:Enum=header;cookie
+	// +kubebuilder:validation:Optional
 	TokenLocation *string `json:"tokenLocation,omitempty"`
 
 	// This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
@@ -41,6 +43,7 @@ type RequestAuthentication struct {
 	//	  claim: nested.key.group
 	//
 	// ```
+	// +kubebuilder:validation:Optional
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
 
 	// Paths specifies paths that require an authenticated JWT.
@@ -50,6 +53,7 @@ type RequestAuthentication struct {
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:Optional
 	Paths *[]string `json:"paths,omitempty"`
 
 	// IgnorePaths specifies paths that do not require an authenticated JWT.
@@ -59,6 +63,7 @@ type RequestAuthentication struct {
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
+	// +kubebuilder:validation:Optional
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
 }
 
