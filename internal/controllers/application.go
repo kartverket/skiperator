@@ -15,9 +15,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
-	allowAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
-	denyAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
-	jwtAuthPolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/allow"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/default_deny"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy/jwt_auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
@@ -217,9 +217,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		peerauthentication.Generate,
 		serviceaccount.Generate,
 		networkpolicy.Generate,
-		denyAuthPolicy.Generate,
-		allowAuthPolicy.Generate,
-		jwtAuthPolicy.Generate,
+		default_deny.Generate,
+		allow.Generate,
+		jwt_auth.Generate,
 		requestauthentication.Generate,
 		pdb.Generate,
 		prometheus.Generate,
