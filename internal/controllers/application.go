@@ -497,7 +497,7 @@ func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Con
 	return nil, nil
 }
 
-func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*authconfig.RequestAuthConfig, error) {
+func (r *ApplicationReconciler) getRequestAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*authconfig.RequestAuthConfigs, error) {
 	var requestAuthConfigs authconfig.RequestAuthConfigs
 
 	providers := []digdirator.DigdiratorProvider{
