@@ -155,11 +155,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
-	if err != nil {
-		rLog.Error(err, "unable to resolve auth config for application", "application", application.Name)
-	}
-
 	// Copy application so we can check for diffs. Should be none on existing applications.
 	tmpApplication := application.DeepCopy()
 
@@ -202,6 +197,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err != nil {
 		rLog.Error(err, "cant find identity config map")
 	} //TODO Error state?
+
+	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
+	if err != nil {
+		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
+	}
 
 	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
 
@@ -388,7 +388,7 @@ func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Re
 	requests := make([]reconcile.Request, 0)
 
 	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
-	if strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
+	if secret.Labels != nil && strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: secret.Namespace,
@@ -482,6 +482,21 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	if requestAuthSpec == nil {
 		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", digdiratorProvider.GetDigdiratorName())
 	}
+
+	issuerUri := string(secret.Data[digdiratorProvider.GetIssuerKey()])
+	if err := util.ValidateUri(issuerUri); err != nil {
+		return nil, err
+	}
+	jwksUri := string(secret.Data[digdiratorProvider.GetJwksKey()])
+	if err := util.ValidateUri(jwksUri); err != nil {
+		return nil, err
+	}
+
+	clientId := string(secret.Data[digdiratorProvider.GetClientIDKey()])
+	if clientId == "" {
+		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", digdiratorProvider.GetDigdiratorName())
+	}
+
 	return &jwtAuth.AuthConfig{
 		Spec:          *requestAuthSpec,
 		Paths:         digdiratorProvider.GetPaths(),
@@ -489,9 +504,9 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		TokenLocation: digdiratorProvider.GetTokenLocation(),
 		ProviderInfo: digdirator.DigdiratorInfo{
 			Name:      digdiratorProvider.GetDigdiratorName(),
-			IssuerURI: string(secret.Data[digdiratorProvider.GetIssuerKey()]),
-			JwksURI:   string(secret.Data[digdiratorProvider.GetJwksKey()]),
-			ClientID:  string(secret.Data[digdiratorProvider.GetClientIDKey()]),
+			IssuerURI: issuerUri,
+			JwksURI:   jwksUri,
+			ClientID:  clientId,
 		},
 	}, nil
 }

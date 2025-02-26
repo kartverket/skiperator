@@ -44,12 +44,13 @@ type RequestAuthentication struct {
 	//
 	// ```
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=10
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
 
 	// Paths specifies paths that require an authenticated JWT.
 	//
-	// The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-	// The paths can also contain the wilcard operator '*', but only at the end.
+	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+	// The paths can also contain the wildcard operator '*', but only at the end.
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
@@ -58,8 +59,8 @@ type RequestAuthentication struct {
 
 	// IgnorePaths specifies paths that do not require an authenticated JWT.
 	//
-	// The specified paths must be a valida URI path. It has to start with '/' and cannot end with '/'.
-	// The paths can also contain the wilcard operator '*', but only at the end.
+	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+	// The paths can also contain the wildcard operator '*', but only at the end.
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
 	// +kubebuilder:validation:MaxItems=50
@@ -69,8 +70,12 @@ type RequestAuthentication struct {
 
 type ClaimToHeader struct {
 	// The name of the HTTP header for which the specified claim will be copied to.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
+	// +kubebuilder:validation:MaxLength=64
 	Header string `json:"header"`
 
 	// The claim to be copied.
+	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-._]+$"
+	// +kubebuilder:validation:MaxLength=128
 	Claim string `json:"claim"`
 }

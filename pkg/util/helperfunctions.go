@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
+	"net/url"
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
@@ -182,4 +183,12 @@ func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
 
 func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
+}
+
+func ValidateUri(uri string) error {
+	if parsedURL, err := url.ParseRequestURI(uri); err == nil && parsedURL.Scheme != "" && parsedURL.Host != "" {
+		return nil
+	} else {
+		return fmt.Errorf("invalid URI: %s", uri)
+	}
 }

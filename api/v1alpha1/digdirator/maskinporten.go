@@ -23,7 +23,7 @@ type Maskinporten struct {
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWT's should be validated.
+	// RequestAuthentication specifies how incoming JWTs should be validated.
 	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 

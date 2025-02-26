@@ -15,11 +15,11 @@ const IDPortenName DigdiratorName = "idporten"
 // +kubebuilder:object:generate=true
 type IDPorten struct {
 	// The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-	// Meant to be a human-readable name for separating clients in the portal
+	// Meant to be a human-readable name for separating clients in the portal.
 	ClientName *string `json:"clientName,omitempty"`
 
 	// Whether to enable provisioning of an ID-porten client.
-	// If enabled, an ID-porten client be provisioned.
+	// If enabled, an ID-porten client will be provisioned.
 	Enabled bool `json:"enabled"`
 
 	// AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
@@ -83,7 +83,7 @@ type IDPorten struct {
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWT's should be validated.
+	// RequestAuthentication specifies how incoming JWTs should be validated.
 	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
 }
 
