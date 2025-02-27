@@ -72,9 +72,7 @@ install-istio:
 	@echo "Downloading Istio..."
 	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
 	@echo "Installing Istio on Kubernetes cluster..."
-	@./istio-$(ISTIO_VERSION)/bin/istioctl install -y --context $(SKIPERATOR_CONTEXT) --set meshConfig.accessLogFile=/dev/stdout --set profile=minimal
-	@echo "Installing istio-gateways"
-	@helm --kube-context $(SKIPERATOR_CONTEXT) install --values values.yaml istio-ingressgateway istio/gateway -n istio-gateways
+	@./istio-$(ISTIO_VERSION)/bin/istioctl install -y --context $(SKIPERATOR_CONTEXT)
 	@echo "Istio installation complete."
 
 .PHONY: install-cert-manager

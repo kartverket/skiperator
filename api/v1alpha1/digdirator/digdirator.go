@@ -24,18 +24,6 @@ type DigdiratorClient interface {
 	GetSecretName() string
 }
 
-type LoginProvider interface {
-	AutoLoginEnabled() bool
-	GetAutoLoginSpec() istiotypes.AutoLogin
-	GetProvidedAutoLoginSecretName() *string
-	GetAuthorizationEndpoint() string
-	GetRedirectPathKey() string
-	GetSignoutPath() string
-	GetAuthScopes() []string
-	GetAutoLoginIgnoredPaths() []string
-	GetClientSecretKey() string
-}
-
 type DigdiratorProvider interface {
 	IsRequestAuthEnabled() bool
 	GetRequestAuthSpec() *istiotypes.RequestAuthentication
