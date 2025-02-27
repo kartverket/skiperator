@@ -1,5 +1,7 @@
 package config_patch
 
+import "strings"
+
 func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint string, redirectPath string, signoutPath string, ignorePaths []string, clientId string, authScopes []string) map[string]interface{} {
 	passThroughMatchers := []interface{}{
 		map[string]interface{}{
@@ -12,12 +14,7 @@ func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint
 
 	// Add ignore paths to pass-through matchers
 	for _, ignorePath := range ignorePaths {
-		passThroughMatchers = append(passThroughMatchers, map[string]interface{}{
-			"name": ":path",
-			"string_match": map[string]interface{}{
-				"prefix": ignorePath,
-			},
-		})
+		passThroughMatchers = addPassThroughMatcher(passThroughMatchers, ignorePath)
 	}
 
 	// Convert authScopes []string into []interface{}
@@ -54,7 +51,7 @@ func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint
 				"credentials": map[string]interface{}{
 					"client_id": clientId,
 					"token_secret": map[string]interface{}{
-						"name": "envoy-client",
+						"name": "token",
 						"sds_config": map[string]interface{}{
 							"path_config_source": map[string]interface{}{
 								"path": "/etc/istio/config/token-secret.yaml",
@@ -80,4 +77,17 @@ func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint
 			},
 		},
 	}
+}
+
+func addPassThroughMatcher(passThroughMatchers []interface{}, ignorePath string) []interface{} {
+	stringMatch := map[string]interface{}{}
+	if strings.HasSuffix(ignorePath, "*") {
+		stringMatch["prefix"] = strings.TrimSuffix(ignorePath, "*")
+	} else {
+		stringMatch["exact"] = ignorePath
+	}
+	return append(passThroughMatchers, map[string]interface{}{
+		"name":         ":path",
+		"string_match": stringMatch,
+	})
 }

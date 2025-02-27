@@ -18,7 +18,7 @@ type AutoLogin struct {
 	//
 	// The specified paths must start with '/'.
 	// +listType=set
-	// +kubebuilder:validation:Items.Pattern="^/"
+	// +kubebuilder:validation:Items.Pattern=`^\/([^\/\*][a-zA-Z0-9\-._~%!$&'()+,;=:@/]*[^\/\*])?(\/\*)?$`
 	// +kubebuilder:validation:MaxItems=50
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
 

@@ -80,7 +80,7 @@ func Generate(r reconciliation.Reconciliation) error {
 									Filter: &v1alpha3.EnvoyFilter_ListenerMatch_FilterMatch{
 										Name: "envoy.filters.network.http_connection_manager",
 										SubFilter: &v1alpha3.EnvoyFilter_ListenerMatch_SubFilterMatch{
-											Name: "envoy.filters.jwt_authn",
+											Name: "envoy.filters.http.jwt_authn",
 										},
 									},
 								},

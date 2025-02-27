@@ -52,7 +52,7 @@ type RequestAuthentication struct {
 	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
 	// The paths can also contain the wildcard operator '*', but only at the end.
 	// +listType=set
-	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
+	// +kubebuilder:validation:Items.Pattern=`^\/([^\/\*][a-zA-Z0-9\-._~%!$&'()+,;=:@/]*[^\/\*])?(\/\*)?$`
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:Optional
 	Paths *[]string `json:"paths,omitempty"`
@@ -62,7 +62,7 @@ type RequestAuthentication struct {
 	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
 	// The paths can also contain the wildcard operator '*', but only at the end.
 	// +listType=set
-	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
+	// +kubebuilder:validation:Items.Pattern=`^\/([^\/\*][a-zA-Z0-9\-._~%!$&'()+,;=:@/]*[^\/\*])?(\/\*)?$`
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:Optional
 	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
