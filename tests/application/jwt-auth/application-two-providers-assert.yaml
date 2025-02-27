@@ -50,8 +50,8 @@ spec:
       to:
         - operation:
             paths:
-              - /publicEndpoint
               - /loginIdPorten
+              - /publicEndpoint
   selector:
     matchLabels:
       app: application-two
