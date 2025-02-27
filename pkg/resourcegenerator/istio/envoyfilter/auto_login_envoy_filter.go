@@ -28,19 +28,19 @@ func Generate(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	oAuthClusterConfigPatchValueAsPbStruct, err := structpb.NewStruct(config_patch.GetOAuthClusterConfigPatchValue(autoLoginConfig.ProviderURIs.HostName))
+	oAuthClusterConfigPatchValueAsPbStruct, err := structpb.NewStruct(config_patch.GetOAuthClusterConfigPatchValue(autoLoginConfig.ProviderInfo.HostName))
 	if err != nil {
 		ctxLog.Error(err, "failed to convert OAuth cluster config patch to protobuf")
 		return err
 	}
 	oAuthSidecarConfigPatchValueAsPbStruct, err := structpb.NewStruct(
 		config_patch.GetOAuthSidecarConfigPatchValue(
-			autoLoginConfig.ProviderURIs.TokenURI,
-			autoLoginConfig.ProviderURIs.AuthorizationURI,
-			autoLoginConfig.ProviderURIs.RedirectPath,
-			autoLoginConfig.ProviderURIs.SignoutPath,
+			autoLoginConfig.ProviderInfo.TokenURI,
+			autoLoginConfig.ProviderInfo.AuthorizationURI,
+			autoLoginConfig.ProviderInfo.RedirectPath,
+			autoLoginConfig.ProviderInfo.SignoutPath,
 			autoLoginConfig.IgnorePaths,
-			autoLoginConfig.ProviderURIs.ClientID,
+			autoLoginConfig.ProviderInfo.ClientID,
 			autoLoginConfig.AuthScopes,
 		),
 	)

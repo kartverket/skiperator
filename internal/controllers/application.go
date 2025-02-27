@@ -482,7 +482,7 @@ func (r *ApplicationReconciler) getAutoLoginConfigForApplication(ctx context.Con
 			Spec:        application.Spec.IDPorten.GetAutoLoginSpec(),
 			IsEnabled:   idportenSpec.AutoLoginEnabled(),
 			IgnorePaths: application.Spec.IDPorten.GetAutoLoginIgnoredPaths(),
-			ProviderURIs: digdirator.DigdiratorInfo{
+			ProviderInfo: digdirator.DigdiratorInfo{
 				HostName:         *hostname,
 				TokenURI:         string(authConfigSecret.Data[idportenSpec.GetTokenEndpointKey()]),
 				ClientID:         string(authConfigSecret.Data[idportenSpec.GetClientIDKey()]),

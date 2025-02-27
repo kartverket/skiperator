@@ -24,6 +24,7 @@ var (
 	IstioTokenSecretSource    = "/etc/istio/config/token-secret.yaml"
 	IstioHmacSecretSource     = "/etc/istio/config/hmac-secret.yaml"
 	IstioCredentialsDirectory = "/etc/istio/config"
+	AutoLoginSecretName       = "auto-login-envoy-secret"
 )
 
 // A security context for use in pod containers created by Skiperator

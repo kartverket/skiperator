@@ -1,6 +1,9 @@
 package config_patch
 
-import "strings"
+import (
+	"github.com/kartverket/skiperator/pkg/util"
+	"strings"
+)
 
 func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint string, redirectPath string, signoutPath string, ignorePaths []string, clientId string, authScopes []string) map[string]interface{} {
 	passThroughMatchers := []interface{}{
@@ -54,9 +57,9 @@ func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint
 						"name": "token",
 						"sds_config": map[string]interface{}{
 							"path_config_source": map[string]interface{}{
-								"path": "/etc/istio/config/token-secret.yaml",
+								"path": util.IstioTokenSecretSource,
 								"watched_directory": map[string]interface{}{
-									"path": "/etc/istio/config",
+									"path": util.IstioCredentialsDirectory,
 								},
 							},
 						},
@@ -65,9 +68,9 @@ func GetOAuthSidecarConfigPatchValue(tokenEndpoint string, authorizationEndpoint
 						"name": "hmac",
 						"sds_config": map[string]interface{}{
 							"path_config_source": map[string]interface{}{
-								"path": "/etc/istio/config/hmac-secret.yaml",
+								"path": util.IstioHmacSecretSource,
 								"watched_directory": map[string]interface{}{
-									"path": "/etc/istio/config",
+									"path": util.IstioCredentialsDirectory,
 								},
 							},
 						},

@@ -138,8 +138,8 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 		autoLoginConfig := r.GetAutoLoginConfig()
 		if autoLoginConfig != nil && autoLoginConfig.IsEnabled {
-			generatedSpecAnnotations["sidecar.istio.io/userVolume"] = "[{\"name\": \"istio-oauth2\", \"secret\": { \"secretName\": \"auto-login-envoy-secret\"}}]"
-			generatedSpecAnnotations["sidecar.istio.io/userVolumeMount"] = "[{\"name\": \"istio-oauth2\", \"mountPath\": \"/etc/istio/config\", \"readonly\": true }]"
+			generatedSpecAnnotations["sidecar.istio.io/userVolume"] = fmt.Sprintf("[{\"name\": \"istio-oauth2\", \"secret\": { \"secretName\": \"%s\"}}]", util.AutoLoginSecretName)
+			generatedSpecAnnotations["sidecar.istio.io/userVolumeMount"] = fmt.Sprintf("[{\"name\": \"istio-oauth2\", \"mountPath\": \"%s\", \"readonly\": true }]", util.IstioCredentialsDirectory)
 		}
 	}
 
