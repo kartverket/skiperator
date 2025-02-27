@@ -63,7 +63,7 @@ func (i *Maskinporten) GetProvidedRequestAuthSecretName() *string {
 
 func (i *Maskinporten) GetRequestAuthPaths() []string {
 	var paths []string
-	if i.RequestAuthEnabled() {
+	if i != nil && i.RequestAuthentication != nil {
 		if i.RequestAuthentication.Paths != nil {
 			paths = append(paths, *i.RequestAuthentication.Paths...)
 		}
@@ -73,7 +73,7 @@ func (i *Maskinporten) GetRequestAuthPaths() []string {
 
 func (i *Maskinporten) GetRequestAuthIgnoredPaths() []string {
 	var ignoredPaths []string
-	if i.RequestAuthEnabled() {
+	if i != nil && i.RequestAuthentication != nil {
 		if i.RequestAuthentication.IgnorePaths != nil {
 			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
 		}

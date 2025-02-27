@@ -187,7 +187,6 @@ func IsGCPAuthEnabled(gcp *podtypes.GCP) bool {
 	return gcp != nil && gcp.Auth != nil && gcp.Auth.ServiceAccount != ""
 }
 
-<<<<<<< HEAD
 func GetHostname(uri string) (*string, error) {
 	parsedURL, err := url.Parse(uri)
 	if err != nil {
