@@ -184,13 +184,14 @@ spec:
                                           host
                                         type: integer
                                       protocol:
-                                        description: The protocol to use for communication
-                                          with the host. Only HTTP, HTTPS and TCP
-                                          are supported.
+                                        description: 'The protocol to use for communication
+                                          with the host. Supported protocols are:
+                                          HTTP, HTTPS, TCP and TLS.'
                                         enum:
                                         - HTTP
                                         - HTTPS
                                         - TCP
+                                        - TLS
                                         type: string
                                     required:
                                     - name

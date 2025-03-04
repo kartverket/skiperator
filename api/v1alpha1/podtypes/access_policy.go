@@ -123,9 +123,9 @@ type ExternalPort struct {
 	//+kubebuilder:validation:Required
 	Port int `json:"port"`
 
-	// The protocol to use for communication with the host. Only HTTP, HTTPS and TCP are supported.
+	// The protocol to use for communication with the host. Supported protocols are: HTTP, HTTPS, TCP and TLS.
 	//
 	//+kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP
+	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP;TLS
 	Protocol string `json:"protocol"`
 }

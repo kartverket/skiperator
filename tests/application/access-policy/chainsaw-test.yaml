@@ -47,3 +47,8 @@ spec:
             file: external-ip-policy.yaml
         - assert:
             file: external-ip-policy-assert.yaml
+    - try:
+        - apply:
+            file: dns-lookup.yaml
+        - assert:
+            file: dns-lookup-assert.yaml
