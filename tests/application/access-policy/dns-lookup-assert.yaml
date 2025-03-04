@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: dns-lookup-egress-9cb096c5f59540a7
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - directory.example.com
+  ports:
+    - name: ldaps
+      number: 636
+      protocol: TLS
