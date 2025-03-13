@@ -2,6 +2,7 @@ package pod
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/flags"
@@ -105,7 +106,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 
 func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Container {
 	return corev1.Container{
-		Name:            "cloud-sql-proxy",
+		Name:            "cloudsql-proxy",
 		Image:           "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
 		ImagePullPolicy: corev1.PullAlways,
 		Args: []string{
