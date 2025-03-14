@@ -148,24 +148,4 @@ spec:
       app: patchapp
   mtls:
     mode: STRICT
----
-apiVersion: networking.istio.io/v1
-kind: ServiceEntry
-metadata:
-  name: patchapp-egress-1aebaef7c2f133f8
-spec:
-  addresses:
-    - 10.0.0.1
-  endpoints:
-    - address: 10.0.0.1
-  exportTo:
-    - .
-    - istio-system
-    - istio-gateways
-  hosts:
-    - patchapp-a0921a82f8f8e22c.cloudsql
-  ports:
-    - name: cloudsqlproxy
-      number: 3307
-      protocol: TCP
-  resolution: STATIC
+
