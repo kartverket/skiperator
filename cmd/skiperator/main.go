@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -68,9 +67,6 @@ func main() {
 	if parseErr := env.Parse(&cfg); parseErr != nil {
 		setupLog.Error(parseErr, "Failed to parse config")
 		os.Exit(1)
-	} else {
-		setupLog.Info("Environment variables parsed successfully")
-		setupLog.Info("Size: " + strconv.Itoa(len(cfg.RegistryCredentialsList)))
 	}
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
