@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -24,6 +25,9 @@ func generateForSKIPJob(r reconciliation.Reconciliation) error {
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
 
+	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
+		setCloudSqlAnnotations(&serviceAccount, skipJob)
+	}
 	r.AddResource(&serviceAccount)
 	ctxLog.Debug("Finished generating service account for skipjob", "skipjob", skipJob.Name)
 	return nil

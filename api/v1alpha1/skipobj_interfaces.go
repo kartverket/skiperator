@@ -2,6 +2,7 @@ package v1alpha1
 
 import (
 	"fmt"
+
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -22,4 +23,5 @@ type CommonSpec struct {
 	AccessPolicy  *podtypes.AccessPolicy
 	GCP           *podtypes.GCP
 	IstioSettings *istiotypes.IstioSettings
+	Image         string
 }

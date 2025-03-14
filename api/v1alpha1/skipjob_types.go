@@ -1,15 +1,16 @@
 package v1alpha1
 
 import (
-	"dario.cat/mergo"
 	"fmt"
+	"strings"
+	"time"
+
+	"dario.cat/mergo"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
-	"time"
 )
 
 var (
@@ -300,5 +301,6 @@ func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
 		GCP:           skipJob.Spec.Container.GCP,
 		AccessPolicy:  skipJob.Spec.Container.AccessPolicy,
 		IstioSettings: skipJob.Spec.IstioSettings,
+		Image:         skipJob.Spec.Container.Image,
 	}
 }
