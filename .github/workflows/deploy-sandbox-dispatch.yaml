@@ -47,6 +47,9 @@ jobs:
   deploy-argo:
     needs: [generate]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         base_dir: [./env/atkv3-sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
