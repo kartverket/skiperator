@@ -52,7 +52,7 @@ spec:
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
-            - "--private-ip=true"
+            - "--private-ip"
             - "test-project-bda1:europe-north1:pg-01-test"
           securityContext:
             runAsNonRoot: true

@@ -113,7 +113,7 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 			"--auto-iam-authn",
 			"--structured-logs",
 			"--port=5432",
-			"--private-ip=true",
+			"--private-ip",
 			cs.ConnectionName,
 		},
 		SecurityContext: &corev1.SecurityContext{
