@@ -48,8 +48,7 @@ jobs:
     needs: [generate]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
+      id-token: write
     strategy:
       matrix:
         base_dir: [./env/atkv3-sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
