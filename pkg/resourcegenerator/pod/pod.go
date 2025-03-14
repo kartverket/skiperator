@@ -113,7 +113,9 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 			"--auto-iam-authn",
 			"--structured-logs",
 			"--port=5432",
-			"--private-ip",
+			"--quitquitquit", // Enables admin server at port 9091 and quits when it receives a signal from hahaha
+			"--prometheus",   // Enables prometheus metrics at :9090/metrics
+			"--private-ip",   // Forces the use of private IP
 			cs.ConnectionName,
 		},
 		SecurityContext: &corev1.SecurityContext{

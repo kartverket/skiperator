@@ -52,6 +52,8 @@ spec:
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
+            - "--quitquitquit"
+            - "--prometheus"
             - "--private-ip"
             - "test-project-bda1:europe-north1:pg-01-test"
           securityContext:
