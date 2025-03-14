@@ -122,35 +122,24 @@ func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []
 }
 
 func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) (*podtypes.AccessPolicy, error) {
-	var name, image string
-	var gcp *podtypes.GCP
-
-	switch skipType := object.(type) {
-	case *skiperatorv1alpha1.Application:
-		name = skipType.Name
-		gcp = skipType.Spec.GCP
-		image = skipType.Spec.Image
-	case *skiperatorv1alpha1.SKIPJob:
-		name = skipType.Name
-		gcp = skipType.Spec.Container.GCP
-		image = skipType.Spec.Container.Image
-	default:
+	t, ok := object.(skiperatorv1alpha1.SKIPObject)
+	if !ok {
 		return accessPolicy, nil
 	}
 
-	if !util.IsCloudSqlProxyEnabled(gcp) {
+	if !util.IsCloudSqlProxyEnabled(t.GetCommonSpec().GCP) {
 		return accessPolicy, nil
 	}
 
-	if gcp.CloudSQLProxy.IP == "" {
+	if t.GetCommonSpec().GCP.CloudSQLProxy.IP == "" {
 		return nil, errors.New("cloud sql proxy IP is not set")
 	}
 
 	// The istio validation webhook will reject the service entry if the host is not a valid DNS name, such as an IP address.
 	// So we generate something that will not crash with other apps in the same namespace.
 	externalRule := &podtypes.ExternalRule{
-		Host:  fmt.Sprintf("%s-%x.cloudsql", name, util.GenerateHashFromName(image)),
-		Ip:    gcp.CloudSQLProxy.IP,
+		Host:  fmt.Sprintf("%s-%x.cloudsql", t.GetName(), util.GenerateHashFromName(t.GetCommonSpec().Image)),
+		Ip:    t.GetCommonSpec().GCP.CloudSQLProxy.IP,
 		Ports: []podtypes.ExternalPort{{Name: "cloudsqlproxy", Port: 3307, Protocol: "TCP"}},
 	}
 
