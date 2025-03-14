@@ -6,6 +6,7 @@ toolchain go1.24.0
 
 require (
 	dario.cat/mergo v1.0.1
+	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cert-manager/cert-manager v1.17.1
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.2

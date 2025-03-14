@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,13 +14,15 @@ type imagePullSecret struct {
 	payload []byte
 }
 
-func NewImagePullSecret(token, registry string) (*imagePullSecret, error) {
+func NewImagePullSecret(registries []util.RegistryCredentials) (*imagePullSecret, error) {
 	cfg := dockerConfigJson{}
-	cfg.Auths = make(map[string]dockerConfigAuth, 1)
-	auth := dockerConfigAuth{}
-	auth.Auth = token
-	cfg.Auths[registry] = auth
+	cfg.Auths = make(map[string]dockerConfigAuth, len(registries))
 
+	for _, r := range registries {
+		cfg.Auths[r.Registry] = dockerConfigAuth{
+			Auth: r.Token,
+		}
+	}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err := enc.Encode(cfg)

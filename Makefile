@@ -42,6 +42,10 @@ build: generate
 	./cmd/skiperator
 
 .PHONY: run-local
+export IMAGE_PULL_0_REGISTRY := foobar
+export IMAGE_PULL_1_REGISTRY := barfoo
+export IMAGE_PULL_0_TOKEN := foobar
+export IMAGE_PULL_1_TOKEN := barfoo
 run-local: build install-skiperator
 	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
 	./bin/skiperator

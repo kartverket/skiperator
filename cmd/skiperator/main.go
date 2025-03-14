@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -13,6 +14,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	"github.com/kartverket/skiperator/pkg/util"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -22,6 +24,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"github.com/caarlos0/env/v11"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -46,10 +49,11 @@ func init() {
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
-	imagePullToken := flag.String("t", "", "image pull token")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
 	flag.Parse()
+
+	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
 
 	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
 
@@ -59,6 +63,15 @@ func main() {
 		Level:       parsedLogLevel,
 		DestWriter:  os.Stdout,
 	})))
+
+	var cfg util.EnvVars
+	if parseErr := env.Parse(&cfg); parseErr != nil {
+		setupLog.Error(parseErr, "Failed to parse config")
+		os.Exit(1)
+	} else {
+		setupLog.Info("Environment variables parsed successfully")
+		setupLog.Info("Size: " + strconv.Itoa(len(cfg.RegistryCredentialsList)))
+	}
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
 
@@ -126,9 +139,7 @@ func main() {
 	}
 
 	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
-		Registry:       "ghcr.io",
-		Token:          *imagePullToken,
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())), RegistryCredentialsList: cfg.RegistryCredentialsList,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
