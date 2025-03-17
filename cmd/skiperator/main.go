@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/envconfig"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"os"
 	"strings"
 
@@ -13,7 +15,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
-	"github.com/kartverket/skiperator/pkg/util"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
@@ -63,7 +64,7 @@ func main() {
 		DestWriter:  os.Stdout,
 	})))
 
-	var cfg util.EnvVars
+	var cfg envconfig.Vars
 	if parseErr := env.Parse(&cfg); parseErr != nil {
 		setupLog.Error(parseErr, "Failed to parse config")
 		os.Exit(1)
@@ -134,13 +135,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())), RegistryCredentialsList: cfg.RegistryCredentialsList,
-	}).SetupWithManager(mgr)
+	ps, err := imagepullsecret.NewImagePullSecret(cfg.RegistryCredentials...)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
+		setupLog.Error(err, "unable to create image pull secret configuration", "controller", "Namespace")
 		os.Exit(1)
 	}
+	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+	err = (&controllers.NamespaceReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
+		PullSecret:     ps,
+	}).SetupWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

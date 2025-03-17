@@ -1,20 +1,20 @@
-package github
+package imagepullsecret
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type imagePullSecret struct {
+type ImagePullSecret struct {
 	payload []byte
 }
 
-func NewImagePullSecret(registries []util.RegistryCredentials) (*imagePullSecret, error) {
+func NewImagePullSecret(registries ...envconfig.RegistryCredentialPair) (*ImagePullSecret, error) {
 	cfg := dockerConfigJson{}
 	cfg.Auths = make(map[string]dockerConfigAuth, len(registries))
 
@@ -30,10 +30,10 @@ func NewImagePullSecret(registries []util.RegistryCredentials) (*imagePullSecret
 		return nil, err
 	}
 
-	return &imagePullSecret{payload: buf.Bytes()}, nil
+	return &ImagePullSecret{payload: buf.Bytes()}, nil
 }
 
-func (ips *imagePullSecret) Generate(r reconciliation.Reconciliation) error {
+func (ips *ImagePullSecret) Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.NamespaceType {
 		return fmt.Errorf("image pull secret only supports namespace type")
 	}

@@ -7,7 +7,7 @@ import (
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/github"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
@@ -25,7 +25,7 @@ import (
 
 type NamespaceReconciler struct {
 	common.ReconcilerBase
-	RegistryCredentialsList []util.RegistryCredentials
+	PullSecret *imagepullsecret.ImagePullSecret
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
@@ -38,7 +38,7 @@ func (r *NamespaceReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1.Sidecar{}).
 		Owns(&corev1.Secret{}, builder.WithPredicates(
-			util.MatchesPredicate[*corev1.Secret](github.IsImagePullSecret),
+			util.MatchesPredicate[*corev1.Secret](imagepullsecret.IsImagePullSecret),
 		)).
 		Complete(r)
 }
@@ -76,16 +76,10 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
 	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
-	ps, err := github.NewImagePullSecret(r.RegistryCredentialsList)
-	if err != nil {
-		rLog.Error(err, "failed to create image pull secret")
-		return common.RequeueWithError(err)
-	}
-
 	funcs := []reconciliationFunc{
 		sidecar.Generate,
 		defaultdeny.Generate,
-		ps.Generate,
+		r.PullSecret.Generate,
 	}
 
 	for _, f := range funcs {
