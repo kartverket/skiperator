@@ -50,9 +50,12 @@ type RequestAuth struct {
 	// AcceptedResources is used as a validation field following [RFC8707](https://datatracker.ietf.org/doc/html/rfc8707).
 	// It defines accepted audience resource indicators in the JWT token.
 	//
-	// We expect that the indicator is present as the `aud` claim in the JWT token.
+	// Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
 	//
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxItems=10
+	// +listType=set
+	// +kubebuilder:validation:Items.Pattern=`^(https?):\/\/[^\s\/$.?#].[^\s]*$`
 	AcceptedResources []string `json:"acceptedResources,omitempty"`
 
 	// AuthRules defines rules for allowing HTTP requests based on conditions
