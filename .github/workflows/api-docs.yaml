@@ -2,10 +2,7 @@ name: write api-docs to skip.kartverket.no
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'config/crd/**'
+
 jobs:
   run-crdoc:
     runs-on: ubuntu-latest
@@ -18,9 +15,16 @@ jobs:
         with:
           path: skiperator
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
       - name: Run crdoc Docker container
         run: |
-         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/skiperator/config/crd --output /workdir/api-docs.md
+          go install fybrik.io/crdoc@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          crdoc --resources skiperator/config/crd --output api-docs.md
 
       - name: Checkout target repository
         uses: actions/checkout@v4
