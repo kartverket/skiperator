@@ -1,9 +1,9 @@
 package istiotypes
 
-// RequestAuthentication specifies how incoming JWTs should be validated.
+// RequestAuth specifies how incoming JWTs should be validated.
 //
 // +kubebuilder:object:generate=true
-type RequestAuthentication struct {
+type RequestAuth struct {
 	// Whether to enable JWT validation.
 	// If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
 	Enabled bool `json:"enabled"`
@@ -47,35 +47,122 @@ type RequestAuthentication struct {
 	// +kubebuilder:validation:MaxItems=10
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
 
-	// Paths specifies paths that require an authenticated JWT.
+	// AcceptedResources is used as a validation field following [RFC8707](https://datatracker.ietf.org/doc/html/rfc8707).
+	// It defines accepted audience resource indicators in the JWT token.
 	//
-	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-	// The paths can also contain the wildcard operator '*', but only at the end.
-	// +listType=set
-	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
-	// +kubebuilder:validation:MaxItems=50
+	// We expect that the indicator is present as the `aud` claim in the JWT token.
+	//
 	// +kubebuilder:validation:Optional
-	Paths *[]string `json:"paths,omitempty"`
+	AcceptedResources []string `json:"acceptedResources,omitempty"`
 
-	// IgnorePaths specifies paths that do not require an authenticated JWT.
+	// AuthRules defines rules for allowing HTTP requests based on conditions
+	// that must be met based on JWT claims.
 	//
-	// The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-	// The paths can also contain the wildcard operator '*', but only at the end.
-	// +listType=set
-	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
+	// API endpoints not covered by AuthRules IgnoreAuth requires an authenticated JWT by default.
+	//
+	// +kubebuilder:validation:MaxItems=10
+	// +kubebuilder:validation:Optional
+	AuthRules *[]RequestAuthRule `json:"authRules,omitempty"`
+
+	// IgnoreAuth defines request matchers for HTTP requests that do not require JWT authentication.
+	//
+	// API endpoints not covered by AuthRules or IgnoreAuth requires an authenticated JWT by default.
+	//
 	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:Optional
-	IgnorePaths *[]string `json:"ignorePaths,omitempty"`
+	IgnoreAuth *[]RequestMatcher `json:"ignoreAuth,omitempty"`
 }
 
+// ClaimToHeader specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
+// The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.
+//
+// +kubebuilder:object:generate=true
 type ClaimToHeader struct {
-	// The name of the HTTP header for which the specified claim will be copied to.
+	// Header specifies the name of the HTTP header to which the claim value will be copied.
+	//
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-]+$"
 	// +kubebuilder:validation:MaxLength=64
 	Header string `json:"header"`
 
-	// The claim to be copied.
+	// Claim specifies the name of the claim in the JWT token that will be copied to the header.
+	//
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9-._]+$"
 	// +kubebuilder:validation:MaxLength=128
 	Claim string `json:"claim"`
+}
+
+type RequestAuthRules []RequestAuthRule
+
+// RequestAuthRule defines a rule for controlling access to HTTP requests using JWT authentication.
+//
+// +kubebuilder:object:generate=true
+type RequestAuthRule struct {
+	RequestMatcher `json:",inline"`
+
+	// When defines additional conditions based on JWT claims that must be met.
+	//
+	// The request is permitted if at least one of the specified conditions is satisfied.
+	When []Condition `json:"when"`
+}
+
+type RequestMatchers []RequestMatcher
+
+// RequestMatcher defines paths and methods to match incoming HTTP requests.
+//
+// +kubebuilder:object:generate=true
+type RequestMatcher struct {
+	// Paths specifies a set of URI paths that this rule applies to.
+	// Each path must be a valid URI path, starting with '/' and not ending with '/'.
+	// The wildcard '*' is allowed only at the end of the path.
+	//
+	// +listType=set
+	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
+	// +kubebuilder:validation:MaxItems=50
+	Paths []string `json:"paths"`
+
+	// Methods specifies HTTP methods that applies for the defined paths.
+	// If omitted, all methods are permitted.
+	//
+	// Allowed methods:
+	// - GET
+	// - POST
+	// - PUT
+	// - PATCH
+	// - DELETE
+	// - HEAD
+	// - OPTIONS
+	// - TRACE
+	// - CONNECT
+	//
+	// +listType=set
+	// +kubebuilder:validation:Items:Enum=GET,POST,PUT,PATCH,DELETE,HEAD,OPTIONS,TRACE,CONNECT
+	Methods []string `json:"methods,omitempty"`
+}
+
+// Condition represents a rule that evaluates JWT claims to determine access control.
+//
+// This type allows defining conditions that check whether a specific claim in
+// the JWT token contains one of the expected values.
+//
+// If multiple conditions are specified, all must be met (AND logic) for the request to be allowed.
+//
+// +kubebuilder:object:generate=true
+type Condition struct {
+	// Claim specifies the name of the JWT claim to check.
+	//
+	Claim string `json:"claim"`
+
+	// Values specifies a list of allowed values for the claim.
+	// If the claim in the JWT contains any of these values (OR logic), the condition is met.
+	//
+	// +listType=set
+	Values []string `json:"values"`
+}
+
+func (requestAuthRules RequestAuthRules) GetRequestMatchers() RequestMatchers {
+	var requestMatchers RequestMatchers
+	for _, authRule := range requestAuthRules {
+		requestMatchers = append(requestMatchers, authRule.RequestMatcher)
+	}
+	return requestMatchers
 }

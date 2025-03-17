@@ -23,8 +23,8 @@ type Maskinporten struct {
 	// Schema to configure Maskinporten clients with consumed scopes and/or exposed scopes.
 	Scopes *nais_io_v1.MaskinportenScope `json:"scopes,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWTs should be validated.
-	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+	// RequestAuth specifies how incoming JWTs should be validated.
+	RequestAuth *istiotypes.RequestAuth `json:"requestAuth,omitempty"`
 }
 
 type MaskinportenClient struct {
@@ -40,12 +40,12 @@ func (m *MaskinportenClient) GetSecretName() string {
 }
 
 func (i *Maskinporten) IsRequestAuthEnabled() bool {
-	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
+	return i != nil && i.RequestAuth != nil && i.RequestAuth.Enabled
 }
 
-func (i *Maskinporten) GetAuthSpec() *istiotypes.RequestAuthentication {
-	if i != nil && i.RequestAuthentication != nil {
-		return i.RequestAuthentication
+func (i *Maskinporten) GetAuthSpec() *istiotypes.RequestAuth {
+	if i != nil && i.RequestAuth != nil {
+		return i.RequestAuth
 	}
 	return nil
 }
@@ -55,30 +55,30 @@ func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *Maskinporten) GetProvidedSecretName() *string {
-	if i != nil && i.RequestAuthentication != nil {
-		return i.RequestAuthentication.SecretName
+	if i != nil && i.RequestAuth != nil {
+		return i.RequestAuth.SecretName
 	}
 	return nil
 }
 
-func (i *Maskinporten) GetPaths() []string {
-	var paths []string
+func (i *Maskinporten) GetAuthRules() istiotypes.RequestAuthRules {
+	var requestAuthRules istiotypes.RequestAuthRules
 	if i.IsRequestAuthEnabled() {
-		if i.RequestAuthentication.Paths != nil {
-			paths = append(paths, *i.RequestAuthentication.Paths...)
+		if i.RequestAuth.AuthRules != nil {
+			requestAuthRules = append(requestAuthRules, *i.RequestAuth.AuthRules...)
 		}
 	}
-	return paths
+	return requestAuthRules
 }
 
-func (i *Maskinporten) GetIgnoredPaths() []string {
-	var ignoredPaths []string
+func (i *Maskinporten) GetIgnoredAuthRules() istiotypes.RequestMatchers {
+	var ignoredAuthRules istiotypes.RequestMatchers
 	if i.IsRequestAuthEnabled() {
-		if i.RequestAuthentication.IgnorePaths != nil {
-			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
+		if i.RequestAuth.IgnoreAuth != nil {
+			ignoredAuthRules = append(ignoredAuthRules, *i.RequestAuth.IgnoreAuth...)
 		}
 	}
-	return ignoredPaths
+	return ignoredAuthRules
 }
 
 func (i *Maskinporten) GetIssuerKey() string {
@@ -94,8 +94,15 @@ func (i *Maskinporten) GetClientIDKey() string {
 }
 
 func (i *Maskinporten) GetTokenLocation() string {
-	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
-		return *i.RequestAuthentication.TokenLocation
+	if i != nil && i.RequestAuth != nil && i.RequestAuth.TokenLocation != nil {
+		return *i.RequestAuth.TokenLocation
 	}
 	return "header"
+}
+
+func (i *Maskinporten) GetAcceptedResources() []string {
+	if i.IsRequestAuthEnabled() && i.RequestAuth.AcceptedResources != nil {
+		return i.RequestAuth.AcceptedResources
+	}
+	return []string{}
 }

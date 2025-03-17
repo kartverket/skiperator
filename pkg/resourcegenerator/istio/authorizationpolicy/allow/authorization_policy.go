@@ -5,8 +5,11 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
+	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
-	"k8s.io/apimachinery/pkg/types"
+	typev1beta1 "istio.io/api/type/v1beta1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -26,27 +29,43 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	var allowedPaths []string
-	// Include ignored paths from auth config as they should be accessible without authentication
-	allowedPaths = append(allowedPaths, r.GetAuthConfigs().GetIgnoredPaths()...)
+	var authorizedOperations []*securityv1api.Rule_To
 	if application.Spec.AuthorizationSettings != nil {
-		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
+		authorizedOperations = append(authorizedOperations, &securityv1api.Rule_To{
+			Operation: &securityv1api.Operation{
+				Paths: application.Spec.AuthorizationSettings.AllowList,
+			},
+		})
 	}
 
-	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
-	if len(allowedPaths) > 0 {
-		r.AddResource(
-			authorizationpolicy.GetAuthPolicy(
-				types.NamespacedName{
-					Name:      application.Name + "-allow-paths",
-					Namespace: application.Namespace,
-				},
-				application.Name,
-				securityv1api.AuthorizationPolicy_ALLOW,
-				allowedPaths,
-				[]string{},
-			),
+	authConfigs := r.GetAuthConfigs()
+	if authConfigs != nil {
+		// Include ignoredAuthRules from auth config as they should be accessible without authentication
+		ignoreAuthRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
+		authorizedOperations = append(
+			authorizedOperations,
+			authorizationpolicy.GetApiSurfaceDiffAsRuleToList(ignoreAuthRequestMatchers, authorizedRequestMatchers)...,
 		)
+	}
+	if len(authorizedOperations) > 0 {
+		r.AddResource(&securityv1.AuthorizationPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: application.Namespace,
+				Name:      application.Name + "-allow-paths",
+			},
+			Spec: securityv1api.AuthorizationPolicy{
+				Action: securityv1api.AuthorizationPolicy_ALLOW,
+				Rules: []*securityv1api.Rule{
+					{
+						To:   authorizedOperations,
+						From: authorizationpolicy.GetGeneralFromRule(),
+					},
+				},
+				Selector: &typev1beta1.WorkloadSelector{
+					MatchLabels: util.GetPodAppSelector(application.Name),
+				},
+			},
+		})
 	}
 	ctxLog.Debug("Finished generating allow AuthorizationPolicy for application", "application", application.Name)
 	return nil

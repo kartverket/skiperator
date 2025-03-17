@@ -1,45 +1,25 @@
 package authorizationpolicy
 
 import (
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	v1 "istio.io/api/security/v1"
 	"istio.io/api/security/v1beta1"
-	typev1beta1 "istio.io/api/type/v1beta1"
-	securityv1 "istio.io/client-go/pkg/apis/security/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
 	DefaultDenyPath = "/actuator*"
 )
 
-func GetAuthPolicy(namespacedName types.NamespacedName, applicationName string, action v1beta1.AuthorizationPolicy_Action, paths []string, notPaths []string) *securityv1.AuthorizationPolicy {
-	return &securityv1.AuthorizationPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespacedName.Namespace,
-			Name:      namespacedName.Name,
-		},
-		Spec: v1.AuthorizationPolicy{
-			Action: action,
-			Rules: []*v1.Rule{
-				{
-					To: []*v1.Rule_To{
-						{
-							Operation: &v1.Operation{
-								Paths:    paths,
-								NotPaths: notPaths,
-							},
-						},
-					},
-					From: GetGeneralFromRule(),
-				},
-			},
-			Selector: &typev1beta1.WorkloadSelector{
-				MatchLabels: util.GetPodAppSelector(applicationName),
-			},
-		},
-	}
+var acceptedHttpMethods = []string{
+	"GET",
+	"POST",
+	"PUT",
+	"PATCH",
+	"DELETE",
+	"HEAD",
+	"OPTIONS",
+	"TRACE",
+	"CONNECT",
 }
 
 func GetGeneralFromRule() []*v1.Rule_From {
@@ -50,4 +30,33 @@ func GetGeneralFromRule() []*v1.Rule_From {
 			},
 		},
 	}
+}
+
+func GetApiSurfaceDiffAsRuleToList(requestMatchers, otherRequestMatchers istiotypes.RequestMatchers) []*v1beta1.Rule_To {
+	var diff []*v1beta1.Rule_To
+	for _, requestMatcher := range requestMatchers {
+		ruleTo := &v1beta1.Rule_To{
+			Operation: &v1beta1.Operation{
+				Paths:   requestMatcher.Paths,
+				Methods: requestMatcher.Methods,
+			},
+		}
+		for _, otherRequestMatcher := range otherRequestMatchers {
+			ruleTo.Operation.NotPaths = append(ruleTo.Operation.NotPaths, otherRequestMatcher.Paths...)
+		}
+		diff = append(diff, ruleTo)
+	}
+	for _, otherRequestMatcher := range otherRequestMatchers {
+		notMethods := otherRequestMatcher.Methods
+		if len(notMethods) == 0 {
+			notMethods = append(notMethods, acceptedHttpMethods...)
+		}
+		diff = append(diff, &v1beta1.Rule_To{
+			Operation: &v1beta1.Operation{
+				Paths:      otherRequestMatcher.Paths,
+				NotMethods: notMethods,
+			},
+		})
+	}
+	return diff
 }

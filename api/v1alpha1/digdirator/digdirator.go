@@ -21,13 +21,14 @@ type DigdiratorClient interface {
 
 type DigdiratorProvider interface {
 	IsRequestAuthEnabled() bool
-	GetAuthSpec() *istiotypes.RequestAuthentication
+	GetAuthSpec() *istiotypes.RequestAuth
 	GetDigdiratorName() DigdiratorName
 	GetProvidedSecretName() *string
-	GetPaths() []string
-	GetIgnoredPaths() []string
+	GetAuthRules() istiotypes.RequestAuthRules
+	GetIgnoredAuthRules() istiotypes.RequestMatchers
 	GetIssuerKey() string
 	GetJwksKey() string
 	GetClientIDKey() string
 	GetTokenLocation() string
+	GetAcceptedResources() []string
 }

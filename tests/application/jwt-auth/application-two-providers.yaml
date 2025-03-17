@@ -15,23 +15,39 @@ spec:
     integrationType: "api_klient"
     scopes:
       - "openid"
-    requestAuthentication:
+    requestAuth:
       enabled: true
       tokenLocation: "header"
-      ignorePaths:
-        - "/loginIdPorten"
-        - "/secureMaskinPorten"
-      paths:
-        - "/secureIdPorten"
-        - "/commonSecureEndpoint"
+      acceptedResources:
+        - "http://example.com"
+      ignoreAuth:
+        - paths:
+            - "/loginIdPorten"
+            - "*"
+      authRules:
+        - paths:
+            - "/secureIdPorten"
+            - "/commonSecureEndpoint"
+          when:
+            - claim: "acr"
+              values:
+                - "Level4"
   maskinporten:
     enabled: false
-    requestAuthentication:
+    requestAuth:
       enabled: true
       secretName: "maskinporten-secret"
-      paths:
-        - "/secureMaskinPorten"
-        - "/commonSecureEndpoint"
+      authRules:
+        - paths:
+            - "/secureMaskinPorten"
+            - "/commonSecureEndpoint"
+          methods:
+            - "POST"
+            - "DELETE"
+          when:
+            - claim: "acr"
+              values:
+                - "Level4"
 ---
 apiVersion: v1
 kind: Secret
