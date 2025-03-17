@@ -75,10 +75,10 @@ spec:
       when:
         - key: request.auth.claims[iss]
           values:
-            - https://test.idporten.no
+            - https://idporten.no
         - key: request.auth.claims[aud]
           values:
-            - 928db84b-645e-4620-983b-f1eb2319a804
+            - test-client-id-idporten
         - key: request.auth.claims[aud]
           values:
             - http://example.com
@@ -94,10 +94,10 @@ spec:
       when:
         - key: request.auth.claims[iss]
           values:
-            - https://test.idporten.no
+            - https://idporten.no
         - key: request.auth.claims[aud]
           values:
-            - 928db84b-645e-4620-983b-f1eb2319a804
+            - test-client-id-idporten
         - key: request.auth.claims[aud]
           values:
             - http://example.com
@@ -139,10 +139,10 @@ spec:
       when:
         - key: request.auth.claims[iss]
           values:
-            - https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/v2.0
+            - https://maskinporten.no/
         - key: request.auth.claims[aud]
           values:
-            - efdaa164-4b95-4a40-b3d3-de4e552524e7
+            - test-client-id-maskinporten
     - from:
         - source:
             namespaces:
@@ -158,10 +158,10 @@ spec:
       when:
         - key: request.auth.claims[iss]
           values:
-            - https://login.microsoftonline.com/7f74c8a2-43ce-46b2-b0e8-b6306cba73a3/v2.0
+            - https://maskinporten.no/
         - key: request.auth.claims[aud]
           values:
-            - efdaa164-4b95-4a40-b3d3-de4e552524e7
+            - test-client-id-maskinporten
         - key: request.auth.claims[acr]
           values:
             - Level4

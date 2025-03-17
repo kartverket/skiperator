@@ -615,10 +615,12 @@ spec:
                           AcceptedResources is used as a validation field following [RFC8707](https://datatracker.ietf.org/doc/html/rfc8707).
                           It defines accepted audience resource indicators in the JWT token.
 
-                          We expect that the indicator is present as the `aud` claim in the JWT token.
+                          Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
                         items:
                           type: string
+                        maxItems: 10
                         type: array
+                        x-kubernetes-list-type: set
                       authRules:
                         description: |-
                           AuthRules defines rules for allowing HTTP requests based on conditions
@@ -972,10 +974,12 @@ spec:
                           AcceptedResources is used as a validation field following [RFC8707](https://datatracker.ietf.org/doc/html/rfc8707).
                           It defines accepted audience resource indicators in the JWT token.
 
-                          We expect that the indicator is present as the `aud` claim in the JWT token.
+                          Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
                         items:
                           type: string
+                        maxItems: 10
                         type: array
+                        x-kubernetes-list-type: set
                       authRules:
                         description: |-
                           AuthRules defines rules for allowing HTTP requests based on conditions
