@@ -2,6 +2,7 @@ package authorizationpolicy
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/pkg/auth"
 	v1 "istio.io/api/security/v1"
 	"istio.io/api/security/v1beta1"
 )
@@ -9,18 +10,6 @@ import (
 const (
 	DefaultDenyPath = "/actuator*"
 )
-
-var acceptedHttpMethods = []string{
-	"GET",
-	"POST",
-	"PUT",
-	"PATCH",
-	"DELETE",
-	"HEAD",
-	"OPTIONS",
-	"TRACE",
-	"CONNECT",
-}
 
 func GetGeneralFromRule() []*v1.Rule_From {
 	return []*v1.Rule_From{
@@ -49,7 +38,7 @@ func GetApiSurfaceDiffAsRuleToList(requestMatchers, otherRequestMatchers istioty
 	for _, otherRequestMatcher := range otherRequestMatchers {
 		notMethods := otherRequestMatcher.Methods
 		if len(notMethods) == 0 {
-			notMethods = append(notMethods, acceptedHttpMethods...)
+			notMethods = append(notMethods, auth.AcceptedHttpMethods...)
 		}
 		diff = append(diff, &v1beta1.Rule_To{
 			Operation: &v1beta1.Operation{

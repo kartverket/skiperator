@@ -8,6 +8,18 @@ import (
 	"slices"
 )
 
+var AcceptedHttpMethods = []string{
+	"GET",
+	"POST",
+	"PUT",
+	"PATCH",
+	"DELETE",
+	"HEAD",
+	"OPTIONS",
+	"TRACE",
+	"CONNECT",
+}
+
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
@@ -54,7 +66,7 @@ func (authConfig AuthConfig) FlattenOnPaths(requestMatchers istiotypes.RequestMa
 			} else {
 				methods := requestMatcher.Methods
 				if len(methods) == 0 {
-					methods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "TRACE", "CONNECT"}
+					methods = AcceptedHttpMethods
 				}
 				requestMatchersMap[path] = &securityv1api.Rule_To{
 					Operation: &securityv1api.Operation{
