@@ -7,4 +7,4 @@ metadata:
     skiperator.kartverket.no/controller: namespace
 type: kubernetes.io/dockerconfigjson
 data:
-  .dockerconfigjson: eyJhdXRocyI6eyJnaGNyLmlvIjp7ImF1dGgiOiIifX19Cg==
+  .dockerconfigjson: eyJhdXRocyI6eyJnaGNyLmlvIjp7ImF1dGgiOiIifSwiaHR0cHM6Ly9pbmRleC5kb2NrZXIuaW8vdjEvIjp7ImF1dGgiOiIifX19Cg==
