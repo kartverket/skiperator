@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/envconfig"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"os"
 	"strings"
 
@@ -22,6 +24,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	"github.com/caarlos0/env/v11"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -46,10 +49,11 @@ func init() {
 func main() {
 	leaderElection := flag.Bool("l", false, "enable leader election")
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
-	imagePullToken := flag.String("t", "", "image pull token")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
 	flag.Parse()
+
+	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
 
 	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
 
@@ -59,6 +63,12 @@ func main() {
 		Level:       parsedLogLevel,
 		DestWriter:  os.Stdout,
 	})))
+
+	var cfg envconfig.Vars
+	if parseErr := env.Parse(&cfg); parseErr != nil {
+		setupLog.Error(parseErr, "Failed to parse config")
+		os.Exit(1)
+	}
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
 
@@ -125,15 +135,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
-		Registry:       "ghcr.io",
-		Token:          *imagePullToken,
-	}).SetupWithManager(mgr)
+	ps, err := imagepullsecret.NewImagePullSecret(cfg.RegistryCredentials...)
 	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
+		setupLog.Error(err, "unable to create image pull secret configuration", "controller", "Namespace")
 		os.Exit(1)
 	}
+	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+	err = (&controllers.NamespaceReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
+		PullSecret:     ps,
+	}).SetupWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
