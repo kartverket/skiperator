@@ -76,3 +76,21 @@ spec:
           type: RuntimeDefault
       serviceAccountName: randomjob-skipjob
       priorityClassName: skip-medium
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: randomjob-skipjob
+spec:
+  podSelector:
+    matchLabels:
+      app: randomjob-skipjob
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 3307
+      to:
+        - ipBlock:
+            cidr: 10.0.0.1/32

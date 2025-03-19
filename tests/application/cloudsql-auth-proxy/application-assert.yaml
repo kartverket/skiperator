@@ -153,3 +153,21 @@ spec:
       app: randomapp
   mtls:
     mode: STRICT
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: randomapp
+spec:
+  podSelector:
+    matchLabels:
+      app: randomapp
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 3307
+      to:
+        - ipBlock:
+            cidr: 10.0.0.1/32
