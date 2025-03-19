@@ -52,4 +52,8 @@ type CloudSQLProxySettings struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:="2.15.1"
 	Version string `json:"version"`
+
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	PublicIP bool `json:"publicIP,omitempty"`
 }

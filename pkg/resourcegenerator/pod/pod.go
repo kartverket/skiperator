@@ -105,19 +105,24 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 }
 
 func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Container {
+	args := []string{
+		"--auto-iam-authn",
+		"--structured-logs",
+		"--port=5432",
+		"--quitquitquit", // Enables admin server at port 9091 and quits when it receives a signal from hahaha
+		"--prometheus",   // Enables prometheus metrics at :9090/metrics
+		cs.ConnectionName,
+	}
+
+	if !cs.PublicIP {
+		args = append(args, "--private-ip") // Forces the use of private IP
+	}
+
 	return corev1.Container{
 		Name:            "cloudsql-proxy",
 		Image:           "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
 		ImagePullPolicy: corev1.PullAlways,
-		Args: []string{
-			"--auto-iam-authn",
-			"--structured-logs",
-			"--port=5432",
-			"--quitquitquit", // Enables admin server at port 9091 and quits when it receives a signal from hahaha
-			"--prometheus",   // Enables prometheus metrics at :9090/metrics
-			"--private-ip",   // Forces the use of private IP
-			cs.ConnectionName,
-		},
+		Args:            args,
 		SecurityContext: &corev1.SecurityContext{
 			RunAsNonRoot:             util.PointTo(true),
 			Privileged:               util.PointTo(false),

@@ -494,6 +494,9 @@ spec:
                               This is used to create a serviceentry for the CloudSQL
                               proxy.
                             type: string
+                          publicIP:
+                            default: false
+                            type: boolean
                           serviceAccount:
                             description: Service account used by cloudsql auth proxy.
                               This service account must have the roles/cloudsql.client

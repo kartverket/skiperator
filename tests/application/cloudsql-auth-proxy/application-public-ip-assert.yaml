@@ -1,20 +1,20 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: patchapp
+  name: randomapp-public
   annotations:
     iam.gke.io/gcp-service-account: "grafana@test-project-bda1.iam.gserviceaccount.com"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: patchapp
+  name: randomapp-public
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
 spec:
   selector:
     matchLabels:
-      app: patchapp
+      app: randomapp-public
   template:
     metadata:
       annotations:
@@ -22,10 +22,10 @@ spec:
         argocd.argoproj.io/sync-options: "Prune=false"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
       labels:
-        app: patchapp
+        app: randomapp-public
     spec:
       containers:
-        - name: patchapp
+        - name: randomapp-public
           image: image
           imagePullPolicy: Always
           ports:
@@ -55,7 +55,6 @@ spec:
             - "--quitquitquit"
             - "--prometheus"
             - "test-project-bda1:europe-north1:pg-01-test"
-            - "--private-ip"
           securityContext:
             runAsNonRoot: true
             privileged: false
@@ -65,6 +64,11 @@ spec:
             allowPrivilegeEscalation: false
             seccompProfile:
               type: "RuntimeDefault"
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
           resources:
             requests:
               memory: "64Mi"
@@ -77,7 +81,7 @@ spec:
           - 150
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: patchapp
+      serviceAccountName: randomapp-public
       volumes:
         - emptyDir: {}
           name: tmp
@@ -90,7 +94,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                  - patchapp
+                  - randomapp-public
           matchLabelKeys:
             - pod-template-hash
         - maxSkew: 1
@@ -101,14 +105,14 @@ spec:
               - key: app
                 operator: In
                 values:
-                  - patchapp
+                  - randomapp-public
           matchLabelKeys:
             - pod-template-hash
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: patchapp
+  name: randomapp-public
 spec:
   minReplicas: 2
   maxReplicas: 5
@@ -122,15 +126,15 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: patchapp
+    name: randomapp-public
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: patchapp
+  name: randomapp-public
 spec:
   selector:
-    app: patchapp
+    app: randomapp-public
   ports:
     - name: http
       port: 8080
@@ -141,11 +145,28 @@ spec:
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: patchapp
+  name: randomapp-public
 spec:
   selector:
     matchLabels:
-      app: patchapp
+      app: randomapp-public
   mtls:
     mode: STRICT
-
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: randomapp-public
+spec:
+  podSelector:
+    matchLabels:
+      app: randomapp-public
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 3307
+      to:
+        - ipBlock:
+            cidr: 10.0.0.1/32
