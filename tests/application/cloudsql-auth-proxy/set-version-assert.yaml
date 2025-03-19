@@ -49,12 +49,12 @@ spec:
         - name: cloudsql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.12
           args:
+            - "test-project-bda1:europe-north1:pg-01-test"
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
             - "--quitquitquit"
             - "--prometheus"
-            - "test-project-bda1:europe-north1:pg-01-test"
             - "--private-ip"
           securityContext:
             runAsNonRoot: true

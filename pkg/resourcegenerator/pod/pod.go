@@ -106,12 +106,12 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 
 func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Container {
 	args := []string{
+		cs.ConnectionName,
 		"--auto-iam-authn",
 		"--structured-logs",
 		"--port=5432",
 		"--quitquitquit", // Enables admin server at port 9091 and quits when it receives a signal from hahaha
 		"--prometheus",   // Enables prometheus metrics at :9090/metrics
-		cs.ConnectionName,
 	}
 
 	if !cs.PublicIP {
