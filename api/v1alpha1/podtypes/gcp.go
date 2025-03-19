@@ -50,6 +50,10 @@ type CloudSQLProxySettings struct {
 
 	// Image version for the CloudSQL proxy sidecar.
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default:="2.8.0"
+	//+kubebuilder:default:="2.15.1"
 	Version string `json:"version"`
+
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	PublicIP bool `json:"publicIP,omitempty"`
 }

@@ -103,6 +103,11 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 
 	containers = append(containers, skipJobContainer)
 
+	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
+		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.Container.GCP.CloudSQLProxy)
+		containers = append(containers, cloudSqlProxyContainer)
+	}
+
 	jobSpec := batchv1.JobSpec{
 		Parallelism:           util.PointTo(int32(1)),
 		Completions:           util.PointTo(int32(1)),

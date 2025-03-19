@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: randomjob-skipjob
+  annotations:
+    iam.gke.io/gcp-service-account: "my-sa@test-project-bda1.iam.gserviceaccount.com"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: randomjob
+  labels:
+    skiperator.kartverket.no/skipjob: "true"
+    skiperator.kartverket.no/skipjobName: randomjob
+    app.kubernetes.io/version: "5.34.0"
+    app.kubernetes.io/managed-by: "skiperator"
+    skiperator.kartverket.no/controller: "skipjob"
+spec:
+  suspend: false
+  backoffLimit: 6
+  completionMode: NonIndexed
+  parallelism: 1
+  template:
+    metadata:
+      labels:
+        job-name: randomjob
+        app: randomjob-skipjob
+        skiperator.kartverket.no/skipjob: "true"
+        skiperator.kartverket.no/skipjobName: randomjob
+        app.kubernetes.io/managed-by: "skiperator"
+        skiperator.kartverket.no/controller: "skipjob"
+    spec:
+      containers:
+        - name: randomjob-skipjob
+          image: "perl:5.34.0"
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+        - name: cloudsql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.1
+          args:
+            - "test-project-bda1:europe-north1:pg-01-test"
+            - "--auto-iam-authn"
+            - "--structured-logs"
+            - "--port=5432"
+            - "--quitquitquit"
+            - "--prometheus"
+            - "--private-ip"
+          securityContext:
+            runAsNonRoot: true
+            privileged: false
+            runAsUser: 200
+            runAsGroup: 200
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: "RuntimeDefault"
+            capabilities:
+              drop:
+                - ALL
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: randomjob-skipjob
+      priorityClassName: skip-medium
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: randomjob-skipjob
+spec:
+  podSelector:
+    matchLabels:
+      app: randomjob-skipjob
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 3307
+      to:
+        - ipBlock:
+            cidr: 10.0.0.1/32

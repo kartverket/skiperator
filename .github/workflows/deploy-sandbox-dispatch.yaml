@@ -47,17 +47,25 @@ jobs:
   deploy-argo:
     needs: [generate]
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     strategy:
       matrix:
-        base_dir: [./sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
+        base_dir: [./env/atkv3-sandbox/skiperator-system, ./env/atgcp1-sandbox/skiperator-system]
     env:
       TMP_FILE: tmp_kustomization.yaml
     steps:
+      - uses: octo-sts/action@6177b4481c00308b3839969c3eca88c96a91775f # v1.0.0
+        id: octo-sts
+        with:
+          scope: kartverket/skip-apps
+          identity: skiperator
+
       - name: Checkout apps repo
         uses: actions/checkout@v4
         with:
           repository: kartverket/skip-apps
-          token: ${{ secrets.SKIPERATOR_DEPLOY_SECRET }}
+          token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Download CRD and RBAC
         uses: actions/download-artifact@v4

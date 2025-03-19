@@ -46,13 +46,16 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: tmp
-        - name: cloud-sql-proxy
-          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+        - name: cloudsql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.15.1
           args:
+            - "test-project-bda1:europe-north1:pg-01-test"
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
-            - "test-project-bda1:europe-north1:pg-01-test"
+            - "--quitquitquit"
+            - "--prometheus"
+            - "--private-ip"
           securityContext:
             runAsNonRoot: true
             privileged: false
@@ -145,24 +148,4 @@ spec:
       app: patchapp
   mtls:
     mode: STRICT
----
-apiVersion: networking.istio.io/v1
-kind: ServiceEntry
-metadata:
-  name: patchapp-egress-1aebaef7c2f133f8
-spec:
-  addresses:
-    - 10.0.0.1
-  endpoints:
-    - address: 10.0.0.1
-  exportTo:
-    - .
-    - istio-system
-    - istio-gateways
-  hosts:
-    - patchapp-a0921a82f8f8e22c.cloudsql
-  ports:
-    - name: cloudsqlproxy
-      number: 3307
-      protocol: TCP
-  resolution: STATIC
+
