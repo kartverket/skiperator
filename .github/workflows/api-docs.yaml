@@ -31,7 +31,7 @@ jobs:
 
       - name: Copy generated output to target repo
         run: |
-          cp api-docs.md docs/docs/13-skiperator/04-api-docs.md  
+          cp api-docs.md docs/docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md
 
       - name: Commit and push changes
         run: |
