@@ -44,7 +44,6 @@ type RequestAuth struct {
 	//
 	// ```
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MaxItems=10
 	OutputClaimToHeaders *[]ClaimToHeader `json:"outputClaimToHeaders,omitempty"`
 
 	// AcceptedResources is used as a validation field following [RFC8707](https://datatracker.ietf.org/doc/html/rfc8707).
@@ -53,7 +52,6 @@ type RequestAuth struct {
 	// Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
 	//
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:MaxItems=10
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^(https?):\/\/[^\s\/$.?#].[^\s]*$`
 	AcceptedResources []string `json:"acceptedResources,omitempty"`
@@ -63,7 +61,6 @@ type RequestAuth struct {
 	//
 	// API endpoints not covered by AuthRules IgnoreAuth requires an authenticated JWT by default.
 	//
-	// +kubebuilder:validation:MaxItems=10
 	// +kubebuilder:validation:Optional
 	AuthRules *[]RequestAuthRule `json:"authRules,omitempty"`
 
@@ -71,7 +68,6 @@ type RequestAuth struct {
 	//
 	// API endpoints not covered by AuthRules or IgnoreAuth requires an authenticated JWT by default.
 	//
-	// +kubebuilder:validation:MaxItems=50
 	// +kubebuilder:validation:Optional
 	IgnoreAuth *[]RequestMatcher `json:"ignoreAuth,omitempty"`
 }
@@ -120,7 +116,6 @@ type RequestMatcher struct {
 	//
 	// +listType=set
 	// +kubebuilder:validation:Items.Pattern=`^/[a-zA-Z0-9\-._~!$&'()+,;=:@%/]*(\*)?$`
-	// +kubebuilder:validation:MaxItems=50
 	Paths []string `json:"paths"`
 
 	// Methods specifies HTTP methods that applies for the defined paths.
