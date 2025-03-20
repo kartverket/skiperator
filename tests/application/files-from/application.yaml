@@ -14,3 +14,9 @@ spec:
       emptyDir: empty-dir
     - mountPath: /persistent-volume-claim
       persistentVolumeClaim: persistent-volume-claim
+    - mountPath: /config-map2
+      configMap: config-map2
+      defaultMode: 0600
+    - mountPath: /secret2
+      secret: secret2
+      defaultMode: 0600
