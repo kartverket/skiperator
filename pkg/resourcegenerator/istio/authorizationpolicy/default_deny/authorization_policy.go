@@ -38,18 +38,13 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	var notPaths []string
 	if application.Spec.AuthorizationSettings != nil {
-		for _, path := range application.Spec.AuthorizationSettings.AllowList {
-			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath) {
-				notPaths = append(notPaths, path)
-			}
-		}
-		for _, path := range r.GetAuthConfigs().GetAllPaths() {
+		for _, path := range append(application.Spec.AuthorizationSettings.AllowList, r.GetAuthConfigs().GetAllPaths()...) {
 			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath) {
 				notPaths = append(notPaths, path)
 			}
 		}
 	}
-	
+
 	r.AddResource(
 		&securityv1.AuthorizationPolicy{
 			ObjectMeta: metav1.ObjectMeta{
