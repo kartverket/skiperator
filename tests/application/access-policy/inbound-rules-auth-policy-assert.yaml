@@ -1,0 +1,24 @@
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: inbound-rules-auth-policy-allow-paths
+spec:
+  rules:
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /actuator/health
+              - /actuator/info
+              - /actuator/status
+    - from:
+        - source:
+            principals:
+              - cluster.local/ns/other-namespace/sa/other-app
+              - cluster.local/ns/access-policy-ns/sa/some-other-app
+  selector:
+    matchLabels:
+      app: inbound-rules-auth-policy

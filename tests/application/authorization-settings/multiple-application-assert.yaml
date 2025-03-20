@@ -51,6 +51,9 @@ spec:
         - operation:
             paths:
               - /actuator*
+            notPaths:
+              - /actuator/health
+              - /actuator/info
   selector:
     matchLabels:
       app: allow-list

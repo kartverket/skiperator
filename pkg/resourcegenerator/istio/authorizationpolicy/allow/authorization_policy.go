@@ -5,8 +5,11 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
+	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
-	"k8s.io/apimachinery/pkg/types"
+	typev1beta1 "istio.io/api/type/v1beta1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -33,19 +36,54 @@ func Generate(r reconciliation.Reconciliation) error {
 		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
 	}
 
+	authPolicyRules := []*securityv1api.Rule{
+		{
+			To: []*securityv1api.Rule_To{
+				{
+					Operation: &securityv1api.Operation{
+						Paths: allowedPaths,
+					},
+				},
+			},
+			From: authorizationpolicy.GetGeneralFromRule(),
+		},
+	}
+
+	var allowedPrincipals []string
+	if application.Spec.AccessPolicy != nil && application.Spec.AccessPolicy.Inbound != nil {
+		for _, rule := range application.Spec.AccessPolicy.Inbound.Rules {
+			allowedPrincipals = append(allowedPrincipals, rule.ToPrincipal(application.Namespace))
+		}
+	}
+
+	if len(allowedPrincipals) > 0 {
+		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
+			From: []*securityv1api.Rule_From{
+				{
+					Source: &securityv1api.Source{
+						Principals: allowedPrincipals,
+					},
+				},
+			},
+		})
+	}
+
 	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
 	if len(allowedPaths) > 0 {
 		r.AddResource(
-			authorizationpolicy.GetAuthPolicy(
-				types.NamespacedName{
+			&securityv1.AuthorizationPolicy{
+				ObjectMeta: metav1.ObjectMeta{
 					Name:      application.Name + "-allow-paths",
 					Namespace: application.Namespace,
 				},
-				application.Name,
-				securityv1api.AuthorizationPolicy_ALLOW,
-				allowedPaths,
-				[]string{},
-			),
+				Spec: securityv1api.AuthorizationPolicy{
+					Action: securityv1api.AuthorizationPolicy_ALLOW,
+					Rules:  authPolicyRules,
+					Selector: &typev1beta1.WorkloadSelector{
+						MatchLabels: util.GetPodAppSelector(application.Name),
+					},
+				},
+			},
 		)
 	}
 	ctxLog.Debug("Finished generating allow AuthorizationPolicy for application", "application", application.Name)

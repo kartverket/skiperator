@@ -4,11 +4,7 @@ metadata:
   name: allow-list-allow-paths
 spec:
   rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
+    - to:
         - operation:
             paths:
               - /actuator/info
@@ -32,6 +28,9 @@ spec:
         - operation:
             paths:
               - /actuator*
+            notPaths:
+              - /actuator/info
+              - /actuator/shutdown
   selector:
     matchLabels:
       app: allow-list
