@@ -38,7 +38,7 @@ jobs:
           git add .
           # Only commit if there are changes
           if git diff --cached --exit-code &>/dev/null; then
-            echo "No changes to commit"
+            echo "No changes to commit."
           else
             git commit -m "Update Skiperator api-docs"
             git push origin main
