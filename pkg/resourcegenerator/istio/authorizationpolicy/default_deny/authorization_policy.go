@@ -39,7 +39,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	var notPaths []string
 	if application.Spec.AuthorizationSettings != nil {
 		for _, path := range append(application.Spec.AuthorizationSettings.AllowList, r.GetAuthConfigs().GetAllPaths()...) {
-			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath) {
+			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath[:len(authorizationpolicy.DefaultDenyPath)-1]) {
 				notPaths = append(notPaths, path)
 			}
 		}
