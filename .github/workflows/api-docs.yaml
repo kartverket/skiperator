@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'config/crd/**'
+
 jobs:
   run-crdoc:
     runs-on: ubuntu-latest
@@ -40,8 +41,7 @@ jobs:
           git config --global user.name "GithubActions"
           git add .
           # Only commit if there are changes
-          git diff --cached --exit-code &>/dev/null
-          if [ $? -eq 0 ]; then
+          if git diff --cached --exit-code &>/dev/null; then
             echo "No changes to commit"
           else
             git commit -m "Update Skiperator api-docs"
