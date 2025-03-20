@@ -2,10 +2,7 @@ name: write api-docs to skip.kartverket.no
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - 'config/crd/**'
+
 jobs:
   run-crdoc:
     runs-on: ubuntu-latest
