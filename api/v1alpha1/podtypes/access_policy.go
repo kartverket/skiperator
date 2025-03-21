@@ -1,6 +1,9 @@
 package podtypes
 
-import v1 "k8s.io/api/networking/v1"
+import (
+	"fmt"
+	v1 "k8s.io/api/networking/v1"
+)
 
 // AccessPolicy
 //
@@ -128,4 +131,11 @@ type ExternalPort struct {
 	//+kubebuilder:validation:Required
 	// +kubebuilder:validation:Enum=HTTP;HTTPS;TCP;TLS
 	Protocol string `json:"protocol"`
+}
+
+func (internalRule *InternalRule) ToPrincipal(applicationNamespace string) string {
+	if internalRule.Namespace != "" {
+		return fmt.Sprintf("cluster.local/ns/%s/sa/%s", internalRule.Namespace, internalRule.Application)
+	}
+	return fmt.Sprintf("cluster.local/ns/%s/sa/%s", applicationNamespace, internalRule.Application)
 }

@@ -17,6 +17,21 @@ type AuthConfig struct {
 	ProviderInfo  digdirator.DigdiratorInfo
 }
 
+func (authConfigs *AuthConfigs) GetAllPaths() []string {
+	uniquePaths := map[string]struct{}{}
+	if authConfigs != nil {
+		for _, config := range *authConfigs {
+			for _, ignoredPath := range config.IgnorePaths {
+				uniquePaths[ignoredPath] = struct{}{}
+			}
+			for _, allowPath := range config.Paths {
+				uniquePaths[allowPath] = struct{}{}
+			}
+		}
+	}
+	return maps.Keys(uniquePaths)
+}
+
 func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
 	ignoredPaths := map[string]string{}
 	allowPaths := map[string]string{}

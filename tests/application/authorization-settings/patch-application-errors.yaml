@@ -1,8 +1,9 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: allow-list-allow-paths
+  name: allow-list-default-deny
 spec:
+  action: DENY
   rules:
     - from:
         - source:
@@ -11,5 +12,7 @@ spec:
       to:
         - operation:
             paths:
-              - /actuator/info
+              - /actuator*
+            notPaths:
               - /actuator/health
+              - /actuator/info

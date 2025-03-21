@@ -1,7 +1,7 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: application-two-default-deny
+  name: inbound-rules-auth-policy-default-deny
 spec:
   action: DENY
   rules:
@@ -13,6 +13,9 @@ spec:
         - operation:
             paths:
               - /actuator*
+            notPaths:
+              - /actuator/health
+              - /actuator/info
   selector:
     matchLabels:
-      app: application-two
+      app: inbound-rules-auth-policy
