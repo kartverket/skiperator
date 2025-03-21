@@ -17,17 +17,31 @@ spec:
               mountPath: /empty-dir
             - name: persistent-volume-claim
               mountPath: /persistent-volume-claim
+            - name: config-map2
+              mountPath: /config-map2
+            - name: secret2
+              mountPath: /secret2
       volumes:
         - name: tmp
           emptyDir: {}
         - name: config-map
           configMap:
             name: config-map
+            defaultMode: 420
         - name: secret
           secret:
             secretName: secret
+            defaultMode: 420
         - name: empty-dir
           emptyDir: {}
         - name: persistent-volume-claim
           persistentVolumeClaim:
             claimName: persistent-volume-claim
+        - name: config-map2
+          configMap:
+            name: config-map2
+            defaultMode: 384
+        - name: secret2
+          secret:
+            secretName: secret2
+            defaultMode: 384

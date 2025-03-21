@@ -34,7 +34,7 @@ func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]co
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: file.ConfigMap,
 						},
-						DefaultMode: util.PointTo(int32(420)),
+						DefaultMode: util.PointTo(int32(file.DefaultMode)),
 					},
 				},
 			}
@@ -44,7 +44,7 @@ func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]co
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName:  file.Secret,
-						DefaultMode: util.PointTo(int32(420)),
+						DefaultMode: util.PointTo(int32(file.DefaultMode)),
 					},
 				},
 			}
