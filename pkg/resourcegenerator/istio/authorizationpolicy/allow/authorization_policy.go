@@ -38,7 +38,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	var authPolicyRules []*securityv1api.Rule
 
 	// Include ignored paths from auth config as they should be accessible without authentication
-	allowedPaths := r.GetAuthConfigs().GetIgnoredPaths()
+	allowedPaths := authConfigs.GetIgnoredPaths()
 	if application.Spec.AuthorizationSettings != nil {
 		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
 	}

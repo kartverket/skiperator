@@ -18,18 +18,18 @@ type AuthConfig struct {
 }
 
 func (authConfigs *AuthConfigs) GetAllPaths() []string {
-	var paths []string
+	uniquePaths := map[string]struct{}{}
 	if authConfigs != nil {
 		for _, config := range *authConfigs {
 			for _, ignoredPath := range config.IgnorePaths {
-				paths = append(paths, ignoredPath)
+				uniquePaths[ignoredPath] = struct{}{}
 			}
 			for _, allowPath := range config.Paths {
-				paths = append(paths, allowPath)
+				uniquePaths[allowPath] = struct{}{}
 			}
 		}
 	}
-	return paths
+	return maps.Keys(uniquePaths)
 }
 
 func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
