@@ -34,14 +34,15 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	defaultDenyPath := authorizationpolicy.DefaultDenyPath
 	var notPaths []string
+	trimmedPrefix := strings.TrimSuffix(defaultDenyPath, "*")
 	for _, path := range authConfigs.GetAllPaths() {
-		if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath[:len(authorizationpolicy.DefaultDenyPath)-1]) {
+		if strings.HasPrefix(path, trimmedPrefix) {
 			notPaths = append(notPaths, path)
 		}
 	}
 	if application.Spec.AuthorizationSettings != nil {
 		for _, path := range application.Spec.AuthorizationSettings.AllowList {
-			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath[:len(authorizationpolicy.DefaultDenyPath)-1]) {
+			if strings.HasPrefix(path, trimmedPrefix) {
 				notPaths = append(notPaths, path)
 			}
 		}
