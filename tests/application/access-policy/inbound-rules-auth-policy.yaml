@@ -9,7 +9,7 @@ spec:
     allowList:
       - /actuator/health
       - /actuator/info
-      - /actuator/status
+      - /public
   accessPolicy:
     inbound:
       rules:

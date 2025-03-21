@@ -1,8 +1,9 @@
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: inbound-rules-auth-policy-allow-paths
+  name: inbound-rules-auth-policy-default-deny
 spec:
+  action: DENY
   rules:
     - from:
         - source:
@@ -11,14 +12,10 @@ spec:
       to:
         - operation:
             paths:
+              - /actuator*
+            notPaths:
               - /actuator/health
               - /actuator/info
-              - /actuator/status
-    - from:
-        - source:
-            principals:
-              - cluster.local/ns/other-namespace/sa/other-app
-              - cluster.local/ns/access-policy-ns/sa/some-other-app
   selector:
     matchLabels:
       app: inbound-rules-auth-policy

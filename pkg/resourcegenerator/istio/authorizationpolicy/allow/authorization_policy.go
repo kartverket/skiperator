@@ -29,15 +29,22 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	var allowedPaths []string
+	authConfigs := r.GetAuthConfigs()
+	if authConfigs == nil {
+		ctxLog.Debug("No auth configs provided for application. Skipping generating allow-paths AuthorizationPolicy", "application", application.Name)
+		return nil
+	}
+
+	var authPolicyRules []*securityv1api.Rule
+
 	// Include ignored paths from auth config as they should be accessible without authentication
-	allowedPaths = append(allowedPaths, r.GetAuthConfigs().GetIgnoredPaths()...)
+	allowedPaths := r.GetAuthConfigs().GetIgnoredPaths()
 	if application.Spec.AuthorizationSettings != nil {
 		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
 	}
 
-	authPolicyRules := []*securityv1api.Rule{
-		{
+	if len(allowedPaths) > 0 {
+		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
 			To: []*securityv1api.Rule_To{
 				{
 					Operation: &securityv1api.Operation{
@@ -46,7 +53,7 @@ func Generate(r reconciliation.Reconciliation) error {
 				},
 			},
 			From: authorizationpolicy.GetGeneralFromRule(),
-		},
+		})
 	}
 
 	var allowedPrincipals []string
@@ -69,7 +76,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
-	if len(allowedPaths) > 0 {
+	if len(authPolicyRules) > 0 && len(*authConfigs) > 0 {
 		r.AddResource(
 			&securityv1.AuthorizationPolicy{
 				ObjectMeta: metav1.ObjectMeta{
