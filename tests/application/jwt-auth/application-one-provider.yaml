@@ -12,7 +12,20 @@ spec:
     integrationType: "api_klient"
     scopes:
       - "openid"
-    requestAuthentication:
+    requestAuth:
       enabled: true
-      ignorePaths:
-        - "/loginIdPorten"
+      acceptedResources:
+        - "http://example.com"
+      authRules:
+        - paths:
+            - "/super/secure"
+          methods:
+            - "POST"
+            - "DELETE"
+          when:
+            - claim: "acr"
+              values:
+                - "Level4"
+      ignoreAuth:
+        - paths:
+            - "/loginIdPorten"

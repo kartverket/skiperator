@@ -3,6 +3,7 @@ package jwt_auth
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
@@ -56,37 +57,54 @@ func Generate(r reconciliation.Reconciliation) error {
 func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, applicationName string, authConfigs []auth.AuthConfig) *securityv1.AuthorizationPolicy {
 	var authPolicyRules []*securityv1api.Rule
 	for _, authConfig := range authConfigs {
-		var ruleTo securityv1api.Rule_To
-		if len(authConfig.Paths) == 0 && len(authConfig.IgnorePaths) == 0 {
-			ruleTo = securityv1api.Rule_To{
-				Operation: &securityv1api.Operation{
-					Paths: []string{"/*"},
+		baseConditions := getBaseConditions(authConfig)
+		if len(authConfig.AuthRules)+len(authConfig.IgnoreAuthRules) == 0 {
+			authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
+				To: []*securityv1api.Rule_To{
+					{
+						Operation: &securityv1api.Operation{
+							Paths: []string{"*"},
+						},
+					},
 				},
-			}
+				From: authorizationpolicy.GetGeneralFromRule(),
+				When: baseConditions,
+			})
 		} else {
-			ruleTo = securityv1api.Rule_To{
-				Operation: &securityv1api.Operation{
-					Paths:    authConfig.Paths,
-					NotPaths: authConfig.IgnorePaths,
-				},
+			// The first rule ensures requestMatchers not covered in auth configs require valid JWT.
+			// This is the same as the diff between all possible requests and the list of all requestMatchers in authRules + ignoreAuth.
+			authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
+				To: authorizationpolicy.GetApiSurfaceDiffAsRuleToList(
+					istiotypes.RequestMatchers{
+						{
+							Paths: []string{"*"},
+						},
+					},
+					append(authConfig.AuthRules.GetRequestMatchers(), authConfig.IgnoreAuthRules...),
+				),
+				From: authorizationpolicy.GetGeneralFromRule(),
+				When: baseConditions,
+			})
+
+			for _, rule := range authConfig.AuthRules {
+				authPolicyRules = append(
+					authPolicyRules,
+					// Apply rule to enforce rules specified by user
+					&securityv1api.Rule{
+						To: []*securityv1api.Rule_To{
+							{
+								Operation: &securityv1api.Operation{
+									Paths:   rule.Paths,
+									Methods: rule.Methods,
+								},
+							},
+						},
+						From: authorizationpolicy.GetGeneralFromRule(),
+						When: append(baseConditions, getAuthPolicyRuleConditions(rule.When)...),
+					},
+				)
 			}
 		}
-		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
-			To: []*securityv1api.Rule_To{
-				&ruleTo,
-			},
-			When: []*securityv1api.Condition{
-				{
-					Key:    "request.auth.claims[iss]",
-					Values: []string{authConfig.ProviderInfo.IssuerURI},
-				},
-				{
-					Key:    "request.auth.claims[aud]",
-					Values: []string{authConfig.ProviderInfo.ClientID},
-				},
-			},
-			From: authorizationpolicy.GetGeneralFromRule(),
-		})
 	}
 	return &securityv1.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -101,4 +119,35 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 			},
 		},
 	}
+}
+
+func getAuthPolicyRuleConditions(conditions []istiotypes.Condition) []*securityv1api.Condition {
+	var istioConditions []*securityv1api.Condition
+	for _, whenCondition := range conditions {
+		istioConditions = append(istioConditions, &securityv1api.Condition{
+			Key:    fmt.Sprintf("request.auth.claims[%s]", whenCondition.Claim),
+			Values: whenCondition.Values,
+		})
+	}
+	return istioConditions
+}
+
+func getBaseConditions(authConfig auth.AuthConfig) []*securityv1api.Condition {
+	conditions := []*securityv1api.Condition{
+		{
+			Key:    "request.auth.claims[iss]",
+			Values: []string{authConfig.ProviderInfo.IssuerURI},
+		},
+		{
+			Key:    "request.auth.claims[aud]",
+			Values: []string{authConfig.ProviderInfo.ClientID},
+		},
+	}
+	if len(authConfig.AcceptedResources) == 0 {
+		return conditions
+	}
+	return append(conditions, &securityv1api.Condition{
+		Key:    "request.auth.claims[aud]",
+		Values: authConfig.AcceptedResources,
+	})
 }

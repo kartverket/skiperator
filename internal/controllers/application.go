@@ -497,10 +497,11 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	}
 
 	return &jwtAuth.AuthConfig{
-		Spec:          *requestAuthSpec,
-		Paths:         digdiratorProvider.GetPaths(),
-		IgnorePaths:   digdiratorProvider.GetIgnoredPaths(),
-		TokenLocation: digdiratorProvider.GetTokenLocation(),
+		Spec:              *requestAuthSpec,
+		AuthRules:         digdiratorProvider.GetAuthRules(),
+		IgnoreAuthRules:   digdiratorProvider.GetIgnoredAuthRules(),
+		TokenLocation:     digdiratorProvider.GetTokenLocation(),
+		AcceptedResources: digdiratorProvider.GetAcceptedResources(),
 		ProviderInfo: digdirator.DigdiratorInfo{
 			Name:      digdiratorProvider.GetDigdiratorName(),
 			IssuerURI: issuerUri,

@@ -5,8 +5,11 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
+	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
-	"k8s.io/apimachinery/pkg/types"
+	typev1beta1 "istio.io/api/type/v1beta1"
+	securityv1 "istio.io/client-go/pkg/apis/security/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -32,18 +35,31 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Debug("No auth config provided. Defaults to deny-all AuthorizationPolicy for application", "application", application.Name)
 	}
 
-	r.AddResource(
-		authorizationpolicy.GetAuthPolicy(
-			types.NamespacedName{
-				Name:      application.Name + "-default-deny",
-				Namespace: application.Namespace,
+	r.AddResource(&securityv1.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name + "-default-deny",
+		},
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: securityv1api.AuthorizationPolicy_DENY,
+			Rules: []*securityv1api.Rule{
+				{
+					To: []*securityv1api.Rule_To{
+						{
+							Operation: &securityv1api.Operation{
+								Paths:    []string{defaultDenyPath},
+								NotPaths: []string{},
+							},
+						},
+					},
+					From: authorizationpolicy.GetGeneralFromRule(),
+				},
 			},
-			application.Name,
-			securityv1api.AuthorizationPolicy_DENY,
-			[]string{defaultDenyPath},
-			[]string{},
-		),
-	)
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: util.GetPodAppSelector(application.Name),
+			},
+		},
+	})
 
 	ctxLog.Debug("Finished generating default AuthorizationPolicy for application", "application", application.Name)
 	return nil

@@ -83,8 +83,8 @@ type IDPorten struct {
 	// +kubebuilder:validation:Maximum=7200
 	SessionLifetime *int `json:"sessionLifetime,omitempty"`
 
-	// RequestAuthentication specifies how incoming JWTs should be validated.
-	RequestAuthentication *istiotypes.RequestAuthentication `json:"requestAuthentication,omitempty"`
+	// RequestAuth specifies how incoming JWTs should be validated.
+	RequestAuth *istiotypes.RequestAuth `json:"requestAuth,omitempty"`
 }
 
 type IDPortenClient struct {
@@ -100,12 +100,12 @@ func (i *IDPortenClient) GetOwnerReferences() []v1.OwnerReference {
 }
 
 func (i *IDPorten) IsRequestAuthEnabled() bool {
-	return i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.Enabled
+	return i != nil && i.RequestAuth != nil && i.RequestAuth.Enabled
 }
 
-func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuthentication {
-	if i != nil && i.RequestAuthentication != nil {
-		return i.RequestAuthentication
+func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuth {
+	if i != nil && i.RequestAuth != nil {
+		return i.RequestAuth
 	}
 	return nil
 }
@@ -115,30 +115,30 @@ func (i *IDPorten) GetDigdiratorName() DigdiratorName {
 }
 
 func (i *IDPorten) GetProvidedSecretName() *string {
-	if i != nil && i.RequestAuthentication != nil {
-		return i.RequestAuthentication.SecretName
+	if i != nil && i.RequestAuth != nil {
+		return i.RequestAuth.SecretName
 	}
 	return nil
 }
 
-func (i *IDPorten) GetPaths() []string {
-	var paths []string
+func (i *IDPorten) GetAuthRules() istiotypes.RequestAuthRules {
+	var requestAuthRules istiotypes.RequestAuthRules
 	if i.IsRequestAuthEnabled() {
-		if i.RequestAuthentication.Paths != nil {
-			paths = append(paths, *i.RequestAuthentication.Paths...)
+		if i.RequestAuth.AuthRules != nil {
+			requestAuthRules = append(requestAuthRules, *i.RequestAuth.AuthRules...)
 		}
 	}
-	return paths
+	return requestAuthRules
 }
 
-func (i *IDPorten) GetIgnoredPaths() []string {
-	var ignoredPaths []string
+func (i *IDPorten) GetIgnoredAuthRules() istiotypes.RequestMatchers {
+	var ignoredAuthRules istiotypes.RequestMatchers
 	if i.IsRequestAuthEnabled() {
-		if i.RequestAuthentication.IgnorePaths != nil {
-			ignoredPaths = append(ignoredPaths, *i.RequestAuthentication.IgnorePaths...)
+		if i.RequestAuth.IgnoreAuth != nil {
+			ignoredAuthRules = append(ignoredAuthRules, *i.RequestAuth.IgnoreAuth...)
 		}
 	}
-	return ignoredPaths
+	return ignoredAuthRules
 }
 
 func (i *IDPorten) GetIssuerKey() string {
@@ -154,8 +154,15 @@ func (i *IDPorten) GetClientIDKey() string {
 }
 
 func (i *IDPorten) GetTokenLocation() string {
-	if i != nil && i.RequestAuthentication != nil && i.RequestAuthentication.TokenLocation != nil {
-		return *i.RequestAuthentication.TokenLocation
+	if i != nil && i.RequestAuth != nil && i.RequestAuth.TokenLocation != nil {
+		return *i.RequestAuth.TokenLocation
 	}
 	return "cookie"
+}
+
+func (i *IDPorten) GetAcceptedResources() []string {
+	if i.IsRequestAuthEnabled() && i.RequestAuth.AcceptedResources != nil {
+		return i.RequestAuth.AcceptedResources
+	}
+	return []string{}
 }
