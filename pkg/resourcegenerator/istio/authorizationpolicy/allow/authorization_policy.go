@@ -39,15 +39,19 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	authConfigs := r.GetAuthConfigs()
-	if authConfigs != nil {
-		// Include ignoredAuthRules from auth config as they should be accessible without authentication
-		ignoreAuthRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
-		authorizedOperations = append(
-			authorizedOperations,
-			authorizationpolicy.GetApiSurfaceDiffAsRuleToList(ignoreAuthRequestMatchers, authorizedRequestMatchers)...,
-		)
+	if authConfigs == nil {
+		ctxLog.Debug("No auth configs provided for application. Skipping generating allow-paths AuthorizationPolicy", "application", application.Name)
+		return nil
 	}
-	if len(authorizedOperations) > 0 {
+
+	// Include ignoredAuthRules from auth config as they should be accessible without authentication
+	ignoreAuthRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
+	authorizedOperations = append(
+		authorizedOperations,
+		authorizationpolicy.GetApiSurfaceDiffAsRuleToList(ignoreAuthRequestMatchers, authorizedRequestMatchers)...,
+	)
+
+	if len(authorizedOperations) > 0 && len(*authConfigs) > 0 {
 		r.AddResource(&securityv1.AuthorizationPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: application.Namespace,
@@ -57,8 +61,7 @@ func Generate(r reconciliation.Reconciliation) error {
 				Action: securityv1api.AuthorizationPolicy_ALLOW,
 				Rules: []*securityv1api.Rule{
 					{
-						To:   authorizedOperations,
-						From: authorizationpolicy.GetGeneralFromRule(),
+						To: authorizedOperations,
 					},
 				},
 				Selector: &typev1beta1.WorkloadSelector{

@@ -10,6 +10,7 @@ import (
 	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strings"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -29,9 +30,25 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
+	authConfigs := r.GetAuthConfigs()
+
 	defaultDenyPath := authorizationpolicy.DefaultDenyPath
-	if application.Spec.IsRequestAuthEnabled() && r.GetAuthConfigs() == nil {
+	var notPaths []string
+	for _, path := range authConfigs.GetAllPaths() {
+		if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath[:len(authorizationpolicy.DefaultDenyPath)-1]) {
+			notPaths = append(notPaths, path)
+		}
+	}
+	if application.Spec.AuthorizationSettings != nil {
+		for _, path := range application.Spec.AuthorizationSettings.AllowList {
+			if strings.HasPrefix(path, authorizationpolicy.DefaultDenyPath[:len(authorizationpolicy.DefaultDenyPath)-1]) {
+				notPaths = append(notPaths, path)
+			}
+		}
+	}
+	if application.Spec.IsRequestAuthEnabled() && authConfigs == nil {
 		defaultDenyPath = "*"
+		notPaths = []string{}
 		ctxLog.Debug("No auth config provided. Defaults to deny-all AuthorizationPolicy for application", "application", application.Name)
 	}
 
@@ -48,11 +65,10 @@ func Generate(r reconciliation.Reconciliation) error {
 						{
 							Operation: &securityv1api.Operation{
 								Paths:    []string{defaultDenyPath},
-								NotPaths: []string{},
+								NotPaths: notPaths,
 							},
 						},
 					},
-					From: authorizationpolicy.GetGeneralFromRule(),
 				},
 			},
 			Selector: &typev1beta1.WorkloadSelector{

@@ -89,3 +89,14 @@ func (authConfigs AuthConfigs) GetIgnoreAuthAndAuthorizedRequestMatchers() (isti
 	}
 	return ignoredRequestMatchers, authorizedRequestMatchers
 }
+
+func (authConfigs *AuthConfigs) GetAllPaths() []string {
+	var uniquePaths map[string]struct{}
+	ignoredRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
+	for _, requestMatcher := range append(ignoredRequestMatchers, authorizedRequestMatchers...) {
+		for _, path := range requestMatcher.Paths {
+			uniquePaths[path] = struct{}{}
+		}
+	}
+	return maps.Keys(uniquePaths)
+}
