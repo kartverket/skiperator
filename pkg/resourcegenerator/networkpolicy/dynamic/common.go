@@ -47,7 +47,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	}
 
 	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)
-	egressRules := getEgressRules(accessPolicy, namespace)
+	egressRules := getEgressRules(accessPolicy, object)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(name)},
@@ -81,8 +81,28 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 	return policyType
 }
 
-func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []networkingv1.NetworkPolicyEgressRule {
+func getCloudSQLEgressRule(skipObject skiperatorv1alpha1.SKIPObject) networkingv1.NetworkPolicyEgressRule {
+	return networkingv1.NetworkPolicyEgressRule{
+		To: []networkingv1.NetworkPolicyPeer{
+			{
+				IPBlock: &networkingv1.IPBlock{
+					CIDR: skipObject.GetCommonSpec().GCP.CloudSQLProxy.IP + "/32",
+				},
+			},
+		},
+		Ports: []networkingv1.NetworkPolicyPort{{
+			Port:     util.PointTo(intstr.FromInt(3307)),
+			Protocol: util.PointTo(v1.ProtocolTCP),
+		}},
+	}
+}
+
+func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1alpha1.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
+
+	if util.IsCloudSqlProxyEnabled(skipObject.GetCommonSpec().GCP) {
+		egressRules = append(egressRules, getCloudSQLEgressRule(skipObject))
+	}
 
 	if accessPolicy == nil || accessPolicy.Outbound == nil {
 		return egressRules
@@ -92,7 +112,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, appNamespace string) []
 		if rule.Ports == nil {
 			continue
 		}
-		egressRules = append(egressRules, getEgressRule(rule, appNamespace))
+		egressRules = append(egressRules, getEgressRule(rule, skipObject.GetNamespace()))
 	}
 
 	for _, externalRule := range accessPolicy.Outbound.External {

@@ -3,8 +3,9 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"time"
+
+	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -451,6 +452,7 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 		GCP:           a.Spec.GCP,
 		AccessPolicy:  a.Spec.AccessPolicy,
 		IstioSettings: a.Spec.IstioSettings,
+		Image:         a.Spec.Image,
 	}
 }
 

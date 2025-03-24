@@ -12,7 +12,6 @@ import (
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Generate(r reconciliation.Reconciliation) error {
@@ -33,11 +32,6 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 
 	object := r.GetSKIPObject()
 	accessPolicy := object.GetCommonSpec().AccessPolicy
-
-	accessPolicy, err := setCloudSqlRule(accessPolicy, object)
-	if err != nil {
-		return err
-	}
 
 	if accessPolicy != nil && accessPolicy.Outbound != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
@@ -119,39 +113,4 @@ func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []
 	}
 
 	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
-}
-
-func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object client.Object) (*podtypes.AccessPolicy, error) {
-	application, ok := object.(*skiperatorv1alpha1.Application)
-	if !ok {
-		return accessPolicy, nil
-	}
-
-	if !util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
-		return accessPolicy, nil
-	}
-
-	if application.Spec.GCP.CloudSQLProxy.IP == "" {
-		return nil, errors.New("cloud sql proxy IP is not set")
-	}
-
-	// The istio validation webhook will reject the service entry if the host is not a valid DNS name, such as an IP address.
-	// So we generate something that will not crash with other apps in the same namespace.
-	externalRule := &podtypes.ExternalRule{
-		Host:  fmt.Sprintf("%s-%x.cloudsql", application.Name, util.GenerateHashFromName(application.Spec.Image)),
-		Ip:    application.Spec.GCP.CloudSQLProxy.IP,
-		Ports: []podtypes.ExternalPort{{Name: "cloudsqlproxy", Port: 3307, Protocol: "TCP"}},
-	}
-
-	if accessPolicy == nil {
-		accessPolicy = &podtypes.AccessPolicy{}
-	}
-
-	if accessPolicy.Outbound == nil {
-		accessPolicy.Outbound = &podtypes.OutboundPolicy{}
-	}
-
-	accessPolicy.Outbound.External = append(accessPolicy.Outbound.External, *externalRule)
-
-	return accessPolicy, nil
 }

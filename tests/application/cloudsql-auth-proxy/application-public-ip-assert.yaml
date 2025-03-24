@@ -1,20 +1,20 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: randomapp
+  name: randomapp-public
   annotations:
     iam.gke.io/gcp-service-account: "grafana@test-project-bda1.iam.gserviceaccount.com"
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: randomapp
+  name: randomapp-public
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
 spec:
   selector:
     matchLabels:
-      app: randomapp
+      app: randomapp-public
   template:
     metadata:
       annotations:
@@ -22,10 +22,10 @@ spec:
         argocd.argoproj.io/sync-options: "Prune=false"
         cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
       labels:
-        app: randomapp
+        app: randomapp-public
     spec:
       containers:
-        - name: randomapp
+        - name: randomapp-public
           image: image
           imagePullPolicy: Always
           ports:
@@ -55,7 +55,6 @@ spec:
             - "--port=5432"
             - "--quitquitquit"
             - "--prometheus"
-            - "--private-ip"
           securityContext:
             runAsNonRoot: true
             privileged: false
@@ -82,7 +81,7 @@ spec:
           - 150
         seccompProfile:
           type: RuntimeDefault
-      serviceAccountName: randomapp
+      serviceAccountName: randomapp-public
       volumes:
         - emptyDir: {}
           name: tmp
@@ -95,7 +94,7 @@ spec:
               - key: app
                 operator: In
                 values:
-                  - randomapp
+                  - randomapp-public
           matchLabelKeys:
             - pod-template-hash
         - maxSkew: 1
@@ -106,14 +105,14 @@ spec:
               - key: app
                 operator: In
                 values:
-                  - randomapp
+                  - randomapp-public
           matchLabelKeys:
             - pod-template-hash
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: randomapp
+  name: randomapp-public
 spec:
   minReplicas: 2
   maxReplicas: 5
@@ -127,15 +126,15 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: randomapp
+    name: randomapp-public
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: randomapp
+  name: randomapp-public
 spec:
   selector:
-    app: randomapp
+    app: randomapp-public
   ports:
     - name: http
       port: 8080
@@ -146,22 +145,22 @@ spec:
 apiVersion: security.istio.io/v1
 kind: PeerAuthentication
 metadata:
-  name: randomapp
+  name: randomapp-public
 spec:
   selector:
     matchLabels:
-      app: randomapp
+      app: randomapp-public
   mtls:
     mode: STRICT
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: randomapp
+  name: randomapp-public
 spec:
   podSelector:
     matchLabels:
-      app: randomapp
+      app: randomapp-public
   policyTypes:
     - Egress
   egress:

@@ -16,21 +16,3 @@ spec:
   selector:
     matchLabels:
       app: application-two
----
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: application-two-allow-paths
-spec:
-  rules:
-    - from:
-        - source:
-            namespaces:
-              - istio-gateways
-      to:
-        - operation:
-            paths:
-              - /publicEndpoint
-  selector:
-    matchLabels:
-      app: application-two

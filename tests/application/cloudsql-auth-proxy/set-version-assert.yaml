@@ -46,13 +46,16 @@ spec:
           volumeMounts:
             - mountPath: /tmp
               name: tmp
-        - name: cloud-sql-proxy
+        - name: cloudsql-proxy
           image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.12
           args:
+            - "test-project-bda1:europe-north1:pg-01-test"
             - "--auto-iam-authn"
             - "--structured-logs"
             - "--port=5432"
-            - "test-project-bda1:europe-north1:pg-01-test"
+            - "--quitquitquit"
+            - "--prometheus"
+            - "--private-ip"
           securityContext:
             runAsNonRoot: true
             privileged: false
