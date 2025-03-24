@@ -7,6 +7,17 @@ spec:
   port: 8080
   ingresses:
     - example.com
+  authorizationSettings:
+    allowList:
+      - /actuator/health
+      - /actuator/info
+      - /public
+  accessPolicy:
+    inbound:
+      rules:
+        - application: other-app
+          namespace: other-namespace
+        - application: some-other-app
   idporten:
     enabled: true
     integrationType: "api_klient"

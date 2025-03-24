@@ -52,8 +52,3 @@ spec:
             file: dns-lookup.yaml
         - assert:
             file: dns-lookup-assert.yaml
-    - try:
-        - apply:
-            file: inbound-rules-auth-policy.yaml
-        - assert:
-            file: inbound-rules-auth-policy-assert.yaml
