@@ -166,3 +166,7 @@ func (i *IDPorten) GetAcceptedResources() []string {
 	}
 	return []string{}
 }
+
+func (i *IDPorten) IncludesInternalTraffic() bool {
+	return i.IsRequestAuthEnabled() && i.RequestAuth.IncludeInternalTraffic
+}

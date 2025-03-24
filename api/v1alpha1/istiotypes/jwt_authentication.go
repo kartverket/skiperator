@@ -64,6 +64,15 @@ type RequestAuth struct {
 	// +kubebuilder:validation:Optional
 	AuthRules *[]RequestAuthRule `json:"authRules,omitempty"`
 
+	// IncludeInternalTraffic specifies whether JWT authentication should be applied to internal traffic.
+	// If set to `true`, both internal and external traffic will be authenticated.
+	// If set to `false`, only external traffic will be authenticated, i.e. requests sent to one of your application's ingresses.
+	// Defaults to `false`.
+	//
+	// +kubebuilder:default=false
+	// +kubebuilder:validation:Optional
+	IncludeInternalTraffic bool `json:"includeInternalTraffic,omitempty"`
+
 	// IgnoreAuth defines request matchers for HTTP requests that do not require JWT authentication.
 	//
 	// API endpoints not covered by AuthRules or IgnoreAuth requires an authenticated JWT by default.

@@ -34,6 +34,8 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
 
+replace github.com/nais/azurerator => github.com/nais/azureator v0.0.0-20250317183745-d796f2c5a2ba
+
 require (
 	cel.dev/expr v0.19.1 // indirect
 	cloud.google.com/go v0.117.0 // indirect

@@ -23,12 +23,13 @@ var AcceptedHttpMethods = []string{
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
-	Spec              istiotypes.RequestAuth
-	AuthRules         istiotypes.RequestAuthRules
-	IgnoreAuthRules   istiotypes.RequestMatchers
-	TokenLocation     string
-	AcceptedResources []string
-	ProviderInfo      digdirator.DigdiratorInfo
+	Spec                   istiotypes.RequestAuth
+	AuthRules              istiotypes.RequestAuthRules
+	IgnoreAuthRules        istiotypes.RequestMatchers
+	TokenLocation          string
+	AcceptedResources      []string
+	IncludeInternalTraffic bool
+	ProviderInfo           digdirator.DigdiratorInfo
 }
 
 func (authConfigs *AuthConfigs) IgnorePathsFromOtherAuthConfigs() {
