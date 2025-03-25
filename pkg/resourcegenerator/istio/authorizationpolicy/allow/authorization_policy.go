@@ -29,9 +29,12 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	var authorizedOperations []*securityv1api.Rule_To
+	externalTrafficAllowRule := &securityv1api.Rule{
+		To:   []*securityv1api.Rule_To{},
+		From: authorizationpolicy.GetGeneralFromRule(),
+	}
 	if application.Spec.AuthorizationSettings != nil {
-		authorizedOperations = append(authorizedOperations, &securityv1api.Rule_To{
+		externalTrafficAllowRule.To = append(externalTrafficAllowRule.To, &securityv1api.Rule_To{
 			Operation: &securityv1api.Operation{
 				Paths: application.Spec.AuthorizationSettings.AllowList,
 			},
@@ -46,12 +49,24 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	// Include ignoredAuthRules from auth config as they should be accessible without authentication
 	ignoreAuthRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
-	authorizedOperations = append(
-		authorizedOperations,
+	externalTrafficAllowRule.To = append(
+		externalTrafficAllowRule.To,
 		authorizationpolicy.GetApiSurfaceDiffAsRuleToList(ignoreAuthRequestMatchers, authorizedRequestMatchers)...,
 	)
 
-	if len(authorizedOperations) > 0 && len(*authConfigs) > 0 {
+	if len(externalTrafficAllowRule.To) > 0 && len(*authConfigs) > 0 {
+		rules := []*securityv1api.Rule{externalTrafficAllowRule}
+		if application.Spec.AccessPolicy != nil && application.Spec.AccessPolicy.Inbound != nil && len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
+			rules = append(rules, &securityv1api.Rule{
+				From: []*securityv1api.Rule_From{
+					{
+						Source: &securityv1api.Source{
+							Principals: application.Spec.AccessPolicy.GetInboundRulesAsIstioPrincipals(application.Namespace),
+						},
+					},
+				},
+			})
+		}
 		r.AddResource(&securityv1.AuthorizationPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: application.Namespace,
@@ -59,11 +74,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			},
 			Spec: securityv1api.AuthorizationPolicy{
 				Action: securityv1api.AuthorizationPolicy_ALLOW,
-				Rules: []*securityv1api.Rule{
-					{
-						To: authorizedOperations,
-					},
-				},
+				Rules:  rules,
 				Selector: &typev1beta1.WorkloadSelector{
 					MatchLabels: util.GetPodAppSelector(application.Name),
 				},

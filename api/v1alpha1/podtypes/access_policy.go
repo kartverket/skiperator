@@ -133,9 +133,16 @@ type ExternalPort struct {
 	Protocol string `json:"protocol"`
 }
 
-func (internalRule *InternalRule) ToPrincipal(applicationNamespace string) string {
-	if internalRule.Namespace != "" {
-		return fmt.Sprintf("cluster.local/ns/%s/sa/%s", internalRule.Namespace, internalRule.Application)
+func (accessPolicy *AccessPolicy) GetInboundRulesAsIstioPrincipals(applicationNamespace string) []string {
+	var principals []string
+	if accessPolicy.Inbound != nil {
+		for _, rule := range accessPolicy.Inbound.Rules {
+			if rule.Namespace != "" {
+				principals = append(principals, fmt.Sprintf("cluster.local/ns/%s/sa/%s", rule.Namespace, rule.Application))
+			} else {
+				principals = append(principals, fmt.Sprintf("cluster.local/ns/%s/sa/%s", applicationNamespace, rule.Application))
+			}
+		}
 	}
-	return fmt.Sprintf("cluster.local/ns/%s/sa/%s", applicationNamespace, internalRule.Application)
+	return principals
 }

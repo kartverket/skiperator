@@ -81,6 +81,7 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 					},
 					append(authConfig.AuthRules.GetRequestMatchers(), authConfig.IgnoreAuthRules...),
 				),
+				From: authorizationpolicy.GetGeneralFromRule(),
 				When: baseConditions,
 			})
 
@@ -97,6 +98,7 @@ func getJwtValidationAuthPolicy(namespacedName types.NamespacedName, application
 								},
 							},
 						},
+						From: authorizationpolicy.GetGeneralFromRule(),
 						When: append(baseConditions, getAuthPolicyRuleConditions(rule.When)...),
 					},
 				)

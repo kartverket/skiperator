@@ -106,7 +106,3 @@ func (i *Maskinporten) GetAcceptedResources() []string {
 	}
 	return []string{}
 }
-
-func (i *Maskinporten) IncludesInternalTraffic() bool {
-	return i.IsRequestAuthEnabled() && i.RequestAuth.IncludeInternalTraffic
-}

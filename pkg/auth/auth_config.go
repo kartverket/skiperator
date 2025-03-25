@@ -23,13 +23,12 @@ var AcceptedHttpMethods = []string{
 type AuthConfigs []AuthConfig
 
 type AuthConfig struct {
-	Spec                   istiotypes.RequestAuth
-	AuthRules              istiotypes.RequestAuthRules
-	IgnoreAuthRules        istiotypes.RequestMatchers
-	TokenLocation          string
-	AcceptedResources      []string
-	IncludeInternalTraffic bool
-	ProviderInfo           digdirator.DigdiratorInfo
+	Spec              istiotypes.RequestAuth
+	AuthRules         istiotypes.RequestAuthRules
+	IgnoreAuthRules   istiotypes.RequestMatchers
+	TokenLocation     string
+	AcceptedResources []string
+	ProviderInfo      digdirator.DigdiratorInfo
 }
 
 func (authConfigs *AuthConfigs) IgnorePathsFromOtherAuthConfigs() {
@@ -92,11 +91,13 @@ func (authConfigs AuthConfigs) GetIgnoreAuthAndAuthorizedRequestMatchers() (isti
 }
 
 func (authConfigs *AuthConfigs) GetAllPaths() []string {
-	var uniquePaths map[string]struct{}
-	ignoredRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
-	for _, requestMatcher := range append(ignoredRequestMatchers, authorizedRequestMatchers...) {
-		for _, path := range requestMatcher.Paths {
-			uniquePaths[path] = struct{}{}
+	uniquePaths := make(map[string]struct{})
+	if authConfigs != nil {
+		ignoredRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
+		for _, requestMatcher := range append(ignoredRequestMatchers, authorizedRequestMatchers...) {
+			for _, path := range requestMatcher.Paths {
+				uniquePaths[path] = struct{}{}
+			}
 		}
 	}
 	return maps.Keys(uniquePaths)

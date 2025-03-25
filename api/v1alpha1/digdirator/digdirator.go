@@ -31,5 +31,4 @@ type DigdiratorProvider interface {
 	GetClientIDKey() string
 	GetTokenLocation() string
 	GetAcceptedResources() []string
-	IncludesInternalTraffic() bool
 }

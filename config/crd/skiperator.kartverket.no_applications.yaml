@@ -621,7 +621,6 @@ spec:
                           Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
                         items:
                           type: string
-                        maxItems: 10
                         type: array
                         x-kubernetes-list-type: set
                       authRules:
@@ -660,7 +659,6 @@ spec:
                                 The wildcard '*' is allowed only at the end of the path.
                               items:
                                 type: string
-                              maxItems: 50
                               type: array
                               x-kubernetes-list-type: set
                             when:
@@ -698,7 +696,6 @@ spec:
                           - paths
                           - when
                           type: object
-                        maxItems: 10
                         type: array
                       enabled:
                         description: |-
@@ -745,13 +742,11 @@ spec:
                                 The wildcard '*' is allowed only at the end of the path.
                               items:
                                 type: string
-                              maxItems: 50
                               type: array
                               x-kubernetes-list-type: set
                           required:
                           - paths
                           type: object
-                        maxItems: 50
                         type: array
                       outputClaimToHeaders:
                         description: "This field specifies a list of operations to
@@ -783,7 +778,6 @@ spec:
                           - claim
                           - header
                           type: object
-                        maxItems: 10
                         type: array
                       secretName:
                         description: |-
@@ -980,7 +974,6 @@ spec:
                           Each resource indicator must be a valid URI and the indicator must be present as the `aud` claim in the JWT token.
                         items:
                           type: string
-                        maxItems: 10
                         type: array
                         x-kubernetes-list-type: set
                       authRules:
@@ -1019,7 +1012,6 @@ spec:
                                 The wildcard '*' is allowed only at the end of the path.
                               items:
                                 type: string
-                              maxItems: 50
                               type: array
                               x-kubernetes-list-type: set
                             when:
@@ -1057,7 +1049,6 @@ spec:
                           - paths
                           - when
                           type: object
-                        maxItems: 10
                         type: array
                       enabled:
                         description: |-
@@ -1104,13 +1095,11 @@ spec:
                                 The wildcard '*' is allowed only at the end of the path.
                               items:
                                 type: string
-                              maxItems: 50
                               type: array
                               x-kubernetes-list-type: set
                           required:
                           - paths
                           type: object
-                        maxItems: 50
                         type: array
                       outputClaimToHeaders:
                         description: "This field specifies a list of operations to
@@ -1142,7 +1131,6 @@ spec:
                           - claim
                           - header
                           type: object
-                        maxItems: 10
                         type: array
                       secretName:
                         description: |-

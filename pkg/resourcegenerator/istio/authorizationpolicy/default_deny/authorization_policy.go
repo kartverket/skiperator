@@ -70,6 +70,7 @@ func Generate(r reconciliation.Reconciliation) error {
 							},
 						},
 					},
+					From: authorizationpolicy.GetGeneralFromRule(),
 				},
 			},
 			Selector: &typev1beta1.WorkloadSelector{
