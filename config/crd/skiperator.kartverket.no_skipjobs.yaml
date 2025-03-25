@@ -503,7 +503,6 @@ spec:
                               role.
                             type: string
                           version:
-                            default: 2.15.1
                             description: Image version for the CloudSQL proxy sidecar.
                             type: string
                         required:

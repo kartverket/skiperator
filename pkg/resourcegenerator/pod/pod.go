@@ -19,6 +19,8 @@ const (
 	Hostname SkiperatorTopologyKey = "kubernetes.io/hostname"
 	// OnPremFailureDomain is populated to the underlying ESXi hostname by the GKE on VMware tooling.
 	OnPremFailureDomain SkiperatorTopologyKey = "onprem.gke.io/failure-domain-name"
+	// DefaultCloudSQLProxyVersion
+	DefaultCloudSQLProxyVersion = "2.15.1"
 )
 
 type PodOpts struct {
@@ -116,6 +118,10 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 
 	if !cs.PublicIP {
 		args = append(args, "--private-ip") // Forces the use of private IP
+	}
+
+	if cs.Version == "" {
+		cs.Version = DefaultCloudSQLProxyVersion
 	}
 
 	return corev1.Container{
