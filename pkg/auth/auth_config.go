@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"golang.org/x/exp/maps"
 	securityv1api "istio.io/api/security/v1"
@@ -28,7 +28,7 @@ type AuthConfig struct {
 	IgnoreAuthRules   istiotypes.RequestMatchers
 	TokenLocation     string
 	AcceptedResources []string
-	ProviderInfo      digdirator.DigdiratorInfo
+	ProviderInfo      identity_provider.IdentityProviderInfo
 }
 
 func (authConfigs *AuthConfigs) IgnorePathsFromOtherAuthConfigs() {

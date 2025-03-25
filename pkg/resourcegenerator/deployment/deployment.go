@@ -3,6 +3,7 @@ package deployment
 import (
 	goerrors "errors"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/entraid"
 	"strings"
 
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -24,9 +25,10 @@ import (
 )
 
 const (
-	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
-	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
-	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
+	AnnotationKeyLinkPrefix                      = "link.argocd.argoproj.io/external-link"
+	DefaultDigdiratorMaskinportenMountPath       = "/var/run/secrets/skip/maskinporten"
+	DefaultDigdiratorIDportenMountPath           = "/var/run/secrets/skip/idporten"
+	DefaultAzureratorAzureAdApplicationMountPath = "/var/run/secrets/skip/entraid"
 )
 
 // TODO should clean up
@@ -98,6 +100,21 @@ func Generate(r reconciliation.Reconciliation) error {
 			podVolumes,
 			secretName,
 			DefaultDigdiratorMaskinportenMountPath,
+		)
+	}
+
+	if entraid.EntraIDSpecifiedInSpec(application.Spec.EntraID) {
+		secretName, err := entraid.GetEntraIdSecretName(application)
+		if err != nil {
+			ctxLog.Error(err, "could not get entraid secret name")
+			return err
+		}
+		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+			&skiperatorContainer,
+			containerVolumeMounts,
+			podVolumes,
+			secretName,
+			DefaultAzureratorAzureAdApplicationMountPath,
 		)
 	}
 

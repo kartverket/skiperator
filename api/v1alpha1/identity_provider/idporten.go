@@ -1,4 +1,4 @@
-package digdirator
+package identity_provider
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
@@ -7,7 +7,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const IDPortenName DigdiratorName = "idporten"
+const IDPortenName IdentityProviderName = "idporten"
 
 // Based off NAIS' IDPorten specification as seen here:
 // https://github.com/nais/liberator/blob/c9da4cf48a52c9594afc8a4325ff49bbd359d9d2/pkg/apis/nais.io/v1/naiserator_types.go#L93C10-L93C10
@@ -110,7 +110,7 @@ func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuth {
 	return nil
 }
 
-func (i *IDPorten) GetDigdiratorName() DigdiratorName {
+func (i *IDPorten) GetIdentityProviderName() IdentityProviderName {
 	return IDPortenName
 }
 

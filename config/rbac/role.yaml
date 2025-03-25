@@ -115,6 +115,7 @@ rules:
 - apiGroups:
   - nais.io
   resources:
+  - azureadapplications
   - idportenclients
   - maskinportenclients
   verbs:

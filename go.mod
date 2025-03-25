@@ -4,6 +4,7 @@ go 1.23.6
 
 toolchain go1.24.1
 
+replace github.com/nais/azurerator => github.com/nais/azureator v0.0.0-20250317183745-d796f2c5a2ba
 require (
 	dario.cat/mergo v1.0.1
 	github.com/caarlos0/env/v11 v11.3.1

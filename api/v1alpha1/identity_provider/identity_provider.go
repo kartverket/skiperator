@@ -1,28 +1,28 @@
-package digdirator
+package identity_provider
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type DigdiratorName string
+type IdentityProviderName string
 
-type DigdiratorInfo struct {
-	Name      DigdiratorName
+type IdentityProviderInfo struct {
+	Name      IdentityProviderName
 	IssuerURI string
 	JwksURI   string
 	ClientID  string
 }
 
-type DigdiratorClient interface {
+type IdentityProviderOperatorResource interface {
 	GetOwnerReferences() []v1.OwnerReference
 	GetSecretName() string
 }
 
-type DigdiratorProvider interface {
+type IdentityProvider interface {
 	IsRequestAuthEnabled() bool
 	GetAuthSpec() *istiotypes.RequestAuth
-	GetDigdiratorName() DigdiratorName
+	GetIdentityProviderName() IdentityProviderName
 	GetProvidedSecretName() *string
 	GetAuthRules() istiotypes.RequestAuthRules
 	GetIgnoredAuthRules() istiotypes.RequestMatchers
