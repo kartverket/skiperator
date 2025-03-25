@@ -94,3 +94,24 @@ spec:
       to:
         - ipBlock:
             cidr: 10.0.0.1/32
+---
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: skipjob-randomjob-egress-3cfe4dc60826a84f
+spec:
+  addresses:
+    - 10.0.0.1
+  endpoints:
+    - address: 10.0.0.1
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  hosts:
+    - randomjob-4a3d249f602654f2.cloudsql
+  ports:
+    - name: cloudsqlproxy
+      number: 3307
+      protocol: TCP
+  resolution: STATIC
