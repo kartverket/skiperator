@@ -33,6 +33,12 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Error(err, "Failed to generate idporten resource")
 		return err
 	}
+
+	if !IdportenSpecifiedInSpec(application.Spec.IDPorten) {
+		ctxLog.Info("IDPorten not specified in spec, skipping generation")
+		return nil
+	}
+
 	if application.Spec.IDPorten == nil {
 		return nil
 	}
