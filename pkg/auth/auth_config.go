@@ -60,8 +60,12 @@ func (authConfig AuthConfig) FlattenOnPaths(requestMatchers istiotypes.RequestMa
 	for _, requestMatcher := range requestMatchers {
 		for _, path := range requestMatcher.Paths {
 			if existingMatcher, exists := requestMatchersMap[path]; exists {
-				// Combine methods if the path key already exists
-				existingMatcher.Operation.Methods = slices.Compact(append(existingMatcher.Operation.Methods, requestMatcher.Methods...))
+				// Combine methods if the path key already exists and remove duplicates
+				uniqueMethods := make(map[string]struct{})
+				for _, method := range append(existingMatcher.Operation.Methods, requestMatcher.Methods...) {
+					uniqueMethods[method] = struct{}{}
+				}
+				existingMatcher.Operation.Methods = maps.Keys(uniqueMethods)
 				requestMatchersMap[path] = existingMatcher
 			} else {
 				methods := requestMatcher.Methods
