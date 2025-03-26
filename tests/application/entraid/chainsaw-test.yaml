@@ -1,0 +1,23 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: entraid
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+        - assert:
+            file: application-entraid-assert.yaml
+    - try:
+        - apply:
+            file: patch-application.yaml
+        - assert:
+            file: patch-application-assert.yaml
+        - error:
+            file: patch-application-entraid-errors.yaml

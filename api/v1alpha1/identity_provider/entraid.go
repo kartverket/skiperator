@@ -21,12 +21,13 @@ type EntraID struct {
 	// AllowAllUsers denotes whether all users within Azurerator's configured tenant should be allowed to access this AzureAdApplication. Defaults to false.
 	//
 	// +kubebuilder:validation:Optional
-	AllowAllUsers *bool `json:"allowAllUsers,omitempty"`
+	// +kubebuilder:default=false
+	AllowAllUsers bool `json:"allowAllUsers,omitempty"`
 
 	// Claims defines additional configuration of the emitted claims in tokens returned to the Azure AD application.
 	//
 	// +kubebuilder:validation:Optional
-	Claims *nais_io_v1.AzureAdClaims `json:"claims,omitempty"`
+	Claims *EntraIDClaims `json:"claims,omitempty"`
 
 	// LogoutUrl is the URL where Entra ID sends a request to have the application clear the user's session data.
 	// This is required if single sign-out should work correctly. Must start with 'https'.
@@ -66,6 +67,14 @@ type EntraID struct {
 
 	// RequestAuth specifies how incoming JWTs should be validated.
 	RequestAuth *istiotypes.RequestAuth `json:"requestAuth,omitempty"`
+}
+
+// EntraIDClaims defines additional configuration of the emitted claims in tokens returned to the Entra ID application.
+// +kubebuilder:object:generate=true
+type EntraIDClaims struct {
+	// Groups is a list of Entra ID group IDs to be emitted in the `groups` claim in tokens issued by Entra ID.
+	// This also assigns groups to the application for access control. Only direct members of the groups are granted access.
+	Groups []nais_io_v1.AzureAdGroup `json:"groups,omitempty"`
 }
 
 type AzureAdApplication struct {

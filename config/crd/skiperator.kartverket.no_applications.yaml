@@ -325,6 +325,7 @@ spec:
                   ID
                 properties:
                   allowAllUsers:
+                    default: false
                     description: AllowAllUsers denotes whether all users within Azurerator's
                       configured tenant should be allowed to access this AzureAdApplication.
                       Defaults to false.
@@ -333,17 +334,9 @@ spec:
                     description: Claims defines additional configuration of the emitted
                       claims in tokens returned to the Azure AD application.
                     properties:
-                      extra:
-                        description: Deprecated, do not use.
-                        items:
-                          enum:
-                          - NAVident
-                          - azp_name
-                          type: string
-                        type: array
                       groups:
                         description: |-
-                          Groups is a list of Azure AD group IDs to be emitted in the `groups` claim in tokens issued by Azure AD.
+                          Groups is a list of Entra ID group IDs to be emitted in the `groups` claim in tokens issued by Entra ID.
                           This also assigns groups to the application for access control. Only direct members of the groups are granted access.
                         items:
                           properties:

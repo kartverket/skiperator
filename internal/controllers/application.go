@@ -549,22 +549,30 @@ func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Contex
 		Namespace: application.Namespace,
 	}
 
-	if digdiratorProvider.GetIdentityProviderName() == identity_provider.MaskinPortenName {
-		identityProviderResource, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
-		if err != nil {
-			return nil, err
+	switch digdiratorProvider.GetIdentityProviderName() {
+	case identity_provider.IDPortenName:
+		{
+			identityProviderResource, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
 		}
-	} else if digdiratorProvider.GetIdentityProviderName() == identity_provider.IDPortenName {
-		identityProviderResource, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
-		if err != nil {
-			return nil, err
+	case identity_provider.MaskinPortenName:
+		{
+			identityProviderResource, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
 		}
-	} else {
-		identityProviderResource, err = util.GetAzureAdApplication(r.GetClient(), ctx, namespacedName)
-		if err != nil {
-			return nil, err
+	default:
+		{
+			identityProviderResource, err = util.GetAzureAdApplication(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
+
 	ownershipRefs := identityProviderResource.GetOwnerReferences()
 	secretName := identityProviderResource.GetSecretName()
 

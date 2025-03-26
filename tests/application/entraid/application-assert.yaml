@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: entraid-test-client
+spec:
+  selector:
+    matchLabels:
+      app: entraid-test-client
+  template:
+    spec:
+      containers:
+        - envFrom:
+            - secretRef:
+                name: entraid-entraid-test-client-648084e6
+          name: entraid-test-client
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+            - mountPath: /var/run/secrets/skip/entraid
+              name: entraid-entraid-test-client-648084e6
+              readOnly: true
+      volumes:
+        - emptyDir: {}
+          name: tmp
+        - name: entraid-entraid-test-client-648084e6
+          secret:
+            defaultMode: 420
+            secretName: entraid-entraid-test-client-648084e6

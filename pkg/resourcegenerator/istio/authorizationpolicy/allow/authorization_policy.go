@@ -42,6 +42,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	authConfigs := r.GetAuthConfigs()
+	println(authConfigs)
 	if authConfigs == nil {
 		ctxLog.Debug("No auth configs provided for application. Skipping generating allow-paths AuthorizationPolicy", "application", application.Name)
 		return nil

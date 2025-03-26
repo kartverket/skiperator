@@ -39,12 +39,16 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate AzureAdApplication resource for application", "application", application.Name)
 
 	azureAdApplicationSpec := naisiov1.AzureAdApplicationSpec{
-		Claims:                    application.Spec.EntraID.Claims,
+		AllowAllUsers:             &application.Spec.EntraID.AllowAllUsers,
 		PreAuthorizedApplications: application.Spec.EntraID.PreAuthorizedApplications,
 	}
+	fmt.Println(application.Spec.EntraID.PreAuthorizedApplications)
+	fmt.Println(azureAdApplicationSpec)
 
-	if application.Spec.EntraID.AllowAllUsers != nil {
-		azureAdApplicationSpec.AllowAllUsers = application.Spec.EntraID.AllowAllUsers
+	if application.Spec.EntraID.Claims != nil {
+		azureAdApplicationSpec.Claims = &naisiov1.AzureAdClaims{
+			Groups: application.Spec.EntraID.Claims.Groups,
+		}
 	}
 
 	if application.Spec.EntraID.LogoutUrl == nil {
