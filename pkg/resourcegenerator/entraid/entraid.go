@@ -42,8 +42,6 @@ func Generate(r reconciliation.Reconciliation) error {
 		AllowAllUsers:             &application.Spec.EntraID.AllowAllUsers,
 		PreAuthorizedApplications: application.Spec.EntraID.PreAuthorizedApplications,
 	}
-	fmt.Println(application.Spec.EntraID.PreAuthorizedApplications)
-	fmt.Println(azureAdApplicationSpec)
 
 	if application.Spec.EntraID.Claims != nil {
 		azureAdApplicationSpec.Claims = &naisiov1.AzureAdClaims{
