@@ -2,11 +2,11 @@ package idporten
 
 import (
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
-	"github.com/kartverket/skiperator/pkg/util/array"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/util"
+	"github.com/kartverket/skiperator/v3/pkg/util/array"
 	digdiratorClients "github.com/nais/digdirator/pkg/clients"
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"

@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/v3/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/v3/api/v1alpha1/istiotypes"
 	"golang.org/x/exp/maps"
 	"slices"
 )

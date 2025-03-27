@@ -3,9 +3,9 @@ package serviceaccount
 import (
 	"maps"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/resourcegenerator/resourceutils/generator"
 	corev1 "k8s.io/api/core/v1"
 )
 

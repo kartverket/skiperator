@@ -3,7 +3,7 @@ package resourceutils
 import (
 	"testing"
 
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/v3/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 

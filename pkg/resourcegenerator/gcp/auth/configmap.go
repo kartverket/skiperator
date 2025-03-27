@@ -3,8 +3,8 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/resourcegenerator/gcp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

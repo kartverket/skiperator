@@ -2,7 +2,7 @@ package resourceprocessor
 
 import (
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
