@@ -2,7 +2,7 @@ package gcp
 
 import (
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/v3/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )
 

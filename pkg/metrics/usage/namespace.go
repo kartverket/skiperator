@@ -3,7 +3,7 @@ package usage
 import (
 	"context"
 
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/v3/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"

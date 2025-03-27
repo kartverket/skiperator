@@ -41,9 +41,6 @@ archives:
       - goos: windows
         format: zip
 
-gomod:
-  proxy: true
-
 dockers:
   - image_templates:
       - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-amd64"

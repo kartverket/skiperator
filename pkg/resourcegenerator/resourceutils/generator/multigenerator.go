@@ -3,7 +3,7 @@ package generator
 import (
 	"fmt"
 
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
 )
 
 type genFunc = func(r reconciliation.Reconciliation) error

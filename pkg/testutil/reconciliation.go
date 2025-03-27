@@ -2,9 +2,9 @@ package testutil
 
 import (
 	"context"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/log"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
 	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

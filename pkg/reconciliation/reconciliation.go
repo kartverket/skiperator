@@ -2,9 +2,9 @@ package reconciliation
 
 import (
 	"context"
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/auth"
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/auth"
+	"github.com/kartverket/skiperator/v3/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
