@@ -36,3 +36,4 @@ spec:
             file: application-public-ip.yaml
         - assert:
             file: application-public-ip-assert.yaml
+
