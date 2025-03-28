@@ -645,14 +645,9 @@ spec:
                         type: array
                         x-kubernetes-list-type: set
                       outputClaimToHeaders:
-                        description: "This field specifies a list of operations to
-                          copy the claim to HTTP headers on a successfully verified
-                          token.\nThe header specified in each operation in the list
-                          must be unique. Nested claims of type string/int/bool is
-                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
-                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
-                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
-                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        description: |-
+                          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
+                          The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.
                         items:
                           properties:
                             claim:
@@ -892,14 +887,9 @@ spec:
                         type: array
                         x-kubernetes-list-type: set
                       outputClaimToHeaders:
-                        description: "This field specifies a list of operations to
-                          copy the claim to HTTP headers on a successfully verified
-                          token.\nThe header specified in each operation in the list
-                          must be unique. Nested claims of type string/int/bool is
-                          supported as well.\n```\n\n\toutputClaimToHeaders:\n\t-
-                          header: x-my-company-jwt-group\n\t  claim: my-group\n\t-
-                          header: x-test-environment-flag\n\t  claim: test-flag\n\t-
-                          header: x-jwt-claim-group\n\t  claim: nested.key.group\n\n```"
+                        description: |-
+                          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
+                          The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.
                         items:
                           properties:
                             claim:
