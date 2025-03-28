@@ -24,8 +24,8 @@ type RequestAuthentication struct {
 	// An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
 	//
 	// If omitted, its default value depends on the provider type:
-	// - Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
-	// - Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
+	//   Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+	//   Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
 	// +kubebuilder:validation:Enum=header;cookie
 	// +kubebuilder:validation:Optional
 	TokenLocation *string `json:"tokenLocation,omitempty"`
