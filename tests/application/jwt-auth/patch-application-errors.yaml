@@ -30,7 +30,66 @@ spec:
               - istio-gateways
       to:
         - operation:
+            notPaths:
+              - /secureIdPorten
+              - /commonSecureEndpoint
+              - /loginIdPorten
+              - '*'
+              - /secureMaskinPorten
             paths:
+              - '*'
+        - operation:
+            notMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - HEAD
+              - OPTIONS
+              - TRACE
+              - CONNECT
+            paths:
+              - /secureIdPorten
+              - /commonSecureEndpoint
+        - operation:
+            notMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - HEAD
+              - OPTIONS
+              - TRACE
+              - CONNECT
+            paths:
+              - /loginIdPorten
+              - '*'
+        - operation:
+            notMethods:
+              - POST
+              - DELETE
+            paths:
+              - /secureMaskinPorten
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://idporten.no
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-idporten
+        - key: request.auth.claims[aud]
+          values:
+            - http://example.com
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            paths:
+              - /secureIdPorten
               - /commonSecureEndpoint
       when:
         - key: request.auth.claims[iss]
@@ -39,12 +98,60 @@ spec:
         - key: request.auth.claims[aud]
           values:
             - test-client-id-idporten
+        - key: request.auth.claims[aud]
+          values:
+            - http://example.com
+        - key: request.auth.claims[acr]
+          values:
+            - Level4
     - from:
         - source:
             namespaces:
               - istio-gateways
       to:
         - operation:
+            notPaths:
+              - /secureMaskinPorten
+              - /commonSecureEndpoint
+              - /secureIdPorten
+            paths:
+              - '*'
+        - operation:
+            notMethods:
+              - POST
+              - DELETE
+            paths:
+              - /secureMaskinPorten
+              - /commonSecureEndpoint
+        - operation:
+            notMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - HEAD
+              - OPTIONS
+              - TRACE
+              - CONNECT
+            paths:
+              - /secureIdPorten
+      when:
+        - key: request.auth.claims[iss]
+          values:
+            - https://maskinporten.no/
+        - key: request.auth.claims[aud]
+          values:
+            - test-client-id-maskinporten
+    - from:
+        - source:
+            namespaces:
+              - istio-gateways
+      to:
+        - operation:
+            methods:
+              - POST
+              - DELETE
             paths:
               - /secureMaskinPorten
               - /commonSecureEndpoint
@@ -55,6 +162,9 @@ spec:
         - key: request.auth.claims[aud]
           values:
             - test-client-id-maskinporten
+        - key: request.auth.claims[acr]
+          values:
+            - Level4
   selector:
     matchLabels:
       app: application-two

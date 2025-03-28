@@ -30,14 +30,16 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	defaultDenyPath := authorizationpolicy.DefaultDenyPath
-	if application.Spec.IsRequestAuthEnabled() && r.GetAuthConfigs() == nil {
-		defaultDenyPath = "*"
-		ctxLog.Debug("No auth config provided. Defaults to deny-all AuthorizationPolicy for application", "application", application.Name)
-	}
+	authConfigs := r.GetAuthConfigs()
 
+	defaultDenyPath := authorizationpolicy.DefaultDenyPath
 	var notPaths []string
-	trimmedPrefix := strings.TrimSuffix(authorizationpolicy.DefaultDenyPath, "*")
+	trimmedPrefix := strings.TrimSuffix(defaultDenyPath, "*")
+	for _, path := range authConfigs.GetAllPaths() {
+		if strings.HasPrefix(path, trimmedPrefix) {
+			notPaths = append(notPaths, path)
+		}
+	}
 	if application.Spec.AuthorizationSettings != nil {
 		for _, path := range application.Spec.AuthorizationSettings.AllowList {
 			if strings.HasPrefix(path, trimmedPrefix) {
@@ -45,39 +47,37 @@ func Generate(r reconciliation.Reconciliation) error {
 			}
 		}
 	}
-	for _, path := range r.GetAuthConfigs().GetAllPaths() {
-		if strings.HasPrefix(path, trimmedPrefix) {
-			notPaths = append(notPaths, path)
-		}
+	if application.Spec.IsRequestAuthEnabled() && authConfigs == nil {
+		defaultDenyPath = "*"
+		notPaths = []string{}
+		ctxLog.Debug("No auth config provided. Defaults to deny-all AuthorizationPolicy for application", "application", application.Name)
 	}
 
-	r.AddResource(
-		&securityv1.AuthorizationPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      application.Name + "-default-deny",
-				Namespace: application.Namespace,
-			},
-			Spec: securityv1api.AuthorizationPolicy{
-				Action: securityv1api.AuthorizationPolicy_DENY,
-				Rules: []*securityv1api.Rule{
-					{
-						To: []*securityv1api.Rule_To{
-							{
-								Operation: &securityv1api.Operation{
-									Paths:    []string{defaultDenyPath},
-									NotPaths: notPaths,
-								},
+	r.AddResource(&securityv1.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: application.Namespace,
+			Name:      application.Name + "-default-deny",
+		},
+		Spec: securityv1api.AuthorizationPolicy{
+			Action: securityv1api.AuthorizationPolicy_DENY,
+			Rules: []*securityv1api.Rule{
+				{
+					To: []*securityv1api.Rule_To{
+						{
+							Operation: &securityv1api.Operation{
+								Paths:    []string{defaultDenyPath},
+								NotPaths: notPaths,
 							},
 						},
-						From: authorizationpolicy.GetGeneralFromRule(),
 					},
-				},
-				Selector: &typev1beta1.WorkloadSelector{
-					MatchLabels: util.GetPodAppSelector(application.Name),
+					From: authorizationpolicy.GetGeneralFromRule(),
 				},
 			},
+			Selector: &typev1beta1.WorkloadSelector{
+				MatchLabels: util.GetPodAppSelector(application.Name),
+			},
 		},
-	)
+	})
 
 	ctxLog.Debug("Finished generating default AuthorizationPolicy for application", "application", application.Name)
 	return nil
