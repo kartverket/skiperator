@@ -101,7 +101,7 @@ func (i *EntraID) GetAuthSpec() *istiotypes.RequestAuthentication {
 }
 
 func (i *EntraID) GetIdentityProvderName() IdentityProviderName {
-	return IDPortenName
+	return EntraIDName
 }
 
 func (i *EntraID) GetProvidedSecretName() *string {
