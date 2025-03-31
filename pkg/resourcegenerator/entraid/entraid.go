@@ -85,13 +85,11 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if application.Spec.EntraID.SecretProtected != nil {
-		val := application.Spec.EntraID.SecretProtected
-		azureAdApplicationSpec.SecretProtected = *val
+		azureAdApplicationSpec.SecretProtected = *application.Spec.EntraID.SecretProtected
 	}
 
 	if application.Spec.EntraID.SinglePageApplication != nil {
-		val := application.Spec.EntraID.SinglePageApplication
-		azureAdApplicationSpec.SecretProtected = *val
+		azureAdApplicationSpec.SinglePageApplication = application.Spec.EntraID.SinglePageApplication
 	}
 
 	azureAdApplication := naisiov1.AzureAdApplication{
