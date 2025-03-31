@@ -26,6 +26,9 @@ func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]co
 
 	for _, file := range filesFrom {
 		volume := corev1.Volume{}
+		if file.DefaultMode == 0 {
+			file.DefaultMode = 420
+		}
 		if len(file.ConfigMap) > 0 {
 			volume = corev1.Volume{
 				Name: file.ConfigMap,
