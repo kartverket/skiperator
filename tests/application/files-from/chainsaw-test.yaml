@@ -12,6 +12,8 @@ spec:
             file: application.yaml
         - assert:
             file: application-assert.yaml
+        - error:
+            file: application-no-default-mode-error.yaml
     - try:
         - delete:
             ref:
