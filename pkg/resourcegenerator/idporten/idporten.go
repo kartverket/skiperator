@@ -3,7 +3,7 @@ package idporten
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
@@ -33,6 +33,12 @@ func Generate(r reconciliation.Reconciliation) error {
 		ctxLog.Error(err, "Failed to generate idporten resource")
 		return err
 	}
+
+	if !IdportenSpecifiedInSpec(application.Spec.IDPorten) {
+		ctxLog.Info("IDPorten not specified in spec, skipping generation")
+		return nil
+	}
+
 	if application.Spec.IDPorten == nil {
 		return nil
 	}
@@ -123,7 +129,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 	}, nil
 }
 
-func getClientNameIdPorten(applicationName string, idPortenSettings *digdirator.IDPorten) string {
+func getClientNameIdPorten(applicationName string, idPortenSettings *identity_provider.IDPorten) string {
 	if idPortenSettings.ClientName != nil {
 		return *idPortenSettings.ClientName
 	}
@@ -198,7 +204,7 @@ func buildURIs(ingresses []string, pathSeg string, fallback string) ([]naisiov1.
 	})
 }
 
-func IdportenSpecifiedInSpec(mp *digdirator.IDPorten) bool {
+func IdportenSpecifiedInSpec(mp *identity_provider.IDPorten) bool {
 	return mp != nil && mp.Enabled
 }
 

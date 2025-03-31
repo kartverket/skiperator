@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"golang.org/x/exp/maps"
 	"slices"
@@ -14,7 +14,7 @@ type AuthConfig struct {
 	Paths         []string
 	IgnorePaths   []string
 	TokenLocation string
-	ProviderInfo  digdirator.DigdiratorInfo
+	ProviderInfo  identity_provider.IdentityProviderInfo
 }
 
 func (authConfigs *AuthConfigs) GetAllPaths() []string {

@@ -3,7 +3,7 @@ package maskinporten
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -70,7 +70,7 @@ func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.
 	}, nil
 }
 
-func getClientNameMaskinporten(applicationName string, maskinportenSettings *digdirator.Maskinporten) string {
+func getClientNameMaskinporten(applicationName string, maskinportenSettings *identity_provider.Maskinporten) string {
 	if maskinportenSettings.ClientName != nil {
 		return *maskinportenSettings.ClientName
 	}
@@ -78,7 +78,7 @@ func getClientNameMaskinporten(applicationName string, maskinportenSettings *dig
 	return applicationName
 }
 
-func MaskinportenSpecifiedInSpec(maskinportenSettings *digdirator.Maskinporten) bool {
+func MaskinportenSpecifiedInSpec(maskinportenSettings *identity_provider.Maskinporten) bool {
 	return maskinportenSettings != nil && maskinportenSettings.Enabled
 }
 

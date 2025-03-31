@@ -47,7 +47,7 @@ run-local: build install-skiperator
 	./bin/skiperator
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-azurerator-crds install-skiperator
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
 
 
@@ -90,6 +90,11 @@ install-digdirator-crds:
 	@echo "Installing digdirator crds"
 	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml --context $(SKIPERATOR_CONTEXT)
 	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_maskinportenclients.yaml --context $(SKIPERATOR_CONTEXT)
+
+.PHONY: install-azurerator-crds
+install-azurerator-crds:
+	@echo "Installing azurerator crds"
+	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_azureadapplications.yaml --context $(SKIPERATOR_CONTEXT)
 
 .PHONY: install-skiperator
 install-skiperator: generate

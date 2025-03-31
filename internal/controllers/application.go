@@ -5,13 +5,14 @@ import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/entraid"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
@@ -55,7 +56,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -72,7 +72,7 @@ import (
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients;azureadapplications,verbs=get;list;watch;create;update;patch;delete
 
 type ApplicationReconciler struct {
 	common.ReconcilerBase
@@ -105,7 +105,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
-		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
+		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleIdentityProviderSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
@@ -225,6 +225,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
+		entraid.Generate,
 		deployment.Generate,
 	}
 
@@ -378,7 +379,7 @@ func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) b
 	return true
 }
 
-func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {
+func handleIdentityProviderSecret(_ context.Context, obj client.Object) []reconcile.Request {
 	secret, ok := obj.(*corev1.Secret)
 	if !ok {
 		return nil
@@ -386,8 +387,8 @@ func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Re
 
 	requests := make([]reconcile.Request, 0)
 
-	// Check if secret is owned by digdirator with type digdirator.nais.io or maskinporten.digdirator.nais.io
-	if secret.Labels != nil && strings.Contains(secret.Labels["type"], "digdirator.nais.io") {
+	// Check if secret is owned by digdirator or azurerator with type digdirator.nais.io, maskinporten.digdirator.nais.io or azurerator.nais.io
+	if secret.Labels != nil && (secret.Labels["type"] == "digdirator.nais.io" || secret.Labels["type"] == "maskinporten.digdirator.nais.io" || secret.Labels["type"] == "azurerator.nais.io") {
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
 				Namespace: secret.Namespace,
@@ -451,15 +452,16 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
 	var authConfigs jwtAuth.AuthConfigs
 
-	providers := []digdirator.DigdiratorProvider{
+	providers := []identity_provider.IdentityProvider{
 		application.Spec.IDPorten,
 		application.Spec.Maskinporten,
+		application.Spec.EntraID,
 	}
 	for _, provider := range providers {
 		if provider.IsRequestAuthEnabled() {
 			authConfig, err := r.getAuthConfig(ctx, *application, provider)
 			if err != nil {
-				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetDigdiratorName(), err)
+				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetIdentityProvderName(), err)
 			}
 			authConfigs = append(authConfigs, *authConfig)
 		}
@@ -472,37 +474,37 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
-	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider identity_provider.IdentityProvider) (*jwtAuth.AuthConfig, error) {
+	secret, err := r.getAuthConfigSecret(ctx, application, identityProvider)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
+		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", identityProvider.GetIdentityProvderName(), err)
 	}
-	requestAuthSpec := digdiratorProvider.GetAuthSpec()
+	requestAuthSpec := identityProvider.GetAuthSpec()
 	if requestAuthSpec == nil {
-		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", digdiratorProvider.GetDigdiratorName())
+		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", identityProvider.GetIdentityProvderName())
 	}
 
-	issuerUri := string(secret.Data[digdiratorProvider.GetIssuerKey()])
+	issuerUri := string(secret.Data[identityProvider.GetIssuerKey()])
 	if err := util.ValidateUri(issuerUri); err != nil {
 		return nil, err
 	}
-	jwksUri := string(secret.Data[digdiratorProvider.GetJwksKey()])
+	jwksUri := string(secret.Data[identityProvider.GetJwksKey()])
 	if err := util.ValidateUri(jwksUri); err != nil {
 		return nil, err
 	}
 
-	clientId := string(secret.Data[digdiratorProvider.GetClientIDKey()])
+	clientId := string(secret.Data[identityProvider.GetClientIDKey()])
 	if clientId == "" {
-		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", digdiratorProvider.GetDigdiratorName())
+		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", identityProvider.GetIdentityProvderName())
 	}
 
 	return &jwtAuth.AuthConfig{
 		Spec:          *requestAuthSpec,
-		Paths:         digdiratorProvider.GetPaths(),
-		IgnorePaths:   digdiratorProvider.GetIgnoredPaths(),
-		TokenLocation: digdiratorProvider.GetTokenLocation(),
-		ProviderInfo: digdirator.DigdiratorInfo{
-			Name:      digdiratorProvider.GetDigdiratorName(),
+		Paths:         identityProvider.GetPaths(),
+		IgnorePaths:   identityProvider.GetIgnoredPaths(),
+		TokenLocation: identityProvider.GetTokenLocation(),
+		ProviderInfo: identity_provider.IdentityProviderInfo{
+			Name:      identityProvider.GetIdentityProvderName(),
 			IssuerURI: issuerUri,
 			JwksURI:   jwksUri,
 			ClientID:  clientId,
@@ -510,14 +512,14 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	}, nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider identity_provider.IdentityProvider) (*corev1.Secret, error) {
 	var secretName *string
 	var err error
 
-	if digdiratorProvider.GetProvidedSecretName() != nil {
-		secretName = digdiratorProvider.GetProvidedSecretName()
+	if identityProvider.GetProvidedSecretName() != nil {
+		secretName = identityProvider.GetProvidedSecretName()
 	} else {
-		secretName, err = r.getDigdiratorSecretName(ctx, digdiratorProvider, application)
+		secretName, err = r.getIdentityProviderSecretName(ctx, identityProvider, application)
 		if err != nil {
 			return nil, err
 		}
@@ -536,8 +538,8 @@ func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, applica
 	return &secret, nil
 }
 
-func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, digdiratorProvider digdirator.DigdiratorProvider, application skiperatorv1alpha1.Application) (*string, error) {
-	var digdiratorClient digdirator.DigdiratorClient
+func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Context, identityProvider identity_provider.IdentityProvider, application skiperatorv1alpha1.Application) (*string, error) {
+	var identityProviderOperatorResource identity_provider.IdentityProviderOperatorCRD
 	var err error
 
 	namespacedName := types.NamespacedName{
@@ -545,19 +547,32 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 		Namespace: application.Namespace,
 	}
 
-	if digdiratorProvider.GetDigdiratorName() == digdirator.MaskinPortenName {
-		digdiratorClient, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
-		if err != nil {
-			return nil, err
+	switch identityProvider.GetIdentityProvderName() {
+	case identity_provider.IDPortenName:
+		{
+			identityProviderOperatorResource, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
 		}
-	} else {
-		digdiratorClient, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
-		if err != nil {
-			return nil, err
+	case identity_provider.MaskinPortenName:
+		{
+			identityProviderOperatorResource, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
+		}
+	default:
+		{
+			identityProviderOperatorResource, err = util.GetAzureAdApplication(r.GetClient(), ctx, namespacedName)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
-	ownershipRefs := digdiratorClient.GetOwnerReferences()
-	secretName := digdiratorClient.GetSecretName()
+
+	ownershipRefs := identityProviderOperatorResource.GetOwnerReferences()
+	secretName := identityProviderOperatorResource.GetSecretName()
 
 	for _, ownershipRef := range ownershipRefs {
 		if ownershipRef.UID == application.UID {
@@ -565,5 +580,5 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 		}
 	}
 
-	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
+	return nil, fmt.Errorf("identity provider resource doesn't exist: %s", namespacedName)
 }
