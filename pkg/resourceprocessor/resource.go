@@ -1,7 +1,7 @@
 package resourceprocessor
 
 import (
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/v3/pkg/util"
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
