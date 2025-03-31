@@ -40,6 +40,6 @@ type FilesFrom struct {
 	// mode, like fsGroup, and the result can be other mode bits set.
 	// +kubebuilder:validation:min=0
 	// +kubebuilder:validation:max=777
-	// +kubebuilder:default=420
+	// +kubebuilder:validation:Optional
 	DefaultMode int `json:"defaultMode,omitempty"`
 }
