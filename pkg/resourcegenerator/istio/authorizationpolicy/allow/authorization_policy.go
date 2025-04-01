@@ -29,69 +29,57 @@ func Generate(r reconciliation.Reconciliation) error {
 		}
 	}
 
+	externalTrafficAllowRule := &securityv1api.Rule{
+		To:   []*securityv1api.Rule_To{},
+		From: authorizationpolicy.GetGeneralFromRule(),
+	}
+	if application.Spec.AuthorizationSettings != nil {
+		externalTrafficAllowRule.To = append(externalTrafficAllowRule.To, &securityv1api.Rule_To{
+			Operation: &securityv1api.Operation{
+				Paths: application.Spec.AuthorizationSettings.AllowList,
+			},
+		})
+	}
+
 	authConfigs := r.GetAuthConfigs()
 	if authConfigs == nil {
 		ctxLog.Debug("No auth configs provided for application. Skipping generating allow-paths AuthorizationPolicy", "application", application.Name)
 		return nil
 	}
 
-	var authPolicyRules []*securityv1api.Rule
+	// Include ignoredAuthRules from auth config as they should be accessible without authentication
+	ignoreAuthRequestMatchers, authorizedRequestMatchers := authConfigs.GetIgnoreAuthAndAuthorizedRequestMatchers()
+	externalTrafficAllowRule.To = append(
+		externalTrafficAllowRule.To,
+		authorizationpolicy.GetApiSurfaceDiffAsRuleToList(ignoreAuthRequestMatchers, authorizedRequestMatchers)...,
+	)
 
-	// Include ignored paths from auth config as they should be accessible without authentication
-	allowedPaths := authConfigs.GetIgnoredPaths()
-	if application.Spec.AuthorizationSettings != nil {
-		allowedPaths = append(allowedPaths, application.Spec.AuthorizationSettings.AllowList...)
-	}
-
-	if len(allowedPaths) > 0 {
-		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
-			To: []*securityv1api.Rule_To{
-				{
-					Operation: &securityv1api.Operation{
-						Paths: allowedPaths,
+	if len(externalTrafficAllowRule.To) > 0 && len(*authConfigs) > 0 {
+		rules := []*securityv1api.Rule{externalTrafficAllowRule}
+		if application.Spec.AccessPolicy != nil && application.Spec.AccessPolicy.Inbound != nil && len(application.Spec.AccessPolicy.Inbound.Rules) > 0 {
+			rules = append(rules, &securityv1api.Rule{
+				From: []*securityv1api.Rule_From{
+					{
+						Source: &securityv1api.Source{
+							Principals: application.Spec.AccessPolicy.GetInboundRulesAsIstioPrincipals(application.Namespace),
+						},
 					},
 				},
-			},
-			From: authorizationpolicy.GetGeneralFromRule(),
-		})
-	}
-
-	var allowedPrincipals []string
-	if application.Spec.AccessPolicy != nil && application.Spec.AccessPolicy.Inbound != nil {
-		for _, rule := range application.Spec.AccessPolicy.Inbound.Rules {
-			allowedPrincipals = append(allowedPrincipals, rule.ToPrincipal(application.Namespace))
+			})
 		}
-	}
-
-	if len(allowedPrincipals) > 0 {
-		authPolicyRules = append(authPolicyRules, &securityv1api.Rule{
-			From: []*securityv1api.Rule_From{
-				{
-					Source: &securityv1api.Source{
-						Principals: allowedPrincipals,
-					},
+		r.AddResource(&securityv1.AuthorizationPolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: application.Namespace,
+				Name:      application.Name + "-allow-paths",
+			},
+			Spec: securityv1api.AuthorizationPolicy{
+				Action: securityv1api.AuthorizationPolicy_ALLOW,
+				Rules:  rules,
+				Selector: &typev1beta1.WorkloadSelector{
+					MatchLabels: util.GetPodAppSelector(application.Name),
 				},
 			},
 		})
-	}
-
-	// Generate an AuthorizationPolicy that allows requests to the list of paths in allowPaths
-	if len(authPolicyRules) > 0 && len(*authConfigs) > 0 {
-		r.AddResource(
-			&securityv1.AuthorizationPolicy{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      application.Name + "-allow-paths",
-					Namespace: application.Namespace,
-				},
-				Spec: securityv1api.AuthorizationPolicy{
-					Action: securityv1api.AuthorizationPolicy_ALLOW,
-					Rules:  authPolicyRules,
-					Selector: &typev1beta1.WorkloadSelector{
-						MatchLabels: util.GetPodAppSelector(application.Name),
-					},
-				},
-			},
-		)
 	}
 	ctxLog.Debug("Finished generating allow AuthorizationPolicy for application", "application", application.Name)
 	return nil
