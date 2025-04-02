@@ -1,4 +1,4 @@
-package identity_provider
+package idprovider
 
 import (
 	"fmt"

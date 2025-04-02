@@ -3,7 +3,7 @@ package entraid
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -106,7 +106,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func EntraIDSpecifiedInSpec(entraIDSpec *identity_provider.EntraID) bool {
+func EntraIDSpecifiedInSpec(entraIDSpec *idprovider.EntraID) bool {
 	return entraIDSpec != nil && entraIDSpec.Enabled
 }
 

@@ -1,4 +1,4 @@
-package identity_provider
+package idprovider
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"

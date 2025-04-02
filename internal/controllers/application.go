@@ -5,7 +5,7 @@ import (
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -452,7 +452,7 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
 	var authConfigs jwtAuth.AuthConfigs
 
-	providers := []identity_provider.IdentityProvider{
+	providers := []idprovider.IdentityProvider{
 		application.Spec.IDPorten,
 		application.Spec.Maskinporten,
 		application.Spec.EntraID,
@@ -474,7 +474,7 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider identity_provider.IdentityProvider) (*jwtAuth.AuthConfig, error) {
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider idprovider.IdentityProvider) (*jwtAuth.AuthConfig, error) {
 	secret, err := r.getAuthConfigSecret(ctx, application, identityProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", identityProvider.GetIdentityProvderName(), err)
@@ -503,7 +503,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		Paths:         identityProvider.GetPaths(),
 		IgnorePaths:   identityProvider.GetIgnoredPaths(),
 		TokenLocation: identityProvider.GetTokenLocation(),
-		ProviderInfo: identity_provider.IdentityProviderInfo{
+		ProviderInfo: idprovider.IdentityProviderInfo{
 			Name:      identityProvider.GetIdentityProvderName(),
 			IssuerURI: issuerUri,
 			JwksURI:   jwksUri,
@@ -512,7 +512,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	}, nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider identity_provider.IdentityProvider) (*corev1.Secret, error) {
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider idprovider.IdentityProvider) (*corev1.Secret, error) {
 	var secretName *string
 	var err error
 
@@ -538,8 +538,8 @@ func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, applica
 	return &secret, nil
 }
 
-func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Context, identityProvider identity_provider.IdentityProvider, application skiperatorv1alpha1.Application) (*string, error) {
-	var identityProviderOperatorResource identity_provider.IdentityProviderOperatorCRD
+func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Context, identityProvider idprovider.IdentityProvider, application skiperatorv1alpha1.Application) (*string, error) {
+	var identityProviderOperatorResource idprovider.IdentityProviderOperatorCRD
 	var err error
 
 	namespacedName := types.NamespacedName{
@@ -548,14 +548,14 @@ func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Contex
 	}
 
 	switch identityProvider.GetIdentityProvderName() {
-	case identity_provider.IDPortenName:
+	case idprovider.IDPortenName:
 		{
 			identityProviderOperatorResource, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)
 			if err != nil {
 				return nil, err
 			}
 		}
-	case identity_provider.MaskinPortenName:
+	case idprovider.MaskinPortenName:
 		{
 			identityProviderOperatorResource, err = util.GetMaskinportenClient(r.GetClient(), ctx, namespacedName)
 			if err != nil {

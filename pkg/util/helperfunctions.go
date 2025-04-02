@@ -3,7 +3,7 @@ package util
 import (
 	"context"
 	"fmt"
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -68,7 +68,7 @@ func GetSecret(client client.Client, ctx context.Context, namespacedName types.N
 	return secret, err
 }
 
-func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*identity_provider.IDPortenClient, error) {
+func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*idprovider.IDPortenClient, error) {
 	idPortenClient := &nais_io_v1.IDPortenClient{}
 	if err := k8sClient.Get(ctx, namespacedName, idPortenClient); err != nil {
 		if errors.IsNotFound(err) {
@@ -76,12 +76,12 @@ func GetIdPortenClient(k8sClient client.Client, ctx context.Context, namespacedN
 		}
 		return nil, fmt.Errorf("client error when trying to get idportenclient: %w", err)
 	}
-	return &identity_provider.IDPortenClient{
+	return &idprovider.IDPortenClient{
 		Client: *idPortenClient,
 	}, nil
 }
 
-func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*identity_provider.MaskinportenClient, error) {
+func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*idprovider.MaskinportenClient, error) {
 	maskinPortenClient := &nais_io_v1.MaskinportenClient{}
 	if err := k8sClient.Get(ctx, namespacedName, maskinPortenClient); err != nil {
 		if errors.IsNotFound(err) {
@@ -89,12 +89,12 @@ func GetMaskinportenClient(k8sClient client.Client, ctx context.Context, namespa
 		}
 		return nil, fmt.Errorf("client error when trying to get MaskinPortenClient: %w", err)
 	}
-	return &identity_provider.MaskinportenClient{
+	return &idprovider.MaskinportenClient{
 		Client: *maskinPortenClient,
 	}, nil
 }
 
-func GetAzureAdApplication(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*identity_provider.AzureAdApplication, error) {
+func GetAzureAdApplication(k8sClient client.Client, ctx context.Context, namespacedName types.NamespacedName) (*idprovider.AzureAdApplication, error) {
 	azureAdApplication := &nais_io_v1.AzureAdApplication{}
 	if err := k8sClient.Get(ctx, namespacedName, azureAdApplication); err != nil {
 		if errors.IsNotFound(err) {
@@ -102,7 +102,7 @@ func GetAzureAdApplication(k8sClient client.Client, ctx context.Context, namespa
 		}
 		return nil, fmt.Errorf("client error when trying to get AzureAdApplication: %w", err)
 	}
-	return &identity_provider.AzureAdApplication{
+	return &idprovider.AzureAdApplication{
 		Resource: *azureAdApplication,
 	}, nil
 }

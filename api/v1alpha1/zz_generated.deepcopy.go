@@ -5,7 +5,7 @@
 package v1alpha1
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	corev1 "k8s.io/api/core/v1"
@@ -136,12 +136,12 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	}
 	if in.Maskinporten != nil {
 		in, out := &in.Maskinporten, &out.Maskinporten
-		*out = new(identity_provider.Maskinporten)
+		*out = new(idprovider.Maskinporten)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.IDPorten != nil {
 		in, out := &in.IDPorten, &out.IDPorten
-		*out = new(identity_provider.IDPorten)
+		*out = new(idprovider.IDPorten)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Prometheus != nil {

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -185,17 +185,17 @@ type ApplicationSpec struct {
 	// Settings for Maskinporten integration with Digitaliseringsdirektoratet
 	//
 	//+kubebuilder:validation:Optional
-	Maskinporten *identity_provider.Maskinporten `json:"maskinporten,omitempty"`
+	Maskinporten *idprovider.Maskinporten `json:"maskinporten,omitempty"`
 
 	// Settings for IDPorten integration with Digitaliseringsdirektoratet
 	//
 	//+kubebuilder:validation:Optional
-	IDPorten *identity_provider.IDPorten `json:"idporten,omitempty"`
+	IDPorten *idprovider.IDPorten `json:"idporten,omitempty"`
 
 	// Settings for EntraID integration with Microsoft Entra ID
 	//
 	//+kubebuilder:validation:Optional
-	EntraID *identity_provider.EntraID `json:"entraid,omitempty"`
+	EntraID *idprovider.EntraID `json:"entraid,omitempty"`
 
 	// Optional settings for how Prometheus compatible metrics should be scraped.
 	//

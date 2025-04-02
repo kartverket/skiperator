@@ -3,7 +3,7 @@ package idporten
 import (
 	"fmt"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/identity_provider"
+	"github.com/kartverket/skiperator/api/v1alpha1/idprovider"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
@@ -129,7 +129,7 @@ func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPo
 	}, nil
 }
 
-func getClientNameIdPorten(applicationName string, idPortenSettings *identity_provider.IDPorten) string {
+func getClientNameIdPorten(applicationName string, idPortenSettings *idprovider.IDPorten) string {
 	if idPortenSettings.ClientName != nil {
 		return *idPortenSettings.ClientName
 	}
@@ -204,7 +204,7 @@ func buildURIs(ingresses []string, pathSeg string, fallback string) ([]naisiov1.
 	})
 }
 
-func IdportenSpecifiedInSpec(mp *identity_provider.IDPorten) bool {
+func IdportenSpecifiedInSpec(mp *idprovider.IDPorten) bool {
 	return mp != nil && mp.Enabled
 }
 
