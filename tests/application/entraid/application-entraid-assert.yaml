@@ -1,0 +1,23 @@
+apiVersion: nais.io/v1
+kind: AzureAdApplication
+metadata:
+  name: entraid-test-client
+spec:
+  allowAllUsers: false
+  claims:
+    groups:
+      - id: 42acac87-d6e2-4d1c-ab7a-b8634f68fb6e
+      - id: f749a88e-0811-4b73-95d4-18e7d8e348c9
+  logoutUrl: https://example.com/oauth2/logout
+  preAuthorizedApplications:
+    - application: other-app
+      cluster: other-cluster
+      namespace: other-namespace
+      permissions:
+        roles:
+          - app_role
+        scopes:
+          - custom_scope
+  replyUrls:
+    - url: https://example.com/oauth2/callback
+  secretName: entraid-entraid-test-client-648084e6
