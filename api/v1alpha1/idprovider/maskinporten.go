@@ -50,7 +50,7 @@ func (i *Maskinporten) GetAuthSpec() *istiotypes.RequestAuthentication {
 	return nil
 }
 
-func (i *Maskinporten) GetIdentityProvderName() IdentityProviderName {
+func (i *Maskinporten) GetIdentityProviderName() IdentityProviderName {
 	return MaskinPortenName
 }
 

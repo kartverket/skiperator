@@ -461,7 +461,7 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 		if provider.IsRequestAuthEnabled() {
 			authConfig, err := r.getAuthConfig(ctx, *application, provider)
 			if err != nil {
-				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetIdentityProvderName(), err)
+				return nil, fmt.Errorf("could not get auth config for provider '%s': %w", provider.GetIdentityProviderName(), err)
 			}
 			authConfigs = append(authConfigs, *authConfig)
 		}
@@ -477,11 +477,11 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, identityProvider idprovider.IdentityProvider) (*jwtAuth.AuthConfig, error) {
 	secret, err := r.getAuthConfigSecret(ctx, application, identityProvider)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", identityProvider.GetIdentityProvderName(), err)
+		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", identityProvider.GetIdentityProviderName(), err)
 	}
 	requestAuthSpec := identityProvider.GetAuthSpec()
 	if requestAuthSpec == nil {
-		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", identityProvider.GetIdentityProvderName())
+		return nil, fmt.Errorf("failed to get requestAuthentication spec for %s", identityProvider.GetIdentityProviderName())
 	}
 
 	issuerUri := string(secret.Data[identityProvider.GetIssuerKey()])
@@ -495,7 +495,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 
 	clientId := string(secret.Data[identityProvider.GetClientIDKey()])
 	if clientId == "" {
-		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", identityProvider.GetIdentityProvderName())
+		return nil, fmt.Errorf("retrieved client id is empty for provider: %s", identityProvider.GetIdentityProviderName())
 	}
 
 	return &jwtAuth.AuthConfig{
@@ -504,7 +504,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 		IgnorePaths:   identityProvider.GetIgnoredPaths(),
 		TokenLocation: identityProvider.GetTokenLocation(),
 		ProviderInfo: idprovider.IdentityProviderInfo{
-			Name:      identityProvider.GetIdentityProvderName(),
+			Name:      identityProvider.GetIdentityProviderName(),
 			IssuerURI: issuerUri,
 			JwksURI:   jwksUri,
 			ClientID:  clientId,
@@ -547,7 +547,7 @@ func (r *ApplicationReconciler) getIdentityProviderSecretName(ctx context.Contex
 		Namespace: application.Namespace,
 	}
 
-	switch identityProvider.GetIdentityProvderName() {
+	switch identityProvider.GetIdentityProviderName() {
 	case idprovider.IDPortenName:
 		{
 			identityProviderOperatorResource, err = util.GetIdPortenClient(r.GetClient(), ctx, namespacedName)

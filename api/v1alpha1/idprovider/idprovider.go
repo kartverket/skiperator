@@ -22,7 +22,7 @@ type IdentityProviderOperatorCRD interface {
 type IdentityProvider interface {
 	IsRequestAuthEnabled() bool
 	GetAuthSpec() *istiotypes.RequestAuthentication
-	GetIdentityProvderName() IdentityProviderName
+	GetIdentityProviderName() IdentityProviderName
 	GetProvidedSecretName() *string
 	GetPaths() []string
 	GetIgnoredPaths() []string

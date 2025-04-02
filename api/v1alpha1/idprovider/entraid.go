@@ -100,7 +100,7 @@ func (i *EntraID) GetAuthSpec() *istiotypes.RequestAuthentication {
 	return nil
 }
 
-func (i *EntraID) GetIdentityProvderName() IdentityProviderName {
+func (i *EntraID) GetIdentityProviderName() IdentityProviderName {
 	return EntraIDName
 }
 

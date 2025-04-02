@@ -110,7 +110,7 @@ func (i *IDPorten) GetAuthSpec() *istiotypes.RequestAuthentication {
 	return nil
 }
 
-func (i *IDPorten) GetIdentityProvderName() IdentityProviderName {
+func (i *IDPorten) GetIdentityProviderName() IdentityProviderName {
 	return IDPortenName
 }
 
