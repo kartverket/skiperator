@@ -34,7 +34,8 @@ status:
       status: "False"
     - type: InternalRulesValid
       status: "True"
-
+    - type: ExternalRulesValid
+      status: "True"
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

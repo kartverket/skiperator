@@ -36,4 +36,5 @@ status:
       status: "False"
     - type: InternalRulesValid
       status: "True"
-
+    - type: ExternalRulesValid
+      status: "True"

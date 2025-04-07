@@ -41,3 +41,8 @@ status:
       reason: ApplicationReconciled
       status: 'True'
       type: InternalRulesValid
+    - message: External rules are valid
+      observedGeneration: 2
+      reason: ApplicationReconciled
+      status: 'True'
+      type: ExternalRulesValid
