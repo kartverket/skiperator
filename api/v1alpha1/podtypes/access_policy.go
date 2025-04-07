@@ -2,6 +2,7 @@ package podtypes
 
 import (
 	"fmt"
+
 	v1 "k8s.io/api/networking/v1"
 )
 
@@ -95,8 +96,8 @@ type ExternalRule struct {
 	// The allowed hostname. Note that this does not include subdomains.
 	//
 	//+kubebuilder:validation:Required
-
 	Host string `json:"host"`
+
 	// Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
 	// Only required for TCP requests.
 	//
