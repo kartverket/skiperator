@@ -128,3 +128,5 @@ status:
   conditions:
     - type: InternalRulesValid
       status: "True"
+    - type: ExternalRulesValid
+      status: "True"

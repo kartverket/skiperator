@@ -2,12 +2,16 @@ package common
 
 import (
 	"fmt"
+	"reflect"
+	"slices"
+	"strings"
+
+	"github.com/chmike/domain"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -44,6 +48,32 @@ func IsInternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
 	return true
 }
 
+func IsExternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
+	if accessPolicy == nil || accessPolicy.Outbound == nil {
+		return true
+	}
+
+	seenHosts := []string{}
+	for _, rule := range accessPolicy.Outbound.External {
+		if len(rule.Host) == 0 {
+			return false
+		}
+
+		normalizedHost := strings.ToLower(rule.Host)
+		if slices.Contains(seenHosts, normalizedHost) {
+			return false
+		}
+
+		if err := domain.Check(normalizedHost); err != nil {
+			return false
+		}
+
+		seenHosts = append(seenHosts, normalizedHost)
+	}
+
+	return true
+}
+
 func GetInternalRulesCondition(obj skiperatorv1alpha1.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
 	message := "Internal rules are valid"
 	if status == metav1.ConditionFalse {
@@ -51,6 +81,21 @@ func GetInternalRulesCondition(obj skiperatorv1alpha1.SKIPObject, status metav1.
 	}
 	return metav1.Condition{
 		Type:               "InternalRulesValid",
+		Status:             status,
+		ObservedGeneration: obj.GetGeneration(),
+		LastTransitionTime: metav1.Now(),
+		Reason:             "ApplicationReconciled",
+		Message:            message,
+	}
+}
+
+func GetExternalRulesCondition(obj skiperatorv1alpha1.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
+	message := "External rules are valid"
+	if status == metav1.ConditionFalse {
+		message = "External rules are invalid – hostname may be empty or duplicate, or the hostname may not be a valid DNS name"
+	}
+	return metav1.Condition{
+		Type:               "ExternalRulesValid",
 		Status:             status,
 		ObservedGeneration: obj.GetGeneration(),
 		LastTransitionTime: metav1.Now(),
