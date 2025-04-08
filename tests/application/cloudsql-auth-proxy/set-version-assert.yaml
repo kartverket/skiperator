@@ -156,8 +156,6 @@ metadata:
 spec:
   addresses:
     - 10.0.0.1
-  endpoints:
-    - address: 10.0.0.1
   exportTo:
     - .
     - istio-system
