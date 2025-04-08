@@ -1,4 +1,4 @@
-package digdirator
+package idprovider
 
 import (
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
@@ -50,7 +50,7 @@ func (i *Maskinporten) GetAuthSpec() *istiotypes.RequestAuthentication {
 	return nil
 }
 
-func (i *Maskinporten) GetDigdiratorName() DigdiratorName {
+func (i *Maskinporten) GetIdentityProviderName() IdentityProviderName {
 	return MaskinPortenName
 }
 
