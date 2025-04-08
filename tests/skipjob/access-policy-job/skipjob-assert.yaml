@@ -49,9 +49,6 @@ spec:
       number: 443
       protocol: HTTPS
   resolution: DNS
-  workloadSelector:
-    labels:
-      app: access-policy-job-skipjob
 ---
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
@@ -69,9 +66,6 @@ spec:
       number: 80
       protocol: HTTP
   resolution: DNS
-  workloadSelector:
-    labels:
-      app: access-policy-job-skipjob
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob

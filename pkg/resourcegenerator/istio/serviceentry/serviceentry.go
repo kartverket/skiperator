@@ -51,7 +51,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				serviceEntryName = fmt.Sprintf("%v-%v", strings.ToLower(objectKind), serviceEntryName)
 			}
 
-			resolution, addresses, selector := getIpData(rule.Ip, object.GetWorkloadName())
+			resolution, addresses, endpoints := getIpData(rule.Ip)
 
 			ports, err := getPorts(rule.Ports, rule.Ip)
 			if err != nil {
@@ -65,14 +65,15 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				},
 				Spec: networkingv1api.ServiceEntry{
 					// Avoid leaking service entry to other namespaces
-					ExportTo:         []string{".", "istio-system", "istio-gateways"},
-					Hosts:            []string{rule.Host},
-					Resolution:       resolution,
-					Addresses:        addresses,
-					Ports:            ports,
-					WorkloadSelector: selector,
+					ExportTo:   []string{".", "istio-system", "istio-gateways"},
+					Hosts:      []string{rule.Host},
+					Resolution: resolution,
+					Addresses:  addresses,
+					Endpoints:  endpoints,
+					Ports:      ports,
 				},
 			}
+
 			r.AddResource(&serviceEntry)
 		}
 	}
@@ -111,12 +112,12 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networki
 	return ports, nil
 }
 
-func getIpData(ip string, podName string) (networkingv1api.ServiceEntry_Resolution, []string, *networkingv1api.WorkloadSelector) {
+func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []*networkingv1api.WorkloadEntry) {
 	if ip == "" {
-		return networkingv1api.ServiceEntry_DNS, nil, &networkingv1api.WorkloadSelector{Labels: map[string]string{"app": podName}}
+		return networkingv1api.ServiceEntry_DNS, nil, nil
 	}
 
-	return networkingv1api.ServiceEntry_STATIC, []string{ip}, &networkingv1api.WorkloadSelector{Labels: map[string]string{"app": podName}}
+	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
 }
 
 func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object skiperatorv1alpha1.SKIPObject) (*podtypes.AccessPolicy, error) {

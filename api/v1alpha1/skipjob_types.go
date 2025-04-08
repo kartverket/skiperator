@@ -210,10 +210,6 @@ func (skipJob *SKIPJob) KindPostFixedName() string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
 }
 
-func (skipJob *SKIPJob) GetWorkloadName() string {
-	return skipJob.KindPostFixedName()
-}
-
 func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
 	return &skipJob.Status
 }

@@ -427,10 +427,6 @@ func (a *Application) FillDefaultsStatus() {
 	}
 }
 
-func (a *Application) GetWorkloadName() string {
-	return a.Name
-}
-
 func (a *Application) GetStatus() *SkiperatorStatus {
 	return &a.Status
 }

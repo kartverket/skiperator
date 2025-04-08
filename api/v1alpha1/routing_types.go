@@ -94,10 +94,6 @@ func (in *Routing) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
 }
 
-func (in *Routing) GetWorkloadName() string {
-	return in.Name
-}
-
 func (in *RoutingSpec) GetHost() (*Host, error) {
 	return NewHost(in.Hostname)
 }
