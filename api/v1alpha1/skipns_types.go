@@ -18,10 +18,6 @@ func (n SKIPNamespace) GetStatus() *SkiperatorStatus {
 
 func (n SKIPNamespace) SetStatus(status SkiperatorStatus) {}
 
-func (n SKIPNamespace) GetWorkloadName() string {
-	return n.Name
-}
-
 func (n SKIPNamespace) GetDefaultLabels() map[string]string {
 	return map[string]string{
 		"app.kubernetes.io/name":              n.Name,

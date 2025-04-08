@@ -79,9 +79,6 @@ spec:
     - name: http
       number: 80
       protocol: HTTP
-  workloadSelector:
-    labels:
-      app: access-policy
 ---
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
@@ -100,9 +97,6 @@ spec:
     - name: https
       number: 443
       protocol: HTTPS
-  workloadSelector:
-    labels:
-      app: access-policy
 ---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
