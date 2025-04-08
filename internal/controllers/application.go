@@ -3,6 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
@@ -47,7 +50,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,7 +57,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -262,13 +263,19 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
 	var conditions []metav1.Condition
 	accessPolicy := app.Spec.AccessPolicy
+
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
 		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
+	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
+		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
+		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
 		app.Status.AccessPolicies = skiperatorv1alpha1.READY
 	}
+
 	app.Status.Conditions = conditions
 }
 

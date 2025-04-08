@@ -69,7 +69,6 @@ status:
   conditions:
     - type: InternalRulesValid
       status: "False"
-
 ---
 apiVersion: v1
 kind: Event

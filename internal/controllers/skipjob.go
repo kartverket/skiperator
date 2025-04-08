@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -362,11 +363,16 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 
 	// Invalid port condition
 	accessPolicy := skipJob.Spec.Container.AccessPolicy
+
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionFalse))
 		skipJob.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
+	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetExternalRulesCondition(skipJob, v1.ConditionFalse))
+		skipJob.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else {
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionTrue))
+		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetExternalRulesCondition(skipJob, v1.ConditionTrue))
 		skipJob.Status.AccessPolicies = skiperatorv1alpha1.READY
 	}
 

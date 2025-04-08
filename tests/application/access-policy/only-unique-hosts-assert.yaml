@@ -1,0 +1,55 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: only-unique-hosts
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: sftp
+              port: 22
+              protocol: TCP
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: ftps
+              port: 21
+              protocol: TCP
+status:
+  accessPolicies: InvalidConfig
+  conditions:
+    - status: "False"
+      message: "External rules are invalid – hostname may be empty or duplicate, or the hostname may not be a valid DNS name"
+      type: ExternalRulesValid
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: an-unique-host
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: sftp
+              port: 22
+              protocol: TCP
+            - name: ftps
+              port: 21
+              protocol: TCP
+status:
+  accessPolicies: Ready
+  conditions:
+    - status: "True"
+      type: InternalRulesValid
+    - status: "True"
+      type: ExternalRulesValid
