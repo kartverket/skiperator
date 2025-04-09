@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/util"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	telemetryapiv1 "istio.io/api/telemetry/v1"
 	typev1beta1 "istio.io/api/type/v1beta1"

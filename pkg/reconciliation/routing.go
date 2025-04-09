@@ -2,8 +2,8 @@ package reconciliation
 
 import (
 	"context"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )

@@ -1,9 +1,9 @@
 package deployment
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/testutil"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/testutil"
+	"github.com/kartverket/skiperator/v3/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"

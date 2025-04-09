@@ -2,8 +2,8 @@ package defaultdeny
 
 import (
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v3/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

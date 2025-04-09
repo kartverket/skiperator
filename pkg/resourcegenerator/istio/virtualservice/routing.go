@@ -3,8 +3,8 @@ package virtualservice
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v3/api/v1alpha1"
+	"github.com/kartverket/skiperator/v3/pkg/reconciliation"
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
