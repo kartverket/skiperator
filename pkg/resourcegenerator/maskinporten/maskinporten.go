@@ -2,6 +2,7 @@ package maskinporten
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -23,7 +24,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if !MaskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
-		ctxLog.Info("Maskinporten not specified in spec, skipping generation")
+		ctxLog.Debug("Maskinporten not specified in spec, skipping generation")
 		return nil
 	}
 

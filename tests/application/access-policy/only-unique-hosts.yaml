@@ -1,0 +1,43 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: only-unique-hosts
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: sftp
+              port: 22
+              protocol: TCP
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: ftps
+              port: 21
+              protocol: TCP
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: an-unique-host
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      external:
+        - host: somehost.com
+          ip: 100.100.100.42
+          ports:
+            - name: sftp
+              port: 22
+              protocol: TCP
+            - name: ftps
+              port: 21
+              protocol: TCP
+

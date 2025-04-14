@@ -15,6 +15,10 @@ status:
       reason: ApplicationReconciled
       status: 'True'
       type: InternalRulesValid
+    - message: External rules are valid
+      reason: ApplicationReconciled
+      status: 'True'
+      type: ExternalRulesValid
   subresources:
     CronJob[status-ready-no-job]:
       message: CronJob has finished synchronizing

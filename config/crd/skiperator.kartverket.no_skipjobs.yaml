@@ -156,6 +156,8 @@ spec:
                                 Describes a rule for allowing your Application to route traffic to external applications and hosts.
                               properties:
                                 host:
+                                  description: The allowed hostname. Note that this
+                                    does not include subdomains.
                                   type: string
                                 ip:
                                   description: |-
