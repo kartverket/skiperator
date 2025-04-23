@@ -1,0 +1,7 @@
+
+[{
+  "match": {
+    "package_ecosystem": "go_modules",
+    "update_type": "semver:minor"
+  }
+}]
