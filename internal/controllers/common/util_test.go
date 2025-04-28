@@ -81,6 +81,32 @@ func TestShouldNormalizeHosts(t *testing.T) {
 		assert.True(t, IsExternalRulesValid(singleDomain))
 	})
 
+	t.Run("cloudsql_host", func(t *testing.T) {
+		cloudsqlHost := externalPolicyTo(
+			podtypes.ExternalRule{
+				Host: "backstage-pg-01-something",
+				Ip:   "10.144.0.123",
+				Ports: []podtypes.ExternalPort{
+					{Port: 5432, Name: "sql", Protocol: "tcp"},
+				},
+			},
+		)
+		assert.True(t, IsExternalRulesValid(cloudsqlHost))
+	})
+
+	t.Run("cloudsql_ip", func(t *testing.T) {
+		cloudsqlHost := externalPolicyTo(
+			podtypes.ExternalRule{
+				Host: "10.144.0.123",
+				Ip:   "10.144.0.123",
+				Ports: []podtypes.ExternalPort{
+					{Port: 5432, Name: "sql", Protocol: "tcp"},
+				},
+			},
+		)
+		assert.True(t, IsExternalRulesValid(cloudsqlHost))
+	})
+
 	// Invalid cases
 	t.Run("duplicate_domain", func(t *testing.T) {
 		duplicateDomain := externalPolicyTo(
