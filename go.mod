@@ -5,7 +5,7 @@ go 1.24.2
 require (
 	dario.cat/mergo v1.0.1
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/cert-manager/cert-manager v1.17.1
+	github.com/cert-manager/cert-manager v1.17.2
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.2
 	github.com/google/k8s-digester v0.1.16
@@ -60,7 +60,6 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/aquilax/truncate v1.0.1 // indirect
-	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.32.6 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.28.6 // indirect
@@ -82,7 +81,6 @@ require (
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
-	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
@@ -97,7 +95,6 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/dustinkirkland/golang-petname v0.0.0-20240428194347-eebcea082ee0 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
-	github.com/envoyproxy/go-control-plane v0.13.4 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.32.4 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
@@ -124,7 +121,6 @@ require (
 	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20241111191718-6bce25ecf029 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20241111191718-6bce25ecf029 // indirect
-	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -226,7 +222,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250425173222-7b384671a197 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250425173222-7b384671a197 // indirect
 	google.golang.org/grpc v1.72.0 // indirect
-	google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
