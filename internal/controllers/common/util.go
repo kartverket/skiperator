@@ -63,12 +63,15 @@ func IsExternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
 		if slices.Contains(seenHosts, normalizedHost) {
 			return false
 		}
+		seenHosts = append(seenHosts, normalizedHost)
+
+		if normalizedHost == rule.Ip {
+			return true
+		}
 
 		if err := domain.Check(normalizedHost); err != nil {
 			return false
 		}
-
-		seenHosts = append(seenHosts, normalizedHost)
 	}
 
 	return true
