@@ -1,0 +1,19 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: retries
+spec:
+  image: image
+  port: 8080
+  ingresses:
+    - retry.com
+  redirectToHTTPS: true
+  istioSettings:
+    retries:
+      attempts: 5
+      perTryTimeout: 30ms
+      retryOnHttpResponseCodes:
+        - "retriable-4xx"
+        - 5xx
+        - 409
+
