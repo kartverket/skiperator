@@ -206,7 +206,7 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 	}
 	if in.IstioSettings != nil {
 		in, out := &in.IstioSettings, &out.IstioSettings
-		*out = new(istiotypes.IstioSettings)
+		*out = new(istiotypes.IstioSettingsApplication)
 		(*in).DeepCopyInto(*out)
 	}
 }
@@ -615,7 +615,7 @@ func (in *SKIPJobSpec) DeepCopyInto(out *SKIPJobSpec) {
 	in.Container.DeepCopyInto(&out.Container)
 	if in.IstioSettings != nil {
 		in, out := &in.IstioSettings, &out.IstioSettings
-		*out = new(istiotypes.IstioSettings)
+		*out = new(istiotypes.IstioSettingsBase)
 		(*in).DeepCopyInto(*out)
 	}
 	if in.Prometheus != nil {

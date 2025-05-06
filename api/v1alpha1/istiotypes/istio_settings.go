@@ -61,10 +61,14 @@ type Retries struct {
 // IstioSettings contains configuration settings for istio resources. Currently only telemetry configuration is supported.
 //
 // +kubebuilder:object:generate=true
-type IstioSettings struct {
+type IstioSettingsBase struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={tracing: {{randomSamplingPercentage: 10}}}
 	Telemetry Telemetry `json:"telemetry,omitempty"`
+}
+
+type IstioSettingsApplication struct {
+	IstioSettingsBase `json:",inline"`
 
 	// +kubebuilder:validation:Optional
 	Retries *Retries `json:"retries,omitempty"`

@@ -764,7 +764,7 @@ spec:
                       attempts:
                         description: |-
                           Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
-                          Default is 1
+                          Default is 2
                         format: int32
                         minimum: 1
                         type: integer
@@ -776,7 +776,7 @@ spec:
                         type: string
                       retryOnHttpResponseCodes:
                         description: |-
-                          retryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
+                          RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
                           You may also use 5xx and retriable-4xx (only 409).
                         items:
                           anyOf:

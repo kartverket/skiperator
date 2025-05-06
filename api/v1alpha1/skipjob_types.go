@@ -89,7 +89,7 @@ type SKIPJobSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
-	IstioSettings *istiotypes.IstioSettings `json:"istioSettings,omitempty"`
+	IstioSettings *istiotypes.IstioSettingsBase `json:"istioSettings,omitempty"`
 
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.

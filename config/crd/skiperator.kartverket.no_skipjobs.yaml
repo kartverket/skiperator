@@ -815,62 +815,6 @@ spec:
                   interval for tracing is the only supported option.
                   By default, tracing is enabled with a random sampling percentage of 10%.
                 properties:
-                  retries:
-                    description: |-
-                      Retries is configurable automatic retries for requests towards the application.
-                      By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled,5xx" will be retried.
-                    properties:
-                      attempts:
-                        description: |-
-                          Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
-                          Default is 1
-                        format: int32
-                        minimum: 1
-                        type: integer
-                      perTryTimeout:
-                        description: |-
-                          PerTryTimeout is the timeout per attempt for a given request, including the initial call and any retries. Format: 1h/1m/1s/1ms. MUST be >=1ms.
-                          Default: no timeout
-                        format: duration
-                        type: string
-                      retryOnHttpResponseCodes:
-                        description: |-
-                          retryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
-                          You may also use 5xx and retriable-4xx (only 409).
-                        items:
-                          anyOf:
-                          - type: integer
-                          - type: string
-                          enum:
-                          - "500"
-                          - 500
-                          - "501"
-                          - 501
-                          - "502"
-                          - 502
-                          - "503"
-                          - 503
-                          - "504"
-                          - 504
-                          - "505"
-                          - 505
-                          - "506"
-                          - 506
-                          - "507"
-                          - 507
-                          - "508"
-                          - 508
-                          - "510"
-                          - 510
-                          - "511"
-                          - 511
-                          - "409"
-                          - 409
-                          - retriable-4xx
-                          - 5xx
-                          x-kubernetes-int-or-string: true
-                        type: array
-                    type: object
                   telemetry:
                     default:
                       tracing:
