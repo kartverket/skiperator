@@ -39,7 +39,7 @@ type Telemetry struct {
 // +kubebuilder:object:generate=true
 type Retries struct {
 	// Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
-	// Default is 1
+	// Default is 2
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Optional
 	Attempts *int32 `json:"attempts,omitempty"`
@@ -51,7 +51,7 @@ type Retries struct {
 	// +kubebuilder:validation:Optional
 	PerTryTimeout *v1.Duration `json:"perTryTimeout,omitempty"`
 
-	// retryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
+	// RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
 	// You may also use 5xx and retriable-4xx (only 409).
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:items:Enum="500";500;"501";501;"502";502;"503";503;"504";504;"505";505;"506";506;"507";507;"508";508;"510";510;"511";511;"409";409;"retriable-4xx";"5xx"
