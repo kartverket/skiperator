@@ -22,6 +22,6 @@ var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot pr
 type CommonSpec struct {
 	AccessPolicy  *podtypes.AccessPolicy
 	GCP           *podtypes.GCP
-	IstioSettings *istiotypes.IstioSettings
+	IstioSettings *istiotypes.IstioSettingsBase
 	Image         string
 }

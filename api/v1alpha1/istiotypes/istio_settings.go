@@ -3,6 +3,11 @@
 
 package istiotypes
 
+import (
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+)
+
 // Tracing contains relevant settings for tracing in the telemetry configuration
 // +kubebuilder:object:generate=true
 type Tracing struct {
@@ -28,11 +33,46 @@ type Telemetry struct {
 	Tracing []*Tracing `json:"tracing,omitempty"`
 }
 
+// Retries is configurable automatic retries for requests towards the application.
+// By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled,5xx" will be retried.
+//
+// +kubebuilder:object:generate=true
+type Retries struct {
+	// Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
+	// Default is 2
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Optional
+	Attempts *int32 `json:"attempts,omitempty"`
+
+	// PerTryTimeout is the timeout per attempt for a given request, including the initial call and any retries. Format: 1h/1m/1s/1ms. MUST be >=1ms.
+	// Default: no timeout
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Format=duration
+	// +kubebuilder:validation:Optional
+	PerTryTimeout *v1.Duration `json:"perTryTimeout,omitempty"`
+
+	// RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
+	// You may also use 5xx and retriable-4xx (only 409).
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:items:Enum="500";500;"501";501;"502";502;"503";503;"504";504;"505";505;"506";506;"507";507;"508";508;"510";510;"511";511;"409";409;"retriable-4xx";"5xx"
+	RetryOnHttpResponseCodes *[]intstr.IntOrString `json:"retryOnHttpResponseCodes,omitempty"`
+}
+
 // IstioSettings contains configuration settings for istio resources. Currently only telemetry configuration is supported.
 //
 // +kubebuilder:object:generate=true
-type IstioSettings struct {
+type IstioSettingsBase struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:={tracing: {{randomSamplingPercentage: 10}}}
 	Telemetry Telemetry `json:"telemetry,omitempty"`
+}
+
+// IstioSettingsApplication contains configuration settings for istio resources for applications.
+//
+// +kubebuilder:object:generate=true
+type IstioSettingsApplication struct {
+	IstioSettingsBase `json:",inline"`
+
+	// +kubebuilder:validation:Optional
+	Retries *Retries `json:"retries,omitempty"`
 }

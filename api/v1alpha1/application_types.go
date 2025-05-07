@@ -252,7 +252,7 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
-	IstioSettings *istiotypes.IstioSettings `json:"istioSettings,omitempty"`
+	IstioSettings *istiotypes.IstioSettingsApplication `json:"istioSettings,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -451,7 +451,7 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	return &CommonSpec{
 		GCP:           a.Spec.GCP,
 		AccessPolicy:  a.Spec.AccessPolicy,
-		IstioSettings: a.Spec.IstioSettings,
+		IstioSettings: &a.Spec.IstioSettings.IstioSettingsBase,
 		Image:         a.Spec.Image,
 	}
 }

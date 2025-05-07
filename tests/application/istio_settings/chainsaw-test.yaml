@@ -1,0 +1,21 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: istio-settings
+spec:
+  skip: false
+  concurrent: false
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: retry-minimal.yaml
+        - assert:
+            file: retry-minimal-assert.yaml
+        - error:
+            file: retry-minimal-error.yaml
+    - try:
+        - create:
+            file: retries-advanced.yaml
+        - assert:
+            file: retries-advanced-assert.yaml

@@ -1,0 +1,27 @@
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: retries-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - retries-ingress-2938b1a522652310
+  hosts:
+    - retry.com
+  http:
+    - match:
+        - port: 80
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - name: default-app-route
+      route:
+        - destination:
+            host: retries
+      retries:
+        attempts: 5
+        perTryTimeout: 0.030s
+        retryOn: connect-failure,refused-stream,unavailable,cancelled,retriable-4xx,5xx,409
