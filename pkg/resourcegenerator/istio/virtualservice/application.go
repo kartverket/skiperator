@@ -121,7 +121,7 @@ func generateRetryPolicy(re *istiotypes.Retries) *networkingv1api.HTTPRetry {
 		RetryOn: conditions,
 	}
 
-	// Default to one retry attempt here, avoiding setting default in the type because we do not want issues with argo sync
+	// Default to two retry attempts here, avoiding setting default in the type because we do not want issues with argo sync
 	policy.Attempts = int32(2)
 	if re.Attempts != nil {
 		policy.Attempts = *re.Attempts
