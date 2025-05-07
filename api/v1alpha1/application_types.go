@@ -451,7 +451,7 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	return &CommonSpec{
 		GCP:           a.Spec.GCP,
 		AccessPolicy:  a.Spec.AccessPolicy,
-		IstioSettings: a.Spec.IstioSettings,
+		IstioSettings: &a.Spec.IstioSettings.IstioSettingsBase,
 		Image:         a.Spec.Image,
 	}
 }

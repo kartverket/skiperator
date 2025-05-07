@@ -67,6 +67,9 @@ type IstioSettingsBase struct {
 	Telemetry Telemetry `json:"telemetry,omitempty"`
 }
 
+// IstioSettingsApplication contains configuration settings for istio resources for applications.
+//
+// +kubebuilder:object:generate=true
 type IstioSettingsApplication struct {
 	IstioSettingsBase `json:",inline"`
 
