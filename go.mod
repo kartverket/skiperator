@@ -3,7 +3,7 @@ module github.com/kartverket/skiperator
 go 1.24.2
 
 require (
-	dario.cat/mergo v1.0.1
+	dario.cat/mergo v1.0.2
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/chmike/domain v1.1.0
