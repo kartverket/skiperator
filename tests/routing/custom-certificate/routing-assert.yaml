@@ -38,3 +38,34 @@ spec:
       tls:
         credentialName: some-cert
         mode: SIMPLE
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: some-routing-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - some-routing-routing-ingress
+  hosts:
+    - example.com
+  http:
+    - match:
+        - port: 80
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /app1
+      name: some-app
+      route:
+        - destination:
+            host: some-app
+            port:
+              number: 8081
