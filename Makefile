@@ -145,3 +145,54 @@ run-test: build
 		fi; \
 	) && \
 	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID && echo "running unit tests..." && $(MAKE) run-unit-tests)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)
+
+# Checks the delta of requests made to the kube api from the controller.
+.PHONY: benchmark-kube-api
+benchmark-kube-api: build
+	@echo "Starting skiperator in background..."
+	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
+	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
+	METRICS_AFTER=$$(mktemp -t metrics-after.XXXXXXX); \
+	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
+	PID=$$!; \
+	echo "Waiting for skiperator to start and sync..."; \
+	sleep 10s; \
+	echo "Fetching metrics before..."; \
+	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_BEFORE"; \
+	echo "Run application tests"; \
+	$(MAKE) test-single dir=tests/application/access-policy; \
+	$(MAKE) test-single dir=tests/routing/routes; \
+	$(MAKE) test-single dir=tests/skipjob/access-policy-job; \
+	echo "Fetching metrics after..."; \
+	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
+	kill $$PID; \
+	cat $$METRICS_BEFORE; \
+	cat $$METRICS_AFTER; \
+	echo "Kubernetes API usage (delta):"; \
+	awk ' \
+		FNR==NR && $$0 ~ /rest_client_requests_total/ { \
+			split($$0, a, " "); \
+			split(a[1], b, "method=\""); \
+			split(b[2], c, "\""); \
+			method=c[1]; \
+			val=a[2]; \
+			before[method]=val; \
+			next; \
+		} \
+		$$0 ~ /rest_client_requests_total/ { \
+			split($$0, a, " "); \
+			split(a[1], b, "method=\""); \
+			split(b[2], c, "\""); \
+			method=c[1]; \
+			val=a[2]; \
+			delta = val - before[method]; \
+			if (delta > 0) { \
+				total += delta; \
+				printf("  %s: %d\n", method, delta); \
+			} \
+		} \
+		END { \
+			printf("  Total: %d\n", total); \
+		} \
+	' "$$METRICS_BEFORE" "$$METRICS_AFTER"; \
+	echo "Done. Logs saved to $$LOG_FILE"

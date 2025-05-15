@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 	"regexp"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -83,11 +85,36 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
+var debugPredicate = predicate.Funcs{
+	CreateFunc: func(e event.CreateEvent) bool {
+		klog.Infof("CreateEvent: %s/%s/%T", e.Object.GetNamespace(), e.Object.GetName(), e.Object)
+		return true
+	},
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		if e.ObjectNew.GetNamespace() == "istio-system" {
+			return false
+		}
+
+		klog.Infof("UpdateEvent: %s/%s/%T", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName(), e.ObjectNew)
+		//diff := cmp.Diff(e.ObjectOld, e.ObjectNew)
+		//klog.Infof("Diff: %s", diff)
+		return true
+	},
+	DeleteFunc: func(e event.DeleteEvent) bool {
+		klog.Infof("DeleteEvent: %s/%s/%T", e.Object.GetNamespace(), e.Object.GetName(), e.Object)
+		return true
+	},
+	GenericFunc: func(e event.GenericEvent) bool {
+		klog.Infof("GenericEvent: %s/%s", e.Object.GetNamespace(), e.Object.GetName())
+		return true
+	},
+}
+
 // TODO Watch applications that are using dynamic port allocation
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
-		Owns(&appsv1.Deployment{}).
+		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&istionetworkingv1.ServiceEntry{}).
@@ -108,8 +135,61 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+		Watches(
+			&skiperatorv1alpha1.Application{},
+			handler.EnqueueRequestsFromMapFunc(r.MapChangedAppToDependents),
+		).
+		WithEventFilter(
+			predicate.And(
+				common.DefaultPredicate, // Runs first
+				predicate.And(
+					predicate.Or(
+						predicate.GenerationChangedPredicate{},
+						predicate.LabelChangedPredicate{},
+					),
+					debugPredicate,
+				),
+			),
+		).
 		Complete(r)
+}
+
+func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, obj client.Object) []reconcile.Request {
+	changedApp, ok := obj.(*skiperatorv1alpha1.Application)
+	if !ok {
+		return nil
+	}
+
+	var result []reconcile.Request
+	if changedApp.Spec.AccessPolicy != nil && changedApp.Spec.AccessPolicy.Outbound != nil {
+		for _, ref := range changedApp.Spec.AccessPolicy.Outbound.Rules {
+			appRef := types.NamespacedName{
+				Name:      ref.Application,
+				Namespace: changedApp.Namespace,
+			}
+			if ref.Namespace != "" {
+				appRef.Namespace = ref.Namespace
+			}
+			if ref.NamespacesByLabel != nil {
+				namespaces, err := r.GetNamespacesByLabel(ctx, &ref)
+				if err != nil {
+					klog.Error(err)
+					break
+				}
+				for _, ns := range namespaces.Items {
+					appRef.Namespace = ns.Name
+					var app *skiperatorv1alpha1.Application
+					err = r.GetClient().Get(ctx, appRef, app)
+					if err != nil {
+						continue
+					}
+				}
+			}
+			result = append(result, reconcile.Request{NamespacedName: appRef})
+		}
+	}
+
+	return result
 }
 
 type reconciliationFunc func(reconciliation Reconciliation) error

@@ -230,14 +230,9 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 		case rule.Namespace != "":
 			namespaceList = append(namespaceList, rule.Namespace)
 		case len(rule.NamespacesByLabel) != 0:
-			selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
-			selectorString, err := metav1.LabelSelectorAsSelector(&selector)
+			namespaces, err := r.GetNamespacesByLabel(ctx, rule)
 			if err != nil {
-				ruleErrors = append(ruleErrors, fmt.Errorf("failed to create label selector: %w", err))
-			}
-			namespaces := &corev1.NamespaceList{}
-			if err = r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
-				ruleErrors = append(ruleErrors, fmt.Errorf("failed to list namespaces: %w", err))
+				ruleErrors = append(ruleErrors, err)
 			}
 			for _, ns := range namespaces.Items {
 				namespaceList = append(namespaceList, ns.Name)
@@ -263,4 +258,18 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 		}
 	}
 	return ruleErrors
+}
+
+func (r *ReconcilerBase) GetNamespacesByLabel(ctx context.Context, rule *podtypes.InternalRule) (*corev1.NamespaceList, error) {
+	var err error
+	selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
+	selectorString, err := metav1.LabelSelectorAsSelector(&selector)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create label selector: %w", err)
+	}
+	namespaces := &corev1.NamespaceList{}
+	if err = r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+	return namespaces, nil
 }
