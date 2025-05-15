@@ -1,0 +1,21 @@
+Before:
+Kubernetes API usage (delta):
+  DELETE: 102
+  GET: 4714
+  PATCH: 151
+  PUT: 745
+  POST: 291
+  DELETE: 7
+  PUT: 13
+  Total: 6023
+
+Kubernetes API usage (delta):
+  DELETE: 95
+  GET: 4507
+  PATCH: 132
+  PUT: 691
+  POST: 284
+  DELETE: 5
+  Total: 5714
+
+After:

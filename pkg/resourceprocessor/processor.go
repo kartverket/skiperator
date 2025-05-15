@@ -45,14 +45,14 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error 
 		results[obj] = err
 	}
 
-	for _, obj := range diffs.shouldPatch {
-		err = r.patch(task.GetCtx(), obj)
-		results[obj] = err
+	for existing, newObj := range diffs.shouldPatch {
+		err = r.patch(task.GetCtx(), newObj, existing)
+		results[newObj] = err
 	}
 
-	for _, obj := range diffs.shouldUpdate {
-		err = r.update(task.GetCtx(), obj)
-		results[obj] = err
+	for existing, newObj := range diffs.shouldUpdate {
+		err = r.update(task.GetCtx(), newObj, existing)
+		results[newObj] = err
 	}
 
 	var errors []error
