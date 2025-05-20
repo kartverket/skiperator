@@ -44,7 +44,7 @@ status:
       message: >-
         NetworkPolicy NetworkPolicy.networking.k8s.io "badport" is invalid:
         [spec.ingress[0].ports[0].port: Invalid value: 80801: must be between 1
-        and 65535, inclusive, spec.ingress[3].ports[0].port: Invalid value:
+        and 65535, inclusive, spec.ingress[2].ports[0].port: Invalid value:
         80801: must be between 1 and 65535, inclusive]
       status: Error
     PeerAuthentication[badport]:
