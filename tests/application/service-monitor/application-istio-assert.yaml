@@ -96,16 +96,6 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: grafana-agent
-          podSelector:
-            matchLabels:
-              app.kubernetes.io/instance: grafana-agent
-              app.kubernetes.io/name: grafana-agent
-      ports:
-        - port: istio-metrics
-    - from:
-        - namespaceSelector:
-            matchLabels:
               kubernetes.io/metadata.name: grafana-alloy
           podSelector:
             matchLabels:

@@ -6,8 +6,6 @@ import (
 )
 
 const (
-	GrafanaAgentName      = "grafana-agent"
-	GrafanaAgentNamespace = GrafanaAgentName
 	AlloyAgentName        = "alloy"
 	AlloyAgentNamespace   = "grafana-alloy"
 )
