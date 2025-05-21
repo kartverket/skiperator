@@ -55,19 +55,6 @@ spec:
     to:
       - namespaceSelector:
           matchLabels:
-            kubernetes.io/metadata.name: grafana-agent
-        podSelector:
-          matchLabels:
-            app.kubernetes.io/instance: grafana-agent
-            app.kubernetes.io/name: grafana-agent
-  - ports:
-      - port: 4317
-        protocol: TCP
-      - port: 4318
-        protocol: TCP
-    to:
-      - namespaceSelector:
-          matchLabels:
             kubernetes.io/metadata.name: grafana-alloy
         podSelector:
           matchLabels:

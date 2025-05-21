@@ -180,29 +180,8 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 		}
 	}
 
-	// Allow grafana-agent to scrape
+	// Allow grafana-alloy to scrape
 	if istioEnabled {
-		promScrapeRuleGrafana := networkingv1.NetworkPolicyIngressRule{
-			From: []networkingv1.NetworkPolicyPeer{
-				{
-					NamespaceSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{"kubernetes.io/metadata.name": GrafanaAgentNamespace},
-					},
-					PodSelector: &metav1.LabelSelector{
-						MatchLabels: map[string]string{
-							"app.kubernetes.io/instance": GrafanaAgentName,
-							"app.kubernetes.io/name":     GrafanaAgentName,
-						},
-					},
-				},
-			},
-			Ports: []networkingv1.NetworkPolicyPort{
-				{
-					Port: util.PointTo(util.IstioMetricsPortName),
-				},
-			},
-		}
-
 		promScrapeRuleAlloy := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -224,7 +203,6 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 			},
 		}
 
-		ingressRules = append(ingressRules, promScrapeRuleGrafana)
 		ingressRules = append(ingressRules, promScrapeRuleAlloy)
 	}
 
