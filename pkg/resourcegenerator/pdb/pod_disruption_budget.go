@@ -72,7 +72,7 @@ func determineMinAvailable(replicasAvailable uint) *intstr.IntOrString {
 	if replicasAvailable > 1 {
 		value = intstr.FromString("50%")
 	} else {
-		intstr.FromInt(0)
+		value = intstr.FromInt(0)
 	}
 
 	return &value
