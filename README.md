@@ -127,6 +127,7 @@ spec:
       memory: 250M
   
   enablePDB: true
+  # Note: If replicas is set to 0, a PodDisruptionBudget will not be created, regardless of the value of enablePDB.
   
   accessPolicy:
     inbound:

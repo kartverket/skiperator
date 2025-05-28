@@ -153,6 +153,7 @@ or running third-party containers where you don't have control over the Dockerfi
           Whether to enable automatic Pod Disruption Budget creation for this application.<br/>
           <br/>
             <i>Default</i>: true<br/>
+            <b>Note:</b> If the number of replicas is set to 0, a PodDisruptionBudget will not be created, even if <code>enablePDB</code> is set to true.
         </td>
         <td>false</td>
       </tr><tr>
@@ -1329,132 +1330,6 @@ The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-nort
           Image version for the CloudSQL proxy sidecar.<br/>
           <br/>
             <i>Default</i>: 2.8.0<br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### Application.spec.idporten
-<sup><sup>[↩ Parent](#applicationspec)</sup></sup>
-
-
-
-Settings for IDPorten integration with Digitaliseringsdirektoratet
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>enabled</b></td>
-        <td>boolean</td>
-        <td>
-          Whether to enable provisioning of an ID-porten client.
-If enabled, an ID-porten client be provisioned.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>accessTokenLifetime</b></td>
-        <td>integer</td>
-        <td>
-          AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
-
-If unspecified, defaults to `3600` seconds (1 hour).<br/>
-          <br/>
-            <i>Minimum</i>: 1<br/>
-            <i>Maximum</i>: 3600<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>clientName</b></td>
-        <td>string</td>
-        <td>
-          The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-Meant to be a human-readable name for separating clients in the portal<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>clientURI</b></td>
-        <td>string</td>
-        <td>
-          ClientURI is the URL shown to the user at ID-porten when displaying a 'back' button or on errors.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>frontchannelLogoutPath</b></td>
-        <td>string</td>
-        <td>
-          FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
-initiated a logout elsewhere as part of a single logout (front channel logout) process.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>integrationType</b></td>
-        <td>enum</td>
-        <td>
-          IntegrationType is used to make sensible choices for your client.
-Which type of integration you choose will provide guidance on which scopes you can use with the client.
-A client can only have one integration type.
-
-NB! It is not possible to change the integration type after creation.<br/>
-          <br/>
-            <i>Enum</i>: krr, idporten, api_klient<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>postLogoutRedirectPath</b></td>
-        <td>string</td>
-        <td>
-          PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
-that will be appended to the ingress<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>postLogoutRedirectURIs</b></td>
-        <td>[]string</td>
-        <td>
-          PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
-has been initiated and performed by the application.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>redirectPath</b></td>
-        <td>string</td>
-        <td>
-          RedirectPath is a valid path that ID-porten redirects back to after a successful authorization request.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>scopes</b></td>
-        <td>[]string</td>
-        <td>
-          Register different oauth2 Scopes on your client.
-You will not be able to add a scope to your client that conflicts with the client's IntegrationType.
-For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.
-
-Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
-Default for IntegrationType `idporten` = ("openid", "profile")
-IntegrationType `api_klient` have no Default, checkout Digdir documentation.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>sessionLifetime</b></td>
-        <td>integer</td>
-        <td>
-          SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
-The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
-
-If unspecified, defaults to `7200` seconds (2 hours).
-Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.<br/>
-          <br/>
-            <i>Minimum</i>: 3600<br/>
-            <i>Maximum</i>: 7200<br/>
         </td>
         <td>false</td>
       </tr></tbody>
