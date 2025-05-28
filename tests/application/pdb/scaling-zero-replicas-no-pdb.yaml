@@ -1,0 +1,12 @@
+# Test: Application with min: 0 (scaling) and enablePDB: true should NOT create a PDB
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: scaling-zero-replicas-no-pdb
+spec:
+  enablePDB: true
+  image: image
+  port: 8080
+  replicas:
+    min: 0
+    max: 5
