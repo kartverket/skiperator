@@ -7,7 +7,7 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/chmike/domain v1.1.0
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/k8s-digester v0.1.16
 	github.com/kyverno/chainsaw v0.2.12
 	github.com/mitchellh/hashstructure/v2 v2.0.2
