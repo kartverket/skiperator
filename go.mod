@@ -7,22 +7,22 @@ require (
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/cert-manager/cert-manager v1.17.2
 	github.com/chmike/domain v1.1.0
-	github.com/go-logr/logr v1.4.2
+	github.com/go-logr/logr v1.4.3
 	github.com/google/k8s-digester v0.1.16
 	github.com/kyverno/chainsaw v0.2.12
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20250217235133-18c79036ecdf
 	github.com/nais/liberator v0.0.0-20250212071940-b052d0557cca
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.82.2
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.83.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0
 	google.golang.org/protobuf v1.36.6
-	istio.io/api v1.26.0
-	istio.io/client-go v1.26.0
+	istio.io/api v1.26.1
+	istio.io/client-go v1.26.1
 	k8s.io/api v0.33.1
 	k8s.io/apiextensions-apiserver v0.33.1
 	k8s.io/apimachinery v0.33.1
@@ -206,14 +206,14 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/crypto v0.38.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.39.0 // indirect
+	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/oauth2 v0.29.0 // indirect
-	golang.org/x/sync v0.13.0 // indirect
-	golang.org/x/sys v0.32.0 // indirect
-	golang.org/x/term v0.31.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/term v0.32.0 // indirect
+	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	golang.org/x/tools v0.32.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
@@ -233,7 +233,7 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect
+	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.32.0 // indirect
 	sigs.k8s.io/gateway-api v1.1.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
