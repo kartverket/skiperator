@@ -1,2 +1,3 @@
 # Assert: No PodDisruptionBudget should be created for zero-replicas-no-pdb
 # (This file intentionally left blank to assert no PDB resource is present)
+# Not in use. Chainsaw doesn't like empty assert files. Rewritten to use script step.

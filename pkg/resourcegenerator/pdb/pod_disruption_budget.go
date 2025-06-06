@@ -49,7 +49,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	// Otherwise, use the enablePDB logic as before
-	if *application.Spec.EnablePDB {
+	if application.Spec.EnablePDB != nil && *application.Spec.EnablePDB {
 		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: util.GetPodAppSelector(application.Name),
