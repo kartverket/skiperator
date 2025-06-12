@@ -253,6 +253,9 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
 	IstioSettings *istiotypes.IstioSettingsApplication `json:"istioSettings,omitempty"`
+	// NodeSelector allows scheduling pods on nodes with specific labels.
+    // +kubebuilder:validation:Optional
+    NodeSelector *NodeSelectorConfig `json:"nodeSelector,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -345,6 +348,14 @@ type PrometheusConfig struct {
 	//+kubebuilder:validation:XValidation:rule="self == '' || self.matches('^([0-9]+[sm])+$')",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be empty (default applies) or in the format of <number>s or <number>m.'"
 	//+kubebuilder:validation:XValidation:rule="self == '' || (self.endsWith('m') && int(self.split('m')[0]) >= 1) || (self.endsWith('s') && int(self.split('s')[0]) >= 15 && int(self.split('s')[0]) % 5 == 0)",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be at least 15s (if using <s>) and divisible by 5, or at least 1m (if using <m>).'"
 	ScrapeInterval string `json:"scrapeInterval,omitempty"`
+}
+type NodeSelectorConfig struct {
+	// Label is the key of the node selector label.
+	//+kubebuilder:validation:Optional
+	Label string `json:"label,omitempty"`
+	// Value is the value of the node selector label.
+	//+kubebuilder:validation:Optional
+	Value string `json:"value,omitempty"`
 }
 
 func NewDefaultReplicas() Replicas {

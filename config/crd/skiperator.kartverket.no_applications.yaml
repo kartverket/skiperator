@@ -1118,6 +1118,17 @@ spec:
                 required:
                 - enabled
                 type: object
+              nodeSelector:
+                description: NodeSelector allows scheduling pods on nodes with specific
+                  labels.
+                properties:
+                  label:
+                    description: Label is the key of the node selector label.
+                    type: string
+                  value:
+                    description: Value is the value of the node selector label.
+                    type: string
+                type: object
               podSettings:
                 description: |-
                   PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set

@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: minimal
+  labels:
+    app.kubernetes.io/name: minimal
+    app.kubernetes.io/managed-by: "skiperator"
+    skiperator.kartverket.no/controller: "application"
+    application.skiperator.no/app: minimal
+    application.skiperator.no/app-name: minimal
+    application.skiperator.no/app-namespace: ($namespace)
+  annotations:
+    argocd.argoproj.io/sync-options: "Prune=false"
+  ownerReferences:
+    - apiVersion: skiperator.kartverket.no/v1alpha1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: minimal
+spec:
+  selector:
+    matchLabels:
+      app: minimal
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true"
+      labels:
+        app: minimal
+    spec:
+      containers:
+        - name: minimal
+          image: image
+          imagePullPolicy: Always
+          ports:
+            - name: main
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+              add:
+                - NET_BIND_SERVICE
+          volumeMounts:
+            - mountPath: /tmp
+              name: tmp
+      imagePullSecrets:
+        - name: github-auth
+      securityContext:
+        fsGroup: 150
+        supplementalGroups:
+          - 150
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: minimal
+      volumes:
+        - emptyDir: {}
+          name: tmp
+      nodeSelector:
+        topology.kubernetes.io/zone: eu-north1-a
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: "kubernetes.io/hostname"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - minimal
+          matchLabelKeys:
+            - pod-template-hash
+        - maxSkew: 1
+          topologyKey: "onprem.gke.io/failure-domain-name"
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - minimal
+          matchLabelKeys:
+            - pod-template-hash
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 2
+  progressDeadlineSeconds: 600

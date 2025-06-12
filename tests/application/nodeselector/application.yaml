@@ -1,0 +1,10 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: minimal
+spec:
+  image: image
+  port: 8080
+  nodeSelector:
+    label: "topology.kubernetes.io/zone"
+    value: "eu-north1-a"

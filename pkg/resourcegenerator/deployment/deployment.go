@@ -175,6 +175,16 @@ func Generate(r reconciliation.Reconciliation) error {
 	resourceutils.SetApplicationLabels(&podForDeploymentTemplate, application)
 	resourceutils.SetCommonAnnotations(&podForDeploymentTemplate)
 
+	//Set the node selector if specified in the application spec
+	if application.Spec.NodeSelector != nil && application.Spec.NodeSelector.Label != "" && application.Spec.NodeSelector.Value != "" {
+        ctxLog.Debug("Adding node selector to pod template", "label", application.Spec.NodeSelector.Label, "value", application.Spec.NodeSelector.Value)
+        
+        if podForDeploymentTemplate.Spec.NodeSelector == nil {
+            podForDeploymentTemplate.Spec.NodeSelector = make(map[string]string)
+        }
+        podForDeploymentTemplate.Spec.NodeSelector[application.Spec.NodeSelector.Label] = application.Spec.NodeSelector.Value
+    }
+
 	deployment.Spec = appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(application.Name)},
 		Strategy: appsv1.DeploymentStrategy{
@@ -204,6 +214,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			return err
 		}
 	}
+
 
 	// add an external link to argocd
 	ingresses := application.Spec.Ingresses
