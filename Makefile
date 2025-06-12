@@ -33,7 +33,7 @@ generate:
 	go generate ./...
 
 .PHONY: build
-build: generate
+build: generate install-skiperator
 	go build \
 	-tags osusergo,netgo \
 	-trimpath \

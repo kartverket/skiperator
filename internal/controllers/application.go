@@ -161,6 +161,8 @@ func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, o
 	}
 
 	var result []reconcile.Request
+
+	// Update all apps this access policy points to
 	if changedApp.Spec.AccessPolicy != nil && changedApp.Spec.AccessPolicy.Outbound != nil {
 		for _, ref := range changedApp.Spec.AccessPolicy.Outbound.Rules {
 			appRef := types.NamespacedName{
@@ -186,6 +188,49 @@ func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, o
 				}
 			}
 			result = append(result, reconcile.Request{NamespacedName: appRef})
+		}
+	}
+
+	// Requeue all apps that have outbound rules pointing to this app (inbound dependencies)
+	var allApps skiperatorv1alpha1.ApplicationList
+	if err := r.GetClient().List(ctx, &allApps); err != nil {
+		klog.Error(err, "failed to list applications for reverse dependency mapping")
+		return result
+	}
+
+	// check outbound rules
+	for _, app := range allApps.Items {
+		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Outbound == nil {
+			continue
+		}
+		for _, rule := range app.Spec.AccessPolicy.Outbound.Rules {
+			if rule.Application == changedApp.Name {
+				result = append(result, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      app.Name,
+						Namespace: app.Namespace,
+					},
+				})
+				break
+			}
+		}
+	}
+
+	// check inbound rules
+	for _, app := range allApps.Items {
+		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Inbound == nil {
+			continue
+		}
+		for _, rule := range app.Spec.AccessPolicy.Inbound.Rules {
+			if rule.Application == changedApp.Name {
+				result = append(result, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      app.Name,
+						Namespace: app.Namespace,
+					},
+				})
+				break
+			}
 		}
 	}
 
@@ -261,7 +306,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpApplication, applicationFinalizer) && ctrlutil.ContainsFinalizer(application, applicationFinalizer)) {
 		rLog.Debug("Queuing for spec diff")
 		err := r.GetClient().Update(ctx, application)
-		return reconcile.Result{Requeue: true}, err
+		return reconcile.Result{}, err
 	}
 
 	//We try to feed the access policy with port values dynamically,
