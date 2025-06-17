@@ -1,0 +1,4 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: scaling-zero-replicas-no-pdb

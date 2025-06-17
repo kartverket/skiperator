@@ -22,14 +22,10 @@ spec:
     - try:
         - create:
             file: zero-replicas-no-pdb.yaml
-        - script:
-            content: |
-              kubectl get pdb zero-replicas-no-pdb && exit 1 || exit 0
-            skipLogOutput: true
+        - error:
+            file: zero-replicas-no-pdb-error.yaml
     - try:
         - create:
             file: scaling-zero-replicas-no-pdb.yaml
-        - script:
-            content: |
-              kubectl get pdb scaling-zero-replicas-no-pdb && exit 1 || exit 0
-            skipLogOutput: true
+        - error:
+            file: scaling-zero-replicas-no-pdb-error.yaml
