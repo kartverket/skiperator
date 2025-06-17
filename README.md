@@ -278,19 +278,21 @@ spec:
 ```
 
 ## Routing reference
-Routing is a separate custom resource that can be used set ut path based routing for a Skiperator application. Use this 
-instead of the `ingresses` field in the `Application` custom resource. The routes are processed in order, so the last 
+
+Routing is a separate custom resource that can be used set ut path based routing for a Skiperator application. Use this
+instead of the `ingresses` field in the `Application` custom resource. The routes are processed in order, so the last
 route should be a catch-all route. This will only work for applications in the same namespace as the Routing resource.
 
 Below you will find a list of all accepted input parameters to the `Routing`
 custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://doc.crds.dev/github.com/kartverket/skiperator)
+
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Routing
 metadata:
   name: sample-routing
   namespace: sample
-spec:
+spec
   hostname: app.example.com
   routes:
   - pathPrefix: /api
