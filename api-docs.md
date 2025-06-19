@@ -153,7 +153,6 @@ or running third-party containers where you don't have control over the Dockerfi
           Whether to enable automatic Pod Disruption Budget creation for this application.<br/>
           <br/>
             <i>Default</i>: true<br/>
-            <b>Note:</b> If the number of replicas is set to 0, a PodDisruptionBudget will not be created, even if <code>enablePDB</code> is set to true.
         </td>
         <td>false</td>
       </tr><tr>
