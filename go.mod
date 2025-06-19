@@ -1,6 +1,6 @@
 module github.com/kartverket/skiperator
 
-go 1.24.2
+go 1.24.4
 
 require (
 	dario.cat/mergo v1.0.2
