@@ -29,17 +29,13 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	// Determine the number of replicas first
 	var minReplicas uint
-	replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas)
-	if err != nil {
-		replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
-		if err != nil {
-			ctxLog.Error(err, "Failed to get replicas")
-			return err
-		} else {
-			minReplicas = replicasStruct.Min
-		}
-	} else {
+	if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
 		minReplicas = replicas
+	} else if replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
+		minReplicas = replicasStruct.Min
+	} else {
+		ctxLog.Error(err, "Failed to get replicas")
+		return err
 	}
 
 	// If replicas is 0, forcibly disable PDB regardless of enablePDB value
@@ -72,7 +68,7 @@ func determineMinAvailable(replicasAvailable uint) *intstr.IntOrString {
 	if replicasAvailable > 1 {
 		value = intstr.FromString("50%")
 	} else {
-		value = intstr.FromInt(0)
+		value = intstr.FromInt32(0)
 	}
 
 	return &value
