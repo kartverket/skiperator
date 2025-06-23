@@ -5,7 +5,7 @@ go 1.24.2
 require (
 	dario.cat/mergo v1.0.2
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/cert-manager/cert-manager v1.17.2
+	github.com/cert-manager/cert-manager v1.18.1
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/k8s-digester v0.1.16
