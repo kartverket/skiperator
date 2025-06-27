@@ -75,10 +75,17 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 }
 
 func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
+	imagePullPolicy := func() corev1.PullPolicy {
+		if flags.FeatureFlags.EnableLocallyBuiltImages {
+			return corev1.PullNever
+		}
+		return corev1.PullAlways
+	}()
+
 	return corev1.Container{
 		Name:            application.Name,
 		Image:           application.Spec.Image,
-		ImagePullPolicy: corev1.PullAlways,
+		ImagePullPolicy: imagePullPolicy,
 		Command:         application.Spec.Command,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged:               util.PointTo(false),
