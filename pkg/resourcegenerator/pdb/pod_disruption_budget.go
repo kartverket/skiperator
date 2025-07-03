@@ -2,6 +2,7 @@ package pdb
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -26,22 +27,25 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	pdb := policyv1.PodDisruptionBudget{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
-	if *application.Spec.EnablePDB {
-		var minReplicas uint
+	// Determine the number of replicas first
+	var minReplicas uint
+	if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
+		minReplicas = replicas
+	} else if replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
+		minReplicas = replicasStruct.Min
+	} else {
+		ctxLog.Error(err, "Failed to get replicas")
+		return err
+	}
 
-		replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas)
-		if err != nil {
-			replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
-			if err != nil {
-				ctxLog.Error(err, "Failed to get replicas")
-				return err
-			} else {
-				minReplicas = replicasStruct.Min
-			}
-		} else {
-			minReplicas = replicas
-		}
+	// If replicas is 0, forcibly disable PDB regardless of enablePDB value
+	if minReplicas == 0 {
+		ctxLog.Info("Skipping PDB generation because replicas is 0", "application", application.Name)
+		return nil
+	}
 
+	// Otherwise, use the enablePDB logic as before
+	if application.Spec.EnablePDB != nil && *application.Spec.EnablePDB {
 		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: util.GetPodAppSelector(application.Name),
@@ -64,7 +68,7 @@ func determineMinAvailable(replicasAvailable uint) *intstr.IntOrString {
 	if replicasAvailable > 1 {
 		value = intstr.FromString("50%")
 	} else {
-		intstr.FromInt(0)
+		value = intstr.FromInt32(0)
 	}
 
 	return &value

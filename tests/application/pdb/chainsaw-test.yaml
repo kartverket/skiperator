@@ -19,3 +19,13 @@ spec:
             file: patch-multiple-disruptions-assert.yaml
         - error:
             file: patch-multiple-disruptions-error.yaml
+    - try:
+        - create:
+            file: zero-replicas-no-pdb.yaml
+        - error:
+            file: zero-replicas-no-pdb-error.yaml
+    - try:
+        - create:
+            file: scaling-zero-replicas-no-pdb.yaml
+        - error:
+            file: scaling-zero-replicas-no-pdb-error.yaml

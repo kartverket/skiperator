@@ -3,6 +3,7 @@ package deployment
 import (
 	goerrors "errors"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/flags"
 	"strings"
 
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -215,13 +216,16 @@ func Generate(r reconciliation.Reconciliation) error {
 		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
-	err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
-	if err != nil {
-		//TODO fix this
-		// Exclude dummy image used in tests for decreased verbosity
-		if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
-			ctxLog.Error(err, "could not resolve container image to digest")
-			return err
+	// Global feature flag
+	if !flags.FeatureFlags.EnableLocallyBuiltImages {
+		err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
+		if err != nil {
+			//TODO fix this
+			// Exclude dummy image used in tests for decreased verbosity
+			if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
+				ctxLog.Error(err, "could not resolve container image to digest")
+				return err
+			}
 		}
 	}
 
