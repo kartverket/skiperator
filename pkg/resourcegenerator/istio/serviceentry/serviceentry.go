@@ -40,6 +40,11 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 
 	if accessPolicy != nil && accessPolicy.Outbound != nil {
 		for _, rule := range (*accessPolicy).Outbound.External {
+			if len(rule.Host) == 0 {
+				ctxLog.Error(nil, "hostname is missing in external rule, refusing ServiceEntry generation", "rule", rule)
+				continue
+			}
+
 			serviceEntryName := fmt.Sprintf("%s-egress-%x", object.GetName(), util.GenerateHashFromName(rule.Host))
 
 			objectKind := object.GetObjectKind().GroupVersionKind().Kind
