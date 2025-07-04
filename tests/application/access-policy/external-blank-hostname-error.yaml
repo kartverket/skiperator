@@ -1,0 +1,16 @@
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: empty-hostname-egress-cbf29ce484222325
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  resolution: DNS
+  hosts:
+    - ""
+  ports:
+    - name: https
+      number: 443
+      protocol: HTTPS
