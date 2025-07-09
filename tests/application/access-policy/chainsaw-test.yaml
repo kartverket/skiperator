@@ -63,4 +63,4 @@ spec:
         - assert:
             file: external-blank-hostname-assert.yaml
         - error:
-            file: external-blank-error.yaml
+            file: external-blank-hostname-error.yaml

@@ -19,16 +19,6 @@ status:
       reason: ApplicationReconciled
       status: "False"
 ---
-apiVersion: v1
-kind: Event
-reason: InvalidAccessPolicy
-source:
-  component: application-controller
-involvedObject:
-  apiVersion: skiperator.kartverket.no/v1alpha1
-  kind: Application
-  name: empty-hostname
----
 apiVersion: networking.istio.io/v1
 kind: ServiceEntry
 metadata:
