@@ -8,8 +8,8 @@ data:
     clusters: 
       - name: "test-cluster-1"
         controlPlaneCIDRs:
-          - 10.22.10.0/25
+          - 10.40.10.0/25
         workerNodeCIDRs:
-          - 10.22.10.0/24
+          - 10.40.10.0/24
 
         
