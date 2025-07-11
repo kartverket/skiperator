@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skip-cluster-node-cidr
+data:
+  config.yml: |
+    clusters: 
+      - name: "atkv3_sandbox_user_cluster"
+        controlPlaneCIDRs:
+          - 10.40.11.3/32
+          - 10.40.11.4/31
+        workerNodeCIDRs:
+          - 10.40.11.64/26
+          - 10.40.11.128/26
+          - 10.40.11.192/27
+          - 10.40.11.224/28
+          - 10.40.11.240/30
+          - 10.40.11.244/31
+          - 10.40.11.246/32
+      - name: "atkv3_sandbox_admin_cluster"
+        controlPlaneCIDRs:
+          - 10.40.11.247/32
+          - 10.40.11.248/31
+        workerNodeCIDRs:
+          - 10.40.11.250/31
+          - 10.40.11.252/31          
+      - name: "atkv3_dev_user_cluster"
+        controlPlaneCIDRs:
+          - 10.40.10.3/32
+          - 10.40.10.4/31
+        workerNodeCIDRs:
+          - 10.40.10.64/26
+          - 10.40.10.128/26
+          - 10.40.10.192/27
+          - 10.40.10.224/28
+          - 10.40.10.240/30
+          - 10.40.10.244/31
+          - 10.40.10.246/32
+      - name: "atkv3_dev_admin_cluster"
+        controlPlaneCIDRs:
+          - 10.40.10.247/32
+          - 10.40.10.248/31
+        workerNodeCIDRs:
+          - 10.40.10.250/31
+          - 10.40.10.252/31
+      - name: "atkv3_prod_user_cluster"
+        controlPlaneCIDRs:
+          - 10.40.12.3/32
+          - 10.40.12.4/31
+        workerNodeCIDRs:
+          - 10.40.12.64/26
+          - 10.40.12.128/25
+          - 10.40.13.0/25
+          - 10.40.13.128/26
+          - 10.40.13.192/27
+          - 10.40.13.224/28
+          - 10.40.13.240/30
+          - 10.40.13.244/31
+          - 10.40.13.246/32
+      - name: "atkv3_prod_admin_cluster"
+        controlPlaneCIDRs:
+          - 10.40.13.247/32
+          - 10.40.13.248/32
+        workerNodeCIDRs:
+          - 10.40.13.250/31
+          - 10.40.13.252/31

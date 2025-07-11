@@ -25,7 +25,8 @@ import (
 
 type NamespaceReconciler struct {
 	common.ReconcilerBase
-	PullSecret *imagepullsecret.ImagePullSecret
+	PullSecret  *imagepullsecret.ImagePullSecret
+	DefaultDeny *defaultdeny.DefaultDenyNetworkPolicy
 }
 
 //+kubebuilder:rbac:groups=core,resources=namespaces,verbs=get;list;watch
@@ -78,7 +79,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	funcs := []reconciliationFunc{
 		sidecar.Generate,
-		defaultdeny.Generate,
+		r.DefaultDeny.Generate,
 		r.PullSecret.Generate,
 	}
 
