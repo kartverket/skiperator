@@ -10,7 +10,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func Generate(r reconciliation.Reconciliation) error {
+type DefaultDenyNetworkPolicy struct {
+	SKIPClusterList *util.SKIPClusterList
+}
+
+func NewDefaultDenyNetworkPolicy(clusters *util.SKIPClusterList) (*DefaultDenyNetworkPolicy, error) {
+	if clusters == nil {
+		return nil, fmt.Errorf("unable to create default deny network policy: SKIPClusterList is nil")
+	}
+	return &DefaultDenyNetworkPolicy{
+		SKIPClusterList: clusters,
+	}, nil
+}
+
+func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 
@@ -31,7 +44,8 @@ func Generate(r reconciliation.Reconciliation) error {
 					// Egress rule for parts of internal server network
 					{
 						IPBlock: &networkingv1.IPBlock{
-							CIDR: "10.40.0.0/16",
+							CIDR:   "10.40.0.0/16",
+							Except: ddnp.SKIPClusterList.CombinedCIDRS(),
 						},
 					},
 					// Egress rule for internal load balancer on atgcp1-sandbox

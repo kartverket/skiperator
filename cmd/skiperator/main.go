@@ -1,11 +1,20 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
+	"github.com/kartverket/skiperator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"net"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -119,6 +128,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
+	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
+	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
+	// directly from namespaces as per SKIP-1704
+	configCheckClient, err := client.New(kubeconfig, client.Options{})
+	clusterConfigMapNamespaced := types.NamespacedName{Namespace: "skiperator-system", Name: "skip-cluster-node-cidr"}
+	clusterConfigMap, err := util.GetConfigMap(configCheckClient, context.Background(), clusterConfigMapNamespaced)
+	if err != nil {
+		setupLog.Error(err, "unable to get configmap skip-cluster-node-cidr")
+		os.Exit(1)
+	}
+
+	skipClusterList, err := createSKIPClusterListFromConfigMap(&clusterConfigMap)
+	if err != nil {
+		setupLog.Error(err, "unable to create SKIPClusterList", "controller", "SKIPClusterList")
+		os.Exit(1)
+	}
+
 	err = (&controllers.SKIPJobReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller"), resourceschemas.GetJobSchemas(mgr.GetScheme())),
 	}).SetupWithManager(mgr)
@@ -141,9 +168,17 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+
+	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
+	if err != nil {
+		setupLog.Error(err, "unable to create default deny network policy configuration", "controller", "Namespace")
+		os.Exit(1)
+	}
+
 	err = (&controllers.NamespaceReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
 		PullSecret:     ps,
+		DefaultDeny:    dd,
 	}).SetupWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -180,4 +215,59 @@ func detectK8sVersion(kubeconfig *rest.Config) {
 	}
 	k8sfeatures.NewVersionInfo(ver)
 	setupLog.Info("detected server version", "version", ver)
+}
+
+func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*util.SKIPClusterList, error) {
+	var SKIPClusterList util.SKIPClusterList
+	clusterData := configMap.Data
+	err := yaml.Unmarshal([]byte(clusterData["config.yml"]), &SKIPClusterList)
+	if err != nil {
+		return nil, err
+	}
+	if len(SKIPClusterList.Clusters) == 0 {
+		return nil, errors.New("no SKIPClusterList in ConfigMap")
+	}
+	if len(SKIPClusterList.CombinedCIDRS()) == 0 {
+		return nil, errors.New("no CIDR ranges in SKIPClusterList in ConfigMap")
+	}
+	// check for empty strings and validate that the strings are valid CIDRs
+	for _, element := range SKIPClusterList.Clusters {
+		err := checkCIDRsAreNotEmpty(element)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for _, element := range SKIPClusterList.CombinedCIDRS() {
+		err := checkValidCIDR(element)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &SKIPClusterList, nil
+}
+
+func checkCIDRsAreNotEmpty(cluster *util.SKIPCluster) error {
+	if (len(cluster.WorkerNodeCIDRs) == 0) || (len(cluster.ControlPlaneCIDRs) == 0) {
+		return errors.New("SKIPCluster has no CIDRs for worker nodes or control plane nodes")
+	}
+	for _, element := range cluster.WorkerNodeCIDRs {
+		if element == "" {
+			return errors.New("SKIPCluster has an empty worker node CIDR entry")
+		}
+	}
+	for _, element := range cluster.ControlPlaneCIDRs {
+		if element == "" {
+			return errors.New("SKIPClusterList has an empty control plane CIDR entry")
+		}
+	}
+	return nil
+}
+
+func checkValidCIDR(cidr string) error {
+	_, _, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return err
+	}
+	return nil
 }
