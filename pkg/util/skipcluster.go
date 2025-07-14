@@ -11,7 +11,9 @@ type SKIPClusterList struct {
 }
 
 func ClusterList(clusters ...*SKIPCluster) *SKIPClusterList {
-	return &SKIPClusterList{}
+	return &SKIPClusterList{
+		Clusters: clusters,
+	}
 }
 
 func (c *SKIPClusterList) CombinedCIDRS() []string {
