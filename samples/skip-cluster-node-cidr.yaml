@@ -1,7 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: skip-cluster-node-cidr
+  name: "skip-cluster-node-cidr"
+  namespace: "skiperator-system"
 data:
   config.yml: |
     clusters: 
