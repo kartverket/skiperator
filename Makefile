@@ -160,9 +160,7 @@ benchmark-kube-api: build
 	echo "Fetching metrics before..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_BEFORE"; \
 	echo "Run application tests"; \
-	$(MAKE) test-single dir=tests/application/access-policy; \
-	$(MAKE) test-single dir=tests/routing/routes; \
-	$(MAKE) test-single dir=tests/skipjob/access-policy-job; \
+	$(MAKE) test \
 	echo "Fetching metrics after..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
 	kill $$PID; \

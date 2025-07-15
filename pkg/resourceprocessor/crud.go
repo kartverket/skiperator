@@ -56,7 +56,7 @@ func (r *ResourceProcessor) patch(ctx context.Context, newObj client.Object) err
 		}
 		r.log.Error(err, "Failed to get object, for unknown reason")
 	}
-	
+
 	preparePatch(newObj, existing)
 
 	//TODO move this to getDiffs?
@@ -122,7 +122,7 @@ func isObjectIdentical(resource, existing client.Object) bool {
 
 	// Compare Spec hash
 	resourceSpecHash, err := getSpecHash(resource)
-	if err != nil {
+	if err != nil || resourceSpecHash == "" {
 		return false
 	}
 	existingSpecHash, err := getSpecHash(existing)
