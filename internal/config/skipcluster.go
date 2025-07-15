@@ -21,12 +21,6 @@ type SKIPClusterList struct {
 	Clusters []*SKIPCluster `yaml:"clusters"`
 }
 
-func ClusterList(clusters ...*SKIPCluster) *SKIPClusterList {
-	return &SKIPClusterList{
-		Clusters: clusters,
-	}
-}
-
 func (c *SKIPClusterList) CombinedCIDRS() []string {
 	var combinedCIDRs []string
 	for _, cluster := range c.Clusters {
