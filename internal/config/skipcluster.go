@@ -73,7 +73,7 @@ func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClust
 	}
 
 	for _, element := range skipClusterList.CombinedCIDRS() {
-		err := checkValidCIDR(element)
+		err = checkValidCIDR(element)
 		if err != nil {
 			return nil, err
 		}
