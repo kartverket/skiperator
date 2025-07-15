@@ -52,7 +52,14 @@ func LoadConfigFromConfigMap(client client.Client) (*SKIPClusterList, error) {
 func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClusterList, error) {
 	var skipClusterList SKIPClusterList
 	clusterData := configMap.Data
-	err := yaml.Unmarshal([]byte(clusterData["config.yml"]), &skipClusterList)
+
+	// Safety check: make sure "config.yml" is present
+	configYml, exists := clusterData["config.yml"]
+	if !exists {
+		return nil, errors.New("config.yml key not found in ConfigMap")
+	}
+
+	err := yaml.Unmarshal([]byte(configYml), &skipClusterList)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +69,8 @@ func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClust
 	if len(skipClusterList.CombinedCIDRS()) == 0 {
 		return nil, errors.New("no CIDR ranges in SKIPClusterList in ConfigMap")
 	}
+	return &skipClusterList, nil
+}
 	// check for empty strings and validate that the strings are valid CIDRs
 	for _, element := range skipClusterList.Clusters {
 		err := checkCIDRsAreNotEmpty(element)
