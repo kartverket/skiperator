@@ -3,9 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -119,6 +122,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
+	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
+	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
+	// directly from namespaces as per SKIP-1704
+
+	configCheckClient, err := client.New(kubeconfig, client.Options{})
+
+	skipClusterList, err := config.LoadConfigFromConfigMap(configCheckClient)
+	if err != nil {
+		setupLog.Error(err, "could not load SKIP cluster config")
+		os.Exit(1)
+	}
+
 	err = (&controllers.SKIPJobReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller"), resourceschemas.GetJobSchemas(mgr.GetScheme())),
 	}).SetupWithManager(mgr)
@@ -141,9 +157,17 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+
+	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
+	if err != nil {
+		setupLog.Error(err, "unable to create default deny network policy configuration", "controller", "Namespace")
+		os.Exit(1)
+	}
+
 	err = (&controllers.NamespaceReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
 		PullSecret:     ps,
+		DefaultDeny:    dd,
 	}).SetupWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
