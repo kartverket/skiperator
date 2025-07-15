@@ -69,8 +69,7 @@ func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClust
 	if len(skipClusterList.CombinedCIDRS()) == 0 {
 		return nil, errors.New("no CIDR ranges in SKIPClusterList in ConfigMap")
 	}
-	return &skipClusterList, nil
-}
+
 	// check for empty strings and validate that the strings are valid CIDRs
 	for _, element := range skipClusterList.Clusters {
 		err := checkCIDRsAreNotEmpty(element)

@@ -64,9 +64,19 @@ func TestWorkerNodeCIDRsAreMissing(t *testing.T) {
 	assert.EqualErrorf(t, err, "SKIPCluster has no CIDRs for worker nodes or control plane nodes", "")
 }
 
-func TestEmptyConfigMapThrowsError(t *testing.T) {
+func TestNoConfigKeyInConfigMapThrowsError(t *testing.T) {
 	mapData := make(map[string]string)
 
+	configMap := v1.ConfigMap{
+		Data: mapData,
+	}
+	_, err := createSKIPClusterListFromConfigMap(&configMap)
+	assert.EqualErrorf(t, err, "config.yml key not found in ConfigMap", "")
+}
+
+func TestEmptyConfigMapThrowsError(t *testing.T) {
+	mapData := make(map[string]string)
+	mapData["config.yml"] = ""
 	configMap := v1.ConfigMap{
 		Data: mapData,
 	}
