@@ -18,4 +18,27 @@ Kubernetes API usage (delta):
   DELETE: 5
   Total: 5714
 
-After:
+After optimizing reconciles:
+
+Kubernetes API usage (delta):
+  DELETE: 73
+  GET: 4234
+  PATCH: 74
+  PUT: 449
+  POST: 294
+  DELETE: 6
+  PUT: 3
+  Total: 5133
+
+After optimizing resource processor:
+
+Kubernetes API usage (delta):
+  DELETE: 74
+  GET: 4166
+  PATCH: 75
+  PUT: 299
+  POST: 291
+  DELETE: 6
+  PUT: 10
+  Total: 4921
+

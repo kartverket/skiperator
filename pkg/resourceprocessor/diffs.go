@@ -3,19 +3,19 @@ package resourceprocessor
 import (
 	"fmt"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type resourceDiff struct {
 	shouldDelete []client.Object
-	shouldUpdate map[runtime.Unstructured]client.Object
-	shouldPatch  map[runtime.Unstructured]client.Object
+	shouldUpdate []client.Object
+	shouldPatch  []client.Object
 	shouldCreate []client.Object
 }
 
+// TODO nicer return type (struct instead?)
 func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) (*resourceDiff, error) {
-	liveObjects := make([]runtime.Unstructured, 0)
+	liveObjects := make([]client.Object, 0)
 	labels := task.GetSKIPObject().GetDefaultLabels()
 
 	if labels == nil {
@@ -25,14 +25,14 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) (*resour
 		return nil, fmt.Errorf("failed to list resources by labels: %w", err)
 	}
 	//TODO ugly as hell
-	certs := make([]runtime.Unstructured, 0)
+	certs := make([]client.Object, 0)
 	if err := r.getCertificates(task.GetCtx(), labels, &certs); err != nil {
 		return nil, fmt.Errorf("failed to get certificates: %w", err)
 	}
 	liveObjects = append(liveObjects, certs...)
-	liveObjectsMap := make(map[string]runtime.Unstructured)
+	liveObjectsMap := make(map[string]client.Object)
 	for _, obj := range liveObjects {
-		liveObjectsMap[client.ObjectKeyFromObject(obj.(client.Object)).String()+obj.GetObjectKind().GroupVersionKind().Kind] = obj
+		liveObjectsMap[client.ObjectKeyFromObject(obj).String()+obj.GetObjectKind().GroupVersionKind().Kind] = obj
 	}
 
 	newObjectsMap := make(map[string]client.Object)
@@ -42,31 +42,31 @@ func (r *ResourceProcessor) getDiff(task reconciliation.Reconciliation) (*resour
 
 	diffs := &resourceDiff{
 		shouldDelete: make([]client.Object, 0),
-		shouldUpdate: make(map[runtime.Unstructured]client.Object),
-		shouldPatch:  make(map[runtime.Unstructured]client.Object),
+		shouldUpdate: make([]client.Object, 0),
+		shouldPatch:  make([]client.Object, 0),
 		shouldCreate: make([]client.Object, 0),
 	}
 
 	// Determine resources to delete
 	for key, liveObj := range liveObjectsMap {
-		if shouldIgnoreObject(liveObj.(client.Object)) {
+		if shouldIgnoreObject(liveObj) {
 			continue
 		}
 		if _, exists := newObjectsMap[key]; !exists {
-			diffs.shouldDelete = append(diffs.shouldDelete, liveObj.(client.Object))
+			diffs.shouldDelete = append(diffs.shouldDelete, liveObj)
 		}
 	}
 
 	for key, newObj := range newObjectsMap {
 		if liveObj, exists := liveObjectsMap[key]; exists {
-			if shouldIgnoreObject(liveObj.(client.Object)) {
+			if shouldIgnoreObject(liveObj) {
 				continue
 			}
-			if compareObject(liveObj.(client.Object), newObj) {
+			if compareObject(liveObj, newObj) {
 				if requirePatch(newObj) {
-					diffs.shouldPatch[liveObj] = newObj
+					diffs.shouldPatch = append(diffs.shouldPatch, newObj)
 				} else {
-					diffs.shouldUpdate[liveObj] = newObj
+					diffs.shouldUpdate = append(diffs.shouldUpdate, newObj)
 				}
 			}
 		} else {
