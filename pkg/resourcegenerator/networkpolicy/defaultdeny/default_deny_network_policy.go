@@ -2,6 +2,7 @@ package defaultdeny
 
 import (
 	"fmt"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -11,10 +12,10 @@ import (
 )
 
 type DefaultDenyNetworkPolicy struct {
-	SKIPClusterList *util.SKIPClusterList
+	SKIPClusterList *config.SKIPClusterList
 }
 
-func NewDefaultDenyNetworkPolicy(clusters *util.SKIPClusterList) (*DefaultDenyNetworkPolicy, error) {
+func NewDefaultDenyNetworkPolicy(clusters *config.SKIPClusterList) (*DefaultDenyNetworkPolicy, error) {
 	if clusters == nil {
 		return nil, fmt.Errorf("unable to create default deny network policy: SKIPClusterList is nil")
 	}
@@ -91,11 +92,11 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 					// DNS Ports
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(53)),
+						Port:     util.PointTo(intstr.FromInt32(53)),
 					},
 					{
 						Protocol: util.PointTo(corev1.ProtocolUDP),
-						Port:     util.PointTo(intstr.FromInt(53)),
+						Port:     util.PointTo(intstr.FromInt32(53)),
 					},
 				},
 			},
@@ -113,7 +114,7 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 				},
 				Ports: []networkingv1.NetworkPolicyPort{
 					{
-						Port: util.PointTo(intstr.FromInt(15012)),
+						Port: util.PointTo(intstr.FromInt32(15012)),
 					},
 				},
 			},
@@ -135,11 +136,11 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 				Ports: []networkingv1.NetworkPolicyPort{
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4317)),
+						Port:     util.PointTo(intstr.FromInt32(4317)),
 					},
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4318)),
+						Port:     util.PointTo(intstr.FromInt32(4318)),
 					},
 				},
 			},
