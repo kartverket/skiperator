@@ -3,8 +3,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"k8s.io/klog/v2"
 	"regexp"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"strings"
 
@@ -151,6 +154,9 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				),
 			),
 		).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: 10,
+		}).
 		Complete(r)
 }
 
@@ -370,7 +376,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
+
+	if errs := processor.Process(reconciliation); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(application, "ReconcileEndFail", fmt.Sprintf("Failed to process application resources: %s", err.Error()))
@@ -422,7 +430,9 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetNamespace(name.Namespace)
 
 	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil)
-	return r.GetProcessor().Process(reconciliation)
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
+
+	return processor.Process(reconciliation)
 }
 
 func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {

@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -183,7 +185,9 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetJobSchemas(r.GetScheme()), r.GetScheme())
+
+	if errs := processor.Process(reconciliation); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(skipJob, "ReconcileEndFail", fmt.Sprintf("Failed to process skipjob resources: %s", err.Error()))

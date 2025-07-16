@@ -7,14 +7,12 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
-	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -38,7 +36,6 @@ type ReconcilerBase struct {
 	scheme           *runtime.Scheme
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
-	processor        *resourceprocessor.ResourceProcessor
 	Logger           logr.Logger
 }
 
@@ -48,7 +45,6 @@ func NewReconcilerBase(
 	scheme *runtime.Scheme,
 	restConfig *rest.Config,
 	recorder record.EventRecorder,
-	processor *resourceprocessor.ResourceProcessor,
 ) ReconcilerBase {
 	return ReconcilerBase{
 		client:           client,
@@ -56,18 +52,16 @@ func NewReconcilerBase(
 		scheme:           scheme,
 		restConfig:       restConfig,
 		recorder:         recorder,
-		processor:        processor,
 	}
 }
 
-func NewFromManager(mgr manager.Manager, recorder record.EventRecorder, schemas []unstructured.UnstructuredList) ReconcilerBase {
+func NewFromManager(mgr manager.Manager, recorder record.EventRecorder) ReconcilerBase {
 	extensionsClient, err := apiextensionsclient.NewForConfig(mgr.GetConfig())
 	if err != nil {
 		ctrl.Log.Error(err, "could not create extensions client, won't be able to peek at CRDs")
 	}
-	processor := resourceprocessor.NewResourceProcessor(mgr.GetClient(), schemas, mgr.GetScheme())
 
-	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder, processor)
+	return NewReconcilerBase(mgr.GetClient(), extensionsClient, mgr.GetScheme(), mgr.GetConfig(), recorder)
 }
 
 // GetClient returns the underlying client
@@ -93,10 +87,6 @@ func (r *ReconcilerBase) GetRecorder() record.EventRecorder {
 // GetScheme returns the scheme
 func (r *ReconcilerBase) GetScheme() *runtime.Scheme {
 	return r.scheme
-}
-
-func (r *ReconcilerBase) GetProcessor() *resourceprocessor.ResourceProcessor {
-	return r.processor
 }
 
 func (r *ReconcilerBase) EmitWarningEvent(object runtime.Object, reason string, message string) {

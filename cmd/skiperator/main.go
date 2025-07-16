@@ -112,7 +112,7 @@ func main() {
 	}()
 
 	err = (&controllers.ApplicationReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller"), resourceschemas.GetApplicationSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
@@ -120,7 +120,7 @@ func main() {
 	}
 
 	err = (&controllers.SKIPJobReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller"), resourceschemas.GetJobSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
@@ -128,7 +128,7 @@ func main() {
 	}
 
 	err = (&controllers.RoutingReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller"), resourceschemas.GetRoutingSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Routing")
@@ -142,7 +142,7 @@ func main() {
 	}
 	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
 	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
 		PullSecret:     ps,
 	}).SetupWithManager(mgr)
 
