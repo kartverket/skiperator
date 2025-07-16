@@ -217,9 +217,8 @@ func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Reques
 }
 
 func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) error {
-	if err := skipJob.FillDefaultSpec(); err != nil {
-		return fmt.Errorf("error when trying to fill default spec: %w", err)
-	}
+	skipJob.FillDefaultSpec()
+
 	if !ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
 		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer)
 	}
