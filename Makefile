@@ -160,11 +160,30 @@ benchmark-kube-api: build
 	echo "Fetching metrics before..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_BEFORE"; \
 	echo "Run application tests"; \
-	$(MAKE) test \
+	kubectl apply -f tests/application/access-policy/external-ip-policy.yaml; \
+	kubectl apply -f tests/application/ingress/application.yaml; \
+	kubectl apply -f tests/application/minimal/application.yaml; \
+	kubectl apply -f tests/application/custom-certificate/application.yaml; \
+	kubectl apply -f tests/application/copy/application.yaml; \
+	kubectl apply -f tests/application/gcp/application.yaml; \
+	kubectl apply -f tests/application/replicas/application.yaml; \
+	kubectl apply -f tests/application/service/application.yaml; \
+	kubectl apply -f tests/application/telemetry/application.yaml; \
+	sleep 600s; \
 	echo "Fetching metrics after..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
-	kill $$PID; \
+	kubectl delete -f tests/application/access-policy/external-ip-policy.yaml; \
+	kubectl delete -f tests/application/ingress/application.yaml; \
+	kubectl delete -f tests/application/minimal/application.yaml; \
+	kubectl delete -f tests/application/custom-certificate/application.yaml; \
+	kubectl delete -f tests/application/copy/application.yaml; \
+	kubectl delete -f tests/application/gcp/application.yaml; \
+	kubectl delete -f tests/application/replicas/application.yaml; \
+	kubectl delete -f tests/application/service/application.yaml; \
+	kubectl delete -f tests/application/telemetry/application.yaml; \
+    kill $$PID; \
 	cat $$METRICS_BEFORE; \
+	echo "hei"; \
 	cat $$METRICS_AFTER; \
 	echo "Kubernetes API usage (delta):"; \
 	awk ' \
@@ -194,3 +213,69 @@ benchmark-kube-api: build
 		} \
 	' "$$METRICS_BEFORE" "$$METRICS_AFTER"; \
 	echo "Done. Logs saved to $$LOG_FILE"
+
+
+.PHONY: apiserver-verb-summary-anon
+apiserver-verb-summary-anon: build
+		@echo "Applying anonymous metrics RBAC..."; \
+    	kubectl apply -f allow-anonymous-metrics.yaml; \
+    	echo "Starting port-forward to API server..."; \
+    	APISERVER_POD=$$(kubectl -n kube-system get pods -l component=kube-apiserver -o jsonpath='{.items[0].metadata.name}'); \
+    	kubectl -n kube-system port-forward pod/$$APISERVER_POD 8443:6443 >/dev/null 2>&1 & \
+    	PID=$$!; \
+    	sleep 3; \
+		echo "Starting skiperator in background..."; \
+    	echo "Waiting for skiperator to start and sync..."; \
+		sleep 20; \
+    	echo "Summing apiserver_request_total metrics by verb (before)..."; \
+    	METRICS_BEFORE=$$(curl -sk https://localhost:8443/metrics | grep '^apiserver_request_total{' | \
+    	awk ' \
+    		{ \
+    			if (match($$0, /verb="[^"]+"/)) { \
+    				verb=substr($$0, RSTART+6, RLENGTH-7); \
+    				val=$$NF; \
+    				sum[verb]+=val; \
+    			} \
+    		} \
+    		END { \
+    			for (v in sum) printf "%s %d\n", v, sum[v]; \
+    		}'); \
+    	echo "Applying resources..."; \
+
+		sleep 600s; \
+    	echo "Summing apiserver_request_total metrics by verb (after)..."; \
+    	METRICS_AFTER=$$(curl -sk https://localhost:8443/metrics | grep '^apiserver_request_total{' | \
+    	awk ' \
+    		{ \
+    			if (match($$0, /verb="[^"]+"/)) { \
+    				verb=substr($$0, RSTART+6, RLENGTH-7); \
+    				val=$$NF; \
+    				sum[verb]+=val; \
+    			} \
+    		} \
+    		END { \
+    			for (v in sum) printf "%s %d\n", v, sum[v]; \
+    		}'); \
+    	echo "Delta by verb:"; \
+		echo "$$METRICS_AFTER" | while read va aval; do \
+			bval=$$(echo "$$METRICS_BEFORE" | awk '$$1=="'$$va'" {print $$2}'); \
+			[ -z "$$bval" ] && bval=0; \
+			delta=$$((aval - bval)); \
+			if [ "$$delta" != "0" ]; then \
+				printf "%s: %d\n" "$$va" "$$delta"; \
+			fi; \
+		done; \
+    	echo "Cleaning up port-forward, skiperator, resources..."; \
+		kubectl delete -f tests/application/access-policy/external-ip-policy.yaml; \
+		kubectl delete -f tests/application/ingress/application.yaml; \
+		kubectl delete -f tests/application/minimal/application.yaml; \
+		kubectl delete -f tests/application/custom-certificate/application.yaml; \
+		kubectl delete -f tests/application/copy/application.yaml; \
+		kubectl delete -f tests/application/gcp/application.yaml; \
+		kubectl delete -f tests/application/replicas/application.yaml; \
+		kubectl delete -f tests/application/service/application.yaml; \
+		kubectl delete -f tests/application/telemetry/application.yaml; \
+    	kill $$PID; \
+        kill $$SPID
+
+
