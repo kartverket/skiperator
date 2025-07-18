@@ -15,12 +15,14 @@ var FeatureFlags *Features
 type Features struct {
 	DisablePodTopologySpreadConstraints bool
 	EnableProfiling                     bool
+	EnableLocallyBuiltImages            bool
 }
 
 func init() {
 	FeatureFlags = &Features{
 		DisablePodTopologySpreadConstraints: getEnvWithFallback("DISABLE_PTSC", false),
 		EnableProfiling:                     getEnvWithFallback("ENABLE_PROFILING", false),
+		EnableLocallyBuiltImages:            getEnvWithFallback("ENABLE_LOCAL_IMAGES", false),
 	}
 }
 

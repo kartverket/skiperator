@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "skip-cluster-node-cidr"
+  namespace: "skiperator-system"
+data:
+  config.yml: |
+    clusters: 
+      - name: "atkv3_sandbox_user_cluster"
+        controlPlaneCIDRs:
+          - 1.2.3.10/32
+          - 1.2.3.11/31
+        workerNodeCIDRs:
+          - 1.2.3.64/26
+          - 1.2.3.128/26
+          - 1.2.3.192/27
+          - 1.2.3.224/28

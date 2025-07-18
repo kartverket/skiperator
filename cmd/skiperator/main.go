@@ -3,9 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -51,6 +54,7 @@ func main() {
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
+	concurrentReconciles := flag.Int("c", 5, "number of concurrent reconciles for application controller")
 	flag.Parse()
 
 	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
@@ -113,10 +117,29 @@ func main() {
 
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr)
+	}).SetupWithManager(mgr, concurrentReconciles)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
+	}
+
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
+	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
+	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
+	// directly from namespaces as per SKIP-1704
+
+	var skipClusterList *config.SKIPClusterList
+	if cfg.ClusterCIDRExclusionEnabled {
+		configCheckClient, err := client.New(kubeconfig, client.Options{})
+		skipClusterList, err = config.LoadConfigFromConfigMap(configCheckClient)
+		if err != nil {
+			setupLog.Error(err, "could not load SKIP cluster config")
+			os.Exit(1)
+		}
+	} else {
+		skipClusterList = &config.SKIPClusterList{
+			Clusters: []*config.SKIPCluster{},
+		}
 	}
 
 	err = (&controllers.SKIPJobReconciler{
@@ -141,9 +164,17 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+
+	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
+	if err != nil {
+		setupLog.Error(err, "unable to create default deny network policy configuration", "controller", "Namespace")
+		os.Exit(1)
+	}
+
 	err = (&controllers.NamespaceReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
 		PullSecret:     ps,
+		DefaultDeny:    dd,
 	}).SetupWithManager(mgr)
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

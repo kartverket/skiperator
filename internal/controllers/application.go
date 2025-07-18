@@ -116,7 +116,7 @@ var debugPredicate = predicate.Funcs{
 }
 
 // TODO Watch applications that are using dynamic port allocation
-func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles *int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
@@ -153,7 +153,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			),
 		).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: 50,
+			MaxConcurrentReconciles: *concurrentReconciles,
 		}).
 		Complete(r)
 }

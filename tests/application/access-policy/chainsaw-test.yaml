@@ -57,3 +57,10 @@ spec:
             file: only-unique-hosts.yaml
         - assert:
             file: only-unique-hosts-assert.yaml
+    - try:
+        - apply:
+            file: external-blank-hostname.yaml
+        - assert:
+            file: external-blank-hostname-assert.yaml
+        - error:
+            file: external-blank-hostname-error.yaml

@@ -30,13 +30,18 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		},
 	}
 
+	h, err := routing.Spec.GetHost()
+	if err != nil || h == nil {
+		return fmt.Errorf("failed to get host from routing: %w", err)
+	}
+
 	virtualService.Spec = networkingv1api.VirtualService{
 		ExportTo: []string{".", "istio-system", "istio-gateways"},
 		Gateways: []string{
 			routing.GetGatewayName(),
 		},
 		Hosts: []string{
-			routing.Spec.Hostname,
+			h.Hostname,
 		},
 		Http: []*networkingv1api.HTTPRoute{},
 	}

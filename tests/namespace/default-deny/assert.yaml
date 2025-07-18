@@ -13,6 +13,9 @@ spec:
   - to:
     - ipBlock:
         cidr: 10.40.0.0/16
+        except:
+          - 10.40.10.0/25
+          - 10.40.10.0/24
     - ipBlock:
         cidr: 10.142.5.0/28
     - ipBlock:
@@ -47,19 +50,6 @@ spec:
       podSelector:
         matchLabels:
           app: istiod
-  - ports:
-      - port: 4317
-        protocol: TCP
-      - port: 4318
-        protocol: TCP
-    to:
-      - namespaceSelector:
-          matchLabels:
-            kubernetes.io/metadata.name: grafana-agent
-        podSelector:
-          matchLabels:
-            app.kubernetes.io/instance: grafana-agent
-            app.kubernetes.io/name: grafana-agent
   - ports:
       - port: 4317
         protocol: TCP

@@ -2,6 +2,7 @@ package defaultdeny
 
 import (
 	"fmt"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -10,7 +11,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func Generate(r reconciliation.Reconciliation) error {
+type DefaultDenyNetworkPolicy struct {
+	SKIPClusterList *config.SKIPClusterList
+}
+
+func NewDefaultDenyNetworkPolicy(clusters *config.SKIPClusterList) (*DefaultDenyNetworkPolicy, error) {
+	if clusters == nil {
+		return nil, fmt.Errorf("unable to create default deny network policy: SKIPClusterList is nil")
+	}
+	return &DefaultDenyNetworkPolicy{
+		SKIPClusterList: clusters,
+	}, nil
+}
+
+func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate default deny network policy for namespace", "namespace", r.GetSKIPObject().GetName())
 
@@ -31,7 +45,8 @@ func Generate(r reconciliation.Reconciliation) error {
 					// Egress rule for parts of internal server network
 					{
 						IPBlock: &networkingv1.IPBlock{
-							CIDR: "10.40.0.0/16",
+							CIDR:   "10.40.0.0/16",
+							Except: ddnp.SKIPClusterList.CombinedCIDRS(),
 						},
 					},
 					// Egress rule for internal load balancer on atgcp1-sandbox
@@ -77,11 +92,11 @@ func Generate(r reconciliation.Reconciliation) error {
 					// DNS Ports
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(53)),
+						Port:     util.PointTo(intstr.FromInt32(53)),
 					},
 					{
 						Protocol: util.PointTo(corev1.ProtocolUDP),
-						Port:     util.PointTo(intstr.FromInt(53)),
+						Port:     util.PointTo(intstr.FromInt32(53)),
 					},
 				},
 			},
@@ -99,33 +114,7 @@ func Generate(r reconciliation.Reconciliation) error {
 				},
 				Ports: []networkingv1.NetworkPolicyPort{
 					{
-						Port: util.PointTo(intstr.FromInt(15012)),
-					},
-				},
-			},
-			// Egress rule for grafana-agent
-			{
-				To: []networkingv1.NetworkPolicyPeer{
-					{
-						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"kubernetes.io/metadata.name": "grafana-agent"},
-						},
-						PodSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{
-								"app.kubernetes.io/instance": "grafana-agent",
-								"app.kubernetes.io/name":     "grafana-agent",
-							},
-						},
-					},
-				},
-				Ports: []networkingv1.NetworkPolicyPort{
-					{
-						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4317)),
-					},
-					{
-						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4318)),
+						Port: util.PointTo(intstr.FromInt32(15012)),
 					},
 				},
 			},
@@ -147,11 +136,11 @@ func Generate(r reconciliation.Reconciliation) error {
 				Ports: []networkingv1.NetworkPolicyPort{
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4317)),
+						Port:     util.PointTo(intstr.FromInt32(4317)),
 					},
 					{
 						Protocol: util.PointTo(corev1.ProtocolTCP),
-						Port:     util.PointTo(intstr.FromInt(4318)),
+						Port:     util.PointTo(intstr.FromInt32(4318)),
 					},
 				},
 			},

@@ -23,7 +23,7 @@ PROMETHEUS_VERSION                 := $(call extract-version,github.com/promethe
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
-KUBERNETES_VERSION          = 1.31.4
+KUBERNETES_VERSION          = 1.32.5
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
 
@@ -112,6 +112,7 @@ export IMAGE_PULL_0_REGISTRY := ghcr.io
 export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 test: install-test-tools install-skiperator
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
@@ -130,6 +131,7 @@ export IMAGE_PULL_0_REGISTRY := ghcr.io
 export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 run-test: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
