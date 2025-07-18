@@ -4,7 +4,7 @@ metadata:
   name: istio-settings
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
   steps:
     - try:
