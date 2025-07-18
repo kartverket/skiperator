@@ -160,55 +160,43 @@ benchmark-kube-api: build install-skiperator
 	echo "Fetching metrics before..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_BEFORE"; \
 	echo "Run application tests"; \
-	kubectl apply -f tests/application/access-policy/external-ip-policy.yaml; \
-	kubectl apply -f tests/application/ingress/application.yaml; \
-	kubectl apply -f tests/application/minimal/application.yaml; \
-	kubectl apply -f tests/application/custom-certificate/application.yaml; \
-	kubectl apply -f tests/application/copy/application.yaml; \
-	kubectl apply -f tests/application/gcp/application.yaml; \
-	kubectl apply -f tests/application/replicas/application.yaml; \
-	kubectl apply -f tests/application/service/application.yaml; \
-	kubectl apply -f tests/application/telemetry/application.yaml; \
-	sleep 600s; \
+	make test; \
 	echo "Fetching metrics after..."; \
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
-	kubectl delete -f tests/application/access-policy/external-ip-policy.yaml; \
-	kubectl delete -f tests/application/ingress/application.yaml; \
-	kubectl delete -f tests/application/minimal/application.yaml; \
-	kubectl delete -f tests/application/custom-certificate/application.yaml; \
-	kubectl delete -f tests/application/copy/application.yaml; \
-	kubectl delete -f tests/application/gcp/application.yaml; \
-	kubectl delete -f tests/application/replicas/application.yaml; \
-	kubectl delete -f tests/application/service/application.yaml; \
-	kubectl delete -f tests/application/telemetry/application.yaml; \
     kill $$PID; \
 	cat $$METRICS_BEFORE; \
 	echo "hei"; \
 	cat $$METRICS_AFTER; \
 	echo "Kubernetes API usage (delta):"; \
-	awk ' \
+	gawk ' \
 		FNR==NR && $$0 ~ /rest_client_requests_total/ { \
 			split($$0, a, " "); \
 			split(a[1], b, "method=\""); \
 			split(b[2], c, "\""); \
-			method=c[1]; \
-			val=a[2]; \
-			before[method]=val; \
+			method = c[1]; \
+			val = a[2]; \
+			before[method] += val; \
 			next; \
 		} \
 		$$0 ~ /rest_client_requests_total/ { \
 			split($$0, a, " "); \
 			split(a[1], b, "method=\""); \
 			split(b[2], c, "\""); \
-			method=c[1]; \
-			val=a[2]; \
+			method = c[1]; \
+			val = a[2]; \
 			delta = val - before[method]; \
 			if (delta > 0) { \
+				method_delta[method] += delta; \
 				total += delta; \
-				printf("  %s: %d\n", method, delta); \
 			} \
+			before[method] = val; \
 		} \
 		END { \
+			n = asorti(method_delta, sorted); \
+			for (i=1; i<=n; i++) { \
+				m = sorted[i]; \
+				printf("  %s: %d\n", m, method_delta[m]); \
+			} \
 			printf("  Total: %d\n", total); \
 		} \
 	' "$$METRICS_BEFORE" "$$METRICS_AFTER"; \
@@ -241,7 +229,15 @@ apiserver-verb-summary-anon: build install-skiperator
     			for (v in sum) printf "%s %d\n", v, sum[v]; \
     		}'); \
     	echo "Applying resources..."; \
-
+		kubectl apply -f tests/application/access-policy/external-ip-policy.yaml; \
+		kubectl apply -f tests/application/ingress/application.yaml; \
+		kubectl apply -f tests/application/minimal/application.yaml; \
+		kubectl apply -f tests/application/custom-certificate/application.yaml; \
+		kubectl apply -f tests/application/copy/application.yaml; \
+		kubectl apply -f tests/application/gcp/application.yaml; \
+		kubectl apply -f tests/application/replicas/application.yaml; \
+		kubectl apply -f tests/application/service/application.yaml; \
+		kubectl apply -f tests/application/telemetry/application.yaml; \
 		sleep 600s; \
     	echo "Summing apiserver_request_total metrics by verb (after)..."; \
     	METRICS_AFTER=$$(curl -sk https://localhost:8443/metrics | grep '^apiserver_request_total{' | \
