@@ -4,7 +4,7 @@ metadata:
   name: ingress
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
   namespace: ingress
   steps:

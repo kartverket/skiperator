@@ -1,0 +1,38 @@
+Full run before optimization:
+
+Kubernetes API usage (delta):
+  DELETE: 206
+  GET: 15735
+  PATCH: 414
+  POST: 1339
+  PUT: 2124
+  Total: 19818
+
+
+Full run after optimization:
+
+MaxConcurrentReconciles: 1
+Kubernetes API usage (delta):
+  DELETE: 137
+  GET: 13251
+  PATCH: 332
+  POST: 1344
+  PUT: 1176
+  Total: 16240
+
+Kubernetes API usage (delta):
+  DELETE: 171
+  GET: 14522
+  PATCH: 512
+  POST: 1257
+  PUT: 1544
+  Total: 18006
+
+MaxConcurrentReconciles: 50
+Kubernetes API usage (delta):
+  DELETE: 265
+  GET: 15765
+  PATCH: 340
+  POST: 1331
+  PUT: 1220
+  Total: 18921

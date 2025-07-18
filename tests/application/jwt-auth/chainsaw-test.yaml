@@ -14,7 +14,7 @@ spec:
         - assert:
             file: application-one-provider-assert.yaml
     - try:
-        - create:
+        - apply:
             file: application-one-provider-with-secret.yaml
         - assert:
             file: application-one-provider-with-secret-assert.yaml
