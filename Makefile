@@ -33,7 +33,7 @@ generate:
 	go generate ./...
 
 .PHONY: build
-build: generate install-skiperator
+build: generate
 	go build \
 	-tags osusergo,netgo \
 	-trimpath \
@@ -130,7 +130,7 @@ export IMAGE_PULL_0_REGISTRY := ghcr.io
 export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
-run-test: build
+run-test: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
@@ -148,7 +148,7 @@ run-test: build
 
 # Checks the delta of requests made to the kube api from the controller.
 .PHONY: benchmark-kube-api
-benchmark-kube-api: build
+benchmark-kube-api: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
@@ -216,7 +216,7 @@ benchmark-kube-api: build
 
 
 .PHONY: apiserver-verb-summary-anon
-apiserver-verb-summary-anon: build
+apiserver-verb-summary-anon: build install-skiperator
 		@echo "Applying anonymous metrics RBAC..."; \
     	kubectl apply -f allow-anonymous-metrics.yaml; \
     	echo "Starting port-forward to API server..."; \

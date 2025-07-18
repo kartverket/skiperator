@@ -2,15 +2,8 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/resourceprocessor"
-	"github.com/kartverket/skiperator/pkg/resourceschemas"
-	"k8s.io/klog/v2"
-	"regexp"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
-	"strings"
-
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
@@ -39,6 +32,8 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -55,13 +50,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/klog/v2"
+	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
+	"time"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -87,6 +88,7 @@ type ApplicationReconciler struct {
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
+var applicationEnqueueChan = make(chan reconcile.Request, 100)
 
 var debugPredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
@@ -138,10 +140,6 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
-		Watches(
-			&skiperatorv1alpha1.Application{},
-			handler.EnqueueRequestsFromMapFunc(r.MapChangedAppToDependents),
-		).
 		WithEventFilter(
 			predicate.And(
 				common.DefaultPredicate, // Runs first
@@ -160,48 +158,19 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
-func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, obj client.Object) []reconcile.Request {
+func (r *ApplicationReconciler) triggerReconcileOfAffectedApps(ctx context.Context, obj client.Object) {
 	changedApp, ok := obj.(*skiperatorv1alpha1.Application)
 	if !ok {
-		return nil
+		return
 	}
 
-	var result []reconcile.Request
-
-	// Update all apps this access policy points to
-	if changedApp.Spec.AccessPolicy != nil && changedApp.Spec.AccessPolicy.Outbound != nil {
-		for _, ref := range changedApp.Spec.AccessPolicy.Outbound.Rules {
-			appRef := types.NamespacedName{
-				Name:      ref.Application,
-				Namespace: changedApp.Namespace,
-			}
-			if ref.Namespace != "" {
-				appRef.Namespace = ref.Namespace
-			}
-			if ref.NamespacesByLabel != nil {
-				namespaces, err := r.GetNamespacesByLabel(ctx, &ref)
-				if err != nil {
-					klog.Error(err)
-					break
-				}
-				for _, ns := range namespaces.Items {
-					appRef.Namespace = ns.Name
-					var app *skiperatorv1alpha1.Application
-					err = r.GetClient().Get(ctx, appRef, app)
-					if err != nil {
-						continue
-					}
-				}
-			}
-			result = append(result, reconcile.Request{NamespacedName: appRef})
-		}
-	}
+	apps := map[types.NamespacedName]skiperatorv1alpha1.Application{}
 
 	// Requeue all apps that have outbound rules pointing to this app (inbound dependencies)
 	var allApps skiperatorv1alpha1.ApplicationList
 	if err := r.GetClient().List(ctx, &allApps); err != nil {
 		klog.Error(err, "failed to list applications for reverse dependency mapping")
-		return result
+		return
 	}
 
 	// check outbound rules
@@ -211,13 +180,11 @@ func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, o
 		}
 		for _, rule := range app.Spec.AccessPolicy.Outbound.Rules {
 			if rule.Application == changedApp.Name {
-				result = append(result, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      app.Name,
-						Namespace: app.Namespace,
-					},
-				})
-				break
+				namespacedName := types.NamespacedName{
+					Name:      app.Name,
+					Namespace: app.Namespace,
+				}
+				apps[namespacedName] = app
 			}
 		}
 	}
@@ -229,18 +196,50 @@ func (r *ApplicationReconciler) MapChangedAppToDependents(ctx context.Context, o
 		}
 		for _, rule := range app.Spec.AccessPolicy.Inbound.Rules {
 			if rule.Application == changedApp.Name {
-				result = append(result, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      app.Name,
-						Namespace: app.Namespace,
-					},
-				})
-				break
+				namespacedName := types.NamespacedName{
+					Name:      app.Name,
+					Namespace: app.Namespace,
+				}
+				apps[namespacedName] = app
 			}
 		}
 	}
 
-	return result
+	for _, app := range apps {
+		key := "skiperator.io/triggered-by"
+		roundedTime := time.Now().UTC().Format("20060102T1504") // e.g., 20250717T1532
+		value := fmt.Sprintf("%s-%s", changedApp.Name, roundedTime)
+
+		if current := app.GetLabels()[key]; current == value {
+			continue // already triggered in this minute
+		}
+
+		// Patch only the label
+		patch := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"labels": map[string]string{
+					key: value,
+				},
+			},
+		}
+		rawPatch, err := json.Marshal(patch)
+		if err != nil {
+			klog.Errorf("failed to marshal patch for %s: %v", app.Name, err)
+			continue
+		}
+
+		// Minimal object for patch target
+		target := &skiperatorv1alpha1.Application{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      app.Name,
+				Namespace: app.Namespace,
+			},
+		}
+
+		if err := r.GetClient().Patch(ctx, target, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
+			klog.Errorf("failed to patch app %s: %v", app.Name, err)
+		}
+	}
 }
 
 type reconciliationFunc func(reconciliation Reconciliation) error
@@ -390,6 +389,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.updateConditions(application)
 	r.SetSyncedState(ctx, application, "Application has been reconciled")
 
+	r.triggerReconcileOfAffectedApps(ctx, application)
 	return common.DoNotRequeue()
 }
 
