@@ -112,6 +112,7 @@ export IMAGE_PULL_0_REGISTRY := ghcr.io
 export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 test: install-test-tools install-skiperator
 	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
@@ -130,6 +131,7 @@ export IMAGE_PULL_0_REGISTRY := ghcr.io
 export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 run-test: build
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \

@@ -127,12 +127,18 @@ func main() {
 	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
 	// directly from namespaces as per SKIP-1704
 
-	configCheckClient, err := client.New(kubeconfig, client.Options{})
-
-	skipClusterList, err := config.LoadConfigFromConfigMap(configCheckClient)
-	if err != nil {
-		setupLog.Error(err, "could not load SKIP cluster config")
-		os.Exit(1)
+	var skipClusterList *config.SKIPClusterList
+	if cfg.ClusterCIDRExclusionEnabled {
+		configCheckClient, err := client.New(kubeconfig, client.Options{})
+		skipClusterList, err = config.LoadConfigFromConfigMap(configCheckClient)
+		if err != nil {
+			setupLog.Error(err, "could not load SKIP cluster config")
+			os.Exit(1)
+		}
+	} else {
+		skipClusterList = &config.SKIPClusterList{
+			Clusters: []*config.SKIPCluster{},
+		}
 	}
 
 	err = (&controllers.SKIPJobReconciler{
