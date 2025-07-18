@@ -5,5 +5,6 @@ type RegistryCredentialPair struct {
 	Token    string `env:"TOKEN"`
 }
 type Vars struct {
-	RegistryCredentials []RegistryCredentialPair `envPrefix:"IMAGE_PULL"`
+	RegistryCredentials         []RegistryCredentialPair `envPrefix:"IMAGE_PULL"`
+	ClusterCIDRExclusionEnabled bool                     `env:"CLUSTER_CIDR_EXCLUDE" envDefault:"false"`
 }
