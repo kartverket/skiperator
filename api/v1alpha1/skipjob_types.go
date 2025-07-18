@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"dario.cat/mergo"
 	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	batchv1 "k8s.io/api/batch/v1"
@@ -217,24 +216,28 @@ func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
 	skipJob.Status = status
 }
 
-func (skipJob *SKIPJob) FillDefaultSpec() error {
-	defaults := &SKIPJob{
-		Spec: SKIPJobSpec{
-			Job: &JobSettings{
-				TTLSecondsAfterFinished: &DefaultTTLSecondsAfterFinished,
-				BackoffLimit:            &DefaultBackoffLimit,
-				Suspend:                 &DefaultSuspend,
-			},
-		},
+func (skipJob *SKIPJob) FillDefaultSpec() {
+	if skipJob.Spec.Job == nil {
+		skipJob.Spec.Job = &JobSettings{}
+	}
+
+	if skipJob.Spec.Job.TTLSecondsAfterFinished == nil {
+		skipJob.Spec.Job.TTLSecondsAfterFinished = &DefaultTTLSecondsAfterFinished
+	}
+
+	if skipJob.Spec.Job.BackoffLimit == nil {
+		skipJob.Spec.Job.BackoffLimit = &DefaultBackoffLimit
+	}
+
+	if skipJob.Spec.Job.Suspend == nil {
+		skipJob.Spec.Job.Suspend = &DefaultSuspend
 	}
 
 	if skipJob.Spec.Cron != nil {
-		defaults.Spec.Cron = &CronSettings{}
-		suspend := false
-		defaults.Spec.Cron.Suspend = &suspend
+		if skipJob.Spec.Cron.Suspend == nil {
+			skipJob.Spec.Cron.Suspend = &DefaultSuspend
+		}
 	}
-
-	return mergo.Merge(skipJob, defaults)
 }
 
 // TODO we should test SKIPJob status better, same for Routing probably
