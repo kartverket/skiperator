@@ -11,9 +11,6 @@ spec:
     - try:
         - apply:
             file: ns-istio.yaml
-        - assert:
-            file: ns-istio.yaml
-    - try:
         - apply:
             file: application.yaml
         - assert:

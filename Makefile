@@ -208,7 +208,7 @@ benchmark-kube-api: build install-skiperator
 .PHONY: apiserver-verb-summary-anon
 apiserver-verb-summary-anon: build install-skiperator
 		@echo "Applying anonymous metrics RBAC..."; \
-    	kubectl apply -f allow-anonymous-metrics.yaml; \
+    	kubectl apply -f tests/cluster-config/allow-anonymous-metrics.yaml; \
     	echo "Starting port-forward to API server..."; \
     	APISERVER_POD=$$(kubectl -n kube-system get pods -l component=kube-apiserver -o jsonpath='{.items[0].metadata.name}'); \
     	kubectl -n kube-system port-forward pod/$$APISERVER_POD 8443:6443 >/dev/null 2>&1 & \
