@@ -74,7 +74,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
+	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, *concurrentReconciles))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 

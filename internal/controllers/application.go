@@ -57,7 +57,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -88,32 +87,6 @@ type ApplicationReconciler struct {
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
-var applicationEnqueueChan = make(chan reconcile.Request, 100)
-
-var debugPredicate = predicate.Funcs{
-	CreateFunc: func(e event.CreateEvent) bool {
-		klog.Infof("CreateEvent: %s/%s/%T", e.Object.GetNamespace(), e.Object.GetName(), e.Object)
-		return true
-	},
-	UpdateFunc: func(e event.UpdateEvent) bool {
-		if e.ObjectNew.GetNamespace() == "istio-system" {
-			return false
-		}
-
-		klog.Infof("UpdateEvent: %s/%s/%T", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName(), e.ObjectNew)
-		//diff := cmp.Diff(e.ObjectOld, e.ObjectNew)
-		//klog.Infof("Diff: %s", diff)
-		return true
-	},
-	DeleteFunc: func(e event.DeleteEvent) bool {
-		klog.Infof("DeleteEvent: %s/%s/%T", e.Object.GetNamespace(), e.Object.GetName(), e.Object)
-		return true
-	},
-	GenericFunc: func(e event.GenericEvent) bool {
-		klog.Infof("GenericEvent: %s/%s", e.Object.GetNamespace(), e.Object.GetName())
-		return true
-	},
-}
 
 // TODO Watch applications that are using dynamic port allocation
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles *int) error {
@@ -143,12 +116,9 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		WithEventFilter(
 			predicate.And(
 				common.DefaultPredicate, // Runs first
-				predicate.And(
-					predicate.Or(
-						predicate.GenerationChangedPredicate{},
-						predicate.LabelChangedPredicate{},
-					),
-					debugPredicate,
+				predicate.Or(
+					predicate.GenerationChangedPredicate{},
+					predicate.LabelChangedPredicate{},
 				),
 			),
 		).
@@ -156,90 +126,6 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 			MaxConcurrentReconciles: *concurrentReconciles,
 		}).
 		Complete(r)
-}
-
-func (r *ApplicationReconciler) triggerReconcileOfAffectedApps(ctx context.Context, obj client.Object) {
-	changedApp, ok := obj.(*skiperatorv1alpha1.Application)
-	if !ok {
-		return
-	}
-
-	apps := map[types.NamespacedName]skiperatorv1alpha1.Application{}
-
-	// Requeue all apps that have outbound rules pointing to this app (inbound dependencies)
-	var allApps skiperatorv1alpha1.ApplicationList
-	if err := r.GetClient().List(ctx, &allApps); err != nil {
-		klog.Error(err, "failed to list applications for reverse dependency mapping")
-		return
-	}
-
-	// check outbound rules
-	for _, app := range allApps.Items {
-		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Outbound == nil {
-			continue
-		}
-		for _, rule := range app.Spec.AccessPolicy.Outbound.Rules {
-			if rule.Application == changedApp.Name {
-				namespacedName := types.NamespacedName{
-					Name:      app.Name,
-					Namespace: app.Namespace,
-				}
-				apps[namespacedName] = app
-			}
-		}
-	}
-
-	// check inbound rules
-	for _, app := range allApps.Items {
-		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Inbound == nil {
-			continue
-		}
-		for _, rule := range app.Spec.AccessPolicy.Inbound.Rules {
-			if rule.Application == changedApp.Name {
-				namespacedName := types.NamespacedName{
-					Name:      app.Name,
-					Namespace: app.Namespace,
-				}
-				apps[namespacedName] = app
-			}
-		}
-	}
-
-	for _, app := range apps {
-		key := "skiperator.io/triggered-by"
-		roundedTime := time.Now().UTC().Format("20060102T1504") // e.g., 20250717T1532
-		value := fmt.Sprintf("%s-%s", changedApp.Name, roundedTime)
-
-		if current := app.GetLabels()[key]; current == value {
-			continue // already triggered in this minute
-		}
-
-		// Patch only the label
-		patch := map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"labels": map[string]string{
-					key: value,
-				},
-			},
-		}
-		rawPatch, err := json.Marshal(patch)
-		if err != nil {
-			klog.Errorf("failed to marshal patch for %s: %v", app.Name, err)
-			continue
-		}
-
-		// Minimal object for patch target
-		target := &skiperatorv1alpha1.Application{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      app.Name,
-				Namespace: app.Namespace,
-			},
-		}
-
-		if err := r.GetClient().Patch(ctx, target, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
-			klog.Errorf("failed to patch app %s: %v", app.Name, err)
-		}
-	}
 }
 
 type reconciliationFunc func(reconciliation Reconciliation) error
@@ -708,4 +594,94 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 	}
 
 	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
+}
+
+/* This is kind of a nasty workaround since we have dynamic port allocation (we look up each app in the access policy and assign port dynamically)
+** In order to keep this up to date we have to trigger reconciliations of affected applications when an application
+** finishes reconciling, as the port may change or may be new.
+** To do this we have to list every app in the cluster and check the access policies, then add a update label
+** to make it reconcile again. This is very heavy-handed and there is a lot to save here optimization wise
+** if we just rely on app labels instead of dynamic port allocations. This is probably the biggest resource hog atm
+ */
+func (r *ApplicationReconciler) triggerReconcileOfAffectedApps(ctx context.Context, obj client.Object) {
+	changedApp, ok := obj.(*skiperatorv1alpha1.Application)
+	if !ok {
+		return
+	}
+
+	apps := map[types.NamespacedName]skiperatorv1alpha1.Application{}
+
+	// Grab all applications to check if they have the current app in access policy
+	var allApps skiperatorv1alpha1.ApplicationList
+	if err := r.GetClient().List(ctx, &allApps); err != nil {
+		klog.Error(err, "failed to list applications for reverse dependency mapping")
+		return
+	}
+
+	// check outbound rules
+	for _, app := range allApps.Items {
+		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Outbound == nil {
+			continue
+		}
+		for _, rule := range app.Spec.AccessPolicy.Outbound.Rules {
+			if rule.Application == changedApp.Name {
+				namespacedName := types.NamespacedName{
+					Name:      app.Name,
+					Namespace: app.Namespace,
+				}
+				apps[namespacedName] = app
+			}
+		}
+	}
+
+	// check inbound rules
+	for _, app := range allApps.Items {
+		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Inbound == nil {
+			continue
+		}
+		for _, rule := range app.Spec.AccessPolicy.Inbound.Rules {
+			if rule.Application == changedApp.Name {
+				namespacedName := types.NamespacedName{
+					Name:      app.Name,
+					Namespace: app.Namespace,
+				}
+				apps[namespacedName] = app
+			}
+		}
+	}
+
+	for _, app := range apps {
+		key := "skiperator.io/triggered-by"
+		roundedTime := time.Now().UTC().Format("20060102T1504") // e.g., 20250717T1532
+		value := fmt.Sprintf("%s-%s", changedApp.Name, roundedTime)
+
+		if current := app.GetLabels()[key]; current == value {
+			continue // already triggered in this minute
+		}
+
+		// Patch only the label to trigger a reconcile
+		patch := map[string]interface{}{
+			"metadata": map[string]interface{}{
+				"labels": map[string]string{
+					key: value,
+				},
+			},
+		}
+		rawPatch, err := json.Marshal(patch)
+		if err != nil {
+			klog.Errorf("failed to marshal patch for %s: %v", app.Name, err)
+			continue
+		}
+
+		target := &skiperatorv1alpha1.Application{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      app.Name,
+				Namespace: app.Namespace,
+			},
+		}
+
+		if err := r.GetClient().Patch(ctx, target, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
+			klog.Errorf("failed to patch app %s: %v", app.Name, err)
+		}
+	}
 }
