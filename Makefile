@@ -149,8 +149,8 @@ run-test: build install-skiperator
 	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID && echo "running unit tests..." && $(MAKE) run-unit-tests)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)
 
 # Checks the delta of requests made to the kube api from the controller.
-.PHONY: benchmark-kube-api
-benchmark-kube-api: build install-skiperator
+.PHONY: benchmark-chainsaw-tests
+benchmark-chainsaw-tests: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
@@ -205,8 +205,8 @@ benchmark-kube-api: build install-skiperator
 	echo "Done. Logs saved to $$LOG_FILE"
 
 
-.PHONY: apiserver-verb-summary-anon
-apiserver-verb-summary-anon: build install-skiperator
+.PHONY: benchmark-long-run
+benchmark-long-run: build install-skiperator
 		@echo "Applying anonymous metrics RBAC..."; \
     	kubectl apply -f tests/cluster-config/allow-anonymous-metrics.yaml; \
     	echo "Starting port-forward to API server..."; \

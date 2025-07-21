@@ -59,8 +59,8 @@ func (r *ResourceProcessor) patch(ctx context.Context, newObj client.Object) err
 
 	preparePatch(newObj, existing)
 
-	//TODO move this to getDiffs?
-	if !diffBetween(newObj, existing) {
+	identical := isObjectIdentical(newObj, existing)
+	if identical {
 		r.log.Info("No diff between objects, not patching", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name", newObj.GetName())
 		return nil
 	}
@@ -110,11 +110,6 @@ func (r *ResourceProcessor) getCertificates(ctx context.Context, labels map[stri
 }
 
 func isObjectIdentical(resource, existing client.Object) bool {
-	// Compare Annotations
-	if !reflect.DeepEqual(resource.GetAnnotations(), existing.GetAnnotations()) {
-		return false
-	}
-
 	// Compare Labels
 	if !reflect.DeepEqual(resource.GetLabels(), existing.GetLabels()) {
 		return false
