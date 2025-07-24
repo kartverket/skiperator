@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: default-backofflimit
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml
+    - try:
+        - apply:
+            file: skipjob-patch.yaml
+        - assert:
+            file: skipjob-patch-assert.yaml

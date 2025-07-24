@@ -1,0 +1,7 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: default-backofflimit
+spec:
+  # ensure backofflimit is 0 (int zero value) and not defaulted to 6
+  backoffLimit: 0
