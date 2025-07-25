@@ -88,7 +88,6 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
-// TODO Watch applications that are using dynamic port allocation
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles *int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
@@ -651,7 +650,7 @@ func (r *ApplicationReconciler) triggerReconcileOfAffectedApps(ctx context.Conte
 	}
 
 	for _, app := range apps {
-		key := "skiperator.io/triggered-by"
+		key := "skiperator.kartverket.no/triggered-by"
 		roundedTime := time.Now().UTC().Format("20060102T1504") // e.g., 20250717T1532
 		value := fmt.Sprintf("%s-%s", changedApp.Name, roundedTime)
 

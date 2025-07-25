@@ -109,6 +109,7 @@ func (r *ResourceProcessor) getCertificates(ctx context.Context, labels map[stri
 	return r.listResourcesByLabels(ctx, "istio-gateways", labels, objList)
 }
 
+// TODO: Should we compare annotations?
 func isObjectIdentical(resource, existing client.Object) bool {
 	// Compare Labels
 	if !reflect.DeepEqual(resource.GetLabels(), existing.GetLabels()) {

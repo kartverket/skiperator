@@ -167,7 +167,7 @@ benchmark-chainsaw-tests: build install-skiperator
 	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
     kill $$PID; \
 	cat $$METRICS_BEFORE; \
-	echo "hei"; \
+	echo "---"; \
 	cat $$METRICS_AFTER; \
 	echo "Kubernetes API usage (delta):"; \
 	gawk ' \
@@ -215,6 +215,9 @@ benchmark-long-run: build install-skiperator
     	PID=$$!; \
     	sleep 3; \
 		echo "Starting skiperator in background..."; \
+		@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
+		./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
+		SPID=$$!; \
     	echo "Waiting for skiperator to start and sync..."; \
 		sleep 20; \
     	echo "Summing apiserver_request_total metrics by verb (before)..."; \

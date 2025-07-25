@@ -20,13 +20,14 @@ Kubernetes API usage (delta):
   PUT: 1176
   Total: 16240
 
+MaxConcurrentReconciles: 5
 Kubernetes API usage (delta):
-  DELETE: 171
-  GET: 14522
-  PATCH: 512
-  POST: 1257
-  PUT: 1544
-  Total: 18006
+  DELETE: 284
+  GET: 14278
+  PATCH: 394
+  POST: 1383
+  PUT: 1271
+  Total: 17610
 
 MaxConcurrentReconciles: 50
 Kubernetes API usage (delta):
