@@ -4,7 +4,7 @@ metadata:
   name: access-policy
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
   namespace: access-policy-ns
   steps:

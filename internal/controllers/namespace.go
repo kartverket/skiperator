@@ -11,6 +11,8 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -96,7 +98,9 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return common.RequeueWithError(err)
 	}
 
-	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetNamespaceSchemas(r.GetScheme()), r.GetScheme())
+
+	if errs := processor.Process(reconciliation); len(errs) > 0 {
 		rLog.Error(errs[0], "failed to process resources - returning only the first error", "numberOfErrors", len(errs))
 		return common.RequeueWithError(errs[0])
 	}

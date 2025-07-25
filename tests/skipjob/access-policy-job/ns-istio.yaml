@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: ns-with-istio
+  name: ns-with-istio-job
   labels:
     istio.io/rev: asm-stable
 ---
