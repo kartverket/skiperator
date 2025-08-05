@@ -2,7 +2,10 @@ package resourceprocessor
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +35,10 @@ func (r *ResourceProcessor) update(ctx context.Context, resource client.Object) 
 		}
 		r.log.Error(err, "Failed to get object, for unknown reason")
 	}
+	identical := isObjectIdentical(resource, existing)
+	if identical {
+		return nil
+	}
 	copyRequiredData(resource, existing)
 	if err := r.client.Update(ctx, resource); err != nil {
 		r.log.Error(err, "Failed to update object")
@@ -49,10 +56,11 @@ func (r *ResourceProcessor) patch(ctx context.Context, newObj client.Object) err
 		}
 		r.log.Error(err, "Failed to get object, for unknown reason")
 	}
+
 	preparePatch(newObj, existing)
 
-	//TODO move this to getDiffs?
-	if !diffBetween(newObj, existing) {
+	identical := isObjectIdentical(newObj, existing)
+	if identical {
 		r.log.Info("No diff between objects, not patching", "kind", newObj.GetObjectKind().GroupVersionKind().Kind, "name", newObj.GetName())
 		return nil
 	}
@@ -99,4 +107,36 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 
 func (r *ResourceProcessor) getCertificates(ctx context.Context, labels map[string]string, objList *[]client.Object) error {
 	return r.listResourcesByLabels(ctx, "istio-gateways", labels, objList)
+}
+
+// TODO: Should we compare annotations?
+func isObjectIdentical(resource, existing client.Object) bool {
+	// Compare Labels
+	if !reflect.DeepEqual(resource.GetLabels(), existing.GetLabels()) {
+		return false
+	}
+
+	// Compare Spec hash
+	resourceSpecHash, err := getSpecHash(resource)
+	if err != nil || resourceSpecHash == "" {
+		return false
+	}
+	existingSpecHash, err := getSpecHash(existing)
+	if err != nil {
+		return false
+	}
+	return resourceSpecHash == existingSpecHash
+}
+
+func getSpecHash(obj client.Object) (string, error) {
+	val := reflect.ValueOf(obj).Elem().FieldByName("Spec")
+	if !val.IsValid() {
+		return "", nil
+	}
+	specBytes, err := json.Marshal(val.Interface())
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(specBytes)
+	return fmt.Sprintf("%x", hash), nil
 }

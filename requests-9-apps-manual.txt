@@ -1,0 +1,49 @@
+10 min run:
+
+base:
+Delta by verb:
+LIST: 8
+POST: 10
+WATCH: 256
+PATCH: 7
+PUT: 1196
+GET: 1402
+
+main:
+
+Delta by verb:
+LIST: 1580
+POST: 417
+WATCH: 295
+PATCH: 801
+PUT: 1655
+GET: 2063
+
+
+optimization:
+
+Delta by verb:
+LIST: 973
+POST: 428
+WATCH: 307
+PATCH: 774
+PUT: 1477
+GET: 2008
+
+Operator metrics:
+
+main:
+Kubernetes API usage (delta):
+GET: 1763
+PATCH: 38
+PUT: 272
+POST: 102
+Total: 2175
+
+optimization:
+Kubernetes API usage (delta):
+GET: 1025
+PATCH: 2
+PUT: 51
+POST: 102
+Total: 1180
