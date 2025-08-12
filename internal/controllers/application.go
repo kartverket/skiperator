@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -50,7 +49,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/klog/v2"
 	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -61,7 +59,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
-	"time"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -274,7 +271,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.updateConditions(application)
 	r.SetSyncedState(ctx, application, "Application has been reconciled")
 
-	r.triggerReconcileOfAffectedApps(ctx, application)
 	return common.DoNotRequeue()
 }
 
@@ -593,94 +589,4 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 	}
 
 	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
-}
-
-/* This is kind of a nasty workaround since we have dynamic port allocation (we look up each app in the access policy and assign port dynamically)
-** In order to keep this up to date we have to trigger reconciliations of affected applications when an application
-** finishes reconciling, as the port may change or may be new.
-** To do this we have to list every app in the cluster and check the access policies, then add a update label
-** to make it reconcile again. This is very heavy-handed and there is a lot to save here optimization wise
-** if we just rely on app labels instead of dynamic port allocations. This is probably the biggest resource hog atm
- */
-func (r *ApplicationReconciler) triggerReconcileOfAffectedApps(ctx context.Context, obj client.Object) {
-	changedApp, ok := obj.(*skiperatorv1alpha1.Application)
-	if !ok {
-		return
-	}
-
-	apps := map[types.NamespacedName]skiperatorv1alpha1.Application{}
-
-	// Grab all applications to check if they have the current app in access policy
-	var allApps skiperatorv1alpha1.ApplicationList
-	if err := r.GetClient().List(ctx, &allApps); err != nil {
-		klog.Error(err, "failed to list applications for reverse dependency mapping")
-		return
-	}
-
-	// check outbound rules
-	for _, app := range allApps.Items {
-		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Outbound == nil {
-			continue
-		}
-		for _, rule := range app.Spec.AccessPolicy.Outbound.Rules {
-			if rule.Application == changedApp.Name {
-				namespacedName := types.NamespacedName{
-					Name:      app.Name,
-					Namespace: app.Namespace,
-				}
-				apps[namespacedName] = app
-			}
-		}
-	}
-
-	// check inbound rules
-	for _, app := range allApps.Items {
-		if app.Spec.AccessPolicy == nil || app.Spec.AccessPolicy.Inbound == nil {
-			continue
-		}
-		for _, rule := range app.Spec.AccessPolicy.Inbound.Rules {
-			if rule.Application == changedApp.Name {
-				namespacedName := types.NamespacedName{
-					Name:      app.Name,
-					Namespace: app.Namespace,
-				}
-				apps[namespacedName] = app
-			}
-		}
-	}
-
-	for _, app := range apps {
-		key := "skiperator.kartverket.no/triggered-by"
-		roundedTime := time.Now().UTC().Format("20060102T1504") // e.g., 20250717T1532
-		value := fmt.Sprintf("%s-%s", changedApp.Name, roundedTime)
-
-		if current := app.GetLabels()[key]; current == value {
-			continue // already triggered in this minute
-		}
-
-		// Patch only the label to trigger a reconcile
-		patch := map[string]interface{}{
-			"metadata": map[string]interface{}{
-				"labels": map[string]string{
-					key: value,
-				},
-			},
-		}
-		rawPatch, err := json.Marshal(patch)
-		if err != nil {
-			klog.Errorf("failed to marshal patch for %s: %v", app.Name, err)
-			continue
-		}
-
-		target := &skiperatorv1alpha1.Application{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      app.Name,
-				Namespace: app.Namespace,
-			},
-		}
-
-		if err := r.GetClient().Patch(ctx, target, client.RawPatch(types.MergePatchType, rawPatch)); err != nil {
-			klog.Errorf("failed to patch app %s: %v", app.Name, err)
-		}
-	}
 }
