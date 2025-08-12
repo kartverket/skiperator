@@ -1,6 +1,6 @@
 module github.com/kartverket/skiperator
 
-go 1.24.4
+go 1.24.6
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
@@ -13,22 +13,22 @@ require (
 	github.com/nais/digdirator v0.0.0-20250217235133-18c79036ecdf
 	github.com/nais/liberator v0.0.0-20250212071940-b052d0557cca
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.83.0
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.84.0
+	github.com/prometheus/client_golang v1.23.0
 	github.com/r3labs/diff/v3 v3.0.1
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b
+	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 	google.golang.org/protobuf v1.36.6
-	istio.io/api v1.26.2
-	istio.io/client-go v1.26.2
+	istio.io/api v1.26.3
+	istio.io/client-go v1.26.3
 	k8s.io/api v0.33.3
 	k8s.io/apiextensions-apiserver v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/controller-tools v0.18.0
-	sigs.k8s.io/kustomize/kyaml v0.20.0
+	sigs.k8s.io/kustomize/kyaml v0.20.1
 )
 
 require (
@@ -164,7 +164,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.63.0 // indirect
+	github.com/prometheus/common v0.65.0 // indirect
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
@@ -207,16 +207,16 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
-	golang.org/x/oauth2 v0.29.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/oauth2 v0.30.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	golang.org/x/tools v0.34.0 // indirect
+	golang.org/x/tools v0.36.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.230.0 // indirect
 	google.golang.org/genproto v0.0.0-20250425173222-7b384671a197 // indirect
@@ -234,7 +234,7 @@ require (
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	k8s.io/utils v0.0.0-20250502105355-0f33e8f1c979 // indirect
+	k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.32.0 // indirect
 	sigs.k8s.io/gateway-api v1.1.0 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
