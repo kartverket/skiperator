@@ -393,7 +393,11 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 
 // Name in the form of "servicemonitors.monitoring.coreos.com".
 func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) bool {
-	result, err := r.GetApiExtensionsClient().ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+	extensionClient := r.GetApiExtensionsClient()
+	if extensionClient == nil {
+		return false
+	}
+	result, err := extensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
 	if err != nil || result == nil {
 		return false
 	}
