@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
@@ -251,7 +252,6 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 }
 
 func (r *ReconcilerBase) GetNamespacesByLabel(ctx context.Context, rule *podtypes.InternalRule) (*corev1.NamespaceList, error) {
-	var err error
 	selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
 	selectorString, err := metav1.LabelSelectorAsSelector(&selector)
 	if err != nil {
