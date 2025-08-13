@@ -54,7 +54,7 @@ func main() {
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
-	concurrentReconciles := flag.Int("c", 5, "number of concurrent reconciles for application controller")
+	concurrentReconciles := flag.Int("c", 1, "number of concurrent reconciles for application controller")
 	flag.Parse()
 
 	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
