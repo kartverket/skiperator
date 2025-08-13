@@ -252,14 +252,14 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 }
 
 func (r *ReconcilerBase) GetNamespacesByLabel(ctx context.Context, rule *podtypes.InternalRule) (*corev1.NamespaceList, error) {
+	namespaces := &corev1.NamespaceList{}
 	selector := metav1.LabelSelector{MatchLabels: rule.NamespacesByLabel}
 	selectorString, err := metav1.LabelSelectorAsSelector(&selector)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create label selector: %w", err)
+		return namespaces, fmt.Errorf("failed to create label selector: %w", err)
 	}
-	namespaces := &corev1.NamespaceList{}
 	if err = r.GetClient().List(ctx, namespaces, &client.ListOptions{LabelSelector: selectorString}); err != nil {
-		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+		return namespaces, fmt.Errorf("failed to list namespaces: %w", err)
 	}
 	return namespaces, nil
 }
