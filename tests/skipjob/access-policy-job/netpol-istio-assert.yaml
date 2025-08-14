@@ -25,7 +25,7 @@ spec:
        to:
          - namespaceSelector:
              matchLabels:
-               kubernetes.io/metadata.name: ns-with-istio
+               kubernetes.io/metadata.name: ns-with-istio-job
            podSelector:
              matchLabels:
                app: istio-application

@@ -5,6 +5,7 @@ permissions:
 
 on:
   pull_request:
+    branches: [main]
     paths-ignore:
       - doc/**
       - samples/**
@@ -12,6 +13,7 @@ on:
       - CONTRIBUTING.md
       - .github/workflows/api-docs.yaml
   push:
+    branches: [main]
     paths-ignore:
       - doc/**
       - samples/**

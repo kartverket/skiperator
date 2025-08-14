@@ -5,7 +5,6 @@ import (
 	"golang.org/x/exp/maps"
 	v1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -58,36 +57,6 @@ func preparePatch(new client.Object, old client.Object) {
 		definition.Spec.Template = job.Spec.Template                         // immutable
 		definition.Spec.Completions = job.Spec.Completions                   // immutable
 	}
-}
-
-func diffBetween(old client.Object, new client.Object) bool {
-	switch new.(type) {
-	case *v1.Deployment:
-		deployment := old.(*v1.Deployment)
-		definition := new.(*v1.Deployment)
-		deploymentHash := util.GetHashForStructs([]interface{}{&deployment.Spec, &deployment.Labels})
-		deploymentDefinitionHash := util.GetHashForStructs([]interface{}{&definition.Spec, &definition.Labels})
-		if deploymentHash != deploymentDefinitionHash {
-			return true
-		}
-
-		// Same mechanism as "pod-template-hash"
-		if equality.Semantic.DeepEqual(deployment.DeepCopy().Spec, definition.DeepCopy().Spec) {
-			return false
-		}
-
-		return true
-
-	case *batchv1.Job:
-		job := old.(*batchv1.Job)
-		definition := new.(*batchv1.Job)
-		jobHash := util.GetHashForStructs([]interface{}{&job.Spec, &job.Labels})
-		jobDefinitionHash := util.GetHashForStructs([]interface{}{&definition.Spec, &definition.Labels})
-		if jobHash != jobDefinitionHash {
-			return true
-		}
-	}
-	return true
 }
 
 func hasGVK(resources []client.Object) bool {
