@@ -132,7 +132,7 @@ export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
 export CLUSTER_CIDR_EXCLUDE := true
-run-test: build
+run-test: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
@@ -147,3 +147,136 @@ run-test: build
 		fi; \
 	) && \
 	(echo "Stopping skiperator (PID $$PID)..." && kill $$PID && echo "running unit tests..." && $(MAKE) run-unit-tests)  || (echo "Test or skiperator failed. Stopping skiperator (PID $$PID)" && kill $$PID && exit 1)
+
+# Checks the delta of requests made to the kube api from the controller.
+.PHONY: benchmark-chainsaw-tests
+benchmark-chainsaw-tests: build install-skiperator
+	@echo "Starting skiperator in background..."
+	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
+	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
+	METRICS_AFTER=$$(mktemp -t metrics-after.XXXXXXX); \
+	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
+	PID=$$!; \
+	echo "Waiting for skiperator to start and sync..."; \
+	sleep 10s; \
+	echo "Fetching metrics before..."; \
+	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_BEFORE"; \
+	echo "Run application tests"; \
+	make test; \
+	echo "Fetching metrics after..."; \
+	curl -s http://127.0.0.1:8181/metrics | grep rest_client_requests_total{ > "$$METRICS_AFTER"; \
+    kill $$PID; \
+	cat $$METRICS_BEFORE; \
+	echo "---"; \
+	cat $$METRICS_AFTER; \
+	echo "Kubernetes API usage (delta):"; \
+	gawk ' \
+		FNR==NR && $$0 ~ /rest_client_requests_total/ { \
+			split($$0, a, " "); \
+			split(a[1], b, "method=\""); \
+			split(b[2], c, "\""); \
+			method = c[1]; \
+			val = a[2]; \
+			before[method] += val; \
+			next; \
+		} \
+		$$0 ~ /rest_client_requests_total/ { \
+			split($$0, a, " "); \
+			split(a[1], b, "method=\""); \
+			split(b[2], c, "\""); \
+			method = c[1]; \
+			val = a[2]; \
+			delta = val - before[method]; \
+			if (delta > 0) { \
+				method_delta[method] += delta; \
+				total += delta; \
+			} \
+			before[method] = val; \
+		} \
+		END { \
+			n = asorti(method_delta, sorted); \
+			for (i=1; i<=n; i++) { \
+				m = sorted[i]; \
+				printf("  %s: %d\n", m, method_delta[m]); \
+			} \
+			printf("  Total: %d\n", total); \
+		} \
+	' "$$METRICS_BEFORE" "$$METRICS_AFTER"; \
+	echo "Done. Logs saved to $$LOG_FILE"
+
+
+.PHONY: benchmark-long-run
+benchmark-long-run: build install-skiperator
+		@echo "Applying anonymous metrics RBAC..."; \
+    	kubectl apply -f tests/cluster-config/allow-anonymous-metrics.yaml; \
+    	echo "Starting port-forward to API server..."; \
+    	APISERVER_POD=$$(kubectl -n kube-system get pods -l component=kube-apiserver -o jsonpath='{.items[0].metadata.name}'); \
+    	kubectl -n kube-system port-forward pod/$$APISERVER_POD 8443:6443 >/dev/null 2>&1 & \
+    	PID=$$!; \
+    	sleep 3; \
+		echo "Starting skiperator in background..."; \
+		@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
+		./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
+		SPID=$$!; \
+    	echo "Waiting for skiperator to start and sync..."; \
+		sleep 20; \
+    	echo "Summing apiserver_request_total metrics by verb (before)..."; \
+    	METRICS_BEFORE=$$(curl -sk https://localhost:8443/metrics | grep '^apiserver_request_total{' | \
+    	awk ' \
+    		{ \
+    			if (match($$0, /verb="[^"]+"/)) { \
+    				verb=substr($$0, RSTART+6, RLENGTH-7); \
+    				val=$$NF; \
+    				sum[verb]+=val; \
+    			} \
+    		} \
+    		END { \
+    			for (v in sum) printf "%s %d\n", v, sum[v]; \
+    		}'); \
+    	echo "Applying resources..."; \
+		kubectl apply -f tests/application/access-policy/external-ip-policy.yaml; \
+		kubectl apply -f tests/application/ingress/application.yaml; \
+		kubectl apply -f tests/application/minimal/application.yaml; \
+		kubectl apply -f tests/application/custom-certificate/application.yaml; \
+		kubectl apply -f tests/application/copy/application.yaml; \
+		kubectl apply -f tests/application/gcp/application.yaml; \
+		kubectl apply -f tests/application/replicas/application.yaml; \
+		kubectl apply -f tests/application/service/application.yaml; \
+		kubectl apply -f tests/application/telemetry/application.yaml; \
+		sleep 600s; \
+    	echo "Summing apiserver_request_total metrics by verb (after)..."; \
+    	METRICS_AFTER=$$(curl -sk https://localhost:8443/metrics | grep '^apiserver_request_total{' | \
+    	awk ' \
+    		{ \
+    			if (match($$0, /verb="[^"]+"/)) { \
+    				verb=substr($$0, RSTART+6, RLENGTH-7); \
+    				val=$$NF; \
+    				sum[verb]+=val; \
+    			} \
+    		} \
+    		END { \
+    			for (v in sum) printf "%s %d\n", v, sum[v]; \
+    		}'); \
+    	echo "Delta by verb:"; \
+		echo "$$METRICS_AFTER" | while read va aval; do \
+			bval=$$(echo "$$METRICS_BEFORE" | awk '$$1=="'$$va'" {print $$2}'); \
+			[ -z "$$bval" ] && bval=0; \
+			delta=$$((aval - bval)); \
+			if [ "$$delta" != "0" ]; then \
+				printf "%s: %d\n" "$$va" "$$delta"; \
+			fi; \
+		done; \
+    	echo "Cleaning up port-forward, skiperator, resources..."; \
+		kubectl delete -f tests/application/access-policy/external-ip-policy.yaml; \
+		kubectl delete -f tests/application/ingress/application.yaml; \
+		kubectl delete -f tests/application/minimal/application.yaml; \
+		kubectl delete -f tests/application/custom-certificate/application.yaml; \
+		kubectl delete -f tests/application/copy/application.yaml; \
+		kubectl delete -f tests/application/gcp/application.yaml; \
+		kubectl delete -f tests/application/replicas/application.yaml; \
+		kubectl delete -f tests/application/service/application.yaml; \
+		kubectl delete -f tests/application/telemetry/application.yaml; \
+    	kill $$PID; \
+        kill $$SPID
+
+

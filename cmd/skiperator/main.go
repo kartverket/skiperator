@@ -54,6 +54,7 @@ func main() {
 	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
+	concurrentReconciles := flag.Int("c", 1, "number of concurrent reconciles for application controller")
 	flag.Parse()
 
 	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
@@ -73,7 +74,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s)", Version, Commit))
+	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, *concurrentReconciles))
 
 	kubeconfig := ctrl.GetConfigOrDie()
 
@@ -115,8 +116,8 @@ func main() {
 	}()
 
 	err = (&controllers.ApplicationReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller"), resourceschemas.GetApplicationSchemas(mgr.GetScheme())),
-	}).SetupWithManager(mgr)
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr, concurrentReconciles)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
@@ -142,7 +143,7 @@ func main() {
 	}
 
 	err = (&controllers.SKIPJobReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller"), resourceschemas.GetJobSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
@@ -150,7 +151,7 @@ func main() {
 	}
 
 	err = (&controllers.RoutingReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller"), resourceschemas.GetRoutingSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("routing-controller")),
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Routing")
@@ -171,7 +172,7 @@ func main() {
 	}
 
 	err = (&controllers.NamespaceReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller"), resourceschemas.GetNamespaceSchemas(mgr.GetScheme())),
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("namespace-controller")),
 		PullSecret:     ps,
 		DefaultDeny:    dd,
 	}).SetupWithManager(mgr)

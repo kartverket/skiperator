@@ -14,4 +14,4 @@ spec:
       outbound:
         rules:
           - application: istio-application
-            namespace: ns-with-istio
+            namespace: ns-with-istio-job
