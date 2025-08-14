@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/kartverket/skiperator/pkg/resourceprocessor"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -123,7 +125,9 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	if errs := r.GetProcessor().Process(reconciliation); len(errs) > 0 {
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
+
+	if errs := processor.Process(reconciliation); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))
@@ -155,7 +159,9 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	route.SetNamespace(name.Namespace)
 
 	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
-	return r.GetProcessor().Process(reconciliation)
+
+	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
+	return processor.Process(reconciliation)
 }
 
 // TODO Do this with application too for dynamic port allocation?

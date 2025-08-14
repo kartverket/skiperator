@@ -4,7 +4,7 @@ metadata:
   name: ingress
 spec:
   skip: false
-  concurrent: false
+  concurrent: true
   skipDelete: false
   namespace: ingress
   steps:
@@ -13,28 +13,25 @@ spec:
             file: application.yaml
         - assert:
             file: application-assert.yaml
-    - try:
         - apply:
             file: patch-application-change-ingress.yaml
         - assert:
             file: patch-application-change-ingress-assert.yaml
         - error:
             file: patch-application-change-ingress-errors.yaml
-    - try:
         - apply:
             file: patch-application-no-ingresses.yaml
         - error:
             file: patch-application-no-ingresses-errors.yaml
+        - apply:
+            file: patch-application-disable-redirect.yaml
+        - assert:
+            file: patch-application-disable-redirect-assert.yaml
     - try:
         - create:
             file: application-ingress-multiple-ports.yaml
         - assert:
             file: application-ingress-multiple-ports-assert.yaml
-    - try:
-        - apply:
-            file: patch-application-disable-redirect.yaml
-        - assert:
-            file: patch-application-disable-redirect-assert.yaml
     - try:
         - apply:
             file: ingress-validation.yaml
