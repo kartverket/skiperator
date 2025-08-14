@@ -103,6 +103,8 @@ kind: Application
 metadata:
   name: access-policy
   namespace: access-policy-ns
+  labels:
+    test: label
 spec:
   image: image
   port: 8080

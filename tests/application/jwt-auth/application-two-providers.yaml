@@ -38,6 +38,9 @@ kind: Secret
 type: Opaque
 metadata:
   name: "idporten-application-two-d9b5b566"
+  labels:
+    type: digdirator.nais.io
+    app: application-two
 data:
   IDPORTEN_CLIENT_ID: dGVzdC1jbGllbnQtaWQtaWRwb3J0ZW4= #test-client-id-idporten
   IDPORTEN_ISSUER: aHR0cHM6Ly9pZHBvcnRlbi5ubw== #https://idporten.no
