@@ -139,7 +139,7 @@ jobs:
           token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/
