@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +20,11 @@ const (
 	Hostname SkiperatorTopologyKey = "kubernetes.io/hostname"
 	// OnPremFailureDomain is populated to the underlying ESXi hostname by the GKE on VMware tooling.
 	OnPremFailureDomain SkiperatorTopologyKey = "onprem.gke.io/failure-domain-name"
+	// CloudZone spreads pods across availability zones
+	CloudZone SkiperatorTopologyKey = "topology.kubernetes.io/zone"
+)
+
+const (
 	// DefaultCloudSQLProxyVersion
 	DefaultCloudSQLProxyVersion = "2.15.1"
 )
@@ -64,9 +70,15 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
+			// Choose topology key based on cluster type from global config
+			failureDomainKey := OnPremFailureDomain
+			if config.IsCloudCluster {
+				failureDomainKey = CloudZone
+			}
+
 			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
 				spreadConstraintForAppAndKey(serviceName, Hostname),
-				spreadConstraintForAppAndKey(serviceName, OnPremFailureDomain),
+				spreadConstraintForAppAndKey(serviceName, failureDomainKey),
 			}
 		}
 	}

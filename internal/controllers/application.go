@@ -3,6 +3,9 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
@@ -49,7 +52,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"regexp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,7 +60,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -338,7 +339,7 @@ func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []clie
 
 	//TODO should try to combine this with the above
 	resourceLabelsWithNoMatch := resourceutils.FindResourceLabelErrors(app, resources)
-	for k, _ := range resourceLabelsWithNoMatch {
+	for k := range resourceLabelsWithNoMatch {
 		r.EmitWarningEvent(app, "MistypedLabel", fmt.Sprintf("Resource label %s not a generated resource", k))
 	}
 	return nil

@@ -3,13 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 
 	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/internal/controllers/common"
@@ -123,6 +124,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	configCheckClient, err := client.New(kubeconfig, client.Options{})
+	if err != nil {
+		setupLog.Error(err, "could not create config check client")
+		os.Exit(1)
+	}
+
+	// load global config. exit on error
+	err = config.LoadConfig(configCheckClient)
+	if err != nil {
+		setupLog.Error(err, "could not load global config")
+		os.Exit(1)
+	}
+
 	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
 	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
 	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
@@ -130,8 +144,7 @@ func main() {
 
 	var skipClusterList *config.SKIPClusterList
 	if cfg.ClusterCIDRExclusionEnabled {
-		configCheckClient, err := client.New(kubeconfig, client.Options{})
-		skipClusterList, err = config.LoadConfigFromConfigMap(configCheckClient)
+		skipClusterList, err = config.LoadSKIPClusterConfigFromConfigMap(configCheckClient)
 		if err != nil {
 			setupLog.Error(err, "could not load SKIP cluster config")
 			os.Exit(1)
@@ -176,6 +189,10 @@ func main() {
 		PullSecret:     ps,
 		DefaultDeny:    dd,
 	}).SetupWithManager(mgr)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
+		os.Exit(1)
+	}
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")

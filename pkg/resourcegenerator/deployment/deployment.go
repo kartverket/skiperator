@@ -3,9 +3,9 @@ package deployment
 import (
 	goerrors "errors"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/flags"
 	"strings"
 
+	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"

@@ -3,10 +3,11 @@ package config
 import (
 	"context"
 	"errors"
+	"net"
+
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"net"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -30,7 +31,7 @@ func (c *SKIPClusterList) CombinedCIDRS() []string {
 	return combinedCIDRs
 }
 
-func LoadConfigFromConfigMap(client client.Client) (*SKIPClusterList, error) {
+func LoadSKIPClusterConfigFromConfigMap(client client.Client) (*SKIPClusterList, error) {
 	clusterConfigMapNamespaced := types.NamespacedName{Namespace: "skiperator-system", Name: "skip-cluster-node-cidr"}
 	clusterConfigMap, err := util.GetConfigMap(client, context.Background(), clusterConfigMapNamespaced)
 	if err != nil {

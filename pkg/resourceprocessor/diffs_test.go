@@ -2,6 +2,8 @@ package resourceprocessor
 
 import (
 	"context"
+	"testing"
+
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -10,7 +12,6 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -67,7 +68,9 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 
 	// Create the live resource in the fake client
 	err := mockClient.Create(ctx, liveDeploymentDontDelete)
+	assert.Nil(t, err)
 	err = mockClient.Create(ctx, liveDeploymentIgnorePatchOrCreate)
+	assert.Nil(t, err)
 	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil, nil)

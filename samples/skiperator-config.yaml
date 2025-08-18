@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skiperator-cluster-config
+  namespace: skiperator-system
+data:
+  isCloudCluster: "true"
