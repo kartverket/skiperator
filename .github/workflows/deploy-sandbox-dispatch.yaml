@@ -25,7 +25,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Golang environment
         uses: actions/setup-go@v5
@@ -62,7 +62,7 @@ jobs:
           identity: skiperator
 
       - name: Checkout apps repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: kartverket/skip-apps
           token: ${{ steps.octo-sts.outputs.token }}
