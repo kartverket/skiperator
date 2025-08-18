@@ -4,4 +4,10 @@ metadata:
   name: skiperator-config
   namespace: skiperator-system
 data:
-  isCloudCluster: "false"
+  config.json: |
+    {
+      "topologyKeys": [
+        "kubernetes.io/hostname",
+        "onprem.gke.io/failure-domain-name"
+      ] 
+    }

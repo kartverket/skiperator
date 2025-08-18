@@ -1,7 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: skiperator-cluster-config
+  name: skiperator-config
   namespace: skiperator-system
 data:
-  isCloudCluster: "true"
+  config.json: |
+    {
+      "topologyKeys": [
+        "kubernetes.io/hostname",
+        "onprem.gke.io/failure-domain-name"
+      ]
+    }

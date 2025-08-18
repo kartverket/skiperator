@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/envconfig"
@@ -124,17 +126,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	configCheckClient, err := client.New(kubeconfig, client.Options{})
+	configCheckClient, err := client.New(kubeconfig, client.Options{Scheme: scheme})
 	if err != nil {
 		setupLog.Error(err, "could not create config check client")
 		os.Exit(1)
 	}
 
+	// If loading configuration takes over 15 seconds, something is seriously wrong.
+	// We should let skiperator crash and let a new process attempt to load the configuration again.
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	// load global config. exit on error
-	err = config.LoadConfig(configCheckClient)
+	err = config.LoadConfig(ctx, configCheckClient)
 	if err != nil {
 		setupLog.Error(err, "could not load global config")
 		os.Exit(1)
+	} else {
+		setupLog.Info("Successfully loaded global config", "config", config.GetActiveConfig())
 	}
 
 	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
