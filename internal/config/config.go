@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/kartverket/skiperator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -23,7 +24,7 @@ const (
 //
 // TODO: Reduce other ways of configuring Skiperator, such as environment variables or flags and use this ConfigMap instead.
 type SkiperatorConfig struct {
-	TopologyKeys []string `json:"topologyKeys"`
+	TopologyKeys []string `json:"topologyKeys,omitempty"`
 }
 
 var (
@@ -31,6 +32,10 @@ var (
 	activeConfig SkiperatorConfig
 	mu           sync.Mutex
 )
+
+func GetActiveConfig() SkiperatorConfig {
+	return activeConfig
+}
 
 // LoadConfig loads the configuration once at startup
 func LoadConfig(ctx context.Context, c client.Client) error {
@@ -42,6 +47,10 @@ func LoadConfig(ctx context.Context, c client.Client) error {
 		return fmt.Errorf("failed to load config ConfigMap: %w", err)
 	}
 
+	return parseConfig(&cm)
+}
+
+func parseConfig(cm *corev1.ConfigMap) error {
 	raw, ok := cm.Data[cmKey]
 	if !ok {
 		return fmt.Errorf("config ConfigMap missing key %q", cmKey)
@@ -53,21 +62,16 @@ func LoadConfig(ctx context.Context, c client.Client) error {
 	dec := json.NewDecoder(strings.NewReader(raw))
 	dec.DisallowUnknownFields()
 
-	var cfg SkiperatorConfig
-	if err := dec.Decode(&cfg); err != nil {
-		return fmt.Errorf("failed to unmarshal ConfigMap data: %w", err)
+	// Default values
+	var cfg = SkiperatorConfig{
+		TopologyKeys: []string{"kubernetes.io/hostname"},
 	}
 
-	// Set a default value for TopologyKeys if not set
-	if len(cfg.TopologyKeys) == 0 {
-		cfg.TopologyKeys = []string{"kubernetes.io/hostname"}
+	if err := dec.Decode(&cfg); err != nil {
+		return fmt.Errorf("failed to unmarshal ConfigMap data: %w", err)
 	}
 
 	activeConfig = cfg
 
 	return nil
-}
-
-func GetActiveConfig() SkiperatorConfig {
-	return activeConfig
 }
