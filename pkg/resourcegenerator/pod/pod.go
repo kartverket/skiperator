@@ -5,21 +5,16 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
+	"github.com/kartverket/skiperator/pkg/util/array"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SkiperatorTopologyKey string
-
 const (
-	// Hostname is the value populated by the Kubelet.
-	Hostname SkiperatorTopologyKey = "kubernetes.io/hostname"
-	// OnPremFailureDomain is populated to the underlying ESXi hostname by the GKE on VMware tooling.
-	OnPremFailureDomain SkiperatorTopologyKey = "onprem.gke.io/failure-domain-name"
-	// DefaultCloudSQLProxyVersion
 	DefaultCloudSQLProxyVersion = "2.15.1"
 )
 
@@ -64,10 +59,14 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
 		// Allow override per application
 		if !podSettings.DisablePodSpreadTopologyConstraints {
-			p.TopologySpreadConstraints = []corev1.TopologySpreadConstraint{
-				spreadConstraintForAppAndKey(serviceName, Hostname),
-				spreadConstraintForAppAndKey(serviceName, OnPremFailureDomain),
+			keys := array.TrimmedUniqueStrings(config.GetActiveConfig().TopologyKeys)
+			constraints := make([]corev1.TopologySpreadConstraint, 0, len(keys))
+
+			for _, topologyKey := range keys {
+				constraints = append(constraints, spreadConstraintForAppAndKey(serviceName, topologyKey))
 			}
+
+			p.TopologySpreadConstraints = constraints
 		}
 	}
 
@@ -288,10 +287,10 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	return containerPorts
 }
 
-func spreadConstraintForAppAndKey(appName string, key SkiperatorTopologyKey) corev1.TopologySpreadConstraint {
+func spreadConstraintForAppAndKey(appName string, key string) corev1.TopologySpreadConstraint {
 	return corev1.TopologySpreadConstraint{
 		MaxSkew:           1,
-		TopologyKey:       string(key),
+		TopologyKey:       key,
 		WhenUnsatisfiable: corev1.ScheduleAnyway,
 		LabelSelector: &v1.LabelSelector{
 			MatchExpressions: []v1.LabelSelectorRequirement{
