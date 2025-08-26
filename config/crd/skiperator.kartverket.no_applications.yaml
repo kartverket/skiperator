@@ -778,6 +778,7 @@ spec:
                         description: |-
                           RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
                           You may also use 5xx and retriable-4xx (only 409).
+                          mixed types are allowed such as [503, "retriable-4xx"]
                         items:
                           anyOf:
                           - type: integer

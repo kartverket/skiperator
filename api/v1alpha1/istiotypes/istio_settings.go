@@ -53,6 +53,7 @@ type Retries struct {
 
 	// RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
 	// You may also use 5xx and retriable-4xx (only 409).
+	// mixed types are allowed such as [503, "retriable-4xx"]
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:items:Enum="500";500;"501";501;"502";502;"503";503;"504";504;"505";505;"506";506;"507";507;"508";508;"510";510;"511";511;"409";409;"retriable-4xx";"5xx"
 	RetryOnHttpResponseCodes *[]intstr.IntOrString `json:"retryOnHttpResponseCodes,omitempty"`
