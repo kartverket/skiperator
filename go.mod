@@ -8,7 +8,6 @@ require (
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/k8s-digester v0.1.16
-	github.com/kyverno/chainsaw v0.2.13
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20250217235133-18c79036ecdf
 	github.com/nais/liberator v0.0.0-20250212071940-b052d0557cca
@@ -142,6 +141,7 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/kudobuilder/kuttl v0.22.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
+	github.com/kyverno/chainsaw v0.2.13 // indirect
 	github.com/kyverno/kyverno-json v0.0.4-0.20241008103124-b294ee72a2bf // indirect
 	github.com/kyverno/pkg/ext v0.0.0-20250303002756-48769d003e55 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
