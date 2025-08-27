@@ -34,7 +34,7 @@ type Telemetry struct {
 }
 
 // Retries is configurable automatic retries for requests towards the application.
-// By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled,5xx" will be retried.
+// By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.
 //
 // +kubebuilder:object:generate=true
 type Retries struct {
