@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-//go:generate controller-gen object
+//go:generate go tool controller-gen object
 
 var (
 	GroupVersion  = schema.GroupVersion{Group: "skiperator.kartverket.no", Version: "v1alpha1"}

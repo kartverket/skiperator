@@ -2,8 +2,6 @@ SHELL = bash
 .DEFAULT_GOAL = build
 
 $(shell mkdir -p bin)
-export GOBIN = $(realpath bin)
-export PATH := $(GOBIN):$(PATH)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
 
@@ -15,8 +13,6 @@ extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' '
 TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
 KIND_VERSION                       := v0.26.0
-CHAINSAW_VERSION                   := $(call extract-version,github.com/kyverno/chainsaw)
-CONTROLLER_GEN_VERSION             := $(call extract-version,sigs.k8s.io/controller-tools)
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
@@ -29,7 +25,6 @@ KIND_CLUSTER_NAME          ?= skiperator
 
 .PHONY: generate
 generate:
-	go install sigs.k8s.io/controller-tools/cmd/controller-gen@v${CONTROLLER_GEN_VERSION}
 	go generate ./...
 
 .PHONY: build
@@ -97,14 +92,10 @@ install-skiperator: generate
 	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
 
-.PHONY: install-test-tools
-install-test-tools:
-	go install github.com/kyverno/chainsaw@v${CHAINSAW_VERSION}
-
 #### TESTS ####
 .PHONY: test-single
-test-single: install-test-tools install-skiperator
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir) && \
+test-single: install-skiperator
+	@go tool chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir $(dir) && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: test
@@ -113,8 +104,8 @@ export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
 export IMAGE_PULL_0_TOKEN :=
 export IMAGE_PULL_1_TOKEN :=
 export CLUSTER_CIDR_EXCLUDE := true
-test: install-test-tools install-skiperator
-	@./bin/chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
+test: install-skiperator
+	@go tool chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: run-unit-tests
