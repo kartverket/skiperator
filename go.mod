@@ -247,3 +247,6 @@ tool (
 	github.com/kyverno/chainsaw
 	sigs.k8s.io/controller-tools/cmd/controller-gen
 )
+
+// No newer version available as of 2025-09-16, breaks chainsaw
+replace sigs.k8s.io/kubectl-validate => sigs.k8s.io/kubectl-validate v0.0.5-0.20250915070809-d2f2d68fba09
