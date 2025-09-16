@@ -83,7 +83,7 @@ func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClust
 }
 
 func checkCIDRsAreNotEmpty(cluster *SKIPCluster) error {
-	if (len(cluster.WorkerNodeCIDRs) == 0) || (len(cluster.ControlPlaneCIDRs) == 0) {
+	if (len(cluster.WorkerNodeCIDRs) == 0) && (len(cluster.ControlPlaneCIDRs) == 0) {
 		return errors.New("SKIPCluster has no CIDRs for worker nodes or control plane nodes")
 	}
 	for _, element := range cluster.WorkerNodeCIDRs {
