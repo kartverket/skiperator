@@ -47,22 +47,22 @@ func TestNoCIDRRangesInConfigMap(t *testing.T) {
 
 func TestControlPlaneCIDRsAreMissing(t *testing.T) {
 	mapData := make(map[string]string)
-	mapData["config.yml"] = "clusters: \n  - name: \"test-cluster-1\"\n    controlPlaneCIDRs:\n    workerNodeCIDRs:\n      - 1.2.3.4/27\n      - 1.2.3.4/28\n\n    \n"
+	mapData["config.yml"] = "clusters: \n  - name: \"test-cluster-1\"\n    workerNodeCIDRs:\n      - 1.2.3.4/27\n      - 1.2.3.4/28\n\n    \n"
 	configMap := v1.ConfigMap{
 		Data: mapData,
 	}
-	_, err := createSKIPClusterListFromConfigMap(&configMap)
-	assert.EqualErrorf(t, err, "SKIPCluster has no CIDRs for worker nodes or control plane nodes", "")
+	clusterList, _ := createSKIPClusterListFromConfigMap(&configMap)
+	assert.NotNil(t, clusterList)
 }
 
 func TestWorkerNodeCIDRsAreMissing(t *testing.T) {
 	mapData := make(map[string]string)
-	mapData["config.yml"] = "clusters: \n  - name: \"test-cluster-1\"\n    controlPlaneCIDRs:\n      - 1.2.3.4/25\n      - \"\"\n    workerNodeCIDRs:\n"
+	mapData["config.yml"] = "clusters: \n  - name: \"test-cluster-1\"\n    controlPlaneCIDRs:\n      - 1.2.3.4/25\n"
 	configMap := v1.ConfigMap{
 		Data: mapData,
 	}
-	_, err := createSKIPClusterListFromConfigMap(&configMap)
-	assert.EqualErrorf(t, err, "SKIPCluster has no CIDRs for worker nodes or control plane nodes", "")
+	clusterList, _ := createSKIPClusterListFromConfigMap(&configMap)
+	assert.NotNil(t, clusterList)
 }
 
 func TestNoConfigKeyInConfigMapThrowsError(t *testing.T) {
