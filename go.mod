@@ -19,11 +19,11 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/exp v0.0.0-20250811191247-51f88131bc50
 	google.golang.org/protobuf v1.36.9
-	istio.io/api v1.27.0
+	istio.io/api v1.27.1
 	istio.io/client-go v1.27.0
 	k8s.io/api v0.34.0
 	k8s.io/apiextensions-apiserver v0.34.0
-	k8s.io/apimachinery v0.34.0
+	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.0
 	sigs.k8s.io/controller-runtime v0.22.1
 	sigs.k8s.io/kustomize/kyaml v0.20.1
@@ -177,7 +177,7 @@ require (
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/vbatts/tar-split v0.11.6 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
