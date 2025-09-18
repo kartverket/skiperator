@@ -3,6 +3,7 @@ name: Check go generate
 on:
     workflow_dispatch:
     pull_request:
+      branches: [main]
       paths-ignore:
         - doc/**
         - samples/**
@@ -20,7 +21,10 @@ on:
 
 jobs:
     check-go-generate:
+        name: Check go generate
         runs-on: ubuntu-latest
+        permissions:
+          contents: read
         steps:
             - name: Checkout code
               uses: actions/checkout@v5
