@@ -1,0 +1,47 @@
+name: Check go generate
+
+on:
+    workflow_dispatch:
+    pull_request:
+      branches: [main]
+      paths-ignore:
+        - doc/**
+        - samples/**
+        - README.md
+        - CONTRIBUTING.md
+        - .github/workflows/api-docs.yaml
+    push:
+      branches: [main]
+      paths-ignore:
+        - doc/**
+        - samples/**
+        - README.md
+        - CONTRIBUTING.md
+        - .github/workflows/api-docs.yaml
+
+jobs:
+    check-go-generate:
+        name: Check go generate
+        runs-on: ubuntu-latest
+        permissions:
+          contents: read
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v5
+
+            - name: Set up Go
+              uses: actions/setup-go@v6
+              with:
+                go-version-file: go.mod
+                cache: true
+
+            - name: Run go generate
+              run: go generate ./...
+
+            - name: Check for changes
+              run: |
+                if ! git diff --quiet; then
+                    echo "Error: 'go generate ./...' produced changes. Please commit generated files."
+                    git --no-pager diff
+                    exit 1
+                fi
