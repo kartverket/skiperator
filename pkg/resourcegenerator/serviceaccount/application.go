@@ -26,8 +26,11 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
 	if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
-		setCloudSqlAnnotations(&serviceAccount, application)
+		setGCPSAAnnotation(&serviceAccount, application.Spec.GCP.CloudSQLProxy.ServiceAccount)
+	} else if util.GCPServiceAccountInUse(application.Spec.GCP) {
+		setGCPSAAnnotation(&serviceAccount, application.Spec.GCP.Auth.ServiceAccount)
 	}
+
 	r.AddResource(&serviceAccount)
 	ctxLog.Debug("Finished generating service account for application", "application", application.Name)
 	return nil
