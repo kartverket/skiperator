@@ -26,8 +26,11 @@ func generateForSKIPJob(r reconciliation.Reconciliation) error {
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
 
 	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
-		setCloudSqlAnnotations(&serviceAccount, skipJob)
+		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.Container.GCP.CloudSQLProxy.ServiceAccount)
+	} else if util.GCPServiceAccountInUse(skipJob.Spec.Container.GCP) {
+		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.Container.GCP.Auth.ServiceAccount)
 	}
+
 	r.AddResource(&serviceAccount)
 	ctxLog.Debug("Finished generating service account for skipjob", "skipjob", skipJob.Name)
 	return nil
