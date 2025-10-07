@@ -19,12 +19,27 @@ const (
 	cmKey       = "config.json"
 )
 
+type RegistryCredentialPair struct {
+	Registry string `json:"registry"`
+	Token    string `json:"token"`
+}
+
 // SkiperatorConfig holds various configuration options for Skiperator that may differ across
 // environments or deployments (public cloud, local development or on-premises).
-//
-// TODO: Reduce other ways of configuring Skiperator, such as environment variables or flags and use this ConfigMap instead.
 type SkiperatorConfig struct {
-	TopologyKeys []string `json:"topologyKeys,omitempty"`
+	TopologyKeys                []string                 `json:"topologyKeys,omitempty"`
+	LeaderElection              bool                     `json:"leaderElection,omitempty"`
+	LeaderElectionNamespace     string                   `json:"leaderElectionNamespace,omitempty"`
+	ConcurrentReconciles        int                      `json:"concurrentReconciles,omitempty"`
+	IsDeployment                bool                     `json:"isDeployment,omitempty"`
+	LogLevel                    string                   `json:"logLevel,omitempty"`
+	EnableProfiling             bool                     `json:"enableProfiling,omitempty"`
+	RegistryCredentials         []RegistryCredentialPair `json:"registryCredentials,omitempty"`
+	ClusterCIDRExclusionEnabled bool                     `json:"clusterCIDRExclusionEnabled,omitempty"`
+	ClusterCIDRMap              SKIPClusterList          `json:"clusterCIDRMap,omitempty"`
+	EnableLocallyBuiltImages    bool                     `json:"enableLocallyBuiltImages,omitempty"`
+	GCPIdentityProvider         string                   `json:"gcpIdentityProvider,omitempty"`
+	GCPWorkloadIdentityPool     string                   `json:"gcpWorkloadIdentityPool,omitempty"`
 }
 
 var (
@@ -64,7 +79,19 @@ func parseConfig(cm *corev1.ConfigMap) error {
 
 	// Default values
 	var cfg = SkiperatorConfig{
-		TopologyKeys: []string{"kubernetes.io/hostname"},
+		TopologyKeys:                []string{"kubernetes.io/hostname"},
+		LeaderElection:              false,
+		LeaderElectionNamespace:     "skiperator-system",
+		ConcurrentReconciles:        1,
+		IsDeployment:                false,
+		LogLevel:                    "info",
+		RegistryCredentials:         []RegistryCredentialPair{},
+		ClusterCIDRExclusionEnabled: false,
+		ClusterCIDRMap:              SKIPClusterList{},
+		EnableProfiling:             false,
+		EnableLocallyBuiltImages:    false,
+		GCPIdentityProvider:         "",
+		GCPWorkloadIdentityPool:     "",
 	}
 
 	if err := dec.Decode(&cfg); err != nil {

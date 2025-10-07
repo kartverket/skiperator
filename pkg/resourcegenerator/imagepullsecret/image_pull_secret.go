@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/kartverket/skiperator/pkg/envconfig"
+
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,7 @@ type ImagePullSecret struct {
 	payload []byte
 }
 
-func NewImagePullSecret(registries ...envconfig.RegistryCredentialPair) (*ImagePullSecret, error) {
+func NewImagePullSecret(registries ...config.RegistryCredentialPair) (*ImagePullSecret, error) {
 	cfg := dockerConfigJson{}
 	cfg.Auths = make(map[string]dockerConfigAuth, len(registries))
 

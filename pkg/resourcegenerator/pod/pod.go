@@ -6,7 +6,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/internal/config"
-	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
 	corev1 "k8s.io/api/core/v1"
@@ -55,27 +54,24 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
 	}
 
-	// Global feature flag
-	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
-		// Allow override per application
-		if !podSettings.DisablePodSpreadTopologyConstraints {
-			keys := array.TrimmedUniqueStrings(config.GetActiveConfig().TopologyKeys)
-			constraints := make([]corev1.TopologySpreadConstraint, 0, len(keys))
+	// Allow override per application
+	if !podSettings.DisablePodSpreadTopologyConstraints {
+		keys := array.TrimmedUniqueStrings(config.GetActiveConfig().TopologyKeys)
+		constraints := make([]corev1.TopologySpreadConstraint, 0, len(keys))
 
-			for _, topologyKey := range keys {
-				constraints = append(constraints, spreadConstraintForAppAndKey(serviceName, topologyKey))
-			}
-
-			p.TopologySpreadConstraints = constraints
+		for _, topologyKey := range keys {
+			constraints = append(constraints, spreadConstraintForAppAndKey(serviceName, topologyKey))
 		}
+
+		p.TopologySpreadConstraints = constraints
 	}
 
 	return p
 }
 
-func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
+func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts, enableLocallyBuiltImages bool) corev1.Container {
 	imagePullPolicy := func() corev1.PullPolicy {
-		if flags.FeatureFlags.EnableLocallyBuiltImages {
+		if enableLocallyBuiltImages {
 			return corev1.PullNever
 		}
 		return corev1.PullAlways

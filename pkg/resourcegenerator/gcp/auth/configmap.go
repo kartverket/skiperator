@@ -30,7 +30,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
-		return getConfigMap(r, r.GetIdentityConfigMap())
+		return getConfigMap(r)
 	} else {
 		err := fmt.Errorf("unsupported type %s in gcp configmap", r.GetType())
 		ctxLog.Error(err, "Failed to generate gcp configmap")
@@ -38,7 +38,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 }
 
-func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
+func getConfigMap(r reconciliation.Reconciliation) error {
 	commonSpec := r.GetSKIPObject().GetCommonSpec()
 	if commonSpec.GCP == nil || commonSpec.GCP.Auth == nil || commonSpec.GCP.Auth.ServiceAccount == "" {
 		return nil
@@ -53,7 +53,7 @@ func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.
 
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
-		Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
+		Audience:                       "identitynamespace:" + r.GetSkiperatorConfig().GCPWorkloadIdentityPool + ":" + r.GetSkiperatorConfig().GCPIdentityProvider,
 		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",
