@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	corev1 "k8s.io/api/core/v1"
@@ -50,10 +51,15 @@ func getConfigMap(r reconciliation.Reconciliation) error {
 	object := r.GetSKIPObject()
 	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
 	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: gcpAuthConfigMapName}}
-
+	config := r.GetSkiperatorConfig()
+	if config == nil {
+		err := fmt.Errorf("Skiperator config is nil")
+		ctxLog.Error(err, "Cannot generate GCP auth config")
+		return err
+	}
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
-		Audience:                       "identitynamespace:" + r.GetSkiperatorConfig().GCPWorkloadIdentityPool + ":" + r.GetSkiperatorConfig().GCPIdentityProvider,
+		Audience:                       "identitynamespace:" + config.GCPWorkloadIdentityPool + ":" + config.GCPIdentityProvider,
 		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",

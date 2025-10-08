@@ -11,7 +11,7 @@ data:
         "onprem.gke.io/failure-domain-name"
       ],
       "leaderElection": true,
-      "leaderElectionNameSpace": "skiperator-system",
+      "leaderElectionNamespace": "skiperator-system",
       "concurrentReconciles": 1,
       "isDeployment": true,
       "logLevel": "error",
