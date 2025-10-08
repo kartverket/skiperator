@@ -106,15 +106,6 @@ func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, m
 	)
 }
 
-func (r *ReconcilerBase) GetIdentityConfigMap(ctx context.Context) (*corev1.ConfigMap, error) {
-	namespacedName := types.NamespacedName{Name: "gcp-identity-config", Namespace: "skiperator-system"}
-	identityConfigMap := &corev1.ConfigMap{}
-	if err := r.client.Get(ctx, namespacedName, identityConfigMap); err != nil {
-		return nil, err
-	}
-	return identityConfigMap, nil
-}
-
 func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

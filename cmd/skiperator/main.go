@@ -2,21 +2,18 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/kartverket/skiperator/internal/config"
-	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/internal/controllers/common"
-	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
@@ -30,7 +27,6 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	"github.com/caarlos0/env/v11"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -53,78 +49,14 @@ func init() {
 }
 
 func main() {
-	leaderElection := flag.Bool("l", false, "enable leader election")
-	leaderElectionNamespace := flag.String("ln", "", "leader election namespace")
-	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
-	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
-	concurrentReconciles := flag.Int("c", 1, "number of concurrent reconciles for application controller")
-	flag.Parse()
-
-	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
-
-	parsedLogLevel, _ := zapcore.ParseLevel(*logLevel)
-
-	//TODO use zap directly so we get more loglevels
+	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
-		Development: !*isDeployment,
-		Level:       parsedLogLevel,
+		Development: true,
+		Level:       zapcore.InfoLevel,
 		DestWriter:  os.Stdout,
 	})))
 
-	var cfg envconfig.Vars
-	if parseErr := env.Parse(&cfg); parseErr != nil {
-		setupLog.Error(parseErr, "Failed to parse config")
-		os.Exit(1)
-	}
-
-	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, *concurrentReconciles))
-
 	kubeconfig := ctrl.GetConfigOrDie()
-
-	if !*isDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
-		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
-		os.Exit(1)
-	} else {
-		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
-	}
-
-	detectK8sVersion(kubeconfig)
-
-	pprofBindAddr := ""
-	if flags.FeatureFlags.EnableProfiling {
-		pprofBindAddr = ":8281"
-	}
-
-	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
-		Scheme:                  scheme,
-		HealthProbeBindAddress:  ":8081",
-		LeaderElection:          *leaderElection,
-		LeaderElectionNamespace: *leaderElectionNamespace,
-		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
-		LeaderElectionID:        "skiperator",
-		PprofBindAddress:        pprofBindAddr,
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-
-	// Run leader-specific tasks when elected
-	go func() {
-		<-mgr.Elected() // Wait until this instance is elected as leader
-		setupLog.Info("I am the captain now – configuring usage metrics")
-		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
-			setupLog.Error(err, "unable to configure usage metrics")
-		}
-	}()
-
-	err = (&controllers.ApplicationReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr, concurrentReconciles)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Application")
-		os.Exit(1)
-	}
 
 	configCheckClient, err := client.New(kubeconfig, client.Options{Scheme: scheme})
 	if err != nil {
@@ -146,26 +78,87 @@ func main() {
 		setupLog.Info("Successfully loaded global config", "config", config.GetActiveConfig())
 	}
 
+	activeConfig := config.GetActiveConfig()
+
+	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, activeConfig.ConcurrentReconciles))
+
+	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
+
+	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
+
+	//TODO use zap directly so we get more loglevels
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Development: !activeConfig.IsDeployment,
+		Level:       parsedLogLevel,
+		DestWriter:  os.Stdout,
+	})))
+
+	if !activeConfig.IsDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
+		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
+		os.Exit(1)
+	} else {
+		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
+	}
+
+	detectK8sVersion(kubeconfig)
+
+	pprofBindAddr := ""
+
+	if activeConfig.EnableProfiling {
+		pprofBindAddr = ":8281"
+	}
+
+	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
+		Scheme:                  scheme,
+		HealthProbeBindAddress:  ":8081",
+		LeaderElection:          activeConfig.LeaderElection,
+		LeaderElectionNamespace: activeConfig.LeaderElectionNamespace,
+		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
+		LeaderElectionID:        "skiperator",
+		PprofBindAddress:        pprofBindAddr,
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// Run leader-specific tasks when elected
+	go func() {
+		<-mgr.Elected() // Wait until this instance is elected as leader
+		setupLog.Info("I am the captain now – configuring usage metrics")
+		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+			setupLog.Error(err, "unable to configure usage metrics")
+		}
+	}()
+
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+		SkiperatorConfig: &activeConfig,
+	}).SetupWithManager(mgr, activeConfig.ConcurrentReconciles)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
+	}
+
 	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
 	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
 	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
 	// directly from namespaces as per SKIP-1704
 
 	var skipClusterList *config.SKIPClusterList
-	if cfg.ClusterCIDRExclusionEnabled {
-		skipClusterList, err = config.LoadSKIPClusterConfigFromConfigMap(configCheckClient)
+	if activeConfig.ClusterCIDRExclusionEnabled {
+		err = config.ValidateSKIPClusterList(&activeConfig.ClusterCIDRMap)
 		if err != nil {
 			setupLog.Error(err, "could not load SKIP cluster config")
 			os.Exit(1)
-		}
-	} else {
-		skipClusterList = &config.SKIPClusterList{
-			Clusters: []*config.SKIPCluster{},
+		} else {
+			skipClusterList = &activeConfig.ClusterCIDRMap
 		}
 	}
 
 	err = (&controllers.SKIPJobReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
+		SkiperatorConfig: &activeConfig,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")
@@ -180,12 +173,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	ps, err := imagepullsecret.NewImagePullSecret(cfg.RegistryCredentials...)
+	ps, err := imagepullsecret.NewImagePullSecret(activeConfig.RegistryCredentials...)
 	if err != nil {
 		setupLog.Error(err, "unable to create image pull secret configuration", "controller", "Namespace")
 		os.Exit(1)
 	}
-	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(cfg.RegistryCredentials))
+	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(activeConfig.RegistryCredentials))
 
 	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
 	if err != nil {
@@ -211,11 +204,6 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
-	if flags.FeatureFlags == nil {
-		panic("something is wrong with the go runtime, panicing")
-	}
-	setupLog.Info("initializing skiperator with feature flags", "features", flags.FeatureFlags)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
@@ -56,14 +55,19 @@ func Generate(r reconciliation.Reconciliation) error {
 		IstioEnabled: r.IsIstioEnabled(),
 	}
 
-	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
+	config := r.GetSkiperatorConfig()
+	var enableLocallyBuiltImages bool
+	if config != nil {
+		enableLocallyBuiltImages = config.EnableLocallyBuiltImages
+	}
+	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts, enableLocallyBuiltImages)
 
 	var err error
 
 	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
 
 	if util.IsGCPAuthEnabled(application.Spec.GCP) {
-		gcpPodVolume := gcp.GetGCPContainerVolume(r.GetIdentityConfigMap().Data["workloadIdentityPool"], application.Name)
+		gcpPodVolume := gcp.GetGCPContainerVolume(r.GetSkiperatorConfig().GCPWorkloadIdentityPool, application.Name)
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
 		gcpEnvVar := gcp.GetGCPEnvVar()
 
@@ -216,8 +220,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
-	// Global feature flag
-	if !flags.FeatureFlags.EnableLocallyBuiltImages {
+	if !enableLocallyBuiltImages {
 		err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
 		if err != nil {
 			//TODO fix this
