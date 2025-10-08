@@ -1,0 +1,33 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: >
+      {"apiVersion":"skiperator.kartverket.no/v1alpha1","kind":"Application","metadata":{"annotations":{},"name":"sample-out","namespace":"dummy"},"spec":{"accessPolicy":{"outbound":{"rules":[{"application":"sample-in"}]}},"image":"nginxinc/nginx-unprivileged","ingresses":["foo.com","bar.com"],"port":80,"replicas":2}}
+  creationTimestamp: "2025-10-02T07:04:39Z"
+  generation: 1
+  name: sample-out
+  namespace: argocd
+  resourceVersion: "1154"
+  selfLink: >-
+    /apis/skiperator.kartverket.no/v1alpha1/namespaces/dummy/applications/sample-out
+  uid: 59ec0c40-6520-4c2c-b463-4924bcfb5bf0
+spec:
+  accessPolicy:
+    outbound:
+      rules:
+      - application: sample-in
+  appProtocol: http
+  enablePDB: true
+  image: nginxinc/nginx-unprivileged
+  ingresses:
+  - foo.com
+  - bar.com
+  istioSettings:
+    telemetry:
+      tracing:
+      - randomSamplingPercentage: 10
+  port: 80
+  priority: medium
+  redirectToHTTPS: true
+  replicas: 2

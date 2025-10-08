@@ -110,6 +110,8 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Owns(&pov1.ServiceMonitor{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
+		Watches(&skiperatorv1alpha1.Application{}, handler.EnqueueRequestsFromMapFunc(r.getAppsToReconcile)).
+
 		WithEventFilter(
 			predicate.And(
 				common.DefaultPredicate, // Runs first
@@ -449,6 +451,34 @@ func handleApplicationCertRequest(_ context.Context, obj client.Object) []reconc
 
 	return requests
 }
+
+
+func (r *ApplicationReconciler) getAppsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {
+	var appsToReconcile skiperatorv1alpha1.ApplicationList
+	var reconcileRequests []reconcile.Request
+
+
+	err := r.GetClient().List(ctx, &appsToReconcile)
+	if err != nil {
+		return nil
+	}
+	for _, j := range appsToReconcile.Items {
+		if j.Labels != nil {
+			
+		reconcileRequests = append(reconcileRequests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Namespace: j.Namespace,
+				Name:      j.Name,
+			},
+		})
+	}
+	}
+	return reconcileRequests
+}
+
+
+
+
 
 func isIngressGateway(gateway *istionetworkingv1.Gateway) bool {
 	match, _ := regexp.MatchString("^.*-ingress-.*$", gateway.Name)

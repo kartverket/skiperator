@@ -1,0 +1,19 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  namespace: test-ingress
+  name: sample-in
+spec:
+  image: nginxinc/nginx-unprivileged
+  port: 80
+  replicas: 2
+  ingresses:
+    - foo.com
+    - bar.com
+  accessPolicy:
+    outbound:
+      rules:
+        - application: sample-out
+    inbound:
+      rules:
+        - application: sample-out
