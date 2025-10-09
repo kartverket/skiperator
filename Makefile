@@ -60,10 +60,23 @@ kind-cluster: check-kind
 
 #### SKIPERATOR DEPENDENCIES ####
 
+# Image tags for istio
+ISTIO_IMAGES = docker.io/istio/proxyv2:$(ISTIO_VERSION) docker.io/istio/pilot:$(ISTIO_VERSION)
+
 .PHONY: install-istio
 install-istio:
 	@echo "Creating istio-gateways namespace..."
 	@kubectl create namespace istio-gateways --context $(SKIPERATOR_CONTEXT) || true
+
+	# Manually pull and load images into the cluster for local testing
+
+	@for image in $(ISTIO_IMAGES); do \
+	  echo "Pulling $$image"; \
+	  docker pull "$$image"; \
+	  echo "Loading $$image into kind cluster 'skiperator'"; \
+	  kind load docker-image "$$image" --name skiperator; \
+	done
+
 	@echo "Downloading Istio..."
 	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
 	@echo "Installing Istio on Kubernetes cluster..."
@@ -72,8 +85,21 @@ install-istio:
 
 .PHONY: install-cert-manager
 install-cert-manager:
+	# Manually pull and load images into the cluster for local testing
+	@echo "Pulling and loading cert-manager images"
+	@curl -L -s https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml \
+	| grep 'image:' \
+	| sed -E 's/.*image:[[:space:]]*"?([^"]*)"?/\1/' \
+	| while read -r image; do \
+	    echo "Pulling $$image"; \
+	    docker pull "$$image"; \
+	    echo "Loading $$image into kind cluster '$(KIND_CLUSTER_NAME)'"; \
+	    kind load docker-image "$$image" --name $(KIND_CLUSTER_NAME); \
+	  done
+
 	@echo "Installing cert-manager"
 	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --context $(SKIPERATOR_CONTEXT)
+
 
 .PHONY: install-prometheus-crds
 install-prometheus-crds:
@@ -269,5 +295,3 @@ benchmark-long-run: build install-skiperator
 		kubectl delete -f tests/application/telemetry/application.yaml; \
     	kill $$PID; \
         kill $$SPID
-
-
