@@ -36,6 +36,7 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:generate=true
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:storageversion
 //
 // SKIPJob is the Schema for the skipjobs API
 type SKIPJob struct {
@@ -62,9 +63,7 @@ type SKIPJobList struct {
 //
 // +kubebuilder:object:generate=true
 // A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
-// The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.
 // +kubebuilder:validation:XValidation:rule="(has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) && !has(self.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
-// +kubebuilder:validation:XValidation:rule="((!has(self.cron) && (oldSelf.container == self.container)) || has(self.cron))", message="The field Container is immutable for one-off jobs. Please delete your SKIPJob to change the containers settings."
 type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
 	//
@@ -75,12 +74,6 @@ type SKIPJobSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	Cron *CronSettings `json:"cron,omitempty"`
-
-	// Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
-	// Once set, you may not change Container without deleting your current SKIPJob
-	//
-	// +kubebuilder:validation:Required
-	Container ContainerSettings `json:"container"`
 
 	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
 	// interval for tracing is the only supported option.
@@ -93,10 +86,7 @@ type SKIPJobSpec struct {
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
-}
 
-// +kubebuilder:object:generate=true
-type ContainerSettings struct {
 	//+kubebuilder:validation:Required
 	Image string `json:"image"`
 
@@ -301,9 +291,9 @@ func (skipJob *SKIPJob) GetDefaultLabels() map[string]string {
 
 func (skipJob *SKIPJob) GetCommonSpec() *CommonSpec {
 	return &CommonSpec{
-		GCP:           skipJob.Spec.Container.GCP,
-		AccessPolicy:  skipJob.Spec.Container.AccessPolicy,
+		GCP:           skipJob.Spec.GCP,
+		AccessPolicy:  skipJob.Spec.AccessPolicy,
 		IstioSettings: skipJob.Spec.IstioSettings,
-		Image:         skipJob.Spec.Container.Image,
+		Image:         skipJob.Spec.Image,
 	}
 }

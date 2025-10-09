@@ -1548,6 +1548,1541 @@ spec:
             type: object
         type: object
     served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.summary.status
+      name: Status
+      type: string
+    - jsonPath: .status.accessPolicies
+      name: AccessPolicies
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Application
+
+          Root object for Application resource. An application resource is a resource for easily managing a Dockerized container within the context of a Kartverket cluster.
+          This allows product teams to avoid the need to set up networking on the cluster, as well as a lot of out of the box security features.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              accessPolicy:
+                description: The root AccessPolicy for managing zero trust access
+                  to your Application. See AccessPolicy for more information.
+                properties:
+                  inbound:
+                    description: Inbound specifies the ingress rules. Which apps on
+                      the cluster can talk to this app?
+                    properties:
+                      rules:
+                        description: |-
+                          The rules list specifies a list of applications. When no namespace is
+                          specified it refers to an app in the current namespace. For apps in
+                          other namespaces namespace is required
+                        items:
+                          description: |-
+                            InternalRule
+
+                            The rules list specifies a list of applications. When no namespace is
+                            specified it refers to an app in the current namespace. For apps in
+                            other namespaces, namespace is required.
+                          properties:
+                            application:
+                              description: |-
+                                The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
+                                be suffixed with -skipjob
+                              type: string
+                            namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
+                              type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    required:
+                    - rules
+                    type: object
+                  outbound:
+                    description: |-
+                      Outbound specifies egress rules. Which apps on the cluster and the
+                      internet is the Application allowed to send requests to?
+                    properties:
+                      external:
+                        description: |-
+                          External specifies which applications on the internet the application
+                          can reach. Only host is required unless it is on another port than HTTPS port 443.
+                          If other ports or protocols are required then `ports` must be specified as well
+                        items:
+                          description: |-
+                            ExternalRule
+
+                            Describes a rule for allowing your Application to route traffic to external applications and hosts.
+                          properties:
+                            host:
+                              description: The allowed hostname. Note that this does
+                                not include subdomains.
+                              type: string
+                            ip:
+                              description: |-
+                                Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
+                                Only required for TCP requests.
+
+                                Note: Hostname must always be defined even if IP is set statically
+                              type: string
+                            ports:
+                              description: |-
+                                The ports to allow for the above hostname. When not specified HTTP and
+                                HTTPS on port 80 and 443 respectively are put into the allowlist
+                              items:
+                                description: |-
+                                  ExternalPort
+
+                                  A custom port describing an external host
+                                properties:
+                                  name:
+                                    description: Name is required and is an arbitrary
+                                      name. Must be unique within all ExternalRule
+                                      ports.
+                                    type: string
+                                  port:
+                                    description: The port number of the external host
+                                    type: integer
+                                  protocol:
+                                    description: 'The protocol to use for communication
+                                      with the host. Supported protocols are: HTTP,
+                                      HTTPS, TCP and TLS.'
+                                    enum:
+                                    - HTTP
+                                    - HTTPS
+                                    - TCP
+                                    - TLS
+                                    type: string
+                                required:
+                                - name
+                                - port
+                                - protocol
+                                type: object
+                              type: array
+                          required:
+                          - host
+                          type: object
+                        type: array
+                      rules:
+                        description: Rules apply the same in-cluster rules as InboundPolicy
+                        items:
+                          description: |-
+                            InternalRule
+
+                            The rules list specifies a list of applications. When no namespace is
+                            specified it refers to an app in the current namespace. For apps in
+                            other namespaces, namespace is required.
+                          properties:
+                            application:
+                              description: |-
+                                The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
+                                be suffixed with -skipjob
+                              type: string
+                            namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
+                              type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              additionalPorts:
+                description: |-
+                  An optional list of extra port to expose on a pod level basis,
+                  for example so Instana or other APM tools can reach it
+                items:
+                  properties:
+                    name:
+                      type: string
+                    port:
+                      format: int32
+                      type: integer
+                    protocol:
+                      description: Protocol defines network protocols supported for
+                        things like container ports.
+                      enum:
+                      - TCP
+                      - UDP
+                      - SCTP
+                      type: string
+                  required:
+                  - name
+                  - port
+                  - protocol
+                  type: object
+                type: array
+              appProtocol:
+                default: http
+                description: Protocol that the application speaks.
+                enum:
+                - http
+                - tcp
+                - udp
+                type: string
+              authorizationSettings:
+                description: Used for allow listing certain default blocked endpoints,
+                  such as /actuator/ end points
+                properties:
+                  allowAll:
+                    default: false
+                    description: |-
+                      Allows all endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
+                      If field is false, the contents of AllowList will be used instead if AllowList is set.
+                    type: boolean
+                  allowList:
+                    description: |-
+                      Allows specific endpoints. Common endpoints one might want to allow include /actuator/health, /actuator/startup, /actuator/info.
+
+                      Note that endpoints are matched specifically on the input, so if you allow /actuator/health, you will *not* allow /actuator/health/
+                    items:
+                      type: string
+                    type: array
+                type: object
+              command:
+                description: |-
+                  Override the command set in the Dockerfile. Usually only used when debugging
+                  or running third-party containers where you don't have control over the Dockerfile
+                items:
+                  type: string
+                type: array
+              enablePDB:
+                default: true
+                description: Whether to enable automatic Pod Disruption Budget creation
+                  for this application.
+                type: boolean
+              env:
+                description: Environment variables that will be set inside the Deployment's
+                  Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: |-
+                        Name of the environment variable.
+                        May consist of any printable ASCII characters except '='.
+                      type: string
+                    value:
+                      description: |-
+                        Variable references $(VAR_NAME) are expanded
+                        using the previously defined environment variables in the container and
+                        any service environment variables. If a variable cannot be resolved,
+                        the reference in the input string will be unchanged. Double $$ are reduced
+                        to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                        "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                        Escaped references will never be expanded, regardless of whether the variable
+                        exists or not.
+                        Defaults to "".
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fieldRef:
+                          description: |-
+                            Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fileKeyRef:
+                          description: |-
+                            FileKeyRef selects a key of the env file.
+                            Requires the EnvFiles feature gate to be enabled.
+                          properties:
+                            key:
+                              description: |-
+                                The key within the env file. An invalid key will prevent the pod from starting.
+                                The keys defined within a source may consist of any printable ASCII characters except '='.
+                                During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                              type: string
+                            optional:
+                              default: false
+                              description: |-
+                                Specify whether the file or its key must be defined. If the file or key
+                                does not exist, then the env var is not published.
+                                If optional is set to true and the specified key does not exist,
+                                the environment variable will not be set in the Pod's containers.
+
+                                If optional is set to false and the specified key does not exist,
+                                an error will be returned during Pod creation.
+                              type: boolean
+                            path:
+                              description: |-
+                                The path within the volume from which to select the file.
+                                Must be relative and may not contain the '..' path or start with '..'.
+                              type: string
+                            volumeName:
+                              description: The name of the volume mount containing
+                                the env file.
+                              type: string
+                          required:
+                          - key
+                          - path
+                          - volumeName
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        resourceFieldRef:
+                          description: |-
+                            Selects a resource of the container: only resources limits and requests
+                            (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              envFrom:
+                description: |-
+                  Environment variables mounted from files. When specified all the keys of the
+                  resource will be assigned as environment variables. Supports both configmaps
+                  and secrets.
+
+                  For mounting as files see FilesFrom.
+                items:
+                  properties:
+                    configMap:
+                      description: Name of Kubernetes ConfigMap in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
+                      type: string
+                    secret:
+                      description: Name of Kubernetes Secret in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
+                      type: string
+                  type: object
+                type: array
+              filesFrom:
+                description: |-
+                  Mounting volumes into the Deployment are done using the FilesFrom argument
+
+                  FilesFrom supports ConfigMaps, Secrets and PVCs. The Application resource
+                  assumes these have already been created by you, and will fail if this is not the case.
+
+                  For mounting environment variables see EnvFrom.
+                items:
+                  description: |-
+                    FilesFrom
+
+                    Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
+                    One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
+                    NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+                  properties:
+                    configMap:
+                      type: string
+                    defaultMode:
+                      description: |-
+                        defaultMode is optional: mode bits used to set permissions on created files by default.
+                        Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+                        YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+                        Defaults to 0644.
+                        Directories within the path are not affected by this setting.
+                        This might be in conflict with other options that affect the file
+                        mode, like fsGroup, and the result can be other mode bits set.
+                      type: integer
+                    emptyDir:
+                      type: string
+                    mountPath:
+                      description: The path to mount the file in the Pods directory.
+                        Required.
+                      type: string
+                    persistentVolumeClaim:
+                      type: string
+                    secret:
+                      type: string
+                  required:
+                  - mountPath
+                  type: object
+                type: array
+              gcp:
+                description: GCP is used to configure Google Cloud Platform specific
+                  settings for the application.
+                properties:
+                  auth:
+                    description: |-
+                      Configuration for authenticating a Pod with Google Cloud Platform
+                      For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
+                      to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
+                      service account and bind this to the Pod's Kubernetes SA.
+                      Documentation on how this is done can be found here (Closed Wiki):
+                      https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+                    properties:
+                      serviceAccount:
+                        description: |-
+                          Name of the service account in which you are trying to authenticate your pod with
+                          Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com
+                        type: string
+                    required:
+                    - serviceAccount
+                    type: object
+                  cloudSqlProxy:
+                    description: |-
+                      CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+                      This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+                    properties:
+                      connectionName:
+                        description: |-
+                          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+                          The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
+                        pattern: ^[^:]+:[^:]+:[^:]+$
+                        type: string
+                      ip:
+                        description: The IP address of the CloudSQL instance. This
+                          is used to create a serviceentry for the CloudSQL proxy.
+                        type: string
+                      publicIP:
+                        default: false
+                        type: boolean
+                      serviceAccount:
+                        description: Service account used by cloudsql auth proxy.
+                          This service account must have the roles/cloudsql.client
+                          role.
+                        type: string
+                      version:
+                        description: Image version for the CloudSQL proxy sidecar.
+                        type: string
+                    required:
+                    - connectionName
+                    - ip
+                    - serviceAccount
+                    type: object
+                type: object
+              idporten:
+                description: Settings for IDPorten integration with Digitaliseringsdirektoratet
+                properties:
+                  accessTokenLifetime:
+                    description: |-
+                      AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
+
+                      If unspecified, defaults to `3600` seconds (1 hour).
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal.
+                    type: string
+                  clientURI:
+                    description: ClientURI is the URL shown to the user at ID-porten
+                      when displaying a 'back' button or on errors.
+                    pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
+                    type: string
+                  enabled:
+                    description: |-
+                      Whether to enable provisioning of an ID-porten client.
+                      If enabled, an ID-porten client will be provisioned.
+                    type: boolean
+                  frontchannelLogoutPath:
+                    description: |-
+                      FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
+                      initiated a logout elsewhere as part of a single logout (front channel logout) process.
+                    pattern: ^\/.*$
+                    type: string
+                  integrationType:
+                    description: |-
+                      IntegrationType is used to make sensible choices for your client.
+                      Which type of integration you choose will provide guidance on which scopes you can use with the client.
+                      A client can only have one integration type.
+
+                      NB! It is not possible to change the integration type after creation.
+                    enum:
+                    - krr
+                    - idporten
+                    - api_klient
+                    type: string
+                  postLogoutRedirectPath:
+                    description: |-
+                      PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
+                      that will be appended to the ingress
+                    pattern: ^\/.*$
+                    type: string
+                  postLogoutRedirectURIs:
+                    description: |-
+                      PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
+                      has been initiated and performed by the application.
+                    items:
+                      pattern: ^(https:\/\/)|(http:\/\/localhost\:).+$
+                      type: string
+                    type: array
+                  redirectPath:
+                    description: RedirectPath is a valid path that ID-porten redirects
+                      back to after a successful authorization request.
+                    pattern: ^\/.*$
+                    type: string
+                  requestAuthentication:
+                    description: RequestAuthentication specifies how incoming JWTs
+                      should be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JWT validation.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardJwt:
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
+                        type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      outputClaimToHeaders:
+                        description: |-
+                          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
+                          The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
+                              type: string
+                            header:
+                              description: The name of the HTTP header for which the
+                                specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        maxItems: 10
+                        type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      secretName:
+                        description: |-
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                            Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                            Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  scopes:
+                    description: |-
+                      Register different oauth2 Scopes on your client.
+                      You will not be able to add a scope to your client that conflicts with the client's IntegrationType.
+                      For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.
+
+                      Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
+                      Default for IntegrationType `idporten` = ("openid", "profile")
+                      IntegrationType `api_klient` have no Default, checkout Digdir documentation.
+                    items:
+                      type: string
+                    type: array
+                  sessionLifetime:
+                    description: |-
+                      SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
+                      The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
+
+                      If unspecified, defaults to `7200` seconds (2 hours).
+                      Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.
+                    maximum: 7200
+                    minimum: 3600
+                    type: integer
+                required:
+                - enabled
+                type: object
+              image:
+                description: The image the application will run. This image will be
+                  added to a Deployment resource
+                type: string
+              ingresses:
+                description: |-
+                  Any external hostnames that route to this application. Using a skip.statkart.no-address
+                  will make the application reachable for kartverket-clients (internal), other addresses
+                  make the app reachable on the internet. Note that other addresses than skip.statkart.no
+                  (also known as pretty hostnames) requires additional DNS setup.
+                  The below hostnames will also have TLS certificates issued and be reachable on both
+                  HTTP and HTTPS.
+
+                  Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
+                  They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
+                  E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
+                items:
+                  type: string
+                type: array
+              istioSettings:
+                default:
+                  telemetry:
+                    tracing:
+                    - randomSamplingPercentage: 10
+                description: |-
+                  IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+                  interval for tracing is the only supported option.
+                  By default, tracing is enabled with a random sampling percentage of 10%.
+                properties:
+                  retries:
+                    description: |-
+                      Retries is configurable automatic retries for requests towards the application.
+                      By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.
+                    properties:
+                      attempts:
+                        description: |-
+                          Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
+                          Default is 2
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      perTryTimeout:
+                        description: |-
+                          PerTryTimeout is the timeout per attempt for a given request, including the initial call and any retries. Format: 1h/1m/1s/1ms. MUST be >=1ms.
+                          Default: no timeout
+                        format: duration
+                        type: string
+                      retryOnHttpResponseCodes:
+                        description: |-
+                          RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
+                          You may also use 5xx and retriable-4xx (only 409).
+                          mixed types are allowed such as [503, "retriable-4xx"]
+                        items:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          enum:
+                          - "500"
+                          - 500
+                          - "501"
+                          - 501
+                          - "502"
+                          - 502
+                          - "503"
+                          - 503
+                          - "504"
+                          - 504
+                          - "505"
+                          - 505
+                          - "506"
+                          - 506
+                          - "507"
+                          - 507
+                          - "508"
+                          - 508
+                          - "510"
+                          - 510
+                          - "511"
+                          - 511
+                          - "409"
+                          - 409
+                          - retriable-4xx
+                          - 5xx
+                          x-kubernetes-int-or-string: true
+                        type: array
+                    type: object
+                  telemetry:
+                    default:
+                      tracing:
+                      - randomSamplingPercentage: 10
+                    description: Telemetry is a placeholder for all relevant telemetry
+                      types, and may be extended in the future to configure additional
+                      telemetry settings.
+                    properties:
+                      tracing:
+                        default:
+                        - randomSamplingPercentage: 10
+                        description: Tracing is a list of tracing configurations for
+                          the telemetry resource. Normally only one tracing configuration
+                          is needed.
+                        items:
+                          description: Tracing contains relevant settings for tracing
+                            in the telemetry configuration
+                          properties:
+                            randomSamplingPercentage:
+                              default: 10
+                              description: |-
+                                RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
+                                Setting RandomSamplingPercentage to 0 will disable tracing.
+                              maximum: 100
+                              minimum: 0
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels can be used if you want every resource created by your application to
+                  have the same labels, including your application. This could for example be useful for
+                  metrics, where a certain label and the corresponding resources liveliness can be combined.
+                  Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+                type: object
+              liveness:
+                description: |-
+                  Liveness probes define a resource that returns 200 OK when the app is running
+                  as intended. Returning a non-200 code will make kubernetes restart the app.
+                  Liveness is optional, but when provided, path and port are required
+
+                  See Probe for structure definition.
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              maskinporten:
+                description: Settings for Maskinporten integration with Digitaliseringsdirektoratet
+                properties:
+                  clientName:
+                    description: |-
+                      The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
+                      Meant to be a human-readable name for separating clients in the portal
+                    type: string
+                  enabled:
+                    description: If enabled, provisions and configures a Maskinporten
+                      client with consumed scopes and/or Exposed scopes with DigDir.
+                    type: boolean
+                  requestAuthentication:
+                    description: RequestAuthentication specifies how incoming JWTs
+                      should be validated.
+                    properties:
+                      enabled:
+                        description: |-
+                          Whether to enable JWT validation.
+                          If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.
+                        type: boolean
+                      forwardJwt:
+                        default: true
+                        description: If set to `true`, the original token will be
+                          kept for the upstream request. Defaults to `true`.
+                        type: boolean
+                      ignorePaths:
+                        description: |-
+                          IgnorePaths specifies paths that do not require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      outputClaimToHeaders:
+                        description: |-
+                          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
+                          The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.
+                        items:
+                          properties:
+                            claim:
+                              description: The claim to be copied.
+                              maxLength: 128
+                              pattern: ^[a-zA-Z0-9-._]+$
+                              type: string
+                            header:
+                              description: The name of the HTTP header for which the
+                                specified claim will be copied to.
+                              maxLength: 64
+                              pattern: ^[a-zA-Z0-9-]+$
+                              type: string
+                          required:
+                          - claim
+                          - header
+                          type: object
+                        maxItems: 10
+                        type: array
+                      paths:
+                        description: |-
+                          Paths specifies paths that require an authenticated JWT.
+
+                          The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
+                          The paths can also contain the wildcard operator '*', but only at the end.
+                        items:
+                          type: string
+                        maxItems: 50
+                        type: array
+                        x-kubernetes-list-type: set
+                      secretName:
+                        description: |-
+                          The name of the Kubernetes Secret containing OAuth2 credentials.
+
+                          If omitted, the associated client registration in the application manifest is used for JWT validation.
+                        type: string
+                      tokenLocation:
+                        description: |-
+                          Where to find the JWT in the incoming request
+
+                          An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
+                          An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
+
+                          If omitted, its default value depends on the provider type:
+                            Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
+                            Defaults to "header" for providers not supporting user login (e.g. Maskinporten).
+                        enum:
+                        - header
+                        - cookie
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  scopes:
+                    description: Schema to configure Maskinporten clients with consumed
+                      scopes and/or exposed scopes.
+                    properties:
+                      consumes:
+                        description: |-
+                          This is the Schema for the consumes and exposes API.
+                          `consumes` is a list of scopes that your client can request access to.
+                        items:
+                          properties:
+                            name:
+                              description: |-
+                                The scope consumed by the application to gain access to an external organization API.
+                                Ensure that the NAV organization has been granted access to the scope prior to requesting access.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                      exposes:
+                        description: '`exposes` is a list of scopes your application
+                          want to expose to other organization where access to the
+                          scope is based on organization number.'
+                        items:
+                          properties:
+                            accessibleForAll:
+                              description: Allow any organization to access the scope.
+                              type: boolean
+                            allowedIntegrations:
+                              description: |-
+                                Whitelisting of integration's allowed.
+                                Default is `maskinporten`
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            atMaxAge:
+                              description: |-
+                                Max time in seconds for a issued access_token.
+                                Default is `30` sec.
+                              maximum: 680
+                              minimum: 30
+                              type: integer
+                            consumers:
+                              description: External consumers granted access to this
+                                scope and able to request access_token.
+                              items:
+                                properties:
+                                  name:
+                                    description: This is a describing field intended
+                                      for clarity not used for any other purpose.
+                                    type: string
+                                  orgno:
+                                    description: The external business/organization
+                                      number.
+                                    pattern: ^\d{9}$
+                                    type: string
+                                required:
+                                - orgno
+                                type: object
+                              type: array
+                            delegationSource:
+                              description: Delegation source for the scope. Default
+                                is empty, which means no delegation is allowed.
+                              enum:
+                              - altinn
+                              type: string
+                            enabled:
+                              description: If Enabled the configured scope is available
+                                to be used and consumed by organizations granted access.
+                              type: boolean
+                            name:
+                              description: |-
+                                The actual subscope combined with `Product`.
+                                Ensure that `<Product><Name>` matches `Pattern`.
+                              pattern: ^([a-zæøå0-9]+\/?)+(\:[a-zæøå0-9]+)*[a-zæøå0-9]+(\.[a-zæøå0-9]+)*$
+                              type: string
+                            product:
+                              description: |-
+                                The product-area your application belongs to e.g. arbeid, helse ...
+                                This will be included in the final scope `nav:<Product><Name>`.
+                              pattern: ^[a-z0-9]+$
+                              type: string
+                            separator:
+                              description: |-
+                                Separator is the character that separates `product` and `name` in the final scope:
+                                `scope := <prefix>:<product><separator><name>`
+                                This overrides the default separator.
+                                The default separator is `:`. If `name` contains `/`, the default separator is instead `/`.
+                              maxLength: 1
+                              minLength: 1
+                              pattern: ^[\/:.]$
+                              type: string
+                            visibility:
+                              description: |-
+                                Visibility controls the scope's visibility.
+                                Public scopes are visible for everyone.
+                                Private scopes are only visible for the organization that owns the scope as well as
+                                organizations that have been granted consumer access.
+                              enum:
+                              - private
+                              - public
+                              type: string
+                          required:
+                          - enabled
+                          - name
+                          - product
+                          type: object
+                          x-kubernetes-validations:
+                          - message: scopes.exposes[].separator must be set to "/"
+                              when scopes.exposes[].delegationSource is set
+                            rule: '!has(self.delegationSource) || (has(self.separator)
+                              && self.separator == "/")'
+                        type: array
+                    type: object
+                required:
+                - enabled
+                type: object
+              podSettings:
+                description: |-
+                  PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set
+                  things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations that are set on Pods created by Skiperator.
+                      These annotations can for example be used to change the behaviour
+                      of sidecars and similar.
+                    type: object
+                  disablePodSpreadTopologyConstraints:
+                    default: false
+                    description: |-
+                      DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
+                      a given pod.
+                    type: boolean
+                  terminationGracePeriodSeconds:
+                    default: 30
+                    description: |-
+                      TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than
+                      30 seconds to terminate, you should increase TerminationGracePeriodSeconds.
+                    format: int64
+                    type: integer
+                type: object
+              port:
+                description: The port the deployment exposes
+                type: integer
+              priority:
+                default: medium
+                description: |-
+                  An optional priority. Supported values are 'low', 'medium' and 'high'.
+                  The default value is 'medium'.
+
+                  Most workloads should not have to specify this field. If you think you
+                  do, please consult with SKIP beforehand.
+                enum:
+                - low
+                - medium
+                - high
+                type: string
+              prometheus:
+                description: Optional settings for how Prometheus compatible metrics
+                  should be scraped.
+                properties:
+                  allowAllMetrics:
+                    default: false
+                    description: |-
+                      Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
+                      metrics will be dropped by default. See util/constants.go for the default list.
+                    type: boolean
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                  scrapeInterval:
+                    default: 60s
+                    description: |-
+                      ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
+                      The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
+                      If minutes ("Xm") are used, the value must be at least 1m.
+                    type: string
+                    x-kubernetes-validations:
+                    - messageExpression: '''Rejected: '' + self + '' as an invalid
+                        value. ScrapeInterval must be empty (default applies) or in
+                        the format of <number>s or <number>m.'''
+                      rule: self == '' || self.matches('^([0-9]+[sm])+$')
+                    - messageExpression: '''Rejected: '' + self + '' as an invalid
+                        value. ScrapeInterval must be at least 15s (if using <s>)
+                        and divisible by 5, or at least 1m (if using <m>).'''
+                      rule: self == '' || (self.endsWith('m') && int(self.split('m')[0])
+                        >= 1) || (self.endsWith('s') && int(self.split('s')[0]) >=
+                        15 && int(self.split('s')[0]) % 5 == 0)
+                required:
+                - port
+                type: object
+              readiness:
+                description: |-
+                  Readiness probes define a resource that returns 200 OK when the app is running
+                  as intended. Kubernetes will wait until the resource returns 200 OK before
+                  marking the pod as Running and progressing with the deployment strategy.
+                  Readiness is optional, but when provided, path and port are required
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              redirectToHTTPS:
+                default: true
+                description: |-
+                  Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
+                  This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.
+                type: boolean
+              replicas:
+                description: "The number of replicas can either be specified as a
+                  static number as follows:\n\n\treplicas: 2\n\nOr by specifying a
+                  range between min and max to enable HorizontalPodAutoscaling.\nThe
+                  default value for replicas is:\n\treplicas:\n\t\tmin: 2\n\t\tmax:
+                  5\n\t\ttargetCpuUtilization: 80\nUsing autoscaling is the recommended
+                  configuration for replicas."
+                x-kubernetes-preserve-unknown-fields: true
+              resourceLabels:
+                additionalProperties:
+                  additionalProperties:
+                    type: string
+                  type: object
+                description: |-
+                  ResourceLabels can be used if you want to add a label to a specific resources created by
+                  the application. One such label could for example be set on a Deployment, such that
+                  the deployment avoids certain rules from Gatekeeper, or similar. Any amount of labels may be added per ResourceLabels item.
+                type: object
+              resources:
+                description: |-
+                  ResourceRequirements to apply to the deployment. It's common to set some of these to
+                  prevent the app from swelling in resource usage and consuming all the
+                  resources of other apps on the cluster.
+                properties:
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits set the maximum the app is allowed to use. Exceeding this limit will
+                      make kubernetes kill the app and restart it.
+
+                      Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests set the initial allocation that is done for the app and will
+                      thus be available to the app on startup. More is allocated on demand
+                      until the limit is reached.
+
+                      Requests can be set on the CPU and memory.
+                    type: object
+                type: object
+              startup:
+                description: |-
+                  Kubernetes uses startup probes to know when a container application has started.
+                  If such a probe is configured, it disables liveness and readiness checks until it
+                  succeeds, making sure those probes don't interfere with the application startup.
+                  This can be used to adopt liveness checks on slow starting containers, avoiding them
+                  getting killed by Kubernetes before they are up and running.
+                  Startup is optional, but when provided, path and port are required
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              strategy:
+                description: |-
+                  Defines an alternative strategy for the Kubernetes deployment. This is useful when
+                  the default strategy, RollingUpdate, is not usable. Setting type to
+                  Recreate will take down all the pods before starting new pods, whereas the
+                  default of RollingUpdate will try to start the new pods before taking down the
+                  old ones.
+
+                  Valid values are: RollingUpdate, Recreate. Default is RollingUpdate
+                properties:
+                  type:
+                    default: RollingUpdate
+                    description: 'Valid values are: RollingUpdate, Recreate. Default
+                      is RollingUpdate'
+                    enum:
+                    - RollingUpdate
+                    - Recreate
+                    type: string
+                type: object
+              team:
+                description: |-
+                  Team specifies the team who owns this particular app.
+                  Usually sourced from the namespace label.
+                type: string
+            required:
+            - image
+            - port
+            type: object
+          status:
+            description: |-
+              SkiperatorStatus
+
+              A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
+            properties:
+              accessPolicies:
+                description: Indicates if access policies are valid
+                type: string
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              subresources:
+                additionalProperties:
+                  description: Status
+                  properties:
+                    message:
+                      default: hello
+                      type: string
+                    status:
+                      default: Synced
+                      type: string
+                    timestamp:
+                      default: hello
+                      type: string
+                  required:
+                  - message
+                  - status
+                  - timestamp
+                  type: object
+                type: object
+              summary:
+                description: Status
+                properties:
+                  message:
+                    default: hello
+                    type: string
+                  status:
+                    default: Synced
+                    type: string
+                  timestamp:
+                    default: hello
+                    type: string
+                required:
+                - message
+                - status
+                - timestamp
+                type: object
+            required:
+            - accessPolicies
+            - conditions
+            - subresources
+            - summary
+            type: object
+        type: object
+    served: true
     storage: true
     subresources:
       status: {}

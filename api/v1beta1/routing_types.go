@@ -22,6 +22,7 @@ type RoutingList struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="routing"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
+// +kubebuilder:storageversion
 type Routing struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
