@@ -1,12 +1,13 @@
 package resourceutils
 
 import (
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"testing"
+
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"testing"
 )
 
 func TestSetResourceLabels(t *testing.T) {
@@ -19,13 +20,13 @@ func TestSetResourceLabels(t *testing.T) {
 	// need to add gvk to find resource labels
 	AddGVK(scheme.Scheme, sa)
 
-	app := &skiperatorv1alpha1.Application{
+	app := &skiperatorv1beta1.Application{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testapp",
 			Namespace: "testns",
 			Labels:    map[string]string{"test": "test"},
 		},
-		Spec: skiperatorv1alpha1.ApplicationSpec{
+		Spec: skiperatorv1beta1.ApplicationSpec{
 			ResourceLabels: map[string]map[string]string{"ServiceAccount": {"someLabel": "someValue"}, "OtherResource": {"otherLabel": "otherValue"}},
 		},
 	}

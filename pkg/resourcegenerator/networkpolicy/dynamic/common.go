@@ -1,17 +1,18 @@
 package dynamic
 
 import (
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"net"
+	"slices"
+	"strings"
+
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"net"
-	"slices"
-	"strings"
 )
 
 func init() {
@@ -42,8 +43,8 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	var ingresses []string
 	var inboundPort int32
 	if r.GetType() == reconciliation.ApplicationType {
-		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
-		inboundPort = int32(object.(*skiperatorv1alpha1.Application).Spec.Port)
+		ingresses = object.(*skiperatorv1beta1.Application).Spec.Ingresses
+		inboundPort = int32(object.(*skiperatorv1beta1.Application).Spec.Port)
 	}
 
 	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)
@@ -81,7 +82,7 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 	return policyType
 }
 
-func getCloudSQLEgressRule(skipObject skiperatorv1alpha1.SKIPObject) networkingv1.NetworkPolicyEgressRule {
+func getCloudSQLEgressRule(skipObject skiperatorv1beta1.SKIPObject) networkingv1.NetworkPolicyEgressRule {
 	return networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
 			{
@@ -97,7 +98,7 @@ func getCloudSQLEgressRule(skipObject skiperatorv1alpha1.SKIPObject) networkingv
 	}
 }
 
-func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1alpha1.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
+func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1beta1.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
 
 	if util.IsCloudSqlProxyEnabled(skipObject.GetCommonSpec().GCP) {

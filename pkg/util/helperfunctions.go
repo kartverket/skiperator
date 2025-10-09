@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
+	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"

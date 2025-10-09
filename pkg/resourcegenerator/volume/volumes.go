@@ -1,7 +1,7 @@
 package volume
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 )

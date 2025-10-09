@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -28,7 +28,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in service resource", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "failed to generate service resource")

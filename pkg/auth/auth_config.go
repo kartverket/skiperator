@@ -1,10 +1,11 @@
 package auth
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"golang.org/x/exp/maps"
 	"slices"
+
+	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
+	"github.com/kartverket/skiperator/api/v1beta1/istiotypes"
+	"golang.org/x/exp/maps"
 )
 
 type AuthConfigs []AuthConfig

@@ -3,7 +3,7 @@ package dynamic
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -18,12 +18,12 @@ func init() {
 func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate network policy for routing", "routing", r.GetSKIPObject().GetName())
-	routing, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Routing)
+	routing, ok := r.GetSKIPObject().(*skiperatorv1beta1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Routing")
 	}
 
-	uniqueTargetApps := make(map[string]skiperatorv1alpha1.Route)
+	uniqueTargetApps := make(map[string]skiperatorv1beta1.Route)
 	for _, route := range routing.Spec.Routes {
 		uniqueTargetApps[getNetworkPolicyName(routing, route.TargetApp)] = route
 	}
@@ -69,6 +69,6 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getNetworkPolicyName(routing *skiperatorv1alpha1.Routing, targetApp string) string {
+func getNetworkPolicyName(routing *skiperatorv1beta1.Routing, targetApp string) string {
 	return fmt.Sprintf("%s-%s-istio-ingress", routing.Name, targetApp)
 }

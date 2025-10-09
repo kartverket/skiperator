@@ -2,8 +2,11 @@ package idporten
 
 import (
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
+	"net/url"
+	"path"
+
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
@@ -11,8 +14,6 @@ import (
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/url"
-	"path"
 )
 
 const (
@@ -27,7 +28,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in idporten resource", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate idporten resource")
@@ -63,7 +64,7 @@ func Generate(r reconciliation.Reconciliation) error {
 }
 
 // Assumes application.Spec.IDPorten != nil
-func getIDPortenSpec(application *skiperatorv1alpha1.Application) (naisiov1.IDPortenClientSpec, error) {
+func getIDPortenSpec(application *skiperatorv1beta1.Application) (naisiov1.IDPortenClientSpec, error) {
 	integrationType := application.Spec.IDPorten.IntegrationType
 	if integrationType == "" {
 		// No scopes => idporten

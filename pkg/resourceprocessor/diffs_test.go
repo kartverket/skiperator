@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
@@ -27,7 +27,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	ctx := context.TODO()
 	namespace := "test"
 
-	application := &v1alpha1.Application{
+	application := &v1beta1.Application{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-app",

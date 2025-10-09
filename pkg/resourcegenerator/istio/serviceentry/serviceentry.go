@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
@@ -50,7 +50,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 			objectKind := object.GetObjectKind().GroupVersionKind().Kind
 
 			switch object.(type) {
-			case *skiperatorv1alpha1.Application:
+			case *skiperatorv1beta1.Application:
 				break
 			default:
 				serviceEntryName = fmt.Sprintf("%v-%v", strings.ToLower(objectKind), serviceEntryName)
@@ -125,7 +125,7 @@ func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []
 	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
 }
 
-func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object skiperatorv1alpha1.SKIPObject) (*podtypes.AccessPolicy, error) {
+func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object skiperatorv1beta1.SKIPObject) (*podtypes.AccessPolicy, error) {
 	if !util.IsCloudSqlProxyEnabled(object.GetCommonSpec().GCP) {
 		return accessPolicy, nil
 	}

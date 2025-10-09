@@ -5,7 +5,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,7 +21,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.RoutingType {
 		return fmt.Errorf("certificate only supports routing type")
 	}
-	routing, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Routing)
+	routing, ok := r.GetSKIPObject().(*skiperatorv1beta1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to routing")
 	}

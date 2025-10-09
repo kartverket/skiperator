@@ -2,7 +2,8 @@ package hpa
 
 import (
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -15,7 +16,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in horizontal pod autoscaler", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate horizontal pod autoscaler")
@@ -24,14 +25,14 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ctxLog.Debug("Attempting to generate HPA for application", "application", application.Name)
 
-	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) || !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
+	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) || !skiperatorv1beta1.IsHPAEnabled(application.Spec.Replicas) {
 		ctxLog.Debug("Skipping horizontal pod autoscaler generation for application")
 		return nil
 	}
 
 	horizontalPodAutoscaler := autoscalingv2.HorizontalPodAutoscaler{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: application.Name}}
 
-	replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
+	replicas, err := skiperatorv1beta1.GetScalingReplicas(application.Spec.Replicas)
 	if err != nil {
 		return err
 	}

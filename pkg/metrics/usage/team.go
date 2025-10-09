@@ -3,7 +3,7 @@ package usage
 import (
 	"context"
 
-	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
@@ -13,9 +13,9 @@ import (
 )
 
 var crdGVRs = []schema.GroupVersionResource{
-	v1alpha1.GroupVersion.WithResource(typeApplication),
-	v1alpha1.GroupVersion.WithResource(typeSKIPJob),
-	v1alpha1.GroupVersion.WithResource(typeRouting),
+	v1beta1.GroupVersion.WithResource(typeApplication),
+	v1beta1.GroupVersion.WithResource(typeSKIPJob),
+	v1beta1.GroupVersion.WithResource(typeRouting),
 }
 
 func init() {

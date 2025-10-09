@@ -1,10 +1,11 @@
 package resourceutils
 
 import (
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"strings"
+
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"golang.org/x/exp/maps"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 var (
@@ -25,7 +26,7 @@ func SetCommonAnnotations(object client.Object) {
 	object.SetAnnotations(annotations)
 }
 
-func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Application) {
+func SetApplicationLabels(object client.Object, app *skiperatorv1beta1.Application) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)
@@ -39,7 +40,7 @@ func SetApplicationLabels(object client.Object, app *skiperatorv1alpha1.Applicat
 	setResourceLabels(object, app)
 }
 
-func setResourceLabels(obj client.Object, app *skiperatorv1alpha1.Application) {
+func setResourceLabels(obj client.Object, app *skiperatorv1beta1.Application) {
 	objectGroupVersionKind := obj.GetObjectKind().GroupVersionKind().Kind
 	resourceLabels, isPresent := getResourceLabels(app, objectGroupVersionKind)
 	if !isPresent {
@@ -50,7 +51,7 @@ func setResourceLabels(obj client.Object, app *skiperatorv1alpha1.Application) {
 	obj.SetLabels(labels)
 }
 
-func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string) (map[string]string, bool) {
+func getResourceLabels(app *skiperatorv1beta1.Application, resourceKind string) (map[string]string, bool) {
 	for k, v := range app.Spec.ResourceLabels {
 		if strings.ToLower(k) == strings.ToLower(resourceKind) {
 			return v, true
@@ -59,7 +60,7 @@ func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string)
 	return nil, false
 }
 
-func FindResourceLabelErrors(app *skiperatorv1alpha1.Application, resources []client.Object) map[string]map[string]string {
+func FindResourceLabelErrors(app *skiperatorv1beta1.Application, resources []client.Object) map[string]map[string]string {
 	labelsWithNoMatch := app.Spec.ResourceLabels
 	for k, _ := range labelsWithNoMatch {
 		for _, resource := range resources {
@@ -71,7 +72,7 @@ func FindResourceLabelErrors(app *skiperatorv1alpha1.Application, resources []cl
 	return labelsWithNoMatch
 }
 
-func SetNamespaceLabels(object client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) {
+func SetNamespaceLabels(object client.Object, skipns *skiperatorv1beta1.SKIPNamespace) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)
@@ -80,7 +81,7 @@ func SetNamespaceLabels(object client.Object, skipns *skiperatorv1alpha1.SKIPNam
 	object.SetLabels(labels)
 }
 
-func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing) {
+func SetRoutingLabels(object client.Object, routing *skiperatorv1beta1.Routing) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)
@@ -90,7 +91,7 @@ func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing)
 }
 
 // TODO Porbably smart to move these SET functions to the controllers or types
-func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob) {
+func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1beta1.SKIPJob) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)

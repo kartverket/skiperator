@@ -3,7 +3,7 @@ package gateway
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
@@ -23,7 +23,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("gateway only supports Application type")
 	}
 
-	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
