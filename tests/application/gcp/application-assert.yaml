@@ -59,3 +59,10 @@ data:
 kind: ConfigMap
 metadata:
   name: gcp-gcp-auth
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gcp
+  annotations:
+    iam.gke.io/gcp-service-account: something@verdier.com

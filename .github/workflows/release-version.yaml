@@ -34,7 +34,7 @@ jobs:
 
       - run: git fetch --force --tags
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -46,7 +46,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v3.9.2
+        uses: sigstore/cosign-installer@v3.10.0
 
       - name: Install Syft for SBOM Generation
         shell: bash
@@ -71,7 +71,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup Golang environment
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -97,7 +97,7 @@ jobs:
       BASE_DIR: ./bases/skiperator-stable
       TMP_FILE: tmp_kustomization.yaml
     steps:
-      - uses: octo-sts/action@6177b4481c00308b3839969c3eca88c96a91775f # v1.0.0
+      - uses: octo-sts/action@a26b0c6455c7f13316f29a8766287f939e75f6c8 # v1.0.2
         id: octo-sts
         with:
           scope: kartverket/skip-apps

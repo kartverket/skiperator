@@ -3,23 +3,24 @@ package util
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
+	"net/url"
+	"regexp"
+	"strings"
+	"unicode"
+
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"
-	"hash/fnv"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/tools/record"
-	"net/url"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"unicode"
 )
 
 //TODO Clean up this file, move functions to more appropriate files
@@ -175,6 +176,14 @@ func EnsurePrefix(s string, prefix string) string {
 		return prefix + s
 	}
 	return s
+}
+
+func GCPServiceAccountInUse(gcp *podtypes.GCP) bool {
+	if gcp == nil || gcp.Auth == nil || gcp.Auth.ServiceAccount == "" {
+		return false
+	}
+
+	return true
 }
 
 func IsCloudSqlProxyEnabled(gcp *podtypes.GCP) bool {
