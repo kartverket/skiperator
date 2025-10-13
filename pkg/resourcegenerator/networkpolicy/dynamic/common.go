@@ -5,8 +5,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/core/v1"

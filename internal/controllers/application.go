@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	"github.com/kartverket/skiperator/api/common/digdirator"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"

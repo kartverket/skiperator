@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/kartverket/skiperator/api/common/digdirator"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"

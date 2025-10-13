@@ -3,8 +3,8 @@ package maskinporten
 import (
 	"fmt"
 
+	"github.com/kartverket/skiperator/api/common/digdirator"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"

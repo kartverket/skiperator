@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/chmike/domain"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

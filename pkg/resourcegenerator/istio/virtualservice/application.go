@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/api/v1beta1/istiotypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"google.golang.org/protobuf/types/known/durationpb"
 	networkingv1api "istio.io/api/networking/v1"
