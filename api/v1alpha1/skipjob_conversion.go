@@ -5,48 +5,75 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
+// ConvertTo: v1alpha1 -> v1beta1
 func (src *SKIPJob) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.SKIPJob)
 
-	// Copy metadata
 	dst.ObjectMeta = src.ObjectMeta
-
-	// Copy Job and Cron settings (these are simple structs with primitive types)
 	dst.Spec.Job = src.Spec.Job
 	dst.Spec.Cron = src.Spec.Cron
-
-	// Copy IstioSettings and Prometheus (these should be compatible)
 	dst.Spec.IstioSettings = src.Spec.IstioSettings
 	dst.Spec.Prometheus = src.Spec.Prometheus
 
-	// Copy primitive fields from Container
-	dst.Spec.Image = src.Spec.Container.Image
-	dst.Spec.Priority = src.Spec.Container.Priority
-	dst.Spec.Command = src.Spec.Container.Command
-	dst.Spec.Env = src.Spec.Container.Env
-	dst.Spec.RestartPolicy = src.Spec.Container.RestartPolicy
+	flattenContainer(&src.Spec.Container, &dst.Spec)
 
-	// Convert custom struct fields
-	dst.Spec.Resources = src.Spec.Container.Resources
-
-	dst.Spec.AccessPolicy = src.Spec.Container.AccessPolicy
-
-	dst.Spec.GCP = src.Spec.Container.GCP
-
-	dst.Spec.PodSettings = src.Spec.Container.PodSettings
-
-	dst.Spec.Liveness = src.Spec.Container.Liveness
-
-	dst.Spec.Readiness = src.Spec.Container.Readiness
-
-	dst.Spec.Startup = src.Spec.Container.Startup
-
-	dst.Spec.EnvFrom = src.Spec.Container.EnvFrom
-	dst.Spec.FilesFrom = src.Spec.Container.FilesFrom
-	dst.Spec.AdditionalPorts = src.Spec.Container.AdditionalPorts
-
-	// Copy status
 	dst.Status = src.Status
 
 	return nil
+}
+
+// ConvertFrom: v1beta1 -> v1alpha1
+func (dst *SKIPJob) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1beta1.SKIPJob)
+
+	dst.ObjectMeta = src.ObjectMeta
+	dst.Spec.Job = src.Spec.Job
+	dst.Spec.Cron = src.Spec.Cron
+	dst.Spec.IstioSettings = src.Spec.IstioSettings
+	dst.Spec.Prometheus = src.Spec.Prometheus
+
+	expandContainer(&src.Spec, &dst.Spec.Container)
+
+	dst.Status = src.Status
+	return nil
+}
+
+// v1alpha1.Spec.Container -> v1beta1.Spec (flatten)
+func flattenContainer(src *ContainerSettings, dst *v1beta1.SKIPJobSpec) {
+	dst.Image = src.Image
+	dst.Priority = src.Priority
+	dst.Command = src.Command
+	dst.Env = src.Env
+	dst.RestartPolicy = src.RestartPolicy
+
+	dst.Resources = src.Resources
+	dst.AccessPolicy = src.AccessPolicy
+	dst.GCP = src.GCP
+	dst.PodSettings = src.PodSettings
+	dst.Liveness = src.Liveness
+	dst.Readiness = src.Readiness
+	dst.Startup = src.Startup
+	dst.EnvFrom = src.EnvFrom
+	dst.FilesFrom = src.FilesFrom
+	dst.AdditionalPorts = src.AdditionalPorts
+}
+
+// v1beta1.Spec (flattened) -> v1alpha1.Spec.Container (expand)
+func expandContainer(src *v1beta1.SKIPJobSpec, dst *ContainerSettings) {
+	dst.Image = src.Image
+	dst.Priority = src.Priority
+	dst.Command = src.Command
+	dst.Env = src.Env
+	dst.RestartPolicy = src.RestartPolicy
+
+	dst.Resources = src.Resources
+	dst.AccessPolicy = src.AccessPolicy
+	dst.GCP = src.GCP
+	dst.PodSettings = src.PodSettings
+	dst.Liveness = src.Liveness
+	dst.Readiness = src.Readiness
+	dst.Startup = src.Startup
+	dst.EnvFrom = src.EnvFrom
+	dst.FilesFrom = src.FilesFrom
+	dst.AdditionalPorts = src.AdditionalPorts
 }
