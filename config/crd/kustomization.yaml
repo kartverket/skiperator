@@ -15,3 +15,4 @@ patches:
 # the following config is for teaching kustomize how to do kustomization for CRDs.
 configurations:
 - kustomizeconfig.yaml
+# Removed transformers/Replacement; we'll patch caBundle post-deploy.

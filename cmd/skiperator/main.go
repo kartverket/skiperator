@@ -115,7 +115,6 @@ func main() {
 	var tlsOpts []func(*tls.Config)
 	// Initial webhook TLS options
 	webhookTLSOpts := tlsOpts
-
 	if len(webhookCertPath) > 0 {
 		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
 			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)

@@ -9,8 +9,11 @@ spec:
     webhook:
       clientConfig:
         service:
-          namespace: system
-          name: skipjob-conversion-webhook 
+          namespace: skiperator-system # must match Service metadata.namespace
+          name: skipjob-conversion-webhook # must match Service metadata.name
           path: /convert
+        # caBundle is required for a self-signed or cert-manager managed CA.
+        # It will be injected by kustomize replacement or a post-render script.
+        # caBundle: <BASE64_CA_CERT>
       conversionReviewVersions:
       - v1
