@@ -5,9 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	batchv1 "k8s.io/api/batch/v1"
+	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,12 +68,12 @@ type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
 	//
 	//+kubebuilder:validation:Optional
-	Job *JobSettings `json:"job,omitempty"`
+	Job *common.JobSettings `json:"job,omitempty"`
 
 	// Settings for the Job if you are running a scheduled job. Optional as Jobs may be one-off.
 	//
 	//+kubebuilder:validation:Optional
-	Cron *CronSettings `json:"cron,omitempty"`
+	Cron *common.CronSettings `json:"cron,omitempty"`
 
 	// Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
 	// Once set, you may not change Container without deleting your current SKIPJob
@@ -88,7 +87,7 @@ type SKIPJobSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
-	IstioSettings *istiotypes.IstioSettingsBase `json:"istioSettings,omitempty"`
+	IstioSettings *IstioSettingsBase `json:"istioSettings,omitempty"`
 
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
@@ -141,69 +140,69 @@ type ContainerSettings struct {
 	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
 }
 
-// +kubebuilder:object:generate=true
-type JobSettings struct {
-	// ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
-	// the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.
-	//
-	//+kubebuilder:validation:Optional
-	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
+//// +kubebuilder:object:generate=true
+//type JobSettings struct {
+//// ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
+//// the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.
+////
+////+kubebuilder:validation:Optional
+//ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
 
-	// Specifies the number of retry attempts before determining the job as failed. Defaults to 6.
-	//
-	//+kubebuilder:validation:Optional
-	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
+//// Specifies the number of retry attempts before determining the job as failed. Defaults to 6.
+////
+////+kubebuilder:validation:Optional
+//BackoffLimit *int32 `json:"backoffLimit,omitempty"`
 
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
-	// all running Pods will be terminated.
-	//
-	//+kubebuilder:validation:Optional
-	Suspend *bool `json:"suspend,omitempty"`
+//// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+//// all running Pods will be terminated.
+////
+////+kubebuilder:validation:Optional
+//Suspend *bool `json:"suspend,omitempty"`
 
-	// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
-	// It is recommended to set this to avoid clutter in your resource tree.
-	//
-	//+kubebuilder:validation:Optional
-	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
-}
+//// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
+//// It is recommended to set this to avoid clutter in your resource tree.
+////
+////+kubebuilder:validation:Optional
+//TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
+//}
 
-// +kubebuilder:object:generate=true
-type CronSettings struct {
-	// Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
-	// Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
-	// Replace will replace the current active Job with the newer scheduled Job.
-	//
-	// +kubebuilder:validation:Enum=Allow;Forbid;Replace
-	// +kubebuilder:default="Allow"
-	// +kubebuilder:validation:Optional
-	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
+//// +kubebuilder:object:generate=true
+//type CronSettings struct {
+//// Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
+//// Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
+//// Replace will replace the current active Job with the newer scheduled Job.
+////
+//// +kubebuilder:validation:Enum=Allow;Forbid;Replace
+//// +kubebuilder:default="Allow"
+//// +kubebuilder:validation:Optional
+//ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
 
-	// A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
-	// Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.
-	//
-	//+kubebuilder:validation:Required
-	Schedule string `json:"schedule"`
+//// A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
+//// Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.
+////
+////+kubebuilder:validation:Required
+//Schedule string `json:"schedule"`
 
-	// The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
-	// this will default to the time zone of the cluster.
-	//
-	// Example: "Europe/Oslo"
-	//
-	// +kubebuilder:validation:Optional
-	TimeZone *string `json:"timeZone,omitempty"`
+//// The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
+//// this will default to the time zone of the cluster.
+////
+//// Example: "Europe/Oslo"
+////
+//// +kubebuilder:validation:Optional
+//TimeZone *string `json:"timeZone,omitempty"`
 
-	// Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
-	// If unset, Jobs missing their deadline will be considered failed jobs and will not start.
-	//
-	//+kubebuilder:validation:Optional
-	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
+//// Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
+//// If unset, Jobs missing their deadline will be considered failed jobs and will not start.
+////
+////+kubebuilder:validation:Optional
+//StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
 
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
-	// all running Pods will be terminated.
-	//
-	//+kubebuilder:validation:Optional
-	Suspend *bool `json:"suspend,omitempty"`
-}
+//// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
+//// all running Pods will be terminated.
+////
+////+kubebuilder:validation:Optional
+//Suspend *bool `json:"suspend,omitempty"`
+//}
 
 func (skipJob *SKIPJob) KindPostFixedName() string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
@@ -218,7 +217,7 @@ func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
 
 func (skipJob *SKIPJob) FillDefaultSpec() {
 	if skipJob.Spec.Job == nil {
-		skipJob.Spec.Job = &JobSettings{}
+		skipJob.Spec.Job = &common.JobSettings{}
 	}
 
 	if skipJob.Spec.Job.TTLSecondsAfterFinished == nil {

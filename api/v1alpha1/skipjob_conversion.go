@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	v1alpha1podtypes "github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	v1alpha1podtypes "github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/api/v1beta1"
 	v1beta1podtypes "github.com/kartverket/skiperator/api/v1beta1/podtypes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

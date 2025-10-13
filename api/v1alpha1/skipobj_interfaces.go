@@ -3,8 +3,8 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/common/istiotypes"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
