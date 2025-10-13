@@ -28,6 +28,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -53,6 +54,8 @@ const (
 // leave an empty line over this comment
 type SKIPJobReconciler struct {
 	common.ReconcilerBase
+	client.Client
+	Scheme *runtime.Scheme
 }
 
 // TODO Watch applications that are using dynamic port allocation

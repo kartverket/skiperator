@@ -115,8 +115,14 @@ install-digdirator-crds:
 .PHONY: install-skiperator
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
-	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
+	@kustomize build config/crd | kubectl apply -f - 
+	@kubectl apply -f config/crd/skiperator.kartverket.no_applications.yaml  --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/crd/skiperator.kartverket.no_routings.yaml  --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT)
+	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT)
+	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT)
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
+	
 
 #### TESTS ####
 .PHONY: test-single
