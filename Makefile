@@ -116,6 +116,7 @@ install-digdirator-crds:
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
 	@kustomize build config/crd | kubectl apply -f - 
+	@kustomize build config/webhook | kubectl apply -f - 
 	@kubectl apply -f config/crd/skiperator.kartverket.no_applications.yaml  --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/crd/skiperator.kartverket.no_routings.yaml  --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT)
