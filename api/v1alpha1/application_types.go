@@ -5,14 +5,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/kartverket/skiperator/api/common/digdirator"
-
-	"github.com/kartverket/skiperator/api/common/istiotypes"
-	"github.com/kartverket/skiperator/api/common/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // +kubebuilder:object:root=true
@@ -99,7 +94,7 @@ type ApplicationSpec struct {
 	// resources of other apps on the cluster.
 	//
 	//+kubebuilder:validation:Optional
-	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 
 	// The number of replicas can either be specified as a static number as follows:
 	//
@@ -138,7 +133,7 @@ type ApplicationSpec struct {
 	// For mounting as files see FilesFrom.
 	//
 	//+kubebuilder:validation:Optional
-	EnvFrom []podtypes.EnvFrom `json:"envFrom,omitempty"`
+	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
 
 	// Mounting volumes into the Deployment are done using the FilesFrom argument
 	//
@@ -148,13 +143,13 @@ type ApplicationSpec struct {
 	// For mounting environment variables see EnvFrom.
 	//
 	//+kubebuilder:validation:Optional
-	FilesFrom []podtypes.FilesFrom `json:"filesFrom,omitempty"`
+	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
 
 	// An optional list of extra port to expose on a pod level basis,
 	// for example so Instana or other APM tools can reach it
 	//
 	//+kubebuilder:validation:Optional
-	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
 	// Liveness probes define a resource that returns 200 OK when the app is running
 	// as intended. Returning a non-200 code will make kubernetes restart the app.
 	// Liveness is optional, but when provided, path and port are required
@@ -162,7 +157,7 @@ type ApplicationSpec struct {
 	// See Probe for structure definition.
 	//
 	//+kubebuilder:validation:Optional
-	Liveness *podtypes.Probe `json:"liveness,omitempty"`
+	Liveness *Probe `json:"liveness,omitempty"`
 
 	// Readiness probes define a resource that returns 200 OK when the app is running
 	// as intended. Kubernetes will wait until the resource returns 200 OK before
@@ -170,7 +165,7 @@ type ApplicationSpec struct {
 	// Readiness is optional, but when provided, path and port are required
 	//
 	//+kubebuilder:validation:Optional
-	Readiness *podtypes.Probe `json:"readiness,omitempty"`
+	Readiness *Probe `json:"readiness,omitempty"`
 
 	// Kubernetes uses startup probes to know when a container application has started.
 	// If such a probe is configured, it disables liveness and readiness checks until it
@@ -180,17 +175,17 @@ type ApplicationSpec struct {
 	// Startup is optional, but when provided, path and port are required
 	//
 	//+kubebuilder:validation:Optional
-	Startup *podtypes.Probe `json:"startup,omitempty"`
+	Startup *Probe `json:"startup,omitempty"`
 
 	// Settings for Maskinporten integration with Digitaliseringsdirektoratet
 	//
 	//+kubebuilder:validation:Optional
-	Maskinporten *digdirator.Maskinporten `json:"maskinporten,omitempty"`
+	Maskinporten *Maskinporten `json:"maskinporten,omitempty"`
 
 	// Settings for IDPorten integration with Digitaliseringsdirektoratet
 	//
 	//+kubebuilder:validation:Optional
-	IDPorten *digdirator.IDPorten `json:"idporten,omitempty"`
+	IDPorten *IDPorten `json:"idporten,omitempty"`
 
 	// Optional settings for how Prometheus compatible metrics should be scraped.
 	//
@@ -213,12 +208,12 @@ type ApplicationSpec struct {
 	// The root AccessPolicy for managing zero trust access to your Application. See AccessPolicy for more information.
 	//
 	//+kubebuilder:validation:Optional
-	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy *AccessPolicy `json:"accessPolicy,omitempty"`
 
 	// GCP is used to configure Google Cloud Platform specific settings for the application.
 	//
 	//+kubebuilder:validation:Optional
-	GCP *podtypes.GCP `json:"gcp,omitempty"`
+	GCP *GCP `json:"gcp,omitempty"`
 
 	// Labels can be used if you want every resource created by your application to
 	// have the same labels, including your application. This could for example be useful for
@@ -244,7 +239,7 @@ type ApplicationSpec struct {
 	// things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.
 	//
 	//+kubebuilder:validation:Optional
-	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
+	PodSettings *PodSettings `json:"podSettings,omitempty"`
 
 	// IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
 	// interval for tracing is the only supported option.
@@ -252,7 +247,7 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
-	IstioSettings *istiotypes.IstioSettingsApplication `json:"istioSettings,omitempty"`
+	IstioSettings *IstioSettingsApplication `json:"istioSettings,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -313,38 +308,6 @@ type Strategy struct {
 	// +kubebuilder:validation:Enum=RollingUpdate;Recreate
 	// +kubebuilder:default=RollingUpdate
 	Type string `json:"type,omitempty"`
-}
-
-// PrometheusConfig contains configuration settings instructing how the app should be scraped.
-//
-// +kubebuilder:object:generate=true
-type PrometheusConfig struct {
-	// The port number or name where metrics are exposed (at the Pod level).
-	//
-	//+kubebuilder:validation:Required
-	Port intstr.IntOrString `json:"port"`
-	// The HTTP path where Prometheus compatible metrics exists
-	//
-	//+kubebuilder:default:=/metrics
-	//+kubebuilder:validation:Optional
-	Path string `json:"path,omitempty"`
-
-	// Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
-	// metrics will be dropped by default. See util/constants.go for the default list.
-	//
-	//+kubebuilder:default:=false
-	//+kubebuilder:validation:Optional
-	AllowAllMetrics bool `json:"allowAllMetrics,omitempty"`
-
-	// ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
-	// The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
-	// If minutes ("Xm") are used, the value must be at least 1m.
-	//
-	//+kubebuilder:default:="60s"
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:XValidation:rule="self == '' || self.matches('^([0-9]+[sm])+$')",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be empty (default applies) or in the format of <number>s or <number>m.'"
-	//+kubebuilder:validation:XValidation:rule="self == '' || (self.endsWith('m') && int(self.split('m')[0]) >= 1) || (self.endsWith('s') && int(self.split('s')[0]) >= 15 && int(self.split('s')[0]) % 5 == 0)",messageExpression="'Rejected: ' + self + ' as an invalid value. ScrapeInterval must be at least 15s (if using <s>) and divisible by 5, or at least 1m (if using <m>).'"
-	ScrapeInterval string `json:"scrapeInterval,omitempty"`
 }
 
 func NewDefaultReplicas() Replicas {

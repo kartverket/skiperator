@@ -5,8 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/api/common"
-	"github.com/kartverket/skiperator/api/common/podtypes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -68,12 +66,12 @@ type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
 	//
 	//+kubebuilder:validation:Optional
-	Job *common.JobSettings `json:"job,omitempty"`
+	Job *JobSettings `json:"job,omitempty"`
 
 	// Settings for the Job if you are running a scheduled job. Optional as Jobs may be one-off.
 	//
 	//+kubebuilder:validation:Optional
-	Cron *common.CronSettings `json:"cron,omitempty"`
+	Cron *CronSettings `json:"cron,omitempty"`
 
 	// Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
 	// Once set, you may not change Container without deleting your current SKIPJob
@@ -107,29 +105,29 @@ type ContainerSettings struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	//+kubebuilder:validation:Optional
-	EnvFrom []podtypes.EnvFrom `json:"envFrom,omitempty"`
+	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
 	//+kubebuilder:validation:Optional
-	FilesFrom []podtypes.FilesFrom `json:"filesFrom,omitempty"`
+	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
 	//+kubebuilder:validation:Optional
-	Liveness *podtypes.Probe `json:"liveness,omitempty"`
+	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Readiness *podtypes.Probe `json:"readiness,omitempty"`
+	Readiness *Probe `json:"readiness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Startup *podtypes.Probe `json:"startup,omitempty"`
+	Startup *Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy *AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	GCP *podtypes.GCP `json:"gcp,omitempty"`
+	GCP *GCP `json:"gcp,omitempty"`
 
 	// +kubebuilder:validation:Enum=OnFailure;Never
 	// +kubebuilder:default="Never"
@@ -137,7 +135,7 @@ type ContainerSettings struct {
 	RestartPolicy *corev1.RestartPolicy `json:"restartPolicy"`
 
 	//+kubebuilder:validation:Optional
-	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
+	PodSettings *PodSettings `json:"podSettings,omitempty"`
 }
 
 //// +kubebuilder:object:generate=true
@@ -217,7 +215,7 @@ func (skipJob *SKIPJob) SetStatus(status SkiperatorStatus) {
 
 func (skipJob *SKIPJob) FillDefaultSpec() {
 	if skipJob.Spec.Job == nil {
-		skipJob.Spec.Job = &common.JobSettings{}
+		skipJob.Spec.Job = &JobSettings{}
 	}
 
 	if skipJob.Spec.Job.TTLSecondsAfterFinished == nil {
