@@ -24,6 +24,9 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"go.uber.org/zap/zapcore"
+	istioclientv1 "istio.io/client-go/pkg/apis/networking/v1"
+	istioclientv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioclienttelemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -62,6 +65,11 @@ func init() {
 	utilruntime.Must(v1beta1.AddToScheme(scheme))
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
+	// Register Istio types
+	utilruntime.Must(istioclientv1.AddToScheme(scheme))
+	utilruntime.Must(istioclientv1beta1.AddToScheme(scheme))
+	utilruntime.Must(istioclienttelemetryv1.AddToScheme(scheme))
+
 }
 
 func main() {
@@ -70,6 +78,11 @@ func main() {
 	isDeployment := flag.Bool("d", false, "is deployed to a real cluster")
 	logLevel := flag.String("e", "debug", "Error level used for logs. Default debug. Possible values: debug, info, warn, error, dpanic, panic.")
 	concurrentReconciles := flag.Int("c", 1, "number of concurrent reconciles for application controller")
+	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
+	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
+	webhookKeyName := flag.String("webhook-key-name", "tls.key", "Name of the webhook TLS key file")
+	webhookHost := flag.String("webhook-host", "", "Host to bind webhook server to. Use 0.0.0.0 to bind to all interfaces for local kind development.")
+	webhookPort := flag.Int("webhook-port", 9443, "Port for webhook server to listen on")
 	flag.Parse()
 
 	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
@@ -108,22 +121,23 @@ func main() {
 	}
 	var metricsAddr string
 	var metricsCertPath, metricsCertName, metricsCertKey string
-	var webhookCertPath, webhookCertName, webhookCertKey string
 	// Create watchers for metrics and webhooks certificates
 	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
 	var secureMetrics bool
 	var tlsOpts []func(*tls.Config)
 	// Initial webhook TLS options
 	webhookTLSOpts := tlsOpts
-	if len(webhookCertPath) > 0 {
+
+	// Initialize webhook certificate watcher if webhook cert directory is provided
+	if len(*webhookCertDir) > 0 {
+		certPath := filepath.Join(*webhookCertDir, *webhookCertName)
+		keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
+
 		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
-			"webhook-cert-path", webhookCertPath, "webhook-cert-name", webhookCertName, "webhook-cert-key", webhookCertKey)
+			"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
 
 		var err error
-		webhookCertWatcher, err = certwatcher.New(
-			filepath.Join(webhookCertPath, webhookCertName),
-			filepath.Join(webhookCertPath, webhookCertKey),
-		)
+		webhookCertWatcher, err = certwatcher.New(certPath, keyPath)
 		if err != nil {
 			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
 			os.Exit(1)
@@ -132,10 +146,14 @@ func main() {
 		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
 			config.GetCertificate = webhookCertWatcher.GetCertificate
 		})
+	} else {
+		setupLog.Info("No webhook certificate directory provided, webhook will use self-signed certificates")
 	}
 
 	webhookServer := webhook.NewServer(webhook.Options{
 		TLSOpts: webhookTLSOpts,
+		Host:    *webhookHost,
+		Port:    *webhookPort,
 	})
 
 	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
@@ -195,13 +213,6 @@ func main() {
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
-	}
-	if err := (&controllers.SKIPJobReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "SvartSkjaif")
 		os.Exit(1)
 	}
 	// nolint:goconst

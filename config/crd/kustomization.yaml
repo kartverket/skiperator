@@ -3,6 +3,8 @@
 # It should be run by config/default
 resources:
   - skiperator.kartverket.no_skipjobs.yaml
+  - skiperator.kartverket.no_applications.yaml
+  - skiperator.kartverket.no_routings.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:

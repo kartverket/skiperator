@@ -22,7 +22,8 @@ SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
 KUBERNETES_VERSION          = 1.32.5
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
-
+LOCAL_WEBHOOK_CERTS_DIR = /tmp/k8s-webhook-server/serving-certs
+WEBHOOK_HOST = 0.0.0.0
 .PHONY: generate
 generate:
 	go generate ./...
@@ -38,8 +39,13 @@ build: generate
 
 .PHONY: run-local
 run-local: build install-skiperator
-	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
-	./bin/skiperator
+	@echo "Extracting webhook certificates for local development..."
+	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
+	@echo "Setting up webhook service to route to host..."
+	@./hack/setup-local-webhook-endpoint.sh
+	@echo ""
+	@echo "Starting skiperator with webhook on 0.0.0.0:9443 (accessible from kind cluster)..."
+	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 
 .PHONY: setup-local
 setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
@@ -115,16 +121,14 @@ install-digdirator-crds:
 .PHONY: install-skiperator
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
-	@kustomize build config/cert-manager | kubectl apply -f - 
-	@kustomize build config/crd | kubectl apply -f -
-	@kustomize build config/webhook | kubectl apply -f - 
-	@kubectl apply -f config/crd/skiperator.kartverket.no_applications.yaml  --context $(SKIPERATOR_CONTEXT) || true
-	@kubectl apply -f config/crd/skiperator.kartverket.no_routings.yaml  --context $(SKIPERATOR_CONTEXT) || true
-	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT)
-	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT)
-	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT)
+	@kustomize build config/cert-manager | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kustomize build config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kustomize build config/webhook | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
-	
+
 
 #### TESTS ####
 .PHONY: test-single
