@@ -9,5 +9,33 @@ data:
       "topologyKeys": [
         "kubernetes.io/hostname",
         "onprem.gke.io/failure-domain-name"
-      ] 
+      ],
+      "leaderElection": false,
+      "leaderElectionNamespace": "skiperator-system",
+      "concurrentReconciles": 1,
+      "isDeployment": false,
+      "logLevel": "error",
+      "registryCredentials": [
+        {
+          "registry": "ghcr.io",
+          "token": ""},
+        {
+          "registry": "https://index.docker.io/v1/",
+          "token": ""
+        }
+      ],
+      "clusterCIDRExclusionEnabled": true,
+      "clusterCIDRMap": {
+        "clusters": [
+          {
+            "name": "test-cluster-1",
+            "controlPlaneCIDRs": [
+              "10.40.10.0/25"],
+            "workerNodeCIDRs": [
+              "10.40.10.0/24"]
+          }
+        ]
+      },
+      "gcpIdentityProvider": "testProvider",
+      "gcpWorkloadIdentityPool": "testPool"
     }
