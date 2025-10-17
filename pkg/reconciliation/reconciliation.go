@@ -30,7 +30,7 @@ type Reconciliation interface {
 	AddResource(client.Object)
 	GetRestConfig() *rest.Config
 	GetAuthConfigs() *auth.AuthConfigs
-	GetSkiperatorConfig() *config.SkiperatorConfig
+	GetSkiperatorConfig() config.SkiperatorConfig
 }
 
 type baseReconciliation struct {
@@ -41,7 +41,7 @@ type baseReconciliation struct {
 	restConfig       *rest.Config
 	skipObject       v1alpha1.SKIPObject
 	authConfigs      *auth.AuthConfigs
-	skiperatorConfig *config.SkiperatorConfig
+	skiperatorConfig config.SkiperatorConfig
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -76,6 +76,6 @@ func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
 	return b.authConfigs
 }
 
-func (b *baseReconciliation) GetSkiperatorConfig() *config.SkiperatorConfig {
+func (b *baseReconciliation) GetSkiperatorConfig() config.SkiperatorConfig {
 	return b.skiperatorConfig
 }

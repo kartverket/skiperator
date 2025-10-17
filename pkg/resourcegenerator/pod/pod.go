@@ -18,7 +18,15 @@ const (
 )
 
 type PodOpts struct {
-	IstioEnabled bool
+	IstioEnabled     bool
+	LocalBuiltImages bool
+}
+
+func (po *PodOpts) ImagePullPolicy() corev1.PullPolicy {
+	if po.LocalBuiltImages {
+		return corev1.PullNever
+	}
+	return corev1.PullAlways
 }
 
 func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string,
@@ -69,18 +77,12 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 	return p
 }
 
-func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts, enableLocallyBuiltImages bool) corev1.Container {
-	imagePullPolicy := func() corev1.PullPolicy {
-		if enableLocallyBuiltImages {
-			return corev1.PullNever
-		}
-		return corev1.PullAlways
-	}()
+func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
 
 	return corev1.Container{
 		Name:            application.Name,
 		Image:           application.Spec.Image,
-		ImagePullPolicy: imagePullPolicy,
+		ImagePullPolicy: opts.ImagePullPolicy(),
 		Command:         application.Spec.Command,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged:               util.PointTo(false),

@@ -60,7 +60,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig *config.SkiperatorConfig) batchv1.CronJobSpec {
+func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		TimeZone:                skipJob.Spec.Cron.TimeZone,
@@ -83,7 +83,7 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, sel
 	return spec
 }
 
-func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig *config.SkiperatorConfig) batchv1.JobSpec {
+func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
 	envVars := skipJob.Spec.Container.Env
 

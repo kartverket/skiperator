@@ -26,6 +26,25 @@ type RegistryCredentialPair struct {
 
 // SkiperatorConfig holds various configuration options for Skiperator that may differ across
 // environments or deployments (public cloud, local development or on-premises).
+// TopologyKeys - what node labels to set when configuring pod topology spread constraints, see
+// https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+// LeaderElection - whether to enable leader election, must be set to true if number of Skiperator replicas > 1
+// LeaderElectionNamespace - namespace for leader election
+// ConcurrentReconciles - Number of concurrent reconciles that Skiperator will perform.
+// May incur performance degradation if set too high or too low.
+// IsDeployment - set to true if deploying to a cluster, else set to false. Prevents running local testing against
+// actual Kubernetes clusters
+// LogLevel - permitted values: info, debug, error
+// EnableProfiling - enables the use of pprof to visualize and analyze profiling data of Skiperator
+// RegistryCredentials - list of URLS and access tokens for container registries that will be inserted into all
+// Skiperator-managed application namespaces
+// ClusterCIDRExclusionEnabled - set to true to prevent Skiperator-managed applications from reaching certain CIDR ranges
+// like cluster nodes, control plane etc.
+// ClusterCIDRMap - map of the CIDR ranges to block traffic from Skiperator-managed application namespaces
+// EnableLocallyBuiltImages - whether to enable Skiperator to allow the use of locally built container images
+// for development purposes
+// GCPIdentityProvider - Provider for Workload Identity Federation (WIF)
+// GCPWorkloadIdentityPool - Identity pool for Workload Identity Federation (WIF)
 type SkiperatorConfig struct {
 	TopologyKeys                []string                 `json:"topologyKeys,omitempty"`
 	LeaderElection              bool                     `json:"leaderElection,omitempty"`
@@ -81,7 +100,7 @@ func parseConfig(cm *corev1.ConfigMap) error {
 	var cfg = SkiperatorConfig{
 		TopologyKeys:                []string{"kubernetes.io/hostname"},
 		LeaderElection:              false,
-		LeaderElectionNamespace:     "skiperator-system",
+		LeaderElectionNamespace:     cmNamespace,
 		ConcurrentReconciles:        1,
 		IsDeployment:                false,
 		LogLevel:                    "info",

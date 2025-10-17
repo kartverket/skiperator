@@ -2,6 +2,7 @@ package reconciliation
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -12,7 +13,7 @@ type JobReconciliation struct {
 	baseReconciliation
 }
 
-func NewJobReconciliation(ctx context.Context, job *skiperatorv1alpha1.SKIPJob, logger log.Logger, istioEnabled bool, restConfig *rest.Config, skiperatorConfig *config.SkiperatorConfig) *JobReconciliation {
+func NewJobReconciliation(ctx context.Context, job *skiperatorv1alpha1.SKIPJob, logger log.Logger, istioEnabled bool, restConfig *rest.Config, skiperatorConfig config.SkiperatorConfig) *JobReconciliation {
 	return &JobReconciliation{
 		baseReconciliation: baseReconciliation{
 			ctx:              ctx,

@@ -75,18 +75,15 @@ func main() {
 		setupLog.Error(err, "could not load global config")
 		os.Exit(1)
 	} else {
-		setupLog.Info("Successfully loaded global config", "config", config.GetActiveConfig())
+		setupLog.Info("Successfully loaded global config")
 	}
 
 	activeConfig := config.GetActiveConfig()
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, activeConfig.ConcurrentReconciles))
 
-	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
-
 	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
 
-	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Development: !activeConfig.IsDeployment,
 		Level:       parsedLogLevel,
@@ -133,17 +130,12 @@ func main() {
 
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-		SkiperatorConfig: &activeConfig,
+		SkiperatorConfig: activeConfig,
 	}).SetupWithManager(mgr, activeConfig.ConcurrentReconciles)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
-
-	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
-	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
-	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
-	// directly from namespaces as per SKIP-1704
 
 	var skipClusterList *config.SKIPClusterList
 	if activeConfig.ClusterCIDRExclusionEnabled {
@@ -158,7 +150,7 @@ func main() {
 
 	err = (&controllers.SKIPJobReconciler{
 		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("skipjob-controller")),
-		SkiperatorConfig: &activeConfig,
+		SkiperatorConfig: activeConfig,
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SKIPJob")

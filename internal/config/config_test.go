@@ -82,7 +82,7 @@ func TestCompleteConfigMap(t *testing.T) {
 		IsDeployment:            true,
 		LogLevel:                "debug",
 		RegistryCredentials: []RegistryCredentialPair{
-			RegistryCredentialPair{
+			{
 				Registry: "foo",
 				Token:    "bar",
 			},
@@ -91,7 +91,7 @@ func TestCompleteConfigMap(t *testing.T) {
 		ClusterCIDRMap: SKIPClusterList{
 			Clusters: []*SKIPCluster{
 				{
-					Name:              "",
+					Name:              "testcluster",
 					ControlPlaneCIDRs: []string{"1.1.1.1/32", "2.2.2.2/32"},
 					WorkerNodeCIDRs:   []string{"1.1.1.1/32", "2.2.2.2/32"},
 				},
@@ -116,6 +116,10 @@ func TestCompleteConfigMap(t *testing.T) {
 	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs))
 	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs))
 	assert.Equal(t, "1.1.1.1/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs[0])
+	assert.Equal(t, "2.2.2.2/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs[1])
+	assert.Equal(t, "1.1.1.1/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs[0])
+	assert.Equal(t, "2.2.2.2/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs[1])
+	assert.Equal(t, "testcluster", GetActiveConfig().ClusterCIDRMap.Clusters[0].Name)
 	assert.Equal(t, true, GetActiveConfig().EnableLocallyBuiltImages)
 	assert.Equal(t, "foobar", GetActiveConfig().GCPIdentityProvider)
 	assert.Equal(t, "barfoo", GetActiveConfig().GCPWorkloadIdentityPool)

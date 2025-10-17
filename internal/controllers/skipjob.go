@@ -54,7 +54,7 @@ const (
 // leave an empty line over this comment
 type SKIPJobReconciler struct {
 	common.ReconcilerBase
-	*config.SkiperatorConfig
+	config.SkiperatorConfig
 }
 
 // TODO Watch applications that are using dynamic port allocation

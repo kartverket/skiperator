@@ -4,6 +4,7 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"golang.org/x/exp/maps"
@@ -25,7 +26,21 @@ func GetTestMinimalAppReconciliation() *reconciliation.ApplicationReconciliation
 	application.FillDefaultsSpec()
 	maps.Copy(application.Labels, application.GetDefaultLabels())
 	ctx := context.TODO()
-	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), false, nil, nil, nil)
+	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{
+		TopologyKeys:                nil,
+		LeaderElection:              false,
+		LeaderElectionNamespace:     "",
+		ConcurrentReconciles:        0,
+		IsDeployment:                false,
+		LogLevel:                    "",
+		EnableProfiling:             false,
+		RegistryCredentials:         nil,
+		ClusterCIDRExclusionEnabled: false,
+		ClusterCIDRMap:              config.SKIPClusterList{},
+		EnableLocallyBuiltImages:    false,
+		GCPIdentityProvider:         "",
+		GCPWorkloadIdentityPool:     "",
+	})
 
 	return r
 }

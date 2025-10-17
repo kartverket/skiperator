@@ -52,15 +52,11 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	podOpts := pod.PodOpts{
-		IstioEnabled: r.IsIstioEnabled(),
+		IstioEnabled:     r.IsIstioEnabled(),
+		LocalBuiltImages: r.GetSkiperatorConfig().EnableLocallyBuiltImages,
 	}
 
-	config := r.GetSkiperatorConfig()
-	var enableLocallyBuiltImages bool
-	if config != nil {
-		enableLocallyBuiltImages = config.EnableLocallyBuiltImages
-	}
-	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts, enableLocallyBuiltImages)
+	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
 
 	var err error
 
@@ -220,7 +216,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
-	if !enableLocallyBuiltImages {
+	if !podOpts.LocalBuiltImages {
 		err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
 		if err != nil {
 			//TODO fix this

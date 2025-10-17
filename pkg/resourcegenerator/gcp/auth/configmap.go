@@ -52,11 +52,7 @@ func getConfigMap(r reconciliation.Reconciliation) error {
 	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
 	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: gcpAuthConfigMapName}}
 	config := r.GetSkiperatorConfig()
-	if config == nil {
-		err := fmt.Errorf("Skiperator config is nil")
-		ctxLog.Error(err, "Cannot generate GCP auth config")
-		return err
-	}
+
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
 		Audience:                       "identitynamespace:" + config.GCPWorkloadIdentityPool + ":" + config.GCPIdentityProvider,
