@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
@@ -68,7 +68,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 		return common.DoNotRequeue()
 	}
 	//This is a hack because namespace shouldn't be here. We need this to keep things generic
-	SKIPNamespace := skiperatorv1beta1.SKIPNamespace{Namespace: namespace}
+	SKIPNamespace := skiperatorv1alpha1.SKIPNamespace{Namespace: namespace}
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, namespace.Name)
 	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
@@ -111,7 +111,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	return common.DoNotRequeue()
 }
 
-func (r *NamespaceReconciler) setResourceDefaults(resources []client.Object, skipns *skiperatorv1beta1.SKIPNamespace) error {
+func (r *NamespaceReconciler) setResourceDefaults(resources []client.Object, skipns *skiperatorv1alpha1.SKIPNamespace) error {
 	for _, resource := range resources {
 		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {
 			return err

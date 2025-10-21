@@ -5,7 +5,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +23,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("certificate only supports application type")
 	}
 
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}

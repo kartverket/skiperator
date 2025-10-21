@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/kartverket/skiperator/api/common/istiotypes"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"google.golang.org/protobuf/types/known/durationpb"
 	networkingv1api "istio.io/api/networking/v1"
@@ -23,7 +23,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate virtual service for application", "application", r.GetSKIPObject().GetName())
 
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
@@ -85,7 +85,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getGatewaysFromApplication(application *skiperatorv1beta1.Application) []string {
+func getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []string {
 	hosts, _ := application.Spec.Hosts()
 	gateways := make([]string, 0, hosts.Count())
 	for _, hostname := range hosts.Hostnames() {

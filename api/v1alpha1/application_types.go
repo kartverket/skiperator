@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kartverket/skiperator/api/common"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -419,8 +420,8 @@ func (a *Application) GetCommonSpec() *CommonSpec {
 	}
 }
 
-func (s *ApplicationSpec) Hosts() (HostCollection, error) {
-	hosts := NewCollection()
+func (s *ApplicationSpec) Hosts() (common.HostCollection, error) {
+	hosts := common.NewCollection()
 
 	var errorsFound []error
 	for _, ingress := range s.Ingresses {

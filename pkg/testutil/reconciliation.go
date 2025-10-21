@@ -3,7 +3,7 @@ package testutil
 import (
 	"context"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"golang.org/x/exp/maps"
@@ -12,14 +12,14 @@ import (
 )
 
 func GetTestMinimalAppReconciliation() *reconciliation.ApplicationReconciliation {
-	application := &skiperatorv1beta1.Application{
+	application := &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "minimal",
 			Namespace: "test",
 			Labels:    make(map[string]string),
 		},
 	}
-	application.Spec = skiperatorv1beta1.ApplicationSpec{
+	application.Spec = skiperatorv1alpha1.ApplicationSpec{
 		Image: "image",
 		Port:  8080,
 	}

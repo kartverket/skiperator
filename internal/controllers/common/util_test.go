@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
-	"github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,16 +13,16 @@ import (
 
 func TestShouldReconcile(t *testing.T) {
 	r := testutil.GetTestMinimalAppReconciliation()
-	app := r.GetSKIPObject().(*v1beta1.Application)
+	app := r.GetSKIPObject().(*v1alpha1.Application)
 	assert.True(t, ShouldReconcile(app))
 	app.Labels["skiperator.kartverket.no/ignore"] = "true"
 	assert.False(t, ShouldReconcile(app))
 }
 
 func TestStatusDiffWithTimestamp(t *testing.T) {
-	status := &v1beta1.SkiperatorStatus{
-		Summary: v1beta1.Status{
-			Status:    v1beta1.SYNCED,
+	status := &v1alpha1.SkiperatorStatus{
+		Summary: v1alpha1.Status{
+			Status:    v1alpha1.SYNCED,
 			Message:   "All subresources synced",
 			TimeStamp: time.Now().String(),
 		},
@@ -32,9 +32,9 @@ func TestStatusDiffWithTimestamp(t *testing.T) {
 				LastTransitionTime: v1.Now(),
 			},
 		},
-		SubResources: map[string]v1beta1.Status{
+		SubResources: map[string]v1alpha1.Status{
 			"test": {
-				Status:    v1beta1.SYNCED,
+				Status:    v1alpha1.SYNCED,
 				Message:   "All subresources synced",
 				TimeStamp: time.Now().String(),
 			},
@@ -43,8 +43,8 @@ func TestStatusDiffWithTimestamp(t *testing.T) {
 	tmpStatus := status.DeepCopy()
 	status.Summary.TimeStamp = time.Now().String()
 	status.Conditions[0].LastTransitionTime = v1.Now()
-	status.SubResources["test"] = v1beta1.Status{
-		Status:    v1beta1.SYNCED,
+	status.SubResources["test"] = v1alpha1.Status{
+		Status:    v1alpha1.SYNCED,
 		Message:   "All subresources synced",
 		TimeStamp: time.Now().String(),
 	}

@@ -2,10 +2,12 @@ package v1alpha1
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/kartverket/skiperator/api/common"
 	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
-	"time"
 )
 
 //+kubebuilder:object:root=true
@@ -94,8 +96,8 @@ func (in *Routing) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
 }
 
-func (in *RoutingSpec) GetHost() (*Host, error) {
-	return NewHost(in.Hostname)
+func (in *RoutingSpec) GetHost() (*common.Host, error) {
+	return common.NewHost(in.Hostname)
 }
 
 func (in *Routing) GetStatus() *SkiperatorStatus {

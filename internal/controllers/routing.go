@@ -8,7 +8,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	. "github.com/kartverket/skiperator/pkg/reconciliation"
@@ -40,13 +40,13 @@ type RoutingReconciler struct {
 
 func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1beta1.Routing{}).
+		For(&skiperatorv1alpha1.Routing{}).
 		Owns(&istionetworkingv1.Gateway{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1.VirtualService{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.skiperatorRoutingCertRequests)).
 		Watches(
-			&skiperatorv1beta1.Application{},
+			&skiperatorv1alpha1.Application{},
 			handler.EnqueueRequestsFromMapFunc(r.skiperatorApplicationsChanges)).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
 		Complete(r)
@@ -142,8 +142,8 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	return common.DoNotRequeue()
 }
 
-func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1beta1.Routing, error) {
-	routing := &skiperatorv1beta1.Routing{}
+func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Routing, error) {
+	routing := &skiperatorv1alpha1.Routing{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, routing); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -155,7 +155,7 @@ func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Reques
 }
 
 func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) []error {
-	route := &skiperatorv1beta1.Routing{}
+	route := &skiperatorv1alpha1.Routing{}
 	route.SetName(name.Name)
 	route.SetNamespace(name.Namespace)
 
@@ -166,7 +166,7 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 }
 
 // TODO Do this with application too for dynamic port allocation?
-func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1beta1.Routing) error {
+func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) error {
 	for i := range routing.Spec.Routes {
 		route := &routing.Spec.Routes[i] // Get a pointer to the route in the slice
 		if route.Port == 0 {
@@ -180,7 +180,7 @@ func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skipera
 	return nil
 }
 
-func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1beta1.Routing) error {
+func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
 			return err
@@ -191,14 +191,14 @@ func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object
 }
 
 func (r *RoutingReconciler) skiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {
-	application, isApplication := obj.(*skiperatorv1beta1.Application)
+	application, isApplication := obj.(*skiperatorv1alpha1.Application)
 
 	if !isApplication {
 		return nil
 	}
 
 	// List all routings in the same namespace as the application
-	routesList := &skiperatorv1beta1.RoutingList{}
+	routesList := &skiperatorv1alpha1.RoutingList{}
 	if err := r.GetClient().List(context, routesList, &client.ListOptions{Namespace: application.Namespace}); err != nil {
 		return nil
 	}
@@ -243,8 +243,8 @@ func (r *RoutingReconciler) skiperatorRoutingCertRequests(_ context.Context, obj
 	return requests
 }
 
-func (r *RoutingReconciler) getTargetApplication(ctx context.Context, appName string, namespace string) (*skiperatorv1beta1.Application, error) {
-	application := &skiperatorv1beta1.Application{}
+func (r *RoutingReconciler) getTargetApplication(ctx context.Context, appName string, namespace string) (*skiperatorv1alpha1.Application, error) {
+	application := &skiperatorv1alpha1.Application{}
 	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: appName, Namespace: namespace}, application); err != nil {
 		return nil, fmt.Errorf("error when trying to get target application: %w", err)
 	}

@@ -2,7 +2,7 @@ package common
 
 import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,7 +13,7 @@ import (
 var DefaultPredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
 		switch e.Object.(type) {
-		case *skiperatorv1beta1.Application,
+		case *skiperatorv1alpha1.Application,
 			*corev1.Secret,
 			*certmanagerv1.Certificate:
 			return true

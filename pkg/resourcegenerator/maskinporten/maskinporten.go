@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kartverket/skiperator/api/common/digdirator"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
@@ -16,7 +16,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in maskin porten resource", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate maskin porten resource")
@@ -53,7 +53,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getMaskinportenSpec(application *skiperatorv1beta1.Application) (naisiov1.MaskinportenClientSpec, error) {
+func getMaskinportenSpec(application *skiperatorv1alpha1.Application) (naisiov1.MaskinportenClientSpec, error) {
 	secretName, err := GetMaskinportenSecretName(application.Name)
 	if err != nil {
 		return naisiov1.MaskinportenClientSpec{}, err

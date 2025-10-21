@@ -77,10 +77,12 @@ install-istio:
 	# Manually pull and load images into the cluster for local testing
 
 	@for image in $(ISTIO_IMAGES); do \
-	  echo "Pulling $$image"; \
-	  docker pull "$$image"; \
+	  echo "Removing cached $$image if exists"; \
+	  docker rmi -f "$$image" 2>/dev/null || true; \
+	  echo "Pulling $$image for platform linux/$(ARCH)"; \
+	  docker pull --platform linux/$(ARCH) "$$image"; \
 	  echo "Loading $$image into kind cluster 'skiperator'"; \
-	  kind load docker-image "$$image" --name skiperator; \
+	  docker save "$$image" | docker exec -i skiperator-control-plane ctr --namespace=k8s.io images import -; \
 	done
 
 	@echo "Downloading Istio..."
@@ -97,10 +99,12 @@ install-cert-manager:
 	| grep 'image:' \
 	| sed -E 's/.*image:[[:space:]]*"?([^"]*)"?/\1/' \
 	| while read -r image; do \
-	    echo "Pulling $$image"; \
-	    docker pull "$$image"; \
+	    echo "Removing cached $$image if exists"; \
+	    docker rmi -f "$$image" 2>/dev/null || true; \
+	    echo "Pulling $$image for platform linux/$(ARCH)"; \
+	    docker pull --platform linux/$(ARCH) "$$image"; \
 	    echo "Loading $$image into kind cluster '$(KIND_CLUSTER_NAME)'"; \
-	    kind load docker-image "$$image" --name $(KIND_CLUSTER_NAME); \
+	    docker save "$$image" | docker exec -i $(KIND_CLUSTER_NAME)-control-plane ctr --namespace=k8s.io images import -; \
 	  done
 
 	@echo "Installing cert-manager"

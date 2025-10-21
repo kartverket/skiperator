@@ -3,7 +3,7 @@ package deployment
 import (
 	"testing"
 
-	"github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +29,7 @@ func TestDeploymentMinimalAppShouldHaveLabels(t *testing.T) {
 func TestHPAReplicasIsZero(t *testing.T) {
 	// Setup
 	r := testutil.GetTestMinimalAppReconciliation()
-	r.GetSKIPObject().(*v1beta1.Application).Spec.Replicas = &apiextensionsv1.JSON{Raw: []byte(`{"min": 0, "max": 0, "targetCpuUtilization": 200}`)}
+	r.GetSKIPObject().(*v1alpha1.Application).Spec.Replicas = &apiextensionsv1.JSON{Raw: []byte(`{"min": 0, "max": 0, "targetCpuUtilization": 200}`)}
 	// Test
 	err := Generate(r)
 

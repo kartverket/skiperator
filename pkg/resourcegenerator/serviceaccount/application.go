@@ -3,7 +3,7 @@ package serviceaccount
 import (
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -18,7 +18,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate service account for application", "application", r.GetSKIPObject().GetName())
 
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}

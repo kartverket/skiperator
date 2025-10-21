@@ -6,8 +6,8 @@ HOST_ADDR="host.docker.internal"
 echo "Using host address: $HOST_ADDR"
 
 # Get the IP that kind can reach
-HOST_IP=$(docker run --rm --network kind busybox nslookup host.docker.internal | grep "Address:" | tail -n1 | awk '{print $2}')
-
+#HOST_IP=$(docker run --rm --network kind busybox nslookup host.docker.internal | grep "Address:" | tail -n1 | awk '{print $2}')
+HOST_IP=192.168.5.2
 if [ -z "$HOST_IP" ]; then
   echo "ERROR: Could not resolve host.docker.internal"
   echo "Falling back to Docker gateway IP..."

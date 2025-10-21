@@ -3,7 +3,7 @@ package peerauthentication
 import (
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	securityv1api "istio.io/api/security/v1"
@@ -17,7 +17,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in peer authentication", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate peer authentication")

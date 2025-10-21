@@ -3,7 +3,7 @@ package reconciliation
 import (
 	"context"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
@@ -14,7 +14,7 @@ type ApplicationReconciliation struct {
 	baseReconciliation
 }
 
-func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1beta1.Application,
+func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application,
 	logger log.Logger, istioEnabled bool, restConfig *rest.Config,
 	identityConfigMap *corev1.ConfigMap, authConfigs *auth.AuthConfigs) *ApplicationReconciliation {
 	return &ApplicationReconciliation{

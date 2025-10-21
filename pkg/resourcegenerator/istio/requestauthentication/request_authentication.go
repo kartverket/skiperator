@@ -3,7 +3,7 @@ package requestauthentication
 import (
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -19,7 +19,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in RequestAuthentication", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate RequestAuthentication")
@@ -40,7 +40,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getRequestAuthentication(application *skiperatorv1beta1.Application, authConfigs []auth.AuthConfig) securityv1.RequestAuthentication {
+func getRequestAuthentication(application *skiperatorv1alpha1.Application, authConfigs []auth.AuthConfig) securityv1.RequestAuthentication {
 	jwtRules := make([]*v1beta1.JWTRule, len(authConfigs))
 	for i, config := range authConfigs {
 		jwtRules[i] = getJWTRule(config)

@@ -3,7 +3,7 @@ package virtualservice
 import (
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -18,7 +18,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate virtual service for routing", "routing", r.GetSKIPObject().GetName())
 
-	routing, ok := r.GetSKIPObject().(*skiperatorv1beta1.Routing)
+	routing, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}

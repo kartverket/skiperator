@@ -14,7 +14,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 
 	"github.com/go-logr/logr"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
 	"golang.org/x/exp/maps"
@@ -36,7 +36,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in deployment resource", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate deployment resource")
@@ -195,10 +195,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		deployment.Spec.Replicas = util.PointTo(int32(0))
 	}
 
-	if !skiperatorv1beta1.IsHPAEnabled(application.Spec.Replicas) {
-		if replicas, err := skiperatorv1beta1.GetStaticReplicas(application.Spec.Replicas); err == nil {
+	if !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
+		if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas))
-		} else if replicas, err := skiperatorv1beta1.GetScalingReplicas(application.Spec.Replicas); err == nil {
+		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
 			ctxLog.Error(err, "could not get replicas from application spec")
@@ -274,7 +274,7 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 	}
 }
 
-func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1beta1.Application, ctxLog logr.Logger) string {
+func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application, ctxLog logr.Logger) string {
 	if numericPort := port.IntValue(); numericPort > 0 {
 		return fmt.Sprintf("%d", numericPort)
 	}

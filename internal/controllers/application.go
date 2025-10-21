@@ -8,7 +8,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/common/digdirator"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -88,7 +88,7 @@ var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles *int) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&skiperatorv1beta1.Application{}).
+		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
@@ -275,27 +275,27 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) updateConditions(app *skiperatorv1beta1.Application) {
+func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
 	var conditions []metav1.Condition
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1beta1.INVALIDCONFIG
+		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1beta1.INVALIDCONFIG
+		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
 	} else {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
 		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-		app.Status.AccessPolicies = skiperatorv1beta1.READY
+		app.Status.AccessPolicies = skiperatorv1alpha1.READY
 	}
 
 	app.Status.Conditions = conditions
 }
 
-func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1beta1.Application, error) {
-	application := &skiperatorv1beta1.Application{}
+func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {
+	application := &skiperatorv1alpha1.Application{}
 	if err := r.GetClient().Get(ctx, req.NamespacedName, application); err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
@@ -307,7 +307,7 @@ func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcil
 }
 
 func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, name types.NamespacedName) []error {
-	app := &skiperatorv1beta1.Application{}
+	app := &skiperatorv1alpha1.Application{}
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
@@ -317,7 +317,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	return processor.Process(reconciliation)
 }
 
-func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1beta1.Application, ctx context.Context) error {
+func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1alpha1.Application, ctx context.Context) error {
 	if ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.RemoveFinalizer(application, applicationFinalizer)
 		err := r.GetClient().Update(ctx, application)
@@ -329,7 +329,7 @@ func (r *ApplicationReconciler) finalizeApplication(application *skiperatorv1bet
 	return nil
 }
 
-func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []client.Object, app *skiperatorv1beta1.Application) error {
+func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []client.Object, app *skiperatorv1alpha1.Application) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, app); err != nil {
 			return err
@@ -348,7 +348,7 @@ func (r *ApplicationReconciler) setApplicationResourcesDefaults(resources []clie
 /*
  * Set application defaults. For existing applications this shouldn't do anything
  */
-func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1beta1.Application, ctx context.Context) {
+func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1alpha1.Application, ctx context.Context) {
 	application.FillDefaultsSpec()
 	if !ctrlutil.ContainsFinalizer(application, applicationFinalizer) {
 		ctrlutil.AddFinalizer(application, applicationFinalizer)
@@ -379,7 +379,7 @@ func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
 	return true
 }
 
-func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1beta1.Application) (string, error) {
+func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
 	ns := &corev1.Namespace{}
 	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: app.Namespace}, ns); err != nil {
 		return "", err
@@ -457,7 +457,7 @@ func isIngressGateway(gateway *istionetworkingv1.Gateway) bool {
 }
 
 // TODO should be handled better
-func validateIngresses(application *skiperatorv1beta1.Application) error {
+func validateIngresses(application *skiperatorv1alpha1.Application) error {
 	var err error
 	hosts, err := application.Spec.Hosts()
 	if err != nil {
@@ -476,7 +476,7 @@ func validateIngresses(application *skiperatorv1beta1.Application) error {
 	return nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1beta1.Application) (*jwtAuth.AuthConfigs, error) {
+func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context, application *skiperatorv1alpha1.Application) (*jwtAuth.AuthConfigs, error) {
 	var authConfigs jwtAuth.AuthConfigs
 
 	providers := []digdirator.DigdiratorProvider{
@@ -500,7 +500,7 @@ func (r *ApplicationReconciler) getAuthConfigsForApplication(ctx context.Context
 	}
 }
 
-func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1beta1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
+func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*jwtAuth.AuthConfig, error) {
 	secret, err := r.getAuthConfigSecret(ctx, application, digdiratorProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get auth config secret for %s: %w", digdiratorProvider.GetDigdiratorName(), err)
@@ -538,7 +538,7 @@ func (r *ApplicationReconciler) getAuthConfig(ctx context.Context, application s
 	}, nil
 }
 
-func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1beta1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
+func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, application skiperatorv1alpha1.Application, digdiratorProvider digdirator.DigdiratorProvider) (*corev1.Secret, error) {
 	var secretName *string
 	var err error
 
@@ -564,7 +564,7 @@ func (r *ApplicationReconciler) getAuthConfigSecret(ctx context.Context, applica
 	return &secret, nil
 }
 
-func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, digdiratorProvider digdirator.DigdiratorProvider, application skiperatorv1beta1.Application) (*string, error) {
+func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, digdiratorProvider digdirator.DigdiratorProvider, application skiperatorv1alpha1.Application) (*string, error) {
 	var digdiratorClient digdirator.DigdiratorClient
 	var err error
 

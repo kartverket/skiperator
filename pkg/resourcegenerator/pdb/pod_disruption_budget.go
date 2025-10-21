@@ -3,7 +3,7 @@ package pdb
 import (
 	"fmt"
 
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -17,7 +17,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() != reconciliation.ApplicationType {
 		return fmt.Errorf("unsupported type %s in pod disruption budget", r.GetType())
 	}
-	application, ok := r.GetSKIPObject().(*skiperatorv1beta1.Application)
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := fmt.Errorf("failed to cast resource to application")
 		ctxLog.Error(err, "Failed to generate pod disruption budget")
@@ -29,9 +29,9 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	// Determine the number of replicas first
 	var minReplicas uint
-	if replicas, err := skiperatorv1beta1.GetStaticReplicas(application.Spec.Replicas); err == nil {
+	if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
 		minReplicas = replicas
-	} else if replicasStruct, err := skiperatorv1beta1.GetScalingReplicas(application.Spec.Replicas); err == nil {
+	} else if replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 		minReplicas = replicasStruct.Min
 	} else {
 		ctxLog.Error(err, "Failed to get replicas")

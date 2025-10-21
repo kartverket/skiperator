@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/flags"
@@ -73,7 +74,7 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 	return p
 }
 
-func CreateApplicationContainer(application *skiperatorv1beta1.Application, opts PodOpts) corev1.Container {
+func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
 	imagePullPolicy := func() corev1.PullPolicy {
 		if flags.FeatureFlags.EnableLocallyBuiltImages {
 			return corev1.PullNever
@@ -257,7 +258,7 @@ func getEnv(variables []corev1.EnvVar) []corev1.EnvVar {
 	return variables
 }
 
-func getContainerPorts(application *skiperatorv1beta1.Application, opts PodOpts) []corev1.ContainerPort {
+func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts) []corev1.ContainerPort {
 
 	containerPorts := []corev1.ContainerPort{
 		{
