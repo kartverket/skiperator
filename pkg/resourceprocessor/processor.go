@@ -1,7 +1,7 @@
 package resourceprocessor
 
 import (
-	"github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,7 +27,7 @@ func NewResourceProcessor(client client.Client, schemas []unstructured.Unstructu
 
 func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error {
 	if !hasGVK(task.GetResources()) {
-		return []error{v1beta1.ErrNoGVK}
+		return []error{v1alpha1.ErrNoGVK}
 	}
 	diffs, err := r.getDiff(task)
 	if err != nil {
@@ -58,10 +58,10 @@ func (r *ResourceProcessor) Process(task reconciliation.Reconciliation) []error 
 	var errors []error
 	for obj, err := range results {
 		if err != nil {
-			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, err.Error(), v1beta1.ERROR)
+			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, err.Error(), v1alpha1.ERROR)
 			errors = append(errors, err)
 		} else {
-			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, "has finished synchronizing", v1beta1.SYNCED)
+			task.GetSKIPObject().GetStatus().AddSubResourceStatus(obj, "has finished synchronizing", v1alpha1.SYNCED)
 		}
 	}
 	return errors
