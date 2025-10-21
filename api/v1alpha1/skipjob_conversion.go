@@ -7,7 +7,10 @@ import (
 
 // ConvertTo: v1alpha1 -> v1beta1
 func (src *SKIPJob) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.SKIPJob)
+	dst, ok := dstRaw.(*v1beta1.SKIPJob)
+	if !ok {
+		return errors.New("cannot convert SKIPJob from v1alpha1 to v1beta1")
+	}
 
 	dst.ObjectMeta = src.ObjectMeta
 	dst.Spec.Job = src.Spec.Job
@@ -24,7 +27,10 @@ func (src *SKIPJob) ConvertTo(dstRaw conversion.Hub) error {
 
 // ConvertFrom: v1beta1 -> v1alpha1
 func (dst *SKIPJob) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.SKIPJob)
+	src, ok := srcRaw.(*v1beta1.SKIPJob)
+	if !ok {
+		return errors.New("cannot convert SKIPJob from v1beta1 to v1alpha1")
+	}
 
 	dst.ObjectMeta = src.ObjectMeta
 	dst.Spec.Job = src.Spec.Job
