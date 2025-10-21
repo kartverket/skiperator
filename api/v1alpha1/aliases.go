@@ -85,3 +85,9 @@ const (
 	READY         = common.READY
 	INVALIDCONFIG = common.INVALIDCONFIG
 )
+
+// ===== SKIPObject =====
+type SKIPObject = common.SKIPObject
+type CommonSpec = common.CommonSpec
+
+var ErrNoGVK = common.ErrNoGVK
