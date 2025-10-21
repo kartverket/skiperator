@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/common/podtypes"
-	"github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -145,26 +145,26 @@ func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipO
 	return nil
 }
 
-func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj v1beta1.SKIPObject, err error, message string, reason string) {
+func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj v1alpha1.SKIPObject, err error, message string, reason string) {
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj v1beta1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1beta1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1beta1.SKIPObject) {
-	latestObj := skipObj.DeepCopyObject().(v1beta1.SKIPObject)
+func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIPObject) {
+	latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
 	key := client.ObjectKeyFromObject(skipObj)
 
 	if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
@@ -195,7 +195,7 @@ func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName 
 	return servicePorts, nil
 }
 
-func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1beta1.SKIPObject) {
+func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SKIPObject) {
 	if obj.GetCommonSpec().AccessPolicy == nil {
 		return
 	}
