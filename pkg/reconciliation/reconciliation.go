@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,20 +28,20 @@ type Reconciliation interface {
 	GetType() ObjectType
 	GetResources() []client.Object
 	AddResource(client.Object)
-	GetIdentityConfigMap() *corev1.ConfigMap
 	GetRestConfig() *rest.Config
 	GetAuthConfigs() *auth.AuthConfigs
+	GetSkiperatorConfig() config.SkiperatorConfig
 }
 
 type baseReconciliation struct {
-	ctx               context.Context
-	logger            log.Logger
-	resources         []client.Object
-	istioEnabled      bool
-	restConfig        *rest.Config
-	identityConfigMap *corev1.ConfigMap
-	skipObject        v1alpha1.SKIPObject
-	authConfigs       *auth.AuthConfigs
+	ctx              context.Context
+	logger           log.Logger
+	resources        []client.Object
+	istioEnabled     bool
+	restConfig       *rest.Config
+	skipObject       v1alpha1.SKIPObject
+	authConfigs      *auth.AuthConfigs
+	skiperatorConfig config.SkiperatorConfig
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -64,10 +64,6 @@ func (b *baseReconciliation) AddResource(object client.Object) {
 	b.resources = append(b.resources, object)
 }
 
-func (b *baseReconciliation) GetIdentityConfigMap() *corev1.ConfigMap {
-	return b.identityConfigMap
-}
-
 func (b *baseReconciliation) GetRestConfig() *rest.Config {
 	return b.restConfig
 }
@@ -78,4 +74,8 @@ func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 
 func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
 	return b.authConfigs
+}
+
+func (b *baseReconciliation) GetSkiperatorConfig() config.SkiperatorConfig {
+	return b.skiperatorConfig
 }
