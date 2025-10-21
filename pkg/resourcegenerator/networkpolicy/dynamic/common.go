@@ -5,7 +5,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -83,7 +82,7 @@ func getPolicyTypes(ingressRules []networkingv1.NetworkPolicyIngressRule, egress
 	return policyType
 }
 
-func getCloudSQLEgressRule(skipObject common.SKIPObject) networkingv1.NetworkPolicyEgressRule {
+func getCloudSQLEgressRule(skipObject skiperatorv1alpha1.SKIPObject) networkingv1.NetworkPolicyEgressRule {
 	return networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
 			{
@@ -99,7 +98,7 @@ func getCloudSQLEgressRule(skipObject common.SKIPObject) networkingv1.NetworkPol
 	}
 }
 
-func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject common.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
+func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1alpha1.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
 
 	if util.IsCloudSqlProxyEnabled(skipObject.GetCommonSpec().GCP) {
