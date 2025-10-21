@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"errors"
+
 	"github.com/kartverket/skiperator/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
