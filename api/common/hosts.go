@@ -17,6 +17,7 @@ type Host struct {
 }
 
 type HostCollection struct {
+	hosts map[string]*Host
 }
 
 func NewHost(hostname string) (*Host, error) {
