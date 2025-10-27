@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -126,7 +125,7 @@ func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []
 	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
 }
 
-func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object common.SKIPObject) (*podtypes.AccessPolicy, error) {
+func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object skiperatorv1alpha1.SKIPObject) (*podtypes.AccessPolicy, error) {
 	if !util.IsCloudSqlProxyEnabled(object.GetCommonSpec().GCP) {
 		return accessPolicy, nil
 	}

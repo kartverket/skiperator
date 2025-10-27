@@ -3,7 +3,7 @@ package reconciliation
 import (
 	"context"
 
-	"github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
 	corev1 "k8s.io/api/core/v1"
@@ -24,7 +24,7 @@ type Reconciliation interface {
 	GetLogger() log.Logger
 	GetCtx() context.Context //TODO: remove ctx from this interface
 	IsIstioEnabled() bool
-	GetSKIPObject() v1beta1.SKIPObject
+	GetSKIPObject() v1alpha1.SKIPObject
 	GetType() ObjectType
 	GetResources() []client.Object
 	AddResource(client.Object)
@@ -40,7 +40,7 @@ type baseReconciliation struct {
 	istioEnabled      bool
 	restConfig        *rest.Config
 	identityConfigMap *corev1.ConfigMap
-	skipObject        v1beta1.SKIPObject
+	skipObject        v1alpha1.SKIPObject
 	authConfigs       *auth.AuthConfigs
 }
 
@@ -72,7 +72,7 @@ func (b *baseReconciliation) GetRestConfig() *rest.Config {
 	return b.restConfig
 }
 
-func (b *baseReconciliation) GetSKIPObject() v1beta1.SKIPObject {
+func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 	return b.skipObject
 }
 
