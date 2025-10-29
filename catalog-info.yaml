@@ -12,19 +12,6 @@ spec:
   system: "skip"
 ---
 apiVersion: "backstage.io/v1alpha1"
-kind: "Group"
-metadata:
-  name: "security_champion_skiperator"
-  title: "Security Champion skiperator"
-spec:
-  type: "security_champion"
-  parent: "it_security_champions"
-  members:
-  - "omaen"
-  children:
-  - "resource:skiperator"
----
-apiVersion: "backstage.io/v1alpha1"
 kind: "Resource"
 metadata:
   name: "skiperator"
@@ -33,6 +20,6 @@ metadata:
     title: "skiperator på GitHub"
 spec:
   type: "repo"
-  owner: "security_champion_skiperator"
+  owner: "skip"
   dependencyOf:
   - "component:skiperator"
