@@ -72,6 +72,7 @@ docker_signs:
     cmd: cosign
     args:
       - "sign"
+      - "--use-signing-config=false"
       - "--oidc-issuer=https://token.actions.githubusercontent.com"
       - "${artifact}"
       - "--yes"
@@ -82,6 +83,7 @@ signs:
     signature: "${artifact}.sig"
     args:
     - "sign-blob"
+    - "--use-signing-config=false"
     - "--oidc-issuer=https://token.actions.githubusercontent.com"
     - "--output-signature=${signature}"
     - "${artifact}"
