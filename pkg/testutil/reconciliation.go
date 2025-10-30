@@ -26,21 +26,7 @@ func GetTestMinimalAppReconciliation() *reconciliation.ApplicationReconciliation
 	application.FillDefaultsSpec()
 	maps.Copy(application.Labels, application.GetDefaultLabels())
 	ctx := context.TODO()
-	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{
-		TopologyKeys:                nil,
-		LeaderElection:              false,
-		LeaderElectionNamespace:     "",
-		ConcurrentReconciles:        0,
-		IsDeployment:                false,
-		LogLevel:                    "",
-		EnableProfiling:             false,
-		RegistryCredentials:         nil,
-		ClusterCIDRExclusionEnabled: false,
-		ClusterCIDRMap:              config.SKIPClusterList{},
-		EnableLocallyBuiltImages:    false,
-		GCPIdentityProvider:         "",
-		GCPWorkloadIdentityPool:     "",
-	})
+	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
 
 	return r
 }

@@ -74,21 +74,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	assert.Nil(t, err)
 	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
-	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{
-		TopologyKeys:                nil,
-		LeaderElection:              false,
-		LeaderElectionNamespace:     "",
-		ConcurrentReconciles:        0,
-		IsDeployment:                false,
-		LogLevel:                    "",
-		EnableProfiling:             false,
-		RegistryCredentials:         nil,
-		ClusterCIDRExclusionEnabled: false,
-		ClusterCIDRMap:              config.SKIPClusterList{},
-		EnableLocallyBuiltImages:    false,
-		GCPIdentityProvider:         "",
-		GCPWorkloadIdentityPool:     "",
-	})
+	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
 	resourceutils.AddGVK(scheme, newSA)
 	resourceutils.AddGVK(scheme, liveDeploymentIgnorePatchOrCreate)
 	//build reconcile objects array

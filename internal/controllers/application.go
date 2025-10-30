@@ -309,21 +309,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{
-		TopologyKeys:                nil,
-		LeaderElection:              false,
-		LeaderElectionNamespace:     "",
-		ConcurrentReconciles:        0,
-		IsDeployment:                false,
-		LogLevel:                    "",
-		EnableProfiling:             false,
-		RegistryCredentials:         nil,
-		ClusterCIDRExclusionEnabled: false,
-		ClusterCIDRMap:              config.SKIPClusterList{},
-		EnableLocallyBuiltImages:    false,
-		GCPIdentityProvider:         "",
-		GCPWorkloadIdentityPool:     "",
-	})
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
 
 	return processor.Process(reconciliation)

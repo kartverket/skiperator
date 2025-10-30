@@ -81,10 +81,11 @@ func TestCompleteConfigMap(t *testing.T) {
 		ConcurrentReconciles:    1,
 		IsDeployment:            true,
 		LogLevel:                "debug",
-		RegistryCredentials: []RegistryCredentialPair{
+		RegistrySecretRefs: []RegistrySecretRef{
 			{
-				Registry: "foo",
-				Token:    "bar",
+				Registry:   "foo",
+				SecretKey:  "bar",
+				SecretName: "baz",
 			},
 		},
 		ClusterCIDRExclusionEnabled: false,
@@ -109,9 +110,10 @@ func TestCompleteConfigMap(t *testing.T) {
 	assert.Contains(t, GetActiveConfig().TopologyKeys, "topology.kubernetes.io/zone")
 	assert.Contains(t, GetActiveConfig().TopologyKeys, "skip.kartverket.no/unit-test")
 	assert.Equal(t, GetActiveConfig().IsDeployment, true)
-	assert.Equal(t, 1, len(GetActiveConfig().RegistryCredentials))
-	assert.Equal(t, "foo", GetActiveConfig().RegistryCredentials[0].Registry)
-	assert.Equal(t, "bar", GetActiveConfig().RegistryCredentials[0].Token)
+	assert.Equal(t, 1, len(GetActiveConfig().RegistrySecretRefs))
+	assert.Equal(t, "foo", GetActiveConfig().RegistrySecretRefs[0].Registry)
+	assert.Equal(t, "bar", GetActiveConfig().RegistrySecretRefs[0].SecretKey)
+	assert.Equal(t, "baz", GetActiveConfig().RegistrySecretRefs[0].SecretName)
 	assert.Equal(t, 1, len(GetActiveConfig().ClusterCIDRMap.Clusters))
 	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs))
 	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs))

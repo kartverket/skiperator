@@ -10,6 +10,8 @@ import (
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
+	"github.com/kartverket/skiperator/pkg/util"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/kartverket/skiperator/internal/controllers"
@@ -58,7 +60,7 @@ func main() {
 
 	kubeconfig := ctrl.GetConfigOrDie()
 
-	configCheckClient, err := client.New(kubeconfig, client.Options{Scheme: scheme})
+	configClient, err := client.New(kubeconfig, client.Options{Scheme: scheme})
 	if err != nil {
 		setupLog.Error(err, "could not create config check client")
 		os.Exit(1)
@@ -70,7 +72,7 @@ func main() {
 	defer cancel()
 
 	// load global config. exit on error
-	err = config.LoadConfig(ctx, configCheckClient)
+	err = config.LoadConfig(ctx, configClient)
 	if err != nil {
 		setupLog.Error(err, "could not load global config")
 		os.Exit(1)
@@ -164,13 +166,30 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Routing")
 		os.Exit(1)
 	}
-
-	ps, err := imagepullsecret.NewImagePullSecret(activeConfig.RegistryCredentials...)
+	var regSecrets []imagepullsecret.RegistryCredentialSecret
+	for _, registry := range activeConfig.RegistrySecretRefs {
+		secret, regErr := util.GetSecret(configClient, ctx, types.NamespacedName{
+			Namespace: "skiperator-system",
+			Name:      registry.SecretName,
+		})
+		if regErr != nil {
+			setupLog.Error(err, "unable to fetch registry credential secret configuration", "controller", "Namespace")
+			os.Exit(1)
+		} else {
+			regcredSecret := imagepullsecret.RegistryCredentialSecret{
+				Registry:  registry.Registry,
+				Secret:    secret,
+				SecretKey: registry.SecretKey,
+			}
+			regSecrets = append(regSecrets, regcredSecret)
+		}
+	}
+	ps, err := imagepullsecret.NewImagePullSecret(regSecrets...)
 	if err != nil {
 		setupLog.Error(err, "unable to create image pull secret configuration", "controller", "Namespace")
 		os.Exit(1)
 	}
-	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(activeConfig.RegistryCredentials))
+	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(activeConfig.RegistrySecretRefs))
 
 	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
 	if err != nil {

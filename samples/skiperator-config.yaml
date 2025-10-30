@@ -15,13 +15,17 @@ data:
       "concurrentReconciles": 1,
       "isDeployment": true,
       "logLevel": "error",
-      "registryCredentials": [
+      "registrySecretRefs": [
         {
           "registry": "ghcr.io",
-          "token": ""},
+          "secretName": "github-config",
+          "secretKey": "token"
+        },
         {
           "registry": "https://index.docker.io/v1/",
-          "token": ""}
+          "secretName": "docker-config",
+          "secretKey": "token"
+        }
       ],
       "clusterCIDRExclusionEnabled": true,
       "clusterCIDRMap": {
