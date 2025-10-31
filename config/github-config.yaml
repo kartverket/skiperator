@@ -1,0 +1,8 @@
+apiVersion: v1
+data:
+  token: ""
+kind: Secret
+metadata:
+  name: github-config
+  namespace: skiperator-system
+type: Opaque

@@ -19,12 +19,28 @@ const (
 	cmKey       = "config.json"
 )
 
+type RegistrySecretRef struct {
+	Registry   string `json:"registry"`            // URL to an image registry, ie https://index.docker.io/v1/ or https://ghcr.io
+	SecretName string `json:"secretName"`          // The name of the secret containing the auth to the image registry
+	SecretKey  string `json:"secretKey,omitempty"` // The secret key containing the auth to the image registry
+}
+
 // SkiperatorConfig holds various configuration options for Skiperator that may differ across
 // environments or deployments (public cloud, local development or on-premises).
-//
-// TODO: Reduce other ways of configuring Skiperator, such as environment variables or flags and use this ConfigMap instead.
 type SkiperatorConfig struct {
-	TopologyKeys []string `json:"topologyKeys,omitempty"`
+	TopologyKeys                []string            `json:"topologyKeys,omitempty"`                // What node labels to set when configuring pod topology spread constraints, see https://kubernetes.io/docs/concepts/scheduling-eviction/topology-spread-constraints/
+	LeaderElection              bool                `json:"leaderElection,omitempty"`              // Whether to enable leader election, must be set to true if number of Skiperator replicas > 1
+	LeaderElectionNamespace     string              `json:"leaderElectionNamespace,omitempty"`     // Namespace for leader election
+	ConcurrentReconciles        int                 `json:"concurrentReconciles,omitempty"`        // Number of concurrent reconciles that Skiperator will perform. May incur performance degradation if set too high or too low.
+	IsDeployment                bool                `json:"isDeployment,omitempty"`                // Set to true if deploying to a cluster, else set to false. Prevents running local testing against actual Kubernetes clusters
+	LogLevel                    string              `json:"logLevel,omitempty"`                    // Permitted values: info, debug, error
+	EnableProfiling             bool                `json:"enableProfiling,omitempty"`             // Enables the use of pprof to visualize and analyze profiling data of Skiperator
+	RegistrySecretRefs          []RegistrySecretRef `json:"registrySecretRefs,omitempty"`          // List of URLS and access tokens for container registries that will be inserted into all Skiperator-managed application namespaces
+	ClusterCIDRExclusionEnabled bool                `json:"clusterCIDRExclusionEnabled,omitempty"` // Set to true to prevent Skiperator-managed applications from reaching certain CIDR ranges like cluster nodes, control plane etc.
+	ClusterCIDRMap              SKIPClusterList     `json:"clusterCIDRMap,omitempty"`              // Map of the CIDR ranges to block traffic from Skiperator-managed application namespaces
+	EnableLocallyBuiltImages    bool                `json:"enableLocallyBuiltImages,omitempty"`    // Whether to enable Skiperator to allow the use of locally built container images for development purposes
+	GCPIdentityProvider         string              `json:"gcpIdentityProvider,omitempty"`         // Provider for Workload Identity Federation (WIF)
+	GCPWorkloadIdentityPool     string              `json:"gcpWorkloadIdentityPool,omitempty"`     // Identity pool for Workload Identity Federation (WIF)
 }
 
 var (
@@ -64,7 +80,19 @@ func parseConfig(cm *corev1.ConfigMap) error {
 
 	// Default values
 	var cfg = SkiperatorConfig{
-		TopologyKeys: []string{"kubernetes.io/hostname"},
+		TopologyKeys:                []string{"kubernetes.io/hostname"},
+		LeaderElection:              false,
+		LeaderElectionNamespace:     cmNamespace,
+		ConcurrentReconciles:        1,
+		IsDeployment:                false,
+		LogLevel:                    "info",
+		RegistrySecretRefs:          []RegistrySecretRef{},
+		ClusterCIDRExclusionEnabled: false,
+		ClusterCIDRMap:              SKIPClusterList{},
+		EnableProfiling:             false,
+		EnableLocallyBuiltImages:    false,
+		GCPIdentityProvider:         "",
+		GCPWorkloadIdentityPool:     "",
 	}
 
 	if err := dec.Decode(&cfg); err != nil {

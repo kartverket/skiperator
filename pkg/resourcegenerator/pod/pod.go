@@ -7,7 +7,6 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
-	"github.com/kartverket/skiperator/pkg/flags"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
 	corev1 "k8s.io/api/core/v1"
@@ -20,7 +19,15 @@ const (
 )
 
 type PodOpts struct {
-	IstioEnabled bool
+	IstioEnabled     bool
+	LocalBuiltImages bool
+}
+
+func (po *PodOpts) ImagePullPolicy() corev1.PullPolicy {
+	if po.LocalBuiltImages {
+		return corev1.PullNever
+	}
+	return corev1.PullAlways
 }
 
 func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, serviceAccountName string, priority string,
@@ -56,36 +63,27 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		PriorityClassName: fmt.Sprintf("skip-%s", priority),
 	}
 
-	// Global feature flag
-	if !flags.FeatureFlags.DisablePodTopologySpreadConstraints {
-		// Allow override per application
-		if !podSettings.DisablePodSpreadTopologyConstraints {
-			keys := array.TrimmedUniqueStrings(config.GetActiveConfig().TopologyKeys)
-			constraints := make([]corev1.TopologySpreadConstraint, 0, len(keys))
+	// Allow override per application
+	if !podSettings.DisablePodSpreadTopologyConstraints {
+		keys := array.TrimmedUniqueStrings(config.GetActiveConfig().TopologyKeys)
+		constraints := make([]corev1.TopologySpreadConstraint, 0, len(keys))
 
-			for _, topologyKey := range keys {
-				constraints = append(constraints, spreadConstraintForAppAndKey(serviceName, topologyKey))
-			}
-
-			p.TopologySpreadConstraints = constraints
+		for _, topologyKey := range keys {
+			constraints = append(constraints, spreadConstraintForAppAndKey(serviceName, topologyKey))
 		}
+
+		p.TopologySpreadConstraints = constraints
 	}
 
 	return p
 }
 
 func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
-	imagePullPolicy := func() corev1.PullPolicy {
-		if flags.FeatureFlags.EnableLocallyBuiltImages {
-			return corev1.PullNever
-		}
-		return corev1.PullAlways
-	}()
 
 	return corev1.Container{
 		Name:            application.Name,
 		Image:           application.Spec.Image,
-		ImagePullPolicy: imagePullPolicy,
+		ImagePullPolicy: opts.ImagePullPolicy(),
 		Command:         application.Spec.Command,
 		SecurityContext: &corev1.SecurityContext{
 			Privileged:               util.PointTo(false),
