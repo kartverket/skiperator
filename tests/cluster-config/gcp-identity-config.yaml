@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: "gcp-identity-config"
-  namespace: "skiperator-system"
-data:
-  workloadIdentityPool: empty
-  identityProvider: empty
