@@ -36,7 +36,7 @@ jobs:
         run: make generate
 
       - name: Upload CRD and ClusterRole
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -55,7 +55,7 @@ jobs:
     env:
       TMP_FILE: tmp_kustomization.yaml
     steps:
-      - uses: octo-sts/action@e480437973a6f6ac2e9caa40ecabedc870d76395 # v1.0.1
+      - uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
         id: octo-sts
         with:
           scope: kartverket/skip-apps
@@ -68,7 +68,7 @@ jobs:
           token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/

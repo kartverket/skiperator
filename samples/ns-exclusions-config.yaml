@@ -11,3 +11,4 @@ data:
   kube-node-lease: "true"
   kube-public: "true"
   kube-system: "true"
+  skiperator-system: "true"
