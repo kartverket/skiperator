@@ -29,6 +29,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	realzap "go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -51,8 +52,12 @@ func init() {
 }
 
 func main() {
+	encCfg := realzap.NewProductionEncoderConfig()
+	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
 		Level:       zapcore.InfoLevel,
 		DestWriter:  os.Stdout,
@@ -87,6 +92,7 @@ func main() {
 	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: !activeConfig.IsDeployment,
 		Level:       parsedLogLevel,
 		DestWriter:  os.Stdout,
