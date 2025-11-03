@@ -41,6 +41,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	realzap "go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -74,6 +75,9 @@ func init() {
 }
 
 func main() {
+	encCfg := realzap.NewProductionEncoderConfig()
+	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
 	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
 	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
@@ -86,6 +90,7 @@ func main() {
 
 	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
 		Level:       zapcore.InfoLevel,
 		DestWriter:  os.Stdout,
@@ -120,6 +125,7 @@ func main() {
 	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
+		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: !activeConfig.IsDeployment,
 		Level:       parsedLogLevel,
 		DestWriter:  os.Stdout,
