@@ -23,6 +23,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
+	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"go.uber.org/zap/zapcore"
 	istioclientv1 "istio.io/client-go/pkg/apis/networking/v1"
 	istioclientv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
@@ -69,7 +70,7 @@ func init() {
 	utilruntime.Must(istioclientv1.AddToScheme(scheme))
 	utilruntime.Must(istioclientv1beta1.AddToScheme(scheme))
 	utilruntime.Must(istioclienttelemetryv1.AddToScheme(scheme))
-
+	resourceschemas.AddSchemas(scheme)
 }
 
 func main() {
@@ -195,7 +196,7 @@ func main() {
 			config.GetCertificate = metricsCertWatcher.GetCertificate
 		})
 	}
-
+	// Create new manager
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
@@ -210,15 +211,24 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	// nolint:goconst
+	// Setup leader-specific tasks as a goroutine that runs after manager starts
+	go func() {
+		<-mgr.Elected() // Wait until this instance is elected as leader
+		setupLog.Info("I am the captain now – configuring usage metrics")
+		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+			setupLog.Error(err, "unable to configure usage metrics")
+		}
+	}()
+
+	// Setup webhooks first
 	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
 		if err := webhookv1beta1.SetupSkipJobWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "SvartSkjaif")
 			os.Exit(1)
 		}
 	}
-	// +kubebuilder:scaffold:builder
 
+	// Add certificate watchers
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")
 		if err := mgr.Add(metricsCertWatcher); err != nil {
@@ -235,34 +245,13 @@ func main() {
 		}
 	}
 
+	// Setup health checks
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
 		os.Exit(1)
 	}
 	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
-	}
-
-	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		setupLog.Error(err, "problem running manager")
-		os.Exit(1)
-	}
-	// Run leader-specific tasks when elected
-	go func() {
-		<-mgr.Elected() // Wait until this instance is elected as leader
-		setupLog.Info("I am the captain now – configuring usage metrics")
-		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
-			setupLog.Error(err, "unable to configure usage metrics")
-		}
-	}()
-
-	err = (&controllers.ApplicationReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr, concurrentReconciles)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
 
@@ -286,7 +275,7 @@ func main() {
 		setupLog.Info("Successfully loaded global config", "config", config.GetActiveConfig())
 	}
 
-	// We need to get this configmap before initializing the manager, therefore we need a separate client for this
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for thi
 	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
 	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
 	// directly from namespaces as per SKIP-1704
@@ -302,6 +291,15 @@ func main() {
 		skipClusterList = &config.SKIPClusterList{
 			Clusters: []*config.SKIPCluster{},
 		}
+	}
+
+	// Setup all controllers
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr, concurrentReconciles)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
 	}
 
 	err = (&controllers.SKIPJobReconciler{
@@ -340,15 +338,6 @@ func main() {
 	}).SetupWithManager(mgr)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Namespace")
-		os.Exit(1)
-	}
-
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
 
