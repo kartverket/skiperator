@@ -344,7 +344,7 @@ func main() {
 	}
 	setupLog.Info("initialized image pull secret", "controller", "Namespace", "registry-count", len(activeConfig.RegistrySecretRefs))
 
-	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList)
+	dd, err := defaultdeny.NewDefaultDenyNetworkPolicy(skipClusterList, activeConfig.ClusterCIDRExclusionEnabled)
 	if err != nil {
 		setupLog.Error(err, "unable to create default deny network policy configuration", "controller", "Namespace")
 		os.Exit(1)
