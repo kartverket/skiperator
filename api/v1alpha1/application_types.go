@@ -298,6 +298,13 @@ type Replicas struct {
 	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
+	// When the average Memory utilization across all pods crosses this threshold another replica is started, up to a maximum of Max
+	//
+	// TargetMemoryUtilization is an integer representing a percentage.
+	//
+	//+kubebuilder:default:=70
+	//+kubebuilder:validation:Optional
+	TargetMemoryUtilization uint `json:"targetMemoryUtilization,omitempty"`
 }
 
 // Strategy

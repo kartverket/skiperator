@@ -55,6 +55,16 @@ func Generate(r reconciliation.Reconciliation) error {
 					},
 				},
 			},
+			{
+				Type: autoscalingv2.ResourceMetricSourceType,
+				Resource: &autoscalingv2.ResourceMetricSource{
+					Name: "memory",
+					Target: autoscalingv2.MetricTarget{
+						Type:               autoscalingv2.UtilizationMetricType,
+						AverageUtilization: util.PointTo(int32(replicas.TargetMemoryUtilization)),
+					},
+				},
+			},
 		},
 	}
 
