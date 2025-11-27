@@ -359,6 +359,7 @@ func NewDefaultReplicas() Replicas {
 		Min:                  2,
 		Max:                  5,
 		TargetCpuUtilization: 80,
+		TargetMemoryUtilization: 70,
 	}
 }
 
