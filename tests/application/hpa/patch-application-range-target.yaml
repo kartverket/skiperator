@@ -9,3 +9,4 @@ spec:
     min: 3
     max: 6
     targetCpuUtilization: 60
+    targetMemoryUtilization: 60
