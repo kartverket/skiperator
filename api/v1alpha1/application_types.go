@@ -111,6 +111,7 @@ type ApplicationSpec struct {
 	// 		min: 2
 	// 		max: 5
 	// 		targetCpuUtilization: 80
+	//      targetMemoryUtilization: 70
 	// Using autoscaling is the recommended configuration for replicas.
 	//+kubebuilder:validation:Optional
 	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
