@@ -25,7 +25,7 @@ spec:
     - resource:
         name: memory
         target:
-          averageUtilization: 70
+          averageUtilization: 80
           type: Utilization
       type: Resource
   scaleTargetRef:

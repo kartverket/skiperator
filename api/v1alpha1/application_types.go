@@ -111,7 +111,7 @@ type ApplicationSpec struct {
 	// 		min: 2
 	// 		max: 5
 	// 		targetCpuUtilization: 80
-	//      targetMemoryUtilization: 70
+	//      targetMemoryUtilization: 80
 	// Using autoscaling is the recommended configuration for replicas.
 	//+kubebuilder:validation:Optional
 	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
@@ -303,7 +303,7 @@ type Replicas struct {
 	//
 	// TargetMemoryUtilization is an integer representing a percentage.
 	//
-	//+kubebuilder:default:=70
+	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetMemoryUtilization uint `json:"targetMemoryUtilization,omitempty"`
 }
@@ -360,7 +360,7 @@ func NewDefaultReplicas() Replicas {
 		Min:                  2,
 		Max:                  5,
 		TargetCpuUtilization: 80,
-		TargetMemoryUtilization: 70,
+		TargetMemoryUtilization: 80,
 	}
 }
 
