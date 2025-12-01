@@ -209,6 +209,10 @@ func (skipJob *SKIPJob) KindPostFixedName() string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", skipJob.Name, skipJob.Kind))
 }
 
+func (skipJob *SKIPJob) PostFixedNamespace() string {
+	return strings.ToLower(fmt.Sprintf("%v", skipJob.Namespace))
+}
+
 func (skipJob *SKIPJob) GetStatus() *SkiperatorStatus {
 	return &skipJob.Status
 }

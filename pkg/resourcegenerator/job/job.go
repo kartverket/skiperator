@@ -12,6 +12,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
+	"golang.org/x/exp/maps"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -146,5 +147,10 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 
 func setJobLabels(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
+	labels["team"] = skipJob.PostFixedNamespace()
 	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Container.Image)
+
+	if skipJob.Labels != nil {
+		maps.Copy(labels, skipJob.Labels)
+	}
 }
