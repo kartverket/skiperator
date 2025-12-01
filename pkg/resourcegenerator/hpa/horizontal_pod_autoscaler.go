@@ -36,6 +36,32 @@ func Generate(r reconciliation.Reconciliation) error {
 		return err
 	}
 
+	metrics := []autoscalingv2.MetricSpec{}
+	if replicas.TargetCpuUtilization  != 0 {
+		metrics = append(metrics, autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricSource{
+				Name: "cpu",
+				Target: autoscalingv2.MetricTarget{
+					Type:               autoscalingv2.UtilizationMetricType,
+					AverageUtilization: util.PointTo(int32(replicas.TargetCpuUtilization)),
+				},
+			},
+		})
+	}
+	if replicas.TargetMemoryUtilization  != 0 {
+		metrics = append(metrics, autoscalingv2.MetricSpec{
+			Type: autoscalingv2.ResourceMetricSourceType,
+			Resource: &autoscalingv2.ResourceMetricSource{
+				Name: "memory",
+				Target: autoscalingv2.MetricTarget{
+					Type:               autoscalingv2.UtilizationMetricType,
+					AverageUtilization: util.PointTo(int32(replicas.TargetMemoryUtilization)),
+				},
+			},
+		})
+	}
+
 	horizontalPodAutoscaler.Spec = autoscalingv2.HorizontalPodAutoscalerSpec{
 		ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
 			APIVersion: "apps/v1",
@@ -44,29 +70,9 @@ func Generate(r reconciliation.Reconciliation) error {
 		},
 		MinReplicas: util.PointTo(int32(replicas.Min)),
 		MaxReplicas: int32(replicas.Max),
-		Metrics: []autoscalingv2.MetricSpec{
-			{
-				Type: autoscalingv2.ResourceMetricSourceType,
-				Resource: &autoscalingv2.ResourceMetricSource{
-					Name: "cpu",
-					Target: autoscalingv2.MetricTarget{
-						Type:               autoscalingv2.UtilizationMetricType,
-						AverageUtilization: util.PointTo(int32(replicas.TargetCpuUtilization)),
-					},
-				},
-			},
-			{
-				Type: autoscalingv2.ResourceMetricSourceType,
-				Resource: &autoscalingv2.ResourceMetricSource{
-					Name: "memory",
-					Target: autoscalingv2.MetricTarget{
-						Type:               autoscalingv2.UtilizationMetricType,
-						AverageUtilization: util.PointTo(int32(replicas.TargetMemoryUtilization)),
-					},
-				},
-			},
-		},
+		Metrics:     metrics,
 	}
+	
 
 	r.AddResource(&horizontalPodAutoscaler)
 

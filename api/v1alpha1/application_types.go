@@ -359,8 +359,14 @@ func NewDefaultReplicas() Replicas {
 	return Replicas{
 		Min:                  2,
 		Max:                  5,
-		TargetCpuUtilization: 80,
-		TargetMemoryUtilization: 80,
+	}
+}
+
+func (replicas *Replicas)ApplyDefaultUtilization() {
+	// set default on both target values if none are set
+	if replicas.TargetCpuUtilization == 0 && replicas.TargetMemoryUtilization == 0 {
+		replicas.TargetCpuUtilization = 80
+		replicas.TargetMemoryUtilization = 80
 	}
 }
 
@@ -384,9 +390,9 @@ func GetStaticReplicas(jsonReplicas *apiextensionsv1.JSON) (uint, error) {
 }
 
 func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
-	result := NewDefaultReplicas()
+	result :=  NewDefaultReplicas()
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
-
+	result.ApplyDefaultUtilization()
 	return result, err
 }
 
@@ -403,6 +409,7 @@ func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
 		defaultReplicas := NewDefaultReplicas()
+		defaultReplicas.ApplyDefaultUtilization()
 		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
 	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
 		if replicas.Min > replicas.Max {
