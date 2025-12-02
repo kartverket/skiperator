@@ -362,7 +362,7 @@ func NewDefaultReplicas() Replicas {
 	}
 }
 
-func (replicas *Replicas)ApplyDefaultUtilization() {
+func (replicas *Replicas) ApplyDefaultUtilization() {
 	// set default on both target values if none are set
 	if replicas.TargetCpuUtilization == 0 && replicas.TargetMemoryUtilization == 0 {
 		replicas.TargetCpuUtilization = 80
