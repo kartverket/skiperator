@@ -390,7 +390,7 @@ func GetStaticReplicas(jsonReplicas *apiextensionsv1.JSON) (uint, error) {
 }
 
 func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
-	result :=  NewDefaultReplicas()
+	result := NewDefaultReplicas()
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
 	result.ApplyDefaultUtilization()
 	return result, err
