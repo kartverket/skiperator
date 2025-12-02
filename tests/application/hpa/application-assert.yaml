@@ -22,7 +22,71 @@ spec:
           averageUtilization: 80
           type: Utilization
       type: Resource
+    - resource:
+        name: memory
+        target:
+          averageUtilization: 80
+          type: Utilization
+      type: Resource
   scaleTargetRef:
     kind: Deployment
     apiVersion: apps/v1
     name: test-deployment-hpa
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-hpa-cpu-only
+spec:
+  selector:
+    matchLabels:
+      app: test-deployment-hpa-cpu-only
+  replicas: 1
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-deployment-hpa-cpu-only
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - resource:
+        name: cpu
+        target:
+          averageUtilization: 70
+          type: Utilization
+      type: Resource
+  scaleTargetRef:
+    kind: Deployment
+    apiVersion: apps/v1
+    name: test-deployment-hpa-cpu-only
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-hpa-memory-only
+spec:
+  selector:
+    matchLabels:
+      app: test-deployment-hpa-memory-only
+  replicas: 1
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: test-deployment-hpa-memory-only
+spec:
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - resource:
+        name: memory
+        target:
+          averageUtilization: 75
+          type: Utilization
+      type: Resource
+  scaleTargetRef:
+    kind: Deployment
+    apiVersion: apps/v1
+    name: test-deployment-hpa-memory-only 
