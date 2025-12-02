@@ -49,7 +49,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			},
 		})
 	}
-	if replicas.TargetMemoryUtilization  != 0 {
+	if replicas.TargetMemoryUtilization != 0 {
 		metrics = append(metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
 			Resource: &autoscalingv2.ResourceMetricSource{
