@@ -37,7 +37,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	metrics := []autoscalingv2.MetricSpec{}
-	if replicas.TargetCpuUtilization  != 0 {
+	if replicas.TargetCpuUtilization != 0 {
 		metrics = append(metrics, autoscalingv2.MetricSpec{
 			Type: autoscalingv2.ResourceMetricSourceType,
 			Resource: &autoscalingv2.ResourceMetricSource{
