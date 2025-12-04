@@ -1,0 +1,5 @@
+resources:
+- issuer.yaml
+- ca-certificate.yaml
+- ca-issuer.yaml
+- serving-certificate.yaml

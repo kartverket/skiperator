@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: skiperator-webhook-serving-cert
+  namespace: skiperator-system
+spec:
+  secretName: skiperator-webhook-server-cert
+  dnsNames:
+    - skipjob-conversion-webhook.skiperator-system.svc
+    - skipjob-conversion-webhook.skiperator-system.svc.cluster.local
+  issuerRef:
+    name: skiperator-webhook-ca-issuer
+    kind: Issuer
+  usages:
+    - server auth
+    - digital signature
+    - key encipherment

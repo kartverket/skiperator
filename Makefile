@@ -22,7 +22,8 @@ SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
 KUBERNETES_VERSION          = 1.32.5
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
-
+LOCAL_WEBHOOK_CERTS_DIR = /tmp/k8s-webhook-server/serving-certs
+WEBHOOK_HOST = 0.0.0.0
 .PHONY: generate
 generate:
 	go generate ./...
@@ -38,8 +39,13 @@ build: generate
 
 .PHONY: run-local
 run-local: build install-skiperator
-	kubectl --context ${SKIPERATOR_CONTEXT} apply -f config/ --recursive
-	./bin/skiperator
+	@echo "Extracting webhook certificates for local development..."
+	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
+	@echo "Setting up webhook service to route to host..."
+	@./hack/setup-local-webhook-endpoint.sh
+	@echo ""
+	@echo "Starting skiperator with webhook on 0.0.0.0:9443 (accessible from kind cluster)..."
+	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 
 .PHONY: setup-local
 setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
@@ -60,10 +66,25 @@ kind-cluster: check-kind
 
 #### SKIPERATOR DEPENDENCIES ####
 
+# Image tags for istio
+ISTIO_IMAGES = docker.io/istio/proxyv2:$(ISTIO_VERSION) docker.io/istio/pilot:$(ISTIO_VERSION)
+
 .PHONY: install-istio
 install-istio:
 	@echo "Creating istio-gateways namespace..."
 	@kubectl create namespace istio-gateways --context $(SKIPERATOR_CONTEXT) || true
+
+	# Manually pull and load images into the cluster for local testing
+
+	@for image in $(ISTIO_IMAGES); do \
+	  echo "Removing cached $$image if exists"; \
+	  docker rmi -f "$$image" 2>/dev/null || true; \
+	  echo "Pulling $$image for platform linux/$(ARCH)"; \
+	  docker pull --platform linux/$(ARCH) "$$image"; \
+	  echo "Loading $$image into kind cluster 'skiperator'"; \
+	  docker save "$$image" | docker exec -i skiperator-control-plane ctr --namespace=k8s.io images import -; \
+	done
+
 	@echo "Downloading Istio..."
 	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
 	@echo "Installing Istio on Kubernetes cluster..."
@@ -72,8 +93,23 @@ install-istio:
 
 .PHONY: install-cert-manager
 install-cert-manager:
+	# Manually pull and load images into the cluster for local testing
+	@echo "Pulling and loading cert-manager images"
+	@curl -L -s https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml \
+	| grep 'image:' \
+	| sed -E 's/.*image:[[:space:]]*"?([^"]*)"?/\1/' \
+	| while read -r image; do \
+	    echo "Removing cached $$image if exists"; \
+	    docker rmi -f "$$image" 2>/dev/null || true; \
+	    echo "Pulling $$image for platform linux/$(ARCH)"; \
+	    docker pull --platform linux/$(ARCH) "$$image"; \
+	    echo "Loading $$image into kind cluster '$(KIND_CLUSTER_NAME)'"; \
+	    docker save "$$image" | docker exec -i $(KIND_CLUSTER_NAME)-control-plane ctr --namespace=k8s.io images import -; \
+	  done
+
 	@echo "Installing cert-manager"
 	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --context $(SKIPERATOR_CONTEXT)
+
 
 .PHONY: install-prometheus-crds
 install-prometheus-crds:
@@ -89,8 +125,14 @@ install-digdirator-crds:
 .PHONY: install-skiperator
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
-	@kubectl apply -f config/ --recursive --context $(SKIPERATOR_CONTEXT)
+	@kustomize build config/cert-manager | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kustomize build config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kustomize build config/webhook | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
+
 
 #### TESTS ####
 .PHONY: test-single
@@ -259,5 +301,3 @@ benchmark-long-run: build install-skiperator
 		kubectl delete -f tests/application/telemetry/application.yaml; \
     	kill $$PID; \
         kill $$SPID
-
-
