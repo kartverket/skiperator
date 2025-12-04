@@ -1,8 +1,0 @@
-apiVersion: v1
-data:
-  token: ""
-kind: Secret
-metadata:
-  name: docker-config
-  namespace: skiperator-system
-type: Opaque

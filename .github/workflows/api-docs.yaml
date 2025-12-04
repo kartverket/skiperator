@@ -15,7 +15,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
         with:
           path: skiperator
 
@@ -24,7 +24,7 @@ jobs:
          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/skiperator/config/crd --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
 
       - name: Checkout target repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
         with:
           path: docs
           repository: kartverket/skip.kartverket.no

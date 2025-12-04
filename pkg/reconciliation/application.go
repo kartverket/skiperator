@@ -4,9 +4,9 @@ import (
 	"context"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -15,16 +15,17 @@ type ApplicationReconciliation struct {
 }
 
 func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application,
-	logger log.Logger, istioEnabled bool, restConfig *rest.Config, authConfigs *auth.AuthConfigs, skiperatorConfig config.SkiperatorConfig) *ApplicationReconciliation {
+	logger log.Logger, istioEnabled bool, restConfig *rest.Config,
+	identityConfigMap *corev1.ConfigMap, authConfigs *auth.AuthConfigs) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
 		baseReconciliation: baseReconciliation{
-			ctx:              ctx,
-			logger:           logger,
-			istioEnabled:     istioEnabled,
-			restConfig:       restConfig,
-			skipObject:       application,
-			authConfigs:      authConfigs,
-			skiperatorConfig: skiperatorConfig,
+			ctx:               ctx,
+			logger:            logger,
+			istioEnabled:      istioEnabled,
+			restConfig:        restConfig,
+			identityConfigMap: identityConfigMap,
+			skipObject:        application,
+			authConfigs:       authConfigs,
 		},
 	}
 }

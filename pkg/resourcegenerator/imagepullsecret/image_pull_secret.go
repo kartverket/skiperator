@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
-
+	"github.com/kartverket/skiperator/pkg/envconfig"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,20 +14,13 @@ type ImagePullSecret struct {
 	payload []byte
 }
 
-type RegistryCredentialSecret struct {
-	Registry  string        `json:"registry"`  // URL to an image registry, ie https://index.docker.io/v1/ or https://ghcr.io
-	Secret    corev1.Secret `json:"secret"`    // The secret containing the auth to the image registry
-	SecretKey string        `json:"secretKey"` // The secret key containing the auth to the image registry
-}
-
-func NewImagePullSecret(registries ...RegistryCredentialSecret) (*ImagePullSecret, error) {
+func NewImagePullSecret(registries ...envconfig.RegistryCredentialPair) (*ImagePullSecret, error) {
 	cfg := dockerConfigJson{}
 	cfg.Auths = make(map[string]dockerConfigAuth, len(registries))
 
 	for _, r := range registries {
-		auth := strings.TrimSuffix(string(r.Secret.Data[r.SecretKey]), "\n")
 		cfg.Auths[r.Registry] = dockerConfigAuth{
-			Auth: auth,
+			Auth: r.Token,
 		}
 	}
 	var buf bytes.Buffer

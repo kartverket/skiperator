@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	AlloyAgentName      = "alloy"
-	AlloyAgentNamespace = "grafana-alloy"
+	AlloyAgentName        = "alloy"
+	AlloyAgentNamespace   = "grafana-alloy"
 )
 
 var multiGenerator = generator.NewMulti()

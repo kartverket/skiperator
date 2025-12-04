@@ -2,7 +2,6 @@ package defaultdeny
 
 import (
 	"fmt"
-
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -13,17 +12,15 @@ import (
 )
 
 type DefaultDenyNetworkPolicy struct {
-	SKIPClusterList  *config.SKIPClusterList
-	exclusionEnabled bool
+	SKIPClusterList *config.SKIPClusterList
 }
 
-func NewDefaultDenyNetworkPolicy(clusters *config.SKIPClusterList, exclusionEnabled bool) (*DefaultDenyNetworkPolicy, error) {
-	if clusters == nil && exclusionEnabled {
+func NewDefaultDenyNetworkPolicy(clusters *config.SKIPClusterList) (*DefaultDenyNetworkPolicy, error) {
+	if clusters == nil {
 		return nil, fmt.Errorf("unable to create default deny network policy: SKIPClusterList is nil")
 	}
 	return &DefaultDenyNetworkPolicy{
-		SKIPClusterList:  clusters,
-		exclusionEnabled: exclusionEnabled,
+		SKIPClusterList: clusters,
 	}, nil
 }
 
@@ -37,14 +34,6 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 
 	networkPolicy := networkingv1.NetworkPolicy{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "default-deny"}}
 
-	ipBlock := &networkingv1.IPBlock{
-		CIDR: "10.40.0.0/16",
-	}
-
-	if ddnp.exclusionEnabled {
-		ipBlock.Except = ddnp.SKIPClusterList.CombinedCIDRS()
-	}
-
 	networkPolicy.Spec = networkingv1.NetworkPolicySpec{
 		PolicyTypes: []networkingv1.PolicyType{
 			networkingv1.PolicyTypeIngress,
@@ -55,7 +44,10 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 				To: []networkingv1.NetworkPolicyPeer{
 					// Egress rule for parts of internal server network
 					{
-						IPBlock: ipBlock,
+						IPBlock: &networkingv1.IPBlock{
+							CIDR:   "10.40.0.0/16",
+							Except: ddnp.SKIPClusterList.CombinedCIDRS(),
+						},
 					},
 					// Egress rule for internal load balancer on atgcp1-sandbox
 					{

@@ -9,7 +9,6 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/common/digdirator"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -81,14 +80,13 @@ import (
 
 type ApplicationReconciler struct {
 	common.ReconcilerBase
-	config.SkiperatorConfig
 }
 
 const applicationFinalizer = "skip.statkart.no/finalizer"
 
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
-func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles int) error {
+func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles *int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
@@ -122,7 +120,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 			),
 		).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: concurrentReconciles,
+			MaxConcurrentReconciles: *concurrentReconciles,
 		}).
 		Complete(r)
 }
@@ -208,13 +206,17 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	r.SetProgressingState(ctx, application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
+	if err != nil {
+		rLog.Error(err, "cant find identity config map")
+	} //TODO Error state?
 
 	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
 	if err != nil {
 		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
 	}
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap, authConfigs)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -309,7 +311,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, nil)
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
 
 	return processor.Process(reconciliation)

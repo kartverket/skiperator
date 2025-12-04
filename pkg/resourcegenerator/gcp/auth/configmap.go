@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
-
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +30,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
-		return getConfigMap(r)
+		return getConfigMap(r, r.GetIdentityConfigMap())
 	} else {
 		err := fmt.Errorf("unsupported type %s in gcp configmap", r.GetType())
 		ctxLog.Error(err, "Failed to generate gcp configmap")
@@ -39,7 +38,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 }
 
-func getConfigMap(r reconciliation.Reconciliation) error {
+func getConfigMap(r reconciliation.Reconciliation, gcpIdentityConfigMap *corev1.ConfigMap) error {
 	commonSpec := r.GetSKIPObject().GetCommonSpec()
 	if commonSpec.GCP == nil || commonSpec.GCP.Auth == nil || commonSpec.GCP.Auth.ServiceAccount == "" {
 		return nil
@@ -51,11 +50,10 @@ func getConfigMap(r reconciliation.Reconciliation) error {
 	object := r.GetSKIPObject()
 	gcpAuthConfigMapName := gcp.GetGCPConfigMapName(object.GetName())
 	gcpConfigMap := corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: object.GetNamespace(), Name: gcpAuthConfigMapName}}
-	config := r.GetSkiperatorConfig()
 
 	credentials := WorkloadIdentityCredentials{
 		Type:                           "external_account",
-		Audience:                       "identitynamespace:" + config.GCPWorkloadIdentityPool + ":" + config.GCPIdentityProvider,
+		Audience:                       "identitynamespace:" + gcpIdentityConfigMap.Data["workloadIdentityPool"] + ":" + gcpIdentityConfigMap.Data["identityProvider"],
 		ServiceAccountImpersonationUrl: "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/" + r.GetSKIPObject().GetCommonSpec().GCP.Auth.ServiceAccount + ":generateAccessToken",
 		SubjectTokenType:               "urn:ietf:params:oauth:token-type:jwt",
 		TokenUrl:                       "https://sts.googleapis.com/v1/token",

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
@@ -50,17 +49,17 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if skipJob.Spec.Cron != nil {
-		cronJob.Spec = getCronJobSpec(&ctxLog, skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetSkiperatorConfig())
+		cronJob.Spec = getCronJobSpec(&ctxLog, skipJob, cronJob.Spec.JobTemplate.Spec.Selector, cronJob.Spec.JobTemplate.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&cronJob)
 	} else {
-		job.Spec = getJobSpec(&ctxLog, skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetSkiperatorConfig())
+		job.Spec = getJobSpec(&ctxLog, skipJob, job.Spec.Selector, job.Spec.Template.Labels, r.GetIdentityConfigMap())
 		r.AddResource(&job)
 	}
 
 	return nil
 }
 
-func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
+func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		TimeZone:                skipJob.Spec.Cron.TimeZone,
@@ -71,7 +70,7 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, sele
 			ObjectMeta: metav1.ObjectMeta{
 				Labels: skipJob.GetDefaultLabels(),
 			},
-			Spec: getJobSpec(logger, skipJob, selector, podLabels, skiperatorConfig),
+			Spec: getJobSpec(logger, skipJob, selector, podLabels, gcpIdentityConfigMap),
 		},
 		SuccessfulJobsHistoryLimit: util.PointTo(int32(3)),
 		FailedJobsHistoryLimit:     util.PointTo(int32(1)),
@@ -83,11 +82,12 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, sele
 	return spec
 }
 
-func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
-	envVars := skipJob.Spec.Env
+func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, gcpIdentityConfigMap *corev1.ConfigMap) batchv1.JobSpec {
 	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.FilesFrom)
-	gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
+	envVars := skipJob.Spec.Env
+
 	if skipJob.Spec.GCP != nil {
+		gcpPodVolume := gcp.GetGCPContainerVolume(gcpIdentityConfigMap.Data["workloadIdentityPool"], skipJob.Name)
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
 		gcpEnvVar := gcp.GetGCPEnvVar()
 

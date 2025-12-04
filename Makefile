@@ -141,6 +141,11 @@ test-single: install-skiperator
     echo "Test succeeded" || (echo "Test failed" && exit 1)
 
 .PHONY: test
+export IMAGE_PULL_0_REGISTRY := ghcr.io
+export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
+export IMAGE_PULL_0_TOKEN :=
+export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 test: install-skiperator
 	@go tool chainsaw test --kube-context $(SKIPERATOR_CONTEXT) --config tests/config.yaml --test-dir tests/ && \
     echo "Test succeeded" || (echo "Test failed" && exit 1)
@@ -155,10 +160,15 @@ run-unit-tests:
 		fi
 
 .PHONY: run-test
+export IMAGE_PULL_0_REGISTRY := ghcr.io
+export IMAGE_PULL_1_REGISTRY := https://index.docker.io/v1/
+export IMAGE_PULL_0_TOKEN :=
+export IMAGE_PULL_1_TOKEN :=
+export CLUSTER_CIDR_EXCLUDE := true
 run-test: build install-skiperator
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
-	./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
 	PID=$$!; \
 	echo "skiperator PID: $$PID"; \
 	echo "Log redirected to file: $$LOG_FILE"; \
@@ -178,7 +188,7 @@ benchmark-chainsaw-tests: build install-skiperator
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
 	METRICS_AFTER=$$(mktemp -t metrics-after.XXXXXXX); \
-	./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+	./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
 	PID=$$!; \
 	echo "Waiting for skiperator to start and sync..."; \
 	sleep 10s; \
@@ -239,7 +249,7 @@ benchmark-long-run: build install-skiperator
     	sleep 3; \
 		echo "Starting skiperator in background..."; \
 		@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
-		./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+		./bin/skiperator -e error > "$$LOG_FILE" 2>&1 & \
 		SPID=$$!; \
     	echo "Waiting for skiperator to start and sync..."; \
 		sleep 20; \

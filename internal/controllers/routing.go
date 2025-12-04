@@ -97,8 +97,12 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	r.SetProgressingState(ctx, routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
+	if err != nil {
+		rLog.Error(err, "can't find identity config map")
+	}
 
-	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
+	reconciliation := NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -155,7 +159,7 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	route.SetName(name.Name)
 	route.SetNamespace(name.Namespace)
 
-	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil)
+	reconciliation := NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
 	return processor.Process(reconciliation)

@@ -1,19 +1,25 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"net"
-	"strings"
+
+	"github.com/kartverket/skiperator/pkg/util"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type SKIPCluster struct {
-	Name              string   `json:"name"`
-	ControlPlaneCIDRs []string `json:"controlPlaneCIDRs,omitempty"`
-	WorkerNodeCIDRs   []string `json:"workerNodeCIDRs,omitempty"`
+	Name              string   `yaml:"name"`
+	ControlPlaneCIDRs []string `yaml:"controlPlaneCIDRs"`
+	WorkerNodeCIDRs   []string `yaml:"workerNodeCIDRs"`
 }
 
 type SKIPClusterList struct {
-	Clusters []*SKIPCluster `json:"clusters,omitempty"`
+	Clusters []*SKIPCluster `yaml:"clusters"`
 }
 
 func (c *SKIPClusterList) CombinedCIDRS() []string {
@@ -25,36 +31,58 @@ func (c *SKIPClusterList) CombinedCIDRS() []string {
 	return combinedCIDRs
 }
 
-func ValidateSKIPClusterList(skipClusterList *SKIPClusterList) error {
+func LoadSKIPClusterConfigFromConfigMap(client client.Client) (*SKIPClusterList, error) {
+	clusterConfigMapNamespaced := types.NamespacedName{Namespace: "skiperator-system", Name: "skip-cluster-node-cidr"}
+	clusterConfigMap, err := util.GetConfigMap(client, context.Background(), clusterConfigMapNamespaced)
+	if err != nil {
+		return nil, err
+	}
+	clusterList, err := createSKIPClusterListFromConfigMap(&clusterConfigMap)
+	if err != nil {
+		return nil, err
+	}
+	return clusterList, nil
+}
 
-	if skipClusterList == nil || len(skipClusterList.Clusters) == 0 {
-		return errors.New("no SKIPClusterList found")
+func createSKIPClusterListFromConfigMap(configMap *corev1.ConfigMap) (*SKIPClusterList, error) {
+	var skipClusterList SKIPClusterList
+	clusterData := configMap.Data
+
+	// Safety check: make sure "config.yml" is present
+	configYml, exists := clusterData["config.yml"]
+	if !exists {
+		return nil, errors.New("config.yml key not found in ConfigMap")
+	}
+
+	err := yaml.Unmarshal([]byte(configYml), &skipClusterList)
+	if err != nil {
+		return nil, err
+	}
+	if len(skipClusterList.Clusters) == 0 {
+		return nil, errors.New("no SKIPClusterList in ConfigMap")
 	}
 	if len(skipClusterList.CombinedCIDRS()) == 0 {
-		return errors.New("no CIDR ranges in SKIPClusterList")
+		return nil, errors.New("no CIDR ranges in SKIPClusterList in ConfigMap")
 	}
 
-	// check for empty names, strings and validate that the strings are valid CIDRs
+	// check for empty strings and validate that the strings are valid CIDRs
 	for _, element := range skipClusterList.Clusters {
-		err := checkSKIPClusterFieldsAreNotEmpty(element)
+		err = checkCIDRsAreNotEmpty(element)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
 	for _, element := range skipClusterList.CombinedCIDRS() {
-		err := checkValidCIDR(element)
+		err = checkValidCIDR(element)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &skipClusterList, nil
 }
 
-func checkSKIPClusterFieldsAreNotEmpty(cluster *SKIPCluster) error {
-	if len(strings.TrimSpace(cluster.Name)) == 0 {
-		return errors.New("SKIPCluster name cannot be empty")
-	}
+func checkCIDRsAreNotEmpty(cluster *SKIPCluster) error {
 	if (len(cluster.WorkerNodeCIDRs) == 0) && (len(cluster.ControlPlaneCIDRs) == 0) {
 		return errors.New("SKIPCluster has no CIDRs for worker nodes or control plane nodes")
 	}

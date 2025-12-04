@@ -69,65 +69,6 @@ func TestBadlyFormattedConfig(t *testing.T) {
 	}
 }
 
-func TestCompleteConfigMap(t *testing.T) {
-	cm := mockConfigMap(SkiperatorConfig{
-		TopologyKeys: []string{
-			"kubernetes.io/hostname",
-			"topology.kubernetes.io/zone",
-			"skip.kartverket.no/unit-test",
-		},
-		LeaderElection:          true,
-		LeaderElectionNamespace: "skiperator-system",
-		ConcurrentReconciles:    1,
-		IsDeployment:            true,
-		LogLevel:                "debug",
-		RegistrySecretRefs: []RegistrySecretRef{
-			{
-				Registry:   "foo",
-				SecretKey:  "bar",
-				SecretName: "baz",
-			},
-		},
-		ClusterCIDRExclusionEnabled: false,
-		ClusterCIDRMap: SKIPClusterList{
-			Clusters: []*SKIPCluster{
-				{
-					Name:              "testcluster",
-					ControlPlaneCIDRs: []string{"1.1.1.1/32", "2.2.2.2/32"},
-					WorkerNodeCIDRs:   []string{"1.1.1.1/32", "2.2.2.2/32"},
-				},
-			},
-		},
-		EnableLocallyBuiltImages: true,
-		GCPIdentityProvider:      "foobar",
-		GCPWorkloadIdentityPool:  "barfoo",
-	}, nil)
-	err := parseConfig(cm)
-
-	assert.NoError(t, err)
-	assert.Equal(t, 3, len(GetActiveConfig().TopologyKeys))
-	assert.Contains(t, GetActiveConfig().TopologyKeys, "kubernetes.io/hostname")
-	assert.Contains(t, GetActiveConfig().TopologyKeys, "topology.kubernetes.io/zone")
-	assert.Contains(t, GetActiveConfig().TopologyKeys, "skip.kartverket.no/unit-test")
-	assert.Equal(t, GetActiveConfig().IsDeployment, true)
-	assert.Equal(t, 1, len(GetActiveConfig().RegistrySecretRefs))
-	assert.Equal(t, "foo", GetActiveConfig().RegistrySecretRefs[0].Registry)
-	assert.Equal(t, "bar", GetActiveConfig().RegistrySecretRefs[0].SecretKey)
-	assert.Equal(t, "baz", GetActiveConfig().RegistrySecretRefs[0].SecretName)
-	assert.Equal(t, 1, len(GetActiveConfig().ClusterCIDRMap.Clusters))
-	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs))
-	assert.Equal(t, 2, len(GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs))
-	assert.Equal(t, "1.1.1.1/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs[0])
-	assert.Equal(t, "2.2.2.2/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].WorkerNodeCIDRs[1])
-	assert.Equal(t, "1.1.1.1/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs[0])
-	assert.Equal(t, "2.2.2.2/32", GetActiveConfig().ClusterCIDRMap.Clusters[0].ControlPlaneCIDRs[1])
-	assert.Equal(t, "testcluster", GetActiveConfig().ClusterCIDRMap.Clusters[0].Name)
-	assert.Equal(t, true, GetActiveConfig().EnableLocallyBuiltImages)
-	assert.Equal(t, "foobar", GetActiveConfig().GCPIdentityProvider)
-	assert.Equal(t, "barfoo", GetActiveConfig().GCPWorkloadIdentityPool)
-
-}
-
 func mockConfigMap(c SkiperatorConfig, extra map[string]any) *v1.ConfigMap {
 	jsonPayload, _ := json.Marshal(c)
 

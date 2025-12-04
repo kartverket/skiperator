@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -14,14 +15,15 @@ type NamespaceReconciliation struct {
 
 func NewNamespaceReconciliation(ctx context.Context, namespace skiperatorv1alpha1.SKIPObject,
 	logger log.Logger, istioEnabled bool,
-	restConfig *rest.Config) *NamespaceReconciliation {
+	restConfig *rest.Config, identityConfigMap *corev1.ConfigMap) *NamespaceReconciliation {
 	return &NamespaceReconciliation{
 		baseReconciliation: baseReconciliation{
-			ctx:          ctx,
-			logger:       logger,
-			istioEnabled: istioEnabled,
-			restConfig:   restConfig,
-			skipObject:   namespace,
+			ctx:               ctx,
+			logger:            logger,
+			istioEnabled:      istioEnabled,
+			restConfig:        restConfig,
+			identityConfigMap: identityConfigMap,
+			skipObject:        namespace,
 		},
 	}
 }

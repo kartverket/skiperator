@@ -71,10 +71,14 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	SKIPNamespace := skiperatorv1alpha1.SKIPNamespace{Namespace: namespace}
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, namespace.Name)
+	identityConfigMap, err := r.GetIdentityConfigMap(ctx)
+	if err != nil {
+		rLog.Error(err, "cant find identity config map")
+	}
 
 	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
-	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig())
+	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig(), identityConfigMap)
 
 	funcs := []reconciliationFunc{
 		sidecar.Generate,

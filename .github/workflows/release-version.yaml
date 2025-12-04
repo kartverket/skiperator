@@ -28,7 +28,7 @@ jobs:
       DOCKER_BUILDKIT: 1
       DOCKER_EXPERIMENTAL: 1
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -39,14 +39,14 @@ jobs:
           go-version-file: go.mod
 
       - name: Log into GHCR registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Cosign
-        uses: sigstore/cosign-installer@v4.0.0
+        uses: sigstore/cosign-installer@v3.10.0
 
       - name: Install Syft for SBOM Generation
         shell: bash
@@ -68,7 +68,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
 
       - name: Setup Golang environment
         uses: actions/setup-go@v6
@@ -79,7 +79,7 @@ jobs:
         run: make generate
 
       - name: Upload CRD and ClusterRole
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -97,20 +97,20 @@ jobs:
       BASE_DIR: ./bases/skiperator-stable
       TMP_FILE: tmp_kustomization.yaml
     steps:
-      - uses: octo-sts/action@d6c70ad3b9ac85df6da6b9749014d7283987cfec # v1.0.3
+      - uses: octo-sts/action@a26b0c6455c7f13316f29a8766287f939e75f6c8 # v1.0.2
         id: octo-sts
         with:
           scope: kartverket/skip-apps
           identity: skiperator
 
       - name: Checkout apps repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v5
         with:
           repository: kartverket/skip-apps
           token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v5
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/
