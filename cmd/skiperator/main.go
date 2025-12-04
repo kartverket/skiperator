@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,11 +21,10 @@ import (
 
 	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/internal/controllers/common"
+	webhookv1beta1 "github.com/kartverket/skiperator/internal/webhook"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"go.uber.org/zap/zapcore"
 	istioclientv1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -32,7 +33,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -79,6 +79,16 @@ func main() {
 	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
+	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
+	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
+	webhookKeyName := flag.String("webhook-key-name", "tls.key", "Name of the webhook TLS key file")
+	webhookHost := flag.String("webhook-host", "", "Host to bind webhook server to. Use 0.0.0.0 to bind to all interfaces for local kind development.")
+	webhookPort := flag.Int("webhook-port", 9443, "Port for webhook server to listen on")
+	flag.Parse()
+
+	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
+
+	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
@@ -243,10 +253,35 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
-		os.Exit(1)
+	// Setup webhooks first
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1beta1.SetupSkipJobWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "SvartSkjaif")
+			os.Exit(1)
+		}
 	}
+
+	// Add certificate watchers
+	if metricsCertWatcher != nil {
+		setupLog.Info("Adding metrics certificate watcher to manager")
+		if err := mgr.Add(metricsCertWatcher); err != nil {
+			setupLog.Error(err, "unable to add metrics certificate watcher to manager")
+			os.Exit(1)
+		}
+	}
+
+	if webhookCertWatcher != nil {
+		setupLog.Info("Adding webhook certificate watcher to manager")
+		if err := mgr.Add(webhookCertWatcher); err != nil {
+			setupLog.Error(err, "unable to add webhook certificate watcher to manager")
+			os.Exit(1)
+		}
+	}
+
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for thi
+	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
+	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
+	// directly from namespaces as per SKIP-1704
 
 	var skipClusterList *config.SKIPClusterList
 	if activeConfig.ClusterCIDRExclusionEnabled {
@@ -262,7 +297,7 @@ func main() {
 	// Setup all controllers
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr, concurrentReconciles)
+	}).SetupWithManager(mgr, activeConfig.ConcurrentReconciles)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
@@ -333,7 +368,6 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

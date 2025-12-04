@@ -3,7 +3,7 @@ package job
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -60,7 +60,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
+func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		TimeZone:                skipJob.Spec.Cron.TimeZone,
@@ -83,12 +83,11 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, sel
 	return spec
 }
 
-func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
-	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
-	envVars := skipJob.Spec.Container.Env
-
-	if skipJob.Spec.Container.GCP != nil {
-		gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
+func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
+	envVars := skipJob.Spec.Env
+	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.FilesFrom)
+	gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
+	if skipJob.Spec.GCP != nil {
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
 		gcpEnvVar := gcp.GetGCPEnvVar()
 
