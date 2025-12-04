@@ -26,7 +26,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("job only supports skipjob type, got %s", r.GetType())
 	}
 
-	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob := r.GetSKIPObject().(*skiperatorv1beta1.SKIPJob)
 
 	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
@@ -104,8 +104,8 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 
 	containers = append(containers, skipJobContainer)
 
-	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
-		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.Container.GCP.CloudSQLProxy)
+	if util.IsCloudSqlProxyEnabled(skipJob.Spec.GCP) {
+		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 
@@ -122,9 +122,9 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 				containers,
 				podVolumes,
 				skipJob.KindPostFixedName(),
-				skipJob.Spec.Container.Priority,
-				skipJob.Spec.Container.RestartPolicy,
-				skipJob.Spec.Container.PodSettings,
+				skipJob.Spec.Priority,
+				skipJob.Spec.RestartPolicy,
+				skipJob.Spec.PodSettings,
 				skipJob.Name,
 			),
 			ObjectMeta: metav1.ObjectMeta{
@@ -144,7 +144,7 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 	return jobSpec
 }
 
-func setJobLabels(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
+func setJobLabels(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
-	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Container.Image)
+	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Image)
 }

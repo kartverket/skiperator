@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"

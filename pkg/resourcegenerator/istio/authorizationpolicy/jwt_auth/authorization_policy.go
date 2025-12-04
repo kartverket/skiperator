@@ -2,6 +2,7 @@ package jwt_auth
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/reconciliation"

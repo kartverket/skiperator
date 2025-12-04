@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

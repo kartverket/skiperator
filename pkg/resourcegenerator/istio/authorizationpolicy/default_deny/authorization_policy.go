@@ -2,6 +2,8 @@ package default_deny
 
 import (
 	"fmt"
+	"strings"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
@@ -10,7 +12,6 @@ import (
 	typev1beta1 "istio.io/api/type/v1beta1"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 func Generate(r reconciliation.Reconciliation) error {

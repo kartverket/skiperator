@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 

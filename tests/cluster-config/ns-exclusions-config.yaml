@@ -4,6 +4,7 @@ metadata:
   name: "namespace-exclusions"
   namespace: "skiperator-system"
 data:
+  argocd: "true" ## TODO: REMOVE, this is for local testing purposes only!!!
   default: "true"
   istio-system: "true"
   istio-gateways: "true"

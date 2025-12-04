@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
@@ -19,18 +22,29 @@ import (
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	"go.uber.org/zap/zapcore"
+	istioclientv1 "istio.io/client-go/pkg/apis/networking/v1"
+	istioclientv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
+	istioclienttelemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	realzap "go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -48,6 +62,15 @@ var (
 )
 
 func init() {
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+
+	utilruntime.Must(v1beta1.AddToScheme(scheme))
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+
+	// Register Istio types
+	utilruntime.Must(istioclientv1.AddToScheme(scheme))
+	utilruntime.Must(istioclientv1beta1.AddToScheme(scheme))
+	utilruntime.Must(istioclienttelemetryv1.AddToScheme(scheme))
 	resourceschemas.AddSchemas(scheme)
 }
 
@@ -112,7 +135,83 @@ func main() {
 	if activeConfig.EnableProfiling {
 		pprofBindAddr = ":8281"
 	}
+	var metricsAddr string
+	var metricsCertPath, metricsCertName, metricsCertKey string
+	// Create watchers for metrics and webhooks certificates
+	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
+	var secureMetrics bool
+	var tlsOpts []func(*tls.Config)
+	// Initial webhook TLS options
+	webhookTLSOpts := tlsOpts
 
+	// Initialize webhook certificate watcher if webhook cert directory is provided
+	if len(*webhookCertDir) > 0 {
+		certPath := filepath.Join(*webhookCertDir, *webhookCertName)
+		keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
+
+		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
+			"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
+
+		var err error
+		webhookCertWatcher, err = certwatcher.New(certPath, keyPath)
+		if err != nil {
+			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
+			os.Exit(1)
+		}
+
+		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
+			config.GetCertificate = webhookCertWatcher.GetCertificate
+		})
+	} else {
+		setupLog.Info("No webhook certificate directory provided, webhook will use self-signed certificates")
+	}
+
+	webhookServer := webhook.NewServer(webhook.Options{
+		TLSOpts: webhookTLSOpts,
+		Host:    *webhookHost,
+		Port:    *webhookPort,
+	})
+
+	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
+	// More info:
+	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/metrics/server
+	// - https://book.kubebuilder.io/reference/metrics.html
+	metricsServerOptions := metricsserver.Options{
+		BindAddress:   metricsAddr,
+		SecureServing: secureMetrics,
+		TLSOpts:       tlsOpts,
+	}
+
+	if secureMetrics {
+		// FilterProvider is used to protect the metrics endpoint with authn/authz.
+		// These configurations ensure that only authorized users and service accounts
+		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
+		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/metrics/filters#WithAuthenticationAndAuthorization
+		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
+	}
+
+	// If the certificate is not specified, controller-runtime will automatically
+	// generate self-signed certificates for the metrics server. While convenient for development and testing,
+
+	if len(metricsCertPath) > 0 {
+		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
+			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
+
+		var err error
+		metricsCertWatcher, err = certwatcher.New(
+			filepath.Join(metricsCertPath, metricsCertName),
+			filepath.Join(metricsCertPath, metricsCertKey),
+		)
+		if err != nil {
+			setupLog.Error(err, "to initialize metrics certificate watcher", "error", err)
+			os.Exit(1)
+		}
+
+		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
+			config.GetCertificate = metricsCertWatcher.GetCertificate
+		})
+	}
+	// Create new manager
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
@@ -121,13 +220,13 @@ func main() {
 		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
 		PprofBindAddress:        pprofBindAddr,
+		WebhookServer:           webhookServer,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	// Run leader-specific tasks when elected
+	// Setup leader-specific tasks as a goroutine that runs after manager starts
 	go func() {
 		<-mgr.Elected() // Wait until this instance is elected as leader
 		setupLog.Info("I am the captain now – configuring usage metrics")
@@ -144,6 +243,10 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
 
 	var skipClusterList *config.SKIPClusterList
 	if activeConfig.ClusterCIDRExclusionEnabled {
@@ -154,6 +257,15 @@ func main() {
 		} else {
 			skipClusterList = &activeConfig.ClusterCIDRMap
 		}
+	}
+
+	// Setup all controllers
+	err = (&controllers.ApplicationReconciler{
+		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
+	}).SetupWithManager(mgr, concurrentReconciles)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Application")
+		os.Exit(1)
 	}
 
 	err = (&controllers.SKIPJobReconciler{
