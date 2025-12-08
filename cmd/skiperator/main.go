@@ -245,6 +245,7 @@ func main() {
 		}
 	}()
 
+	// Setup all controllers
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 		SkiperatorConfig: activeConfig,
@@ -292,15 +293,6 @@ func main() {
 		} else {
 			skipClusterList = &activeConfig.ClusterCIDRMap
 		}
-	}
-
-	// Setup all controllers
-	err = (&controllers.ApplicationReconciler{
-		ReconcilerBase: common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
-	}).SetupWithManager(mgr, activeConfig.ConcurrentReconciles)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Application")
-		os.Exit(1)
 	}
 
 	err = (&controllers.SKIPJobReconciler{
