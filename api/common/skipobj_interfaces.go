@@ -1,13 +1,14 @@
-package v1alpha1
+package common
 
 import (
 	"fmt"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/common/istiotypes"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// +kubebuilder:object:generate=false
 type SKIPObject interface {
 	client.Object
 	GetStatus() *SkiperatorStatus
@@ -19,6 +20,7 @@ type SKIPObject interface {
 var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")
 
 // CommonSpec TODO: This needs some more thought. We should probably try to expand on it. v1Alpha2?
+// +kubebuilder:object:generate=true
 type CommonSpec struct {
 	AccessPolicy  *podtypes.AccessPolicy
 	GCP           *podtypes.GCP
