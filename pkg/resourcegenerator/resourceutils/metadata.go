@@ -1,10 +1,11 @@
 package resourceutils
 
 import (
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"golang.org/x/exp/maps"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"maps"
 	"strings"
+
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
