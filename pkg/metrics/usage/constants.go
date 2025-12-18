@@ -19,4 +19,7 @@ const (
 	// For massaging data
 	countKey     = "count"
 	unknownValue = "unknown"
+
+	// Ignore label
+	ignoreLabel = "skiperator.kartverket.no/ignore"
 )
