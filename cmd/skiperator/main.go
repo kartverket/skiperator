@@ -318,7 +318,7 @@ func main() {
 			Name:      registry.SecretName,
 		})
 		if regErr != nil {
-			setupLog.Error(err, "unable to fetch registry credential secret configuration", "controller", "Namespace")
+			setupLog.Error(regErr, "unable to fetch registry credential secret configuration", "controller", "Namespace")
 			os.Exit(1)
 		} else {
 			regcredSecret := imagepullsecret.RegistryCredentialSecret{

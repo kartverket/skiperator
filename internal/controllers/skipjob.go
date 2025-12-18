@@ -113,40 +113,17 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 		return common.DoNotRequeue()
 	}
-
-	tmpSkipJob := skipJob.DeepCopy()
-	//TODO make sure we don't update the skipjob/application/routing after this step, it will cause endless reconciliations
-	//check that resource request limit 0.3 doesn't overwrite to 300m
-	err = r.setSKIPJobDefaults(ctx, skipJob)
-	if err != nil {
-		return common.RequeueWithError(err)
-	}
-
-	specDiff, err := common.GetObjectDiff(tmpSkipJob.Spec, skipJob.Spec)
-	if err != nil {
-		return common.RequeueWithError(err)
-	}
-
-	statusDiff, err := common.GetObjectDiff(tmpSkipJob.Status, skipJob.Status)
-	if err != nil {
-		return common.RequeueWithError(err)
-	}
-
-	if len(statusDiff) > 0 {
-		rLog.Debug("Status has changed", "diff", statusDiff)
-		err = r.GetClient().Status().Update(ctx, skipJob)
-		return reconcile.Result{Requeue: true}, err
-	}
-
-	// Finalizer check is due to a bug when updating using controller-runtime
+	// TODO: Should we have defaulting here as well, in case the mutating webhook is unavailable?
 	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
 	// updates to be visible even though the controllerDuties may take some time.
-	if len(specDiff) > 0 || (!ctrlutil.ContainsFinalizer(tmpSkipJob, skipJobFinalizer) && ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer)) {
-		rLog.Debug("Queuing for spec diff")
+	if !ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
+		rLog.Debug("Adding finalizer")
+		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer) // Indicating that the object is good after the webhook has mutated
 		err = r.GetClient().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
-
+	// We must fill the default status here as the rest is moved to the webhook
+	skipJob.FillDefaultStatus()
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, skipJob)
@@ -217,19 +194,6 @@ func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Reques
 	}
 
 	return skipJob, nil
-}
-
-func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *skiperatorv1beta1.SKIPJob) error {
-	skipJob.FillDefaultSpec()
-
-	if !ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
-		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer)
-	}
-
-	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
-	skipJob.FillDefaultStatus()
-
-	return nil
 }
 
 func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1beta1.SKIPJob) error {
