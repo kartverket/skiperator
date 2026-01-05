@@ -1308,8 +1308,8 @@ spec:
                   static number as follows:\n\n\treplicas: 2\n\nOr by specifying a
                   range between min and max to enable HorizontalPodAutoscaling.\nThe
                   default value for replicas is:\n\treplicas:\n\t\tmin: 2\n\t\tmax:
-                  5\n\t\ttargetCpuUtilization: 80\nUsing autoscaling is the recommended
-                  configuration for replicas."
+                  5\n\t\ttargetCpuUtilization: 80\n     targetMemoryUtilization: 80\nUsing
+                  autoscaling is the recommended configuration for replicas."
                 x-kubernetes-preserve-unknown-fields: true
               resourceLabels:
                 additionalProperties:

@@ -20,6 +20,12 @@ spec:
           averageUtilization: 200
           type: Utilization
       type: Resource
+    - resource:
+        name: memory
+        target:
+          averageUtilization: 200
+          type: Utilization
+      type: Resource
   scaleTargetRef:
     kind: Deployment
     apiVersion: apps/v1
