@@ -6,7 +6,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
-var ignoredResourceGauge = prometheus. NewGaugeVec(
+var ignoredResourceGauge = prometheus.NewGaugeVec(
 	prometheus.GaugeOpts{
 		Subsystem: metricSubsystem,
 		Name:      "ignored_resource",
@@ -15,7 +15,7 @@ var ignoredResourceGauge = prometheus. NewGaugeVec(
 	[]string{"name", "namespace", "kind", ignoreLabel},
 )
 
-func init(){
+func init() {
 	metrics.Registry.MustRegister(ignoredResourceGauge)
 }
  

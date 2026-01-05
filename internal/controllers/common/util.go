@@ -28,9 +28,9 @@ func RequeueWithError(err error) (reconcile.Result, error) {
 
 func ShouldReconcile(obj client.Object) bool {
 	labels := obj.GetLabels()
-	if labels["skiperator.kartverket.no/ignore"] == "true"{
+	if labels["skiperator.kartverket.no/ignore"] == "true" {
 		// Expose metrics for ignored resource
-		usage.ExposeIgnoreResource(obj,1)
+		usage.ExposeIgnoreResource(obj, 1)
 		return false
 	}
 	return true
