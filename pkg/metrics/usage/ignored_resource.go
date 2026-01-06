@@ -19,7 +19,7 @@ func init() {
 	metrics.Registry.MustRegister(ignoredResourceGauge)
 }
  
-func ExposeIgnoreResource(obj client.Object, v float64){
+func ExposeIgnoreResource(obj client.Object, v float64) {
     kind := obj.GetObjectKind().GroupVersionKind().Kind
     ignoredResourceGauge.WithLabelValues(
 	    obj.GetName(), obj.GetNamespace(), kind,
