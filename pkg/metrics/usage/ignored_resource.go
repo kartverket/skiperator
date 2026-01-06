@@ -12,7 +12,7 @@ var ignoredResourceGauge = prometheus.NewGaugeVec(
 		Name:      "ignored_resource",
 		Help:      "Resource ignored by Skiperator",
 	},
-	[]string{"name", "namespace", "kind", ignoreLabel},
+	[]string{"name", "namespace", "kind"},
 )
 
 func init() {
@@ -20,9 +20,8 @@ func init() {
 }
  
 func ExposeIgnoreResource(obj client.Object, v float64){
-    labels := obj.GetLabels()
     kind := obj.GetObjectKind().GroupVersionKind().Kind
     ignoredResourceGauge.WithLabelValues(
-	    obj.GetName(), obj.GetNamespace(), kind, labels[ignoreLabel],
+	    obj.GetName(), obj.GetNamespace(), kind,
 	).Set(v)
 }
