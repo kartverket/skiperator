@@ -9,6 +9,7 @@ import (
 	"github.com/chmike/domain"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,7 +28,12 @@ func RequeueWithError(err error) (reconcile.Result, error) {
 
 func ShouldReconcile(obj client.Object) bool {
 	labels := obj.GetLabels()
-	return labels["skiperator.kartverket.no/ignore"] != "true"
+	if labels["skiperator.kartverket.no/ignore"] == "true" {
+		// Expose metrics for ignored resource
+		usage.ExposeIgnoreResource(obj, 1)
+		return false
+	}
+	return true
 }
 
 func IsNamespaceTerminating(namespace *corev1.Namespace) bool {
