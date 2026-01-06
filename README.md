@@ -15,7 +15,7 @@ resource called `Application`.
 Below you will find a list of all accepted input parameters to the `Application`
 custom resource.
 
-To see explanations and requirements for all inputs, see the documentation under [the API documentation](https://skip.kartverket.no/docs/skiperator).
+To see explanations and requirements for all inputs, see the documentation under [the API documentation](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#application).
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -51,6 +51,7 @@ spec:
     min: 2
     max: 5
     targetCpuUtilization: 80
+    targetMemoryUtilization: 80
     
   gcp:
     auth:
@@ -183,7 +184,7 @@ spec:
 ## SKIPJob reference
 
 Below you will find a list of all accepted input parameters to the `SKIPJob`
-custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://pkg.go.dev/github.com/kartverket/skiperator@v1.0.0/api/v1alpha1)
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#skipjob)
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
@@ -284,7 +285,7 @@ instead of the `ingresses` field in the `Application` custom resource. The route
 route should be a catch-all route. This will only work for applications in the same namespace as the Routing resource.
 
 Below you will find a list of all accepted input parameters to the `Routing`
-custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://doc.crds.dev/github.com/kartverket/skiperator)
+custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#routing)
 
 ```yaml
 apiVersion: skiperator.kartverket.no/v1alpha1
