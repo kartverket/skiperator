@@ -1,0 +1,25 @@
+name: Lint PR
+
+on: 
+  pull_request:
+    paths:
+      - '**/*.go'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Run golangci-lint with Reviewdog
+        uses: reviewdog/action-golangci-lint@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review      # inline comments
+          level: warning                  # severity level
+          fail_level: none                # never fail the job
+          golangci_lint_flags: "--timeout=10m"
