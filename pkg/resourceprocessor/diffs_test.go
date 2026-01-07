@@ -75,8 +75,8 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
 	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
-	resourceutils.AddGVK(scheme, newSA)
-	resourceutils.AddGVK(scheme, liveDeploymentIgnorePatchOrCreate)
+	_ = resourceutils.AddGVK(scheme, newSA)
+	_ = resourceutils.AddGVK(scheme, liveDeploymentIgnorePatchOrCreate)
 	//build reconcile objects array
 	r.AddResource(newSA)
 	r.AddResource(liveDeploymentIgnorePatchOrCreate)

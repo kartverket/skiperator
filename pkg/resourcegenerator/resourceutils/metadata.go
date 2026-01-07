@@ -53,7 +53,7 @@ func setResourceLabels(obj client.Object, app *skiperatorv1alpha1.Application) {
 
 func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string) (map[string]string, bool) {
 	for k, v := range app.Spec.ResourceLabels {
-		if strings.ToLower(k) == strings.ToLower(resourceKind) {
+		if strings.EqualFold(k, resourceKind) {
 			return v, true
 		}
 	}
@@ -62,9 +62,9 @@ func getResourceLabels(app *skiperatorv1alpha1.Application, resourceKind string)
 
 func FindResourceLabelErrors(app *skiperatorv1alpha1.Application, resources []client.Object) map[string]map[string]string {
 	labelsWithNoMatch := app.Spec.ResourceLabels
-	for k, _ := range labelsWithNoMatch {
+	for k := range labelsWithNoMatch {
 		for _, resource := range resources {
-			if strings.ToLower(k) == strings.ToLower(resource.GetObjectKind().GroupVersionKind().Kind) {
+			if strings.EqualFold(k, resource.GetObjectKind().GroupVersionKind().Kind) {
 				delete(labelsWithNoMatch, k)
 			}
 		}

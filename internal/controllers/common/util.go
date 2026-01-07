@@ -117,7 +117,7 @@ func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
 	aKind := reflect.ValueOf(a).Kind()
 	bKind := reflect.ValueOf(b).Kind()
 	if aKind != bKind {
-		return nil, fmt.Errorf("The objects to compare are not the same, found obj1: %v, obj2: %v\n", aKind, bKind)
+		return nil, fmt.Errorf("the objects to compare are not the same, found obj1: %v, obj2: %v", aKind, bKind)
 	}
 	changelog, err := diff.Diff(a, b)
 

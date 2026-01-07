@@ -15,7 +15,7 @@ import (
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
 	"github.com/kartverket/skiperator/pkg/log"
-	. "github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
@@ -128,7 +128,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Complete(r)
 }
 
-type reconciliationFunc func(reconciliation Reconciliation) error
+type reconciliationFunc func(reconciliation reconciliation.Reconciliation) error
 
 // TODO Clean up logs, events
 
@@ -215,7 +215,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
 	}
 
-	reconciliation := NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	reconciliation := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -310,7 +310,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	reconciliation := reconciliation.NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
 
 	return processor.Process(reconciliation)
@@ -372,10 +372,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
-	if !r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com") {
-		return false
-	}
-	return true
+	return r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com")
 }
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
