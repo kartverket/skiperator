@@ -60,7 +60,6 @@ func HumanReadableVersion(logger *log.Logger, imageReference string) string {
 	}
 
 	versionPart := processedImageRef[lastColonPos+1:]
-	processedImageRef = processedImageRef[:lastColonPos]
 
 	// Trim non-alphanumeric prefix
 	versionPart = strings.TrimLeftFunc(versionPart, func(r rune) bool {
