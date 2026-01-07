@@ -18,10 +18,27 @@ var ignoredResourceGauge = prometheus.NewGaugeVec(
 func init() {
 	metrics.Registry.MustRegister(ignoredResourceGauge)
 }
- 
-func ExposeIgnoreResource(obj client.Object, v float64) {
-    kind := obj.GetObjectKind().GroupVersionKind().Kind
-    ignoredResourceGauge.WithLabelValues(
-	    obj.GetName(), obj.GetNamespace(), kind,
-	).Set(v)
+
+func ExposeIgnoredResource(obj client.Object) {
+	kind := obj.GetObjectKind().GroupVersionKind().Kind
+	res := ignoredResourceGauge.WithLabelValues(
+		obj.GetName(), obj.GetNamespace(), kind,
+	)
+
+	res.Set(1)
+}
+
+func RemoveIgnoredResource(obj client.Object) {
+	ignoredResourceGauge.Delete(
+		ignoreLabels(obj.GetName(), obj.GetNamespace(), obj.GetObjectKind().GroupVersionKind().Kind),
+	)
+}
+
+func ignoreLabels(name string, namespace string, kind string) prometheus.Labels {
+	labels := make(prometheus.Labels)
+	labels["name"] = name
+	labels["namespace"] = namespace
+	labels["kind"] = kind
+
+	return labels
 }

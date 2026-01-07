@@ -30,9 +30,11 @@ func ShouldReconcile(obj client.Object) bool {
 	labels := obj.GetLabels()
 	if labels["skiperator.kartverket.no/ignore"] == "true" {
 		// Expose metrics for ignored resource
-		usage.ExposeIgnoreResource(obj, 1)
+		usage.ExposeIgnoredResource(obj)
 		return false
 	}
+
+	usage.RemoveIgnoredResource(obj)
 	return true
 }
 
