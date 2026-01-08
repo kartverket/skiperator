@@ -48,8 +48,23 @@ run-local: build install-skiperator
 	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator install-registry-secrets
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
+
+.PHONY: install-registry-secrets
+install-registry-secrets:
+	@echo "Creating dummy registry credential secrets for testing..."
+	@kubectl create secret generic github-config \
+		--from-literal=token=dummy-token \
+		-n skiperator-system \
+		--context $(SKIPERATOR_CONTEXT) \
+		--dry-run=client -o yaml | kubectl apply -f - --context $(SKIPERATOR_CONTEXT)
+	@kubectl create secret generic docker-config \
+		--from-literal=token=dummy-token \
+		-n skiperator-system \
+		--context $(SKIPERATOR_CONTEXT) \
+		--dry-run=client -o yaml | kubectl apply -f - --context $(SKIPERATOR_CONTEXT)
+	@echo "Registry credential secrets created."
 
 
 #### KIND ####
