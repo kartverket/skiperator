@@ -2,6 +2,8 @@ package resourceprocessor
 
 import (
 	"fmt"
+
+	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -108,8 +110,11 @@ func getNamespace(r reconciliation.Reconciliation) string {
 
 func shouldIgnoreObject(obj client.Object) bool {
 	if obj.GetLabels()["skiperator.kartverket.no/ignore"] == "true" {
+		// Expose metrics for ignored resource
+		usage.ExposeIgnoredResource(obj)
 		return true
 	}
+	usage.RemoveIgnoredResource(obj)
 	if len(obj.GetOwnerReferences()) > 0 && obj.GetOwnerReferences()[0].Kind == "CronJob" {
 		return true
 	}

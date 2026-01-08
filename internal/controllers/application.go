@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"strings"
 
+	"maps"
+
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/common/digdirator"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -40,7 +42,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"golang.org/x/exp/maps"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	securityv1 "istio.io/client-go/pkg/apis/security/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"

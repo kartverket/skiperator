@@ -107,6 +107,7 @@ type ApplicationSpec struct {
 	// 		min: 2
 	// 		max: 5
 	// 		targetCpuUtilization: 80
+	//      targetMemoryUtilization: 80
 	// Using autoscaling is the recommended configuration for replicas.
 	//+kubebuilder:validation:Optional
 	Replicas *apiextensionsv1.JSON `json:"replicas,omitempty"`
@@ -294,6 +295,13 @@ type Replicas struct {
 	//+kubebuilder:default:=80
 	//+kubebuilder:validation:Optional
 	TargetCpuUtilization uint `json:"targetCpuUtilization,omitempty"`
+	// When the average Memory utilization across all pods crosses this threshold another replica is started, up to a maximum of Max
+	//
+	// TargetMemoryUtilization is an integer representing a percentage.
+	//
+	//+kubebuilder:default:=80
+	//+kubebuilder:validation:Optional
+	TargetMemoryUtilization uint `json:"targetMemoryUtilization,omitempty"`
 }
 
 // Strategy
@@ -315,7 +323,14 @@ func NewDefaultReplicas() Replicas {
 	return Replicas{
 		Min:                  2,
 		Max:                  5,
-		TargetCpuUtilization: 80,
+	}
+}
+
+func (replicas *Replicas) ApplyDefaultUtilization() {
+	// set default on both target values if none are set
+	if replicas.TargetCpuUtilization == 0 && replicas.TargetMemoryUtilization == 0 {
+		replicas.TargetCpuUtilization = 80
+		replicas.TargetMemoryUtilization = 80
 	}
 }
 
@@ -341,7 +356,7 @@ func GetStaticReplicas(jsonReplicas *apiextensionsv1.JSON) (uint, error) {
 func GetScalingReplicas(jsonReplicas *apiextensionsv1.JSON) (Replicas, error) {
 	result := NewDefaultReplicas()
 	err := json.Unmarshal(jsonReplicas.Raw, &result)
-
+	result.ApplyDefaultUtilization()
 	return result, err
 }
 
@@ -358,6 +373,7 @@ func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
 func (a *Application) FillDefaultsSpec() {
 	if a.Spec.Replicas == nil {
 		defaultReplicas := NewDefaultReplicas()
+		defaultReplicas.ApplyDefaultUtilization()
 		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
 	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
 		if replicas.Min > replicas.Max {
