@@ -131,6 +131,8 @@ install-skiperator: generate
 	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/docker-config.yaml --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/github-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
 
 
