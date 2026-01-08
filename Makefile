@@ -48,9 +48,8 @@ run-local: build install-skiperator
 	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator
+setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator install-webhook
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
-
 
 #### KIND ####
 
@@ -127,7 +126,6 @@ install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
 	@kustomize build config/cert-manager | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
 	@kustomize build config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
-	@kustomize build config/webhook | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT) || true
@@ -135,6 +133,9 @@ install-skiperator: generate
 	@kubectl apply -f config/github-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
 
+.PHONY: install-webhook
+install-webhook: install-skiperator
+	@kustomize build config/webhook | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
 
 #### TESTS ####
 .PHONY: test-single

@@ -8,7 +8,7 @@ HOST_ADDR="host.docker.internal"
 echo "Using host address: $HOST_ADDR"
 
 # Get the IP that kind can reach
-HOST_IP=$(docker run --rm --network kind busybox nslookup host.docker.internal | grep "Address:" | tail -n1 | awk '{print $2}')
+HOST_IP="$(docker run --rm --network kind curlimages/curl:8.5.0 sh -lc 'nslookup host.docker.internal' | awk '/^Address: / {print $2}' | awk '$0 ~ /^[0-9]+\./ {print; exit}')"
 if [ -z "$HOST_IP" ]; then
   echo "ERROR: Could not resolve host.docker.internal"
   echo "Falling back to Docker gateway IP..."
@@ -29,35 +29,34 @@ metadata:
   name: skipjob-conversion-webhook
   namespace: skiperator-system
 spec:
+  type: ClusterIP
   ports:
   - name: https
     port: 443
+    targetPort: 9443
     protocol: TCP
 EOF
 
 
 # Always update/create endpoints to point to current host IP
 kubectl apply --context="$CONTEXT" -f - <<EOF
-apiVersion: discovery.k8s.io/v1
-kind: EndpointSlice
+apiVersion: v1
+kind: Endpoints
 metadata:
   name: skipjob-conversion-webhook
   namespace: skiperator-system
-  labels:
-    kubernetes.io/service-name: skipjob-conversion-webhook
-addressType: IPv4
-endpoints:
+subsets:
 - addresses:
-  - ${HOST_IP}
-ports:
-- name: https
-  port: 9443
-  protocol: TCP
+  - ip: ${HOST_IP}
+  ports:
+  - name: https
+    port: 9443
+    protocol: TCP
 EOF
 
 echo ""
 echo "✅ Webhook routing configured:"
-kubectl get endpointslice --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system
+kubectl get endpoint --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system
 echo ""
 echo "Service ClusterIP:"
 kubectl get svc --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system -o jsonpath='{.spec.clusterIP}'
