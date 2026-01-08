@@ -12,18 +12,18 @@ extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' '
 #### TOOLS ####
 TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
-KIND_VERSION                       := v0.26.0
+KIND_VERSION                       := v0.31.0
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
-KUBERNETES_VERSION          = 1.32.5
+KUBERNETES_VERSION          = 1.33.7
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
-LOCAL_WEBHOOK_CERTS_DIR = /tmp/k8s-webhook-server/serving-certs
-WEBHOOK_HOST = 0.0.0.0
+LOCAL_WEBHOOK_CERTS_DIR    := $(shell mktemp -d -t skiperator-webhook-certs.XXXXXXX)
+WEBHOOK_HOST                = 0.0.0.0
 .PHONY: generate
 generate:
 	go generate ./...
@@ -42,7 +42,7 @@ run-local: build install-skiperator
 	@echo "Extracting webhook certificates for local development..."
 	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
 	@echo "Setting up webhook service to route to host..."
-	@./hack/setup-local-webhook-endpoint.sh
+	@./hack/setup-local-webhook-endpoint.sh $(SKIPERATOR_CONTEXT)
 	@echo ""
 	@echo "Starting skiperator with webhook on 0.0.0.0:9443 (accessible from kind cluster)..."
 	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)

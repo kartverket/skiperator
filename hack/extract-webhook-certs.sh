@@ -16,4 +16,3 @@ kubectl get secret skiperator-webhook-server-cert -n skiperator-system --context
     -o jsonpath='{.data.tls\.key}' | base64 -d > "$CERT_DIR/tls.key"
 
 echo "✅ Certificates extracted to $CERT_DIR"
-ls -lh "$CERT_DIR"
