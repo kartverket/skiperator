@@ -9,8 +9,6 @@ import (
 	"github.com/chmike/domain"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
