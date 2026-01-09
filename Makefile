@@ -22,8 +22,11 @@ SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
 KUBERNETES_VERSION          = 1.33.7
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
+
 LOCAL_WEBHOOK_CERTS_DIR    := $(shell mktemp -d -t skiperator-webhook-certs.XXXXXXX)
 WEBHOOK_HOST                = 0.0.0.0
+WEBHOOK_ARGS                = --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
+
 .PHONY: generate
 generate:
 	go generate ./...
@@ -38,18 +41,21 @@ build: generate
 	./cmd/skiperator
 
 .PHONY: run-local
-run-local: build install-skiperator
-	@echo "Extracting webhook certificates for local development..."
-	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
-	@echo "Setting up webhook service to route to host..."
-	@./hack/setup-local-webhook-endpoint.sh $(SKIPERATOR_CONTEXT)
+run-local: build install-skiperator local-webhook
 	@echo ""
 	@echo "Starting skiperator with webhook on 0.0.0.0:9443 (accessible from kind cluster)..."
-	./bin/skiperator --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
+	./bin/skiperator $(WEBHOOK_ARGS)
 
 .PHONY: setup-local
 setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator install-webhook
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
+
+.PHONY: local-webhook
+local-webhook:
+	@echo "Extracting webhook certificates for local development..."
+	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
+	@echo "Setting up webhook service to route to host..."
+	@./hack/setup-local-webhook-endpoint.sh $(SKIPERATOR_CONTEXT)
 
 #### KIND ####
 
@@ -158,10 +164,10 @@ run-unit-tests:
 		fi
 
 .PHONY: run-test
-run-test: build install-skiperator
+run-test: build install-skiperator local-webhook
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
-	./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+	./bin/skiperator $(WEBHOOK_ARGS) > "$$LOG_FILE" 2>&1 & \
 	PID=$$!; \
 	echo "skiperator PID: $$PID"; \
 	echo "Log redirected to file: $$LOG_FILE"; \
@@ -176,12 +182,12 @@ run-test: build install-skiperator
 
 # Checks the delta of requests made to the kube api from the controller.
 .PHONY: benchmark-chainsaw-tests
-benchmark-chainsaw-tests: build install-skiperator
+benchmark-chainsaw-tests: build install-skiperator local-webhook
 	@echo "Starting skiperator in background..."
 	@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
 	METRICS_BEFORE=$$(mktemp -t metrics-before.XXXXXXX); \
 	METRICS_AFTER=$$(mktemp -t metrics-after.XXXXXXX); \
-	./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+	./bin/skiperator $(WEBHOOK_ARGS) > "$$LOG_FILE" 2>&1 & \
 	PID=$$!; \
 	echo "Waiting for skiperator to start and sync..."; \
 	sleep 10s; \
@@ -232,7 +238,7 @@ benchmark-chainsaw-tests: build install-skiperator
 
 
 .PHONY: benchmark-long-run
-benchmark-long-run: build install-skiperator
+benchmark-long-run: build install-skiperator local-webhook
 		@echo "Applying anonymous metrics RBAC..."; \
     	kubectl apply -f tests/cluster-config/allow-anonymous-metrics.yaml; \
     	echo "Starting port-forward to API server..."; \
@@ -242,7 +248,7 @@ benchmark-long-run: build install-skiperator
     	sleep 3; \
 		echo "Starting skiperator in background..."; \
 		@LOG_FILE=$$(mktemp -t skiperator-test.XXXXXXX); \
-		./bin/skiperator > "$$LOG_FILE" 2>&1 & \
+		./bin/skiperator $(WEBHOOK_ARGS) > "$$LOG_FILE" 2>&1 & \
 		SPID=$$!; \
     	echo "Waiting for skiperator to start and sync..."; \
 		sleep 20; \

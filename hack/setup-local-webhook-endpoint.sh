@@ -8,7 +8,7 @@ HOST_ADDR="host.docker.internal"
 echo "Using host address: $HOST_ADDR"
 
 # Get the IP that kind can reach
-HOST_IP="$(docker run --rm --network kind curlimages/curl:8.5.0 sh -lc 'nslookup host.docker.internal' | awk '/^Address: / {print $2}' | awk '$0 ~ /^[0-9]+\./ {print; exit}')"
+HOST_IP="$(docker run --rm --network kind curlimages/curl:8.18.0 sh -lc 'nslookup host.docker.internal' | awk '/^Address: / {print $2}' | awk '$0 ~ /^[0-9]+\./ {print; exit}')"
 if [ -z "$HOST_IP" ]; then
   echo "ERROR: Could not resolve host.docker.internal"
   echo "Falling back to Docker gateway IP..."
@@ -37,7 +37,6 @@ spec:
     protocol: TCP
 EOF
 
-
 # Always update/create endpoints to point to current host IP
 kubectl apply --context="$CONTEXT" -f - <<EOF
 apiVersion: v1
@@ -56,7 +55,7 @@ EOF
 
 echo ""
 echo "✅ Webhook routing configured:"
-kubectl get endpoint --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system
+kubectl get endpoints --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system
 echo ""
 echo "Service ClusterIP:"
 kubectl get svc --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system -o jsonpath='{.spec.clusterIP}'
