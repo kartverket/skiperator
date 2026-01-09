@@ -1,18 +1,19 @@
 package resourceschemas
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	testing2 "testing"
 )
 
-func TestAddGVK(t *testing2.T) {
+func TestAddGVK(t *testing.T) {
 	//arrange
 	scheme := runtime.NewScheme()
-	corev1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 	list := []client.ObjectList{&corev1.ServiceList{}}
 	//act
 	result := addGVKToList(list, scheme)
@@ -23,7 +24,7 @@ func TestAddGVK(t *testing2.T) {
 	assert.Equal(t, schema.GroupVersionKind{Group: "", Version: "v1", Kind: "ServiceList"}, result[0].GroupVersionKind())
 }
 
-func TestGetApplicationSchemas(t *testing2.T) {
+func TestGetApplicationSchemas(t *testing.T) {
 	//arrange
 	scheme := runtime.NewScheme()
 	AddSchemas(scheme)

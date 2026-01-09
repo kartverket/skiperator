@@ -97,13 +97,9 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 		envVars = append(envVars, gcpEnvVar)
 	}
 
-	var skipJobContainer corev1.Container
-	skipJobContainer = pod.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
+	skipJobContainer := pod.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
 
-	var containers []corev1.Container
-
-	containers = append(containers, skipJobContainer)
-
+	containers := []corev1.Container{skipJobContainer}
 	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
 		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.Container.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)

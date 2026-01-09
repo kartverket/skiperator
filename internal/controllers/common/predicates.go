@@ -41,9 +41,6 @@ var DeploymentPredicate = predicate.Funcs{
 		oldHash := util.GetHashForStructs([]interface{}{&oldDep.Spec, &oldDep.Labels})
 		newHash := util.GetHashForStructs([]interface{}{&newDep.Spec, &newDep.Labels})
 
-		if oldHash != newHash {
-			return true
-		}
-		return false
+		return oldHash != newHash
 	},
 }

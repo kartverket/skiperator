@@ -47,9 +47,7 @@ func preparePatch(new client.Object, old client.Object) {
 		// The command "kubectl rollout restart" puts an annotation on the deployment template in order to track
 		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
 		// fix is to just remove it from the map before hashing and checking the diff.
-		if _, rolloutIssued := deployment.Spec.Template.Annotations["kubectl.kubernetes.io/restartedAt"]; rolloutIssued {
-			delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
-		}
+		delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 	case *batchv1.Job:
 		job := old.(*batchv1.Job)
 		definition := new.(*batchv1.Job)

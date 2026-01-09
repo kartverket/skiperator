@@ -1,6 +1,10 @@
 package dynamic
 
 import (
+	"net"
+	"slices"
+	"strings"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -9,9 +13,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"net"
-	"slices"
-	"strings"
 )
 
 func init() {
@@ -170,7 +171,7 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if ingresses != nil && len(ingresses) > 0 {
+	if len(ingresses) > 0 {
 		if hasInternalIngress(ingresses) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(true, port))
 		}

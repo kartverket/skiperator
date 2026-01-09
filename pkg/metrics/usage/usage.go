@@ -64,13 +64,10 @@ func NewUsageMetrics(k8sConfig *rest.Config, log log.Logger) error {
 		// regular update
 		ticker := time.NewTicker(metricsRefreshInterval)
 		defer ticker.Stop()
-		for {
-			select {
-			case <-ticker.C:
-				ctx, cancel := apiserverCtx()
-				updateMetrics(ctx)
-				cancel()
-			}
+		for range ticker.C {
+			ctx, cancel := apiserverCtx()
+			updateMetrics(ctx)
+			cancel()
 		}
 	}()
 
@@ -95,10 +92,12 @@ func registerGaugeVecFunc(opts prometheus.GaugeOpts, labelNames []string, fn upd
 // Helper function to split key back into label values
 func splitKey(key string) []string {
 	parts := [2]string{unknownValue, unknownValue}
-	split := strings.SplitN(key, "|", 2)
-	for i, val := range split {
-		parts[i] = val
+	if key == "" {
+		return parts[:]
 	}
+
+	split := strings.SplitN(key, "|", 2)
+	copy(parts[:], split)
 	return parts[:]
 }
 

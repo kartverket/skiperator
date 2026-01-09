@@ -2,6 +2,7 @@ package allow
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/authorizationpolicy"
@@ -24,7 +25,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if application.Spec.AuthorizationSettings != nil {
 		// Do not create an AuthorizationPolicy if allowAll is set to true
-		if application.Spec.AuthorizationSettings.AllowAll == true {
+		if application.Spec.AuthorizationSettings.AllowAll {
 			return nil
 		}
 	}

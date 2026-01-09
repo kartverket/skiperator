@@ -47,10 +47,7 @@ func (authConfigs *AuthConfigs) GetIgnoredPaths() []string {
 		}
 
 		for _, path := range allowPaths {
-			if _, ok := ignoredPaths[path]; ok {
-				delete(ignoredPaths, path)
-			}
-
+			delete(ignoredPaths, path)
 		}
 	}
 	return slices.Collect(maps.Values(ignoredPaths))
