@@ -1,8 +1,8 @@
 package virtualservice
 
 import (
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/resourcegenerator/resourceutils/generator"
 )
 
 var multiGenerator = generator.NewMulti()

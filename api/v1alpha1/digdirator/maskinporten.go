@@ -1,7 +1,7 @@
 package digdirator
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1/istiotypes"
 	"github.com/nais/digdirator/pkg/secrets"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -3,8 +3,8 @@ package serviceaccount
 import (
 	"maps"
 
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/resourcegenerator/resourceutils/generator"
 	corev1 "k8s.io/api/core/v1"
 )
 

@@ -1,9 +1,9 @@
 package resourceprocessor
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/log"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/pkg/log"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

@@ -5,10 +5,10 @@ import (
 
 	"maps"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/internal/config"
-	"github.com/kartverket/skiperator/pkg/log"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/internal/config"
+	"github.com/kartverket/skiperator/v2/pkg/log"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

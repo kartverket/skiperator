@@ -3,8 +3,8 @@ package resourceprocessor
 import (
 	"fmt"
 
-	"github.com/kartverket/skiperator/pkg/metrics/usage"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/metrics/usage"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

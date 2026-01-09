@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/v2/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/client-go/rest"

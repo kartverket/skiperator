@@ -2,9 +2,9 @@ package virtualservice
 
 import (
 	"fmt"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"hash/fnv"
 	networkingv1api "istio.io/api/networking/v1"

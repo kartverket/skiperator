@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1/podtypes"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
