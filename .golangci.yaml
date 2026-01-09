@@ -1,0 +1,10 @@
+version: '2'
+
+linters:
+    exclusions:
+      rules:
+        # disable check for unchecked error in deferred close statements
+        # i.e we are allowing these
+        - linters:
+            - errcheck
+          source: "^\t*defer .+.Close()"
