@@ -3,7 +3,7 @@ package serviceaccount
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -18,17 +18,17 @@ func generateForSKIPJob(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	ctxLog.Debug("Attempting to generate service account for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
-	skipJob, ok := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob, ok := r.GetSKIPObject().(*skiperatorv1beta1.SKIPJob)
 	if !ok {
 		return fmt.Errorf("failed to cast object to skipjob")
 	}
 
 	serviceAccount := corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Namespace: skipJob.Namespace, Name: skipJob.KindPostFixedName()}}
 
-	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
-		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.Container.GCP.CloudSQLProxy.ServiceAccount)
-	} else if util.GCPServiceAccountInUse(skipJob.Spec.Container.GCP) {
-		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.Container.GCP.Auth.ServiceAccount)
+	if util.IsCloudSqlProxyEnabled(skipJob.Spec.GCP) {
+		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.GCP.CloudSQLProxy.ServiceAccount)
+	} else if util.GCPServiceAccountInUse(skipJob.Spec.GCP) {
+		setGCPSAAnnotation(&serviceAccount, skipJob.Spec.GCP.Auth.ServiceAccount)
 	}
 
 	r.AddResource(&serviceAccount)

@@ -1,7 +1,7 @@
 package digdirator
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

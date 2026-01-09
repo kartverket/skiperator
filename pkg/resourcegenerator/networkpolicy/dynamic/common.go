@@ -1,17 +1,18 @@
 package dynamic
 
 import (
+	"net"
+	"slices"
+	"strings"
+
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"net"
-	"slices"
-	"strings"
 )
 
 func init() {

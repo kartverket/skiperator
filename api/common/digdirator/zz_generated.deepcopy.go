@@ -5,7 +5,7 @@
 package digdirator
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 	v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 )
 
