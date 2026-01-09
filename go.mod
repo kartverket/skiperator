@@ -1,4 +1,4 @@
-module github.com/kartverket/skiperator
+module github.com/kartverket/skiperator/v2
 
 go 1.25.3
 

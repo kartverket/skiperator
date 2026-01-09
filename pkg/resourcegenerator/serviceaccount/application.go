@@ -3,9 +3,9 @@ package serviceaccount
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/util"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

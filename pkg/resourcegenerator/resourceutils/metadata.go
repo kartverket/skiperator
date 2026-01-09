@@ -4,7 +4,7 @@ import (
 	"maps"
 	"strings"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

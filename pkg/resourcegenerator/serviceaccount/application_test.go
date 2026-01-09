@@ -1,7 +1,7 @@
 package serviceaccount
 
 import (
-	"github.com/kartverket/skiperator/pkg/testutil"
+	"github.com/kartverket/skiperator/v2/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"testing"

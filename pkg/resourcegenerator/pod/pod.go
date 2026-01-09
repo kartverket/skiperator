@@ -3,11 +3,11 @@ package pod
 import (
 	"fmt"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	"github.com/kartverket/skiperator/internal/config"
-	"github.com/kartverket/skiperator/pkg/util"
-	"github.com/kartverket/skiperator/pkg/util/array"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/v2/internal/config"
+	"github.com/kartverket/skiperator/v2/pkg/util"
+	"github.com/kartverket/skiperator/v2/pkg/util/array"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -2,8 +2,8 @@ package common
 
 import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/util"
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"

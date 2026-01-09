@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

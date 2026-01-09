@@ -1,9 +1,9 @@
 package prometheus
 
 import (
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/pkg/reconciliation"
-	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
+	"github.com/kartverket/skiperator/v2/api/v1alpha1"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/resourcegenerator/resourceutils/generator"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 

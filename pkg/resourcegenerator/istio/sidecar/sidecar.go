@@ -3,7 +3,7 @@ package sidecar
 import (
 	"fmt"
 
-	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/v2/pkg/reconciliation"
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
