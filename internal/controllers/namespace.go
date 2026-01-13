@@ -7,7 +7,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
-	. "github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
@@ -74,7 +74,7 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 
 	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
-	reconciliation := NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig())
+	reconciliation := reconciliation.NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig())
 
 	funcs := []reconciliationFunc{
 		sidecar.Generate,

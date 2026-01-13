@@ -3,7 +3,7 @@ module github.com/kartverket/skiperator
 go 1.25.3
 
 require (
-	github.com/cert-manager/cert-manager v1.19.1
+	github.com/cert-manager/cert-manager v1.19.2
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/k8s-digester v0.1.16
@@ -11,12 +11,12 @@ require (
 	github.com/nais/digdirator v0.0.0-20250915232004-16996a5ada83
 	github.com/nais/liberator v0.0.0-20250731114651-ca9a379ed606
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.87.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/r3labs/diff/v3 v3.0.2
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
-	google.golang.org/protobuf v1.36.10
+	google.golang.org/protobuf v1.36.11
 	istio.io/api v1.28.2
 	istio.io/client-go v1.28.2
 	k8s.io/api v0.35.0

@@ -18,7 +18,7 @@ func TestSetResourceLabels(t *testing.T) {
 		},
 	}
 	// need to add gvk to find resource labels
-	AddGVK(scheme.Scheme, sa)
+	_ = AddGVK(scheme.Scheme, sa)
 
 	app := &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{

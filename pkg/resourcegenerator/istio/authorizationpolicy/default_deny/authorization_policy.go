@@ -26,7 +26,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if application.Spec.AuthorizationSettings != nil {
 		// Do not create an AuthorizationPolicy if allowAll is set to true
-		if application.Spec.AuthorizationSettings.AllowAll == true {
+		if application.Spec.AuthorizationSettings.AllowAll {
 			return nil
 		}
 	}

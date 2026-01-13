@@ -42,7 +42,7 @@ func updateNamespace(ctx context.Context, k client.Client, logger log.Logger, cu
 
 	// Reset and update metrics
 	currentGauge.Reset()
-	for key, _ := range counts {
+	for key := range counts {
 		labels := map[string]string{}
 		parts := splitKey(key)
 		labels[labelTeam] = parts[0]
