@@ -130,7 +130,7 @@ install-digdirator-crds:
 .PHONY: install-skiperator
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
-	@kustomize build config/cert-manager | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/cert-manager --context $(SKIPERATOR_CONTEXT) || true
 	@kustomize build config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
