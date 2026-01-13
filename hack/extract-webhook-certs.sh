@@ -11,12 +11,12 @@ SECRET_NAME="skiperator-webhook-server-cert"
 
 echo "Waiting until secret '$SECRET_NAME' is present in cluster $CONTEXT with valid contents"
 
-kubectl wait -n "$NAMESPACE" --context "$CONTEXT" "secret/$SECRET_NAME" --for=jsonpath='{.data.tls\.crt}' --timeout=180s || {
+kubectl wait -n skiperator-system --context "$CONTEXT" "secret/$SECRET_NAME" --for=jsonpath='{.data.tls\.crt}' --timeout=180s || {
   echo "❌ Timed out waiting for tls.crt" >&2
   exit 1
 }
 
-kubectl wait -n "$NAMESPACE" --context "$CONTEXT" "secret/$SECRET_NAME" --for=jsonpath='{.data.tls\.key}' --timeout=180s || {
+kubectl wait -n skiperator-system --context "$CONTEXT" "secret/$SECRET_NAME" --for=jsonpath='{.data.tls\.key}' --timeout=180s || {
   echo "❌ Timed out waiting for tls.key" >&2
   exit 1
 }
