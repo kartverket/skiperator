@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	"github.com/kartverket/skiperator/api/common"
 	commontypes "github.com/kartverket/skiperator/api/common"
 	commondigdiratortypes "github.com/kartverket/skiperator/api/common/digdirator"
 	commonistiotypes "github.com/kartverket/skiperator/api/common/istiotypes"
@@ -73,21 +72,21 @@ type CronSettings = commontypes.CronSettings
 type JobSettings = commontypes.JobSettings
 
 // ===== skiperator status =====
-type SkiperatorStatus = common.SkiperatorStatus
-type Status = common.Status
-type StatusNames = common.StatusNames
+type SkiperatorStatus = commontypes.SkiperatorStatus
+type Status = commontypes.Status
+type StatusNames = commontypes.StatusNames
 
 const (
-	SYNCED        = common.SYNCED
-	PROGRESSING   = common.PROGRESSING
-	ERROR         = common.ERROR
-	PENDING       = common.PENDING
-	READY         = common.READY
-	INVALIDCONFIG = common.INVALIDCONFIG
+	SYNCED        = commontypes.SYNCED
+	PROGRESSING   = commontypes.PROGRESSING
+	ERROR         = commontypes.ERROR
+	PENDING       = commontypes.PENDING
+	READY         = commontypes.READY
+	INVALIDCONFIG = commontypes.INVALIDCONFIG
 )
 
 // ===== SKIPObject =====
-type SKIPObject = common.SKIPObject
-type CommonSpec = common.CommonSpec
+type SKIPObject = commontypes.SKIPObject
+type CommonSpec = commontypes.CommonSpec
 
-var ErrNoGVK = common.ErrNoGVK
+var ErrNoGVK = commontypes.ErrNoGVK
