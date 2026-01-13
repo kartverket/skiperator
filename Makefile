@@ -141,7 +141,7 @@ install-skiperator: generate
 
 .PHONY: install-webhook
 install-webhook: install-skiperator
-	@kustomize build config/webhook | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl apply -f config/webhook --context $(SKIPERATOR_CONTEXT) || true
 
 #### TESTS ####
 .PHONY: test-single
