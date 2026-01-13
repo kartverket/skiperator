@@ -53,6 +53,10 @@ subsets:
     protocol: TCP
 EOF
 
+kubectl wait -n skiperator-system --context "$CONTEXT" "endpoints/skipjob-conversion-webhook" \
+  --for=jsonpath='{.subsets[0].addresses[0].ip}'="$HOST_IP" \
+  --timeout=180s
+
 echo ""
 echo "✅ Webhook routing configured:"
 kubectl get endpoints --context="$CONTEXT" skipjob-conversion-webhook -n skiperator-system
