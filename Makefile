@@ -86,8 +86,8 @@ install-istio:
 	  docker rmi -f "$$image" 2>/dev/null || true; \
 	  echo "Pulling $$image for platform linux/$(ARCH)"; \
 	  docker pull --platform linux/$(ARCH) "$$image"; \
-	  echo "Loading $$image into kind cluster 'skiperator'"; \
-	  docker save "$$image" | docker exec -i skiperator-control-plane ctr --namespace=k8s.io images import -; \
+	  echo "Loading $$image into kind cluster $(KIND_CLUSTER_NAME)"; \
+	  docker save "$$image" | docker exec -i $(KIND_CLUSTER_NAME)-control-plane ctr --namespace=k8s.io images import -; \
 	done
 
 	@echo "Downloading Istio..."

@@ -6,15 +6,15 @@ import (
 	"maps"
 
 	v1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/pkg/log"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
 // Set up logger
-var skipJobLog = logf.Log.WithName("skipjop-resource")
+var skipJobLog = log.NewLogger().WithName("skipjob-controller")
 
 // nolint:unused
 // +kubebuilder:webhook:path=/mutate-skiperator-kartverket-no-v1beta1-skipjob,mutating=true,failurePolicy=fail,sideEffects=None,groups=skiperator.kartverket.no,resources=skipjobs,verbs=create;update,versions=v1beta1;v1alpha1,name=mskipjob.skiperator.kartverket.no,admissionReviewVersions=v1
@@ -36,7 +36,6 @@ func SetupSkipJobWebhookWithManager(mgr ctrl.Manager) error {
 			DefaultBackoffLimit:            v1beta1.DefaultBackoffLimit,
 			DefaultSuspend:                 v1beta1.DefaultSuspend,
 		}).
-		// TODO: Add a validator when this works...
 		Complete()
 }
 
@@ -52,7 +51,7 @@ func (d *SKIPJobCustomDefaulter) Default(ctx context.Context, object runtime.Obj
 	if !ok {
 		return fmt.Errorf("expected a SKIPJob object, but got %T", object)
 	}
-	skipJobLog.Info("Defaulting for skipJob", "name", skipJob.GetName())
+	skipJobLog.Debug("Defaulting for skipJob", "name", skipJob.GetName())
 	// The mutating webhook should only set defaults on admission, e.g they are static
 	skipJob.FillDefaultSpec()
 	d.applySKIPJobLabels(skipJob)
