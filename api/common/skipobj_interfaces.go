@@ -18,6 +18,7 @@ type SKIPObject interface {
 
 var ErrNoGVK = fmt.Errorf("no GroupVersionKind found in the resources, cannot process resources")
 
+// +kubebuilder:object:generate=true
 // CommonSpec TODO: This needs some more thought. We should probably try to expand on it. v1Alpha2?
 type CommonSpec struct {
 	AccessPolicy  *podtypes.AccessPolicy
