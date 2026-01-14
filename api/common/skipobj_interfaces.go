@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// +kubebuilder:object:generate=false
 type SKIPObject interface {
 	client.Object
 	GetStatus() *SkiperatorStatus
