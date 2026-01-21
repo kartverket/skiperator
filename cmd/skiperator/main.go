@@ -28,7 +28,6 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -70,9 +69,6 @@ func main() {
 	webhookPort := flag.Int("webhook-port", 9443, "Port for webhook server to listen on")
 	flag.Parse()
 
-	// Providing multiple image pull tokens as flags are painful, so instead we parse them as env variables
-
-	//TODO use zap directly so we get more loglevels
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
@@ -98,16 +94,13 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "could not load global config")
 		os.Exit(1)
-	} else {
-		setupLog.Info("Successfully loaded global config")
 	}
-
+	setupLog.Info("Successfully loaded global config")
 	activeConfig := config.GetActiveConfig()
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, activeConfig.ConcurrentReconciles))
 
 	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: !activeConfig.IsDeployment,
@@ -118,25 +111,19 @@ func main() {
 	if !activeConfig.IsDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
 		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
 		os.Exit(1)
-	} else {
-		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 	}
+	setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 
 	detectK8sVersion(kubeconfig)
 
 	pprofBindAddr := ""
-
 	if activeConfig.EnableProfiling {
 		pprofBindAddr = ":8281"
 	}
-	var metricsAddr string
-	var metricsCertPath, metricsCertName, metricsCertKey string
+
 	// Create watchers for metrics and webhooks certificates
-	var metricsCertWatcher, webhookCertWatcher *certwatcher.CertWatcher
-	var secureMetrics bool
-	var tlsOpts []func(*tls.Config)
-	// Initial webhook TLS options
-	webhookTLSOpts := tlsOpts
+	var webhookCertWatcher *certwatcher.CertWatcher
+	var webhookTLSOpts = []func(*tls.Config){}
 
 	// Initialize webhook certificate watcher if webhook cert directory is provided
 	if len(*webhookCertDir) > 0 {
@@ -166,45 +153,6 @@ func main() {
 		Port:    *webhookPort,
 	})
 
-	// Metrics endpoint is enabled in 'config/default/kustomization.yaml'. The Metrics options configure the server.
-	// More info:
-	// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/metrics/server
-	// - https://book.kubebuilder.io/reference/metrics.html
-	metricsServerOptions := metricsserver.Options{
-		BindAddress:   metricsAddr,
-		SecureServing: secureMetrics,
-		TLSOpts:       tlsOpts,
-	}
-
-	if secureMetrics {
-		// FilterProvider is used to protect the metrics endpoint with authn/authz.
-		// These configurations ensure that only authorized users and service accounts
-		// can access the metrics endpoint. The RBAC are configured in 'config/rbac/kustomization.yaml'. More info:
-		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/metrics/filters#WithAuthenticationAndAuthorization
-		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
-	}
-
-	// If the certificate is not specified, controller-runtime will automatically
-	// generate self-signed certificates for the metrics server. While convenient for development and testing,
-
-	if len(metricsCertPath) > 0 {
-		setupLog.Info("Initializing metrics certificate watcher using provided certificates",
-			"metrics-cert-path", metricsCertPath, "metrics-cert-name", metricsCertName, "metrics-cert-key", metricsCertKey)
-
-		var err error
-		metricsCertWatcher, err = certwatcher.New(
-			filepath.Join(metricsCertPath, metricsCertName),
-			filepath.Join(metricsCertPath, metricsCertKey),
-		)
-		if err != nil {
-			setupLog.Error(err, "to initialize metrics certificate watcher", "error", err)
-			os.Exit(1)
-		}
-
-		metricsServerOptions.TLSOpts = append(metricsServerOptions.TLSOpts, func(config *tls.Config) {
-			config.GetCertificate = metricsCertWatcher.GetCertificate
-		})
-	}
 	// Create new manager
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
@@ -246,15 +194,7 @@ func main() {
 		}
 	}
 
-	// Add certificate watchers
-	if metricsCertWatcher != nil {
-		setupLog.Info("Adding metrics certificate watcher to manager")
-		if err := mgr.Add(metricsCertWatcher); err != nil {
-			setupLog.Error(err, "unable to add metrics certificate watcher to manager")
-			os.Exit(1)
-		}
-	}
-
+	// Add certificate watcher
 	if webhookCertWatcher != nil {
 		setupLog.Info("Adding webhook certificate watcher to manager")
 		if err := mgr.Add(webhookCertWatcher); err != nil {
