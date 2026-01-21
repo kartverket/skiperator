@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/imagepullsecret"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/defaultdeny"
@@ -27,9 +25,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"go.uber.org/zap/zapcore"
-	istioclientv1 "istio.io/client-go/pkg/apis/networking/v1"
-	istioclientv1beta1 "istio.io/client-go/pkg/apis/networking/v1beta1"
-	istioclienttelemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -43,8 +38,6 @@ import (
 
 	realzap "go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -62,15 +55,6 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(v1beta1.AddToScheme(scheme))
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-
-	// Register Istio types
-	utilruntime.Must(istioclientv1.AddToScheme(scheme))
-	utilruntime.Must(istioclientv1beta1.AddToScheme(scheme))
-	utilruntime.Must(istioclienttelemetryv1.AddToScheme(scheme))
 	resourceschemas.AddSchemas(scheme)
 }
 
