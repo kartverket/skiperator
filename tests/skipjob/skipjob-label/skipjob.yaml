@@ -1,0 +1,9 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: skipjob-label
+spec:
+  container:
+    image: "perl:5.34.0"
+  labels:
+    custom: test-label
