@@ -1,12 +1,14 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
+  name: skipjob-label-skipjob
   labels:
     custom: test-label
 ---
 apiVersion: batch/v1
 kind: Job
 metadata:
+  name: skipjob-label
   labels:
     custom: test-label
 
