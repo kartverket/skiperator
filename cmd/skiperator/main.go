@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -16,15 +19,18 @@ import (
 
 	"github.com/kartverket/skiperator/internal/controllers"
 	"github.com/kartverket/skiperator/internal/controllers/common"
+	webhookv1beta1 "github.com/kartverket/skiperator/internal/webhook"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"go.uber.org/zap/zapcore"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -56,6 +62,13 @@ func main() {
 	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
+	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
+	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
+	webhookKeyName := flag.String("webhook-key-name", "tls.key", "Name of the webhook TLS key file")
+	webhookHost := flag.String("webhook-host", "", "Host to bind webhook server to. Use 0.0.0.0 to bind to all interfaces for local kind development.")
+	webhookPort := flag.Int("webhook-port", 9443, "Port for webhook server to listen on")
+	flag.Parse()
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
@@ -81,16 +94,13 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "could not load global config")
 		os.Exit(1)
-	} else {
-		setupLog.Info("Successfully loaded global config")
 	}
-
+	setupLog.Info("Successfully loaded global config")
 	activeConfig := config.GetActiveConfig()
 
 	setupLog.Info(fmt.Sprintf("Running skiperator %s (commit %s), with %d concurrent reconciles", Version, Commit, activeConfig.ConcurrentReconciles))
 
 	parsedLogLevel, _ := zapcore.ParseLevel(activeConfig.LogLevel)
-
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: !activeConfig.IsDeployment,
@@ -101,18 +111,49 @@ func main() {
 	if !activeConfig.IsDeployment && !strings.Contains(kubeconfig.Host, "https://127.0.0.1") {
 		setupLog.Info("Tried to start skiperator with non-local kubecontext. Exiting to prevent havoc.")
 		os.Exit(1)
-	} else {
-		setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 	}
+	setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 
 	detectK8sVersion(kubeconfig)
 
 	pprofBindAddr := ""
-
 	if activeConfig.EnableProfiling {
 		pprofBindAddr = ":8281"
 	}
 
+	// Create watchers for metrics and webhooks certificates
+	var webhookCertWatcher *certwatcher.CertWatcher
+	var webhookTLSOpts = []func(*tls.Config){}
+
+	// Initialize webhook certificate watcher if webhook cert directory is provided
+	if len(*webhookCertDir) > 0 {
+		certPath := filepath.Join(*webhookCertDir, *webhookCertName)
+		keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
+
+		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
+			"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
+
+		var err error
+		webhookCertWatcher, err = certwatcher.New(certPath, keyPath)
+		if err != nil {
+			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
+			os.Exit(1)
+		}
+
+		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
+			config.GetCertificate = webhookCertWatcher.GetCertificate
+		})
+	} else {
+		setupLog.Info("No webhook certificate directory provided, webhook will use self-signed certificates")
+	}
+
+	webhookServer := webhook.NewServer(webhook.Options{
+		TLSOpts: webhookTLSOpts,
+		Host:    *webhookHost,
+		Port:    *webhookPort,
+	})
+
+	// Create new manager
 	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
@@ -121,13 +162,13 @@ func main() {
 		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
 		PprofBindAddress:        pprofBindAddr,
+		WebhookServer:           webhookServer,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	// Run leader-specific tasks when elected
+	// Setup leader-specific tasks as a goroutine that runs after manager starts
 	go func() {
 		<-mgr.Elected() // Wait until this instance is elected as leader
 		setupLog.Info("I am the captain now – configuring usage metrics")
@@ -136,6 +177,7 @@ func main() {
 		}
 	}()
 
+	// Setup all controllers
 	err = (&controllers.ApplicationReconciler{
 		ReconcilerBase:   common.NewFromManager(mgr, mgr.GetEventRecorderFor("application-controller")),
 		SkiperatorConfig: activeConfig,
@@ -144,6 +186,27 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
+	// Setup webhooks first
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		if err := webhookv1beta1.SetupSkipJobWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "SvartSkjaif")
+			os.Exit(1)
+		}
+	}
+
+	// Add certificate watcher
+	if webhookCertWatcher != nil {
+		setupLog.Info("Adding webhook certificate watcher to manager")
+		if err := mgr.Add(webhookCertWatcher); err != nil {
+			setupLog.Error(err, "unable to add webhook certificate watcher to manager")
+			os.Exit(1)
+		}
+	}
+
+	// We need to get this configmap before initializing the manager, therefore we need a separate client for thi
+	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
+	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
+	// directly from namespaces as per SKIP-1704
 
 	var skipClusterList *config.SKIPClusterList
 	if activeConfig.ClusterCIDRExclusionEnabled {
@@ -179,7 +242,7 @@ func main() {
 			Name:      registry.SecretName,
 		})
 		if regErr != nil {
-			setupLog.Error(err, "unable to fetch registry credential secret configuration", "controller", "Namespace")
+			setupLog.Error(regErr, "unable to fetch registry credential secret configuration", "controller", "Namespace")
 			os.Exit(1)
 		} else {
 			regcredSecret := imagepullsecret.RegistryCredentialSecret{
@@ -221,7 +284,6 @@ func main() {
 		setupLog.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

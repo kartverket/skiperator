@@ -2,6 +2,7 @@ package hpa
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
