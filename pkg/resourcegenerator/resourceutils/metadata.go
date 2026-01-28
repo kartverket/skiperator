@@ -96,9 +96,7 @@ func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob)
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
-	if skipJob.Spec.Labels != nil {
-		maps.Copy(labels, skipJob.Spec.Labels)
-	}
+	maps.Copy(labels, skipJob.Spec.Labels)
 	maps.Copy(labels, skipJob.GetDefaultLabels())
 	object.SetLabels(labels)
 }
