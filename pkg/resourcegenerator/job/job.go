@@ -151,7 +151,5 @@ func setJobLabels(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, label
 	}
 
 	// Adds custom spec labels for pod templates
-	if skipJob.Spec.Labels != nil {
-		maps.Copy(labels, skipJob.Spec.Labels)
-	}
+	maps.Copy(labels, skipJob.Spec.Labels)
 }
