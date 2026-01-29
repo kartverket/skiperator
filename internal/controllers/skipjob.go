@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
@@ -226,10 +227,37 @@ func (r *SKIPJobReconciler) setSKIPJobDefaults(ctx context.Context, skipJob *ski
 		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer)
 	}
 
+	// Add labels to skipjob
+	if skipJob.Labels == nil {
+		skipJob.Labels = make(map[string]string)
+	}
+	maps.Copy(skipJob.Labels, skipJob.GetDefaultLabels())
+	maps.Copy(skipJob.Labels, skipJob.Spec.Labels)
+
+	// Adds team label from namespace if not set in spec
+	if len(skipJob.Spec.Team) == 0 {
+		if name, err := r.teamNameForNamespace(ctx, skipJob); err == nil {
+			skipJob.Spec.Team = name
+		}
+	}
+
 	resourceutils.SetSKIPJobLabels(skipJob, skipJob)
 	skipJob.FillDefaultStatus()
 
 	return nil
+}
+
+func (r *SKIPJobReconciler) teamNameForNamespace(ctx context.Context, skipJob *skiperatorv1alpha1.SKIPJob) (string, error) {
+	ns := &corev1.Namespace{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: skipJob.Namespace}, ns); err != nil {
+		return "", err
+	}
+
+	teamValue := ns.Labels["team"]
+	if len(teamValue) > 0 {
+		return teamValue, nil
+	}
+	return "", fmt.Errorf("missing value for team label")
 }
 
 func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1alpha1.SKIPJob) error {
