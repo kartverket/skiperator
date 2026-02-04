@@ -121,39 +121,44 @@ func main() {
 		pprofBindAddr = ":8281"
 	}
 
-	// Create watchers for metrics and webhooks certificates
 	var webhookCertWatcher *certwatcher.CertWatcher
-	var webhookTLSOpts = []func(*tls.Config){}
+	var webhookServer webhook.Server
+	if activeConfig.EnableWebhooks {
+		var webhookTLSOpts = []func(*tls.Config){}
 
-	// Initialize webhook certificate watcher if webhook cert directory is provided
-	if len(*webhookCertDir) > 0 {
-		certPath := filepath.Join(*webhookCertDir, *webhookCertName)
-		keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
+		// Initialize webhook certificate watcher if webhook cert directory is provided
+		if len(*webhookCertDir) > 0 {
+			certPath := filepath.Join(*webhookCertDir, *webhookCertName)
+			keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
 
-		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
-			"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
+			setupLog.Info("Initializing webhook certificate watcher using provided certificates",
+				"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
 
-		webhookCertWatcher, err := certwatcher.New(certPath, keyPath)
-		if err != nil {
-			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
+			webhookCertWatcher, err := certwatcher.New(certPath, keyPath)
+			if err != nil {
+				setupLog.Error(err, "Failed to initialize webhook certificate watcher")
+				os.Exit(1)
+			}
+
+			webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
+				config.GetCertificate = webhookCertWatcher.GetCertificate
+			})
+		} else {
+			setupLog.Info("No webhook certificate directory provided - exiting")
 			os.Exit(1)
 		}
 
-		webhookTLSOpts = append(webhookTLSOpts, func(config *tls.Config) {
-			config.GetCertificate = webhookCertWatcher.GetCertificate
+		webhookServer = webhook.NewServer(webhook.Options{
+			TLSOpts: webhookTLSOpts,
+			Host:    *webhookHost,
+			Port:    *webhookPort,
 		})
 	} else {
-		setupLog.Info("No webhook certificate directory provided, webhook will use self-signed certificates")
+		setupLog.Info("Webhooks are disabled. Skipping webhook certificate watcher initialization.")
 	}
 
-	webhookServer := webhook.NewServer(webhook.Options{
-		TLSOpts: webhookTLSOpts,
-		Host:    *webhookHost,
-		Port:    *webhookPort,
-	})
-
 	// Create new manager
-	mgr, err := ctrl.NewManager(kubeconfig, ctrl.Options{
+	opts := ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
 		LeaderElection:          activeConfig.LeaderElection,
@@ -161,8 +166,12 @@ func main() {
 		Metrics:                 metricsserver.Options{BindAddress: ":8181"},
 		LeaderElectionID:        "skiperator",
 		PprofBindAddress:        pprofBindAddr,
-		WebhookServer:           webhookServer,
-	})
+	}
+	if activeConfig.EnableWebhooks {
+		opts.WebhookServer = webhookServer
+	}
+
+	mgr, err := ctrl.NewManager(kubeconfig, opts)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -193,14 +202,14 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "SKIPJob")
 			os.Exit(1)
 		}
-	}
 
-	// Add certificate watcher
-	if webhookCertWatcher != nil {
-		setupLog.Info("Adding webhook certificate watcher to manager")
-		if err := mgr.Add(webhookCertWatcher); err != nil {
-			setupLog.Error(err, "unable to add webhook certificate watcher to manager")
-			os.Exit(1)
+		// Add certificate watcher
+		if webhookCertWatcher != nil {
+			setupLog.Info("Adding webhook certificate watcher to manager")
+			if err := mgr.Add(webhookCertWatcher); err != nil {
+				setupLog.Error(err, "unable to add webhook certificate watcher to manager")
+				os.Exit(1)
+			}
 		}
 	}
 
