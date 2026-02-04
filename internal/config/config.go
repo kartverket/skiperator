@@ -41,6 +41,7 @@ type SkiperatorConfig struct {
 	EnableLocallyBuiltImages    bool                `json:"enableLocallyBuiltImages,omitempty"`    // Whether to enable Skiperator to allow the use of locally built container images for development purposes
 	GCPIdentityProvider         string              `json:"gcpIdentityProvider,omitempty"`         // Provider for Workload Identity Federation (WIF)
 	GCPWorkloadIdentityPool     string              `json:"gcpWorkloadIdentityPool,omitempty"`     // Identity pool for Workload Identity Federation (WIF)
+	EnableWebhooks              bool                `json:"enableWebhooks,omitempty"`              // Whether to enable webhooks for SKIPJob resources
 }
 
 var (
@@ -93,6 +94,7 @@ func parseConfig(cm *corev1.ConfigMap) error {
 		EnableLocallyBuiltImages:    false,
 		GCPIdentityProvider:         "",
 		GCPWorkloadIdentityPool:     "",
+		EnableWebhooks:              false,
 	}
 
 	if err := dec.Decode(&cfg); err != nil {

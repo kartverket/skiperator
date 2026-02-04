@@ -61,7 +61,6 @@ func main() {
 	encCfg := realzap.NewProductionEncoderConfig()
 	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
 	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
 	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
 	webhookKeyName := flag.String("webhook-key-name", "tls.key", "Name of the webhook TLS key file")
@@ -69,6 +68,7 @@ func main() {
 	webhookPort := flag.Int("webhook-port", 9443, "Port for webhook server to listen on")
 	flag.Parse()
 
+	// Set a temporary logger for the config loading, the real logger is initialized later with values from config
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&zap.Options{
 		Encoder:     zapcore.NewJSONEncoder(encCfg),
 		Development: true,
@@ -133,8 +133,7 @@ func main() {
 		setupLog.Info("Initializing webhook certificate watcher using provided certificates",
 			"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
 
-		var err error
-		webhookCertWatcher, err = certwatcher.New(certPath, keyPath)
+		webhookCertWatcher, err := certwatcher.New(certPath, keyPath)
 		if err != nil {
 			setupLog.Error(err, "Failed to initialize webhook certificate watcher")
 			os.Exit(1)
@@ -168,7 +167,8 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	// Setup leader-specific tasks as a goroutine that runs after manager starts
+
+	// Run leader-specific tasks when elected
 	go func() {
 		<-mgr.Elected() // Wait until this instance is elected as leader
 		setupLog.Info("I am the captain now – configuring usage metrics")
@@ -186,10 +186,11 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "Application")
 		os.Exit(1)
 	}
+
 	// Setup webhooks first
-	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+	if activeConfig.EnableWebhooks {
 		if err := webhookv1beta1.SetupSkipJobWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "SvartSkjaif")
+			setupLog.Error(err, "unable to create webhook", "webhook", "SKIPJob")
 			os.Exit(1)
 		}
 	}
@@ -202,11 +203,6 @@ func main() {
 			os.Exit(1)
 		}
 	}
-
-	// We need to get this configmap before initializing the manager, therefore we need a separate client for thi
-	// If the configmap is not present or otherwise misconfigured, we should not start Skiperator
-	// as this configmap contains the CIDRs for cluster nodes in order to prevent egress traffic
-	// directly from namespaces as per SKIP-1704
 
 	var skipClusterList *config.SKIPClusterList
 	if activeConfig.ClusterCIDRExclusionEnabled {

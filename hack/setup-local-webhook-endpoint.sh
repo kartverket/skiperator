@@ -2,6 +2,11 @@
 
 CONTEXT="$1"
 
+if [ -z "$CONTEXT" ]; then
+  echo "Usage: $0 <kube-context>" >&2
+  exit 1
+fi
+
 # For Rancher Desktop / Docker Desktop on Mac, use host.docker.internal
 HOST_ADDR="host.docker.internal"
 

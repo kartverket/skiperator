@@ -3,6 +3,11 @@
 CERT_DIR="$1"
 CONTEXT="$2"
 
+if [ -z "$CERT_DIR" ] || [ -z "$CONTEXT" ]; then
+  echo "Usage: $0 <cert-dir> <kube-context>" >&2
+  exit 1
+fi
+
 echo "Extracting webhook certificates for local development..."
 echo "Using context: $CONTEXT"
 echo "Target directory: $CERT_DIR"
