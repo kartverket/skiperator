@@ -134,7 +134,7 @@ func main() {
 			setupLog.Info("Initializing webhook certificate watcher using provided certificates",
 				"webhook-cert-dir", *webhookCertDir, "webhook-cert-name", *webhookCertName, "webhook-key-name", *webhookKeyName)
 
-			webhookCertWatcher, err := certwatcher.New(certPath, keyPath)
+			webhookCertWatcher, err = certwatcher.New(certPath, keyPath)
 			if err != nil {
 				setupLog.Error(err, "Failed to initialize webhook certificate watcher")
 				os.Exit(1)
@@ -157,7 +157,7 @@ func main() {
 		setupLog.Info("Webhooks are disabled. Skipping webhook certificate watcher initialization.")
 	}
 
-	// Create new manager
+	// Create a new manager
 	opts := ctrl.Options{
 		Scheme:                  scheme,
 		HealthProbeBindAddress:  ":8081",
