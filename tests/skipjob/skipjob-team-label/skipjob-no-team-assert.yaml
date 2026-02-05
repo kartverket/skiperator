@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skipjob-no-team-skipjob
+  namespace: chainsaw-no-skipjob-team-ns
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: chainsaw-no-skipjob-team-ns
+  name: skipjob-no-team

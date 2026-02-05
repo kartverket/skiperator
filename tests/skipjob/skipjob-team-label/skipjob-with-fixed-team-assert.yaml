@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: skipjob-fixed-team-skipjob
+  namespace: chainsaw-skipjob-team-ns
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  namespace: chainsaw-skipjob-team-ns
+  name: skipjob-fixed-team
+  labels:
+    team: fixed-team

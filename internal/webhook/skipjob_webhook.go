@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"maps"
 
-	v1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/log"
-	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -24,45 +26,59 @@ type SKIPJobCustomDefaulter struct {
 	DefaultTTLSecondsAfterFinished int32
 	DefaultBackoffLimit            int32
 	DefaultSuspend                 bool
+	client                         client.Client
 }
 
-var _ webhook.CustomDefaulter = &SKIPJobCustomDefaulter{}
+var _ admission.Defaulter[*v1beta1.SKIPJob] = &SKIPJobCustomDefaulter{}
 
 func SetupSkipJobWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&v1beta1.SKIPJob{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1beta1.SKIPJob{}).
 		WithDefaulter(&SKIPJobCustomDefaulter{
 			DefaultJobSettings:             v1beta1.JobSettings{},
 			DefaultTTLSecondsAfterFinished: v1beta1.DefaultTTLSecondsAfterFinished,
 			DefaultBackoffLimit:            v1beta1.DefaultBackoffLimit,
 			DefaultSuspend:                 v1beta1.DefaultSuspend,
+			client:                         mgr.GetClient(),
 		}).
 		Complete()
 }
 
-/*
-We use the `webhook.CustomDefaulter`interface to set defaults to our CRD.
-A webhook will automatically be served that calls this defaulting.
-
-The `Default`method is expected to mutate the receiver, setting the defaults.
-*/
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind SKIPJob.
-func (d *SKIPJobCustomDefaulter) Default(ctx context.Context, object runtime.Object) error {
-	skipJob, ok := object.(*v1beta1.SKIPJob)
-	if !ok {
-		return fmt.Errorf("expected a SKIPJob object, but got %T", object)
-	}
+// Default implements admission.Defaulter so a webhook will be registered for the Kind SKIPJob.
+func (d *SKIPJobCustomDefaulter) Default(ctx context.Context, skipJob *v1beta1.SKIPJob) error {
 	skipJobLog.Debug("Defaulting for skipJob", "name", skipJob.GetName())
 	// The mutating webhook should only set defaults on admission, e.g they are static
 	skipJob.FillDefaultSpec()
-	d.applySKIPJobLabels(skipJob)
+	d.applySKIPJobLabels(ctx, skipJob)
 	return nil
 }
 
-func (d *SKIPJobCustomDefaulter) applySKIPJobLabels(skipJob *v1beta1.SKIPJob) {
+func (d *SKIPJobCustomDefaulter) applySKIPJobLabels(ctx context.Context, skipJob *v1beta1.SKIPJob) {
 	labels := skipJob.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
 	maps.Copy(labels, skipJob.GetDefaultLabels())
+	maps.Copy(skipJob.Labels, skipJob.Spec.Labels)
+
+	// Adds team label from namespace if not set in spec
+	if len(skipJob.Spec.Team) == 0 {
+		if name, err := d.teamNameForNamespace(ctx, skipJob); err == nil {
+			skipJob.Spec.Team = name
+		}
+	}
+
 	skipJob.SetLabels(labels)
+}
+
+func (d *SKIPJobCustomDefaulter) teamNameForNamespace(ctx context.Context, skipObj v1beta1.SKIPObject) (string, error) {
+	ns := &corev1.Namespace{}
+	if err := d.client.Get(ctx, types.NamespacedName{Name: skipObj.GetNamespace()}, ns); err != nil {
+		return "", err
+	}
+
+	teamValue := ns.Labels["team"]
+	if len(teamValue) > 0 {
+		return teamValue, nil
+	}
+	return "", fmt.Errorf("missing value for team label")
 }

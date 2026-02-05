@@ -2,6 +2,7 @@ package job
 
 import (
 	"fmt"
+	"maps"
 
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
@@ -142,4 +143,12 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector
 func setJobLabels(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
 	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Image)
+
+	// Adds team label if it has been set
+	if len(skipJob.Spec.Team) > 0 {
+		labels["team"] = skipJob.Spec.Team
+	}
+
+	// Adds custom spec labels for pod templates
+	maps.Copy(labels, skipJob.Spec.Labels)
 }

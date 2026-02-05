@@ -90,6 +90,20 @@ type SKIPJobSpec struct {
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
 	Prometheus *PrometheusConfig `json:"prometheus,omitempty"`
+
+	// Labels can be used if you want every resource created by your SKIPJob to
+	// have the same labels, including the Job/CronJob itself. This could for example be useful for
+	// metrics, where a certain label and the corresponding resources liveliness can be combined.
+	// Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+	//
+	//+kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Team specifies the team who owns this particular SKIPJob.
+	// Usually sourced from the namespace label.
+	//
+	//+kubebuilder:validation:Optional
+	Team string `json:"team,omitempty"`
 }
 
 // +kubebuilder:object:generate=true

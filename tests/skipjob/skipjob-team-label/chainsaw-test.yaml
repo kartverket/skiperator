@@ -1,0 +1,28 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: skipjob-team-skipjob-test
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml
+    - try:
+        - apply:
+            file: skipjob-with-fixed-team.yaml
+        - assert:
+            file: skipjob-with-fixed-team-assert.yaml
+    - try:
+        - apply:
+            file: namespace-no-team.yaml
+        - apply:
+            file: skipjob-no-team.yaml
+        - assert:
+            file: skipjob-no-team-assert.yaml
