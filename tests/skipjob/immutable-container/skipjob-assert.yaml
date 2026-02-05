@@ -22,27 +22,22 @@ status:
       status: Synced
   conditions:
     - message: Job failed previous run
-      observedGeneration: 2
       reason: JobFailed
       status: 'False'
       type: Failed
     - message: Job has been created and is now running
-      observedGeneration: 2
       reason: JobRunning
       status: 'False'
       type: Running
     - message: Job has finished
-      observedGeneration: 2
       reason: JobFinished
       status: 'True'
       type: Finished
     - message: Internal rules are valid
-      observedGeneration: 2
       reason: ApplicationReconciled
       status: 'True'
       type: InternalRulesValid
     - message: External rules are valid
-      observedGeneration: 2
       reason: ApplicationReconciled
       status: 'True'
       type: ExternalRulesValid

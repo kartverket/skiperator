@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: skiperator-webhook-ca
+  namespace: skiperator-system
+spec:
+  isCA: true
+  commonName: skiperator-webhook-ca
+  duration: 43800h # 5 years
+  renewBefore: 720h # 30 days before expiry
+  secretName: skiperator-webhook-ca
+  issuerRef:
+    name: skiperator-selfsigned
+    kind: Issuer
