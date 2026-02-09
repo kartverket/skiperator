@@ -2,7 +2,6 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: conversion-roundtrip
-  namespace: chainsaw-skipjob-conversion-ns
 spec:
   schedule: "*/5 * * * *"
   jobTemplate:
@@ -21,7 +20,6 @@ apiVersion: skiperator.kartverket.no/v1beta1
 kind: SKIPJob
 metadata:
   name: conversion-roundtrip
-  namespace: chainsaw-skipjob-conversion-ns
 spec:
   image: "perl:5.34.0"
   labels:
