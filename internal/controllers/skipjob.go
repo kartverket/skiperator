@@ -113,12 +113,26 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 		return common.DoNotRequeue()
 	}
-	// TODO: Should we have defaulting here as well, in case the mutating webhook is unavailable?
-	// If we update the SKIPJob initially on applied defaults before starting reconciling resources we allow all
-	// updates to be visible even though the controllerDuties may take some time.
+
+	updateSkipJob := false
+
+	// If we update the SKIPJob initially before starting reconciling resources we allow all
+	// updates to be visible even though controller duties may take some time.
 	if !ctrlutil.ContainsFinalizer(skipJob, skipJobFinalizer) {
 		rLog.Debug("Adding finalizer")
-		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer) // Indicating that the object is good after the webhook has mutated
+		ctrlutil.AddFinalizer(skipJob, skipJobFinalizer)
+		updateSkipJob = true
+	}
+
+	// Derive team from the namespace label when not set.
+	if len(skipJob.Spec.Team) == 0 {
+		if name, teamErr := r.teamNameForNamespace(ctx, skipJob); teamErr == nil {
+			skipJob.Spec.Team = name
+			updateSkipJob = true
+		}
+	}
+
+	if updateSkipJob {
 		err = r.GetClient().Update(ctx, skipJob)
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -196,6 +210,18 @@ func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Reques
 	return skipJob, nil
 }
 
+func (r *SKIPJobReconciler) teamNameForNamespace(ctx context.Context, skipJob *skiperatorv1beta1.SKIPJob) (string, error) {
+	ns := &corev1.Namespace{}
+	if err := r.GetClient().Get(ctx, types.NamespacedName{Name: skipJob.Namespace}, ns); err != nil {
+		return "", err
+	}
+
+	teamValue := ns.Labels["team"]
+	if len(teamValue) > 0 {
+		return teamValue, nil
+	}
+	return "", fmt.Errorf("missing value for team label")
+}
 func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1beta1.SKIPJob) error {
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, skipJob); err != nil {

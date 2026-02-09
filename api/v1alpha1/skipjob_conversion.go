@@ -19,6 +19,8 @@ func (src *SKIPJob) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Cron = src.Spec.Cron
 	dst.Spec.IstioSettings = src.Spec.IstioSettings
 	dst.Spec.Prometheus = src.Spec.Prometheus
+	dst.Spec.Labels = src.Spec.Labels
+	dst.Spec.Team = src.Spec.Team
 
 	flattenContainer(&src.Spec.Container, &dst.Spec)
 
@@ -39,6 +41,8 @@ func (dst *SKIPJob) ConvertFrom(srcRaw conversion.Hub) error {
 	dst.Spec.Cron = src.Spec.Cron
 	dst.Spec.IstioSettings = src.Spec.IstioSettings
 	dst.Spec.Prometheus = src.Spec.Prometheus
+	dst.Spec.Labels = src.Spec.Labels
+	dst.Spec.Team = src.Spec.Team
 
 	expandContainer(&src.Spec, &dst.Spec.Container)
 

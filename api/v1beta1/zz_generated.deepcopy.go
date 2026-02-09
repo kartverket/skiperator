@@ -92,6 +92,13 @@ func (in *SKIPJobSpec) DeepCopyInto(out *SKIPJobSpec) {
 		*out = new(PrometheusConfig)
 		**out = **in
 	}
+	if in.Labels != nil {
+		in, out := &in.Labels, &out.Labels
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.Command != nil {
 		in, out := &in.Command, &out.Command
 		*out = make([]string, len(*in))

@@ -7,9 +7,8 @@ import (
 
 	v1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/log"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // +kubebuilder:docs-gen:collapse=Imports
@@ -26,10 +25,10 @@ type SKIPJobCustomDefaulter struct {
 	DefaultSuspend                 bool
 }
 
-var _ webhook.CustomDefaulter = &SKIPJobCustomDefaulter{}
+var _ admission.Defaulter[*v1beta1.SKIPJob] = &SKIPJobCustomDefaulter{}
 
 func SetupSkipJobWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).For(&v1beta1.SKIPJob{}).
+	return ctrl.NewWebhookManagedBy(mgr, &v1beta1.SKIPJob{}).
 		WithDefaulter(&SKIPJobCustomDefaulter{
 			DefaultJobSettings:             v1beta1.JobSettings{},
 			DefaultTTLSecondsAfterFinished: v1beta1.DefaultTTLSecondsAfterFinished,
@@ -45,11 +44,10 @@ A webhook will automatically be served that calls this defaulting.
 
 The `Default`method is expected to mutate the receiver, setting the defaults.
 */
-// Default implements webhook.CustomDefaulter so a webhook will be registered for the Kind SKIPJob.
-func (d *SKIPJobCustomDefaulter) Default(ctx context.Context, object runtime.Object) error {
-	skipJob, ok := object.(*v1beta1.SKIPJob)
-	if !ok {
-		return fmt.Errorf("expected a SKIPJob object, but got %T", object)
+// Default implements admission.Defaulter so a webhook will be registered for the Kind SKIPJob.
+func (d *SKIPJobCustomDefaulter) Default(ctx context.Context, skipJob *v1beta1.SKIPJob) error {
+	if skipJob == nil {
+		return fmt.Errorf("expected a SKIPJob object, but got nil")
 	}
 	skipJobLog.Debug("Defaulting for skipJob", "name", skipJob.GetName())
 	// The mutating webhook should only set defaults on admission, e.g they are static
@@ -63,6 +61,7 @@ func (d *SKIPJobCustomDefaulter) applySKIPJobLabels(skipJob *v1beta1.SKIPJob) {
 	if len(labels) == 0 {
 		labels = make(map[string]string)
 	}
+	maps.Copy(labels, skipJob.Spec.Labels)
 	maps.Copy(labels, skipJob.GetDefaultLabels())
 	skipJob.SetLabels(labels)
 }

@@ -910,6 +910,15 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels can be used if you want every resource created by your SKIPJob to
+                  have the same labels, including the Job/CronJob itself. This could for example be useful for
+                  metrics, where a certain label and the corresponding resources liveliness can be combined.
+                  Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+                type: object
               prometheus:
                 description: |-
                   Prometheus settings for pod running in job. Fields are identical to Application and if set,
@@ -954,6 +963,11 @@ spec:
                 required:
                 - port
                 type: object
+              team:
+                description: |-
+                  Team specifies the team who owns this particular SKIPJob.
+                  Usually sourced from the namespace label.
+                type: string
             required:
             - container
             type: object
@@ -1727,6 +1741,15 @@ spec:
                     format: int32
                     type: integer
                 type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels can be used if you want every resource created by your SKIPJob to
+                  have the same labels, including the Job/CronJob itself. This could for example be useful for
+                  metrics, where a certain label and the corresponding resources liveliness can be combined.
+                  Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+                type: object
               liveness:
                 description: |-
                   Probe
@@ -2007,6 +2030,11 @@ spec:
                 - path
                 - port
                 type: object
+              team:
+                description: |-
+                  Team specifies the team who owns this particular SKIPJob.
+                  Usually sourced from the namespace label.
+                type: string
             required:
             - image
             type: object
