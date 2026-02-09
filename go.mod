@@ -11,7 +11,7 @@ require (
 	github.com/nais/digdirator v0.0.0-20250915232004-16996a5ada83
 	github.com/nais/liberator v0.0.0-20250731114651-ca9a379ed606
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.88.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.89.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/r3labs/diff/v3 v3.0.2
 	github.com/stretchr/testify v1.11.1
