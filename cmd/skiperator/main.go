@@ -61,7 +61,7 @@ func main() {
 	encCfg := realzap.NewProductionEncoderConfig()
 	encCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. If empty, webhook will use self-signed certificates.")
+	webhookCertDir := flag.String("webhook-cert-dir", "", "Directory containing webhook TLS certificate and key. Must be set if enabled in global config.")
 	webhookCertName := flag.String("webhook-cert-name", "tls.crt", "Name of the webhook TLS certificate file")
 	webhookKeyName := flag.String("webhook-key-name", "tls.key", "Name of the webhook TLS key file")
 	webhookHost := flag.String("webhook-host", "", "Host to bind webhook server to. Use 0.0.0.0 to bind to all interfaces for local kind development.")
