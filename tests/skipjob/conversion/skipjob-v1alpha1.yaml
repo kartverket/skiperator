@@ -1,0 +1,18 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: conversion-roundtrip
+  namespace: chainsaw-skipjob-conversion-ns
+spec:
+  cron:
+    schedule: "*/5 * * * *"
+  container:
+    image: "perl:5.34.0"
+    command:
+      - "perl"
+      - "-Mbignum=bpi"
+      - "-wle"
+      - "print bpi(20)"
+  labels:
+    custom: alpha-label
+  team: alpha-team

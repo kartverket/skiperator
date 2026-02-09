@@ -1,0 +1,29 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: conversion-roundtrip
+  namespace: chainsaw-skipjob-conversion-ns
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            custom: alpha-label
+            team: alpha-team
+        spec:
+          containers:
+            - name: conversion-roundtrip-skipjob
+              image: "perl:5.34.0"
+---
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: conversion-roundtrip
+  namespace: chainsaw-skipjob-conversion-ns
+spec:
+  image: "perl:5.34.0"
+  labels:
+    custom: alpha-label
+  team: alpha-team
