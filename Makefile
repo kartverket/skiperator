@@ -26,10 +26,26 @@ KIND_CLUSTER_NAME          ?= skiperator
 LOCAL_WEBHOOK_CERTS_DIR    := $(shell mktemp -d -t skiperator-webhook-certs.XXXXXXX)
 WEBHOOK_HOST                = 0.0.0.0
 WEBHOOK_ARGS                = --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
+SKIPJOB_CRD_FILE            ?= config/crd/skiperator.kartverket.no_skipjobs.yaml
 
 .PHONY: generate
 generate:
 	go generate ./...
+	@$(MAKE) patch-skipjob-crd SKIPJOB_CRD_FILE=$(SKIPJOB_CRD_FILE)
+
+.PHONY: patch-skipjob-crd
+patch-skipjob-crd:
+	@tmp_file=$$(mktemp -t skipjob-crd.XXXXXXX); \
+	normalized_file=$$(mktemp -t skipjob-crd-normalized.XXXXXXX); \
+	kustomize build --load-restrictor LoadRestrictionsNone config/crd/skipjob > "$$tmp_file"; \
+	if [ ! -s "$$tmp_file" ]; then \
+		echo "ERROR: generated SKIPJob CRD is empty"; \
+		rm -f "$$tmp_file" "$$normalized_file"; \
+		exit 1; \
+	fi; \
+	awk 'NR==1 && $$0!="---"{print "---"} {print}' "$$tmp_file" > "$$normalized_file"; \
+	rm -f "$$tmp_file"; \
+	mv "$$normalized_file" "$(SKIPJOB_CRD_FILE)"
 
 .PHONY: build
 build: generate

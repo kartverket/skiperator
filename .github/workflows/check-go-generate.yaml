@@ -35,13 +35,13 @@ jobs:
                 go-version-file: go.mod
                 cache: true
 
-            - name: Run go generate
-              run: go generate ./...
+            - name: Run make generate
+              run: make generate
 
             - name: Check for changes
               run: |
                 if ! git diff --quiet; then
-                    echo "Error: 'go generate ./...' produced changes. Please commit generated files."
+                    echo "Error: 'make generate' produced changes. Please commit generated files."
                     git --no-pager diff
                     exit 1
                 fi

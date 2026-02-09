@@ -3,9 +3,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: skiperator-system/skiperator-webhook-ca
     controller-gen.kubebuilder.io/version: v0.19.0
   name: skipjobs.skiperator.kartverket.no
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: skipjob-conversion-webhook
+          namespace: skiperator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: skiperator.kartverket.no
   names:
     kind: SKIPJob
@@ -1052,13 +1063,13 @@ spec:
                   description: Status
                   properties:
                     message:
-                      default: hello
+                      default: Resource accepted by Kubernetes. Waiting for Skiperator
+                        to become aware of the resource and start processing.
                       type: string
                     status:
-                      default: Synced
+                      default: Pending
                       type: string
                     timestamp:
-                      default: hello
                       type: string
                   required:
                   - message
@@ -1070,13 +1081,13 @@ spec:
                 description: Status
                 properties:
                   message:
-                    default: hello
+                    default: Resource accepted by Kubernetes. Waiting for Skiperator
+                      to become aware of the resource and start processing.
                     type: string
                   status:
-                    default: Synced
+                    default: Pending
                     type: string
                   timestamp:
-                    default: hello
                     type: string
                 required:
                 - message
@@ -2045,6 +2056,30 @@ spec:
                 job.
               rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
                 !has(self.cron))
+            - message: The container configuration is immutable for one-off jobs.
+                Please delete your SKIPJob to change image, command, resources, networking,
+                probes, env/files, or pod settings.
+              rule: ((!has(self.cron) && oldSelf.image == self.image && oldSelf.priority
+                == self.priority && (has(oldSelf.command) == has(self.command)) &&
+                (!has(self.command) || oldSelf.command == self.command) && (has(oldSelf.resources)
+                == has(self.resources)) && (!has(self.resources) || oldSelf.resources
+                == self.resources) && (has(oldSelf.env) == has(self.env)) && (!has(self.env)
+                || oldSelf.env == self.env) && (has(oldSelf.envFrom) == has(self.envFrom))
+                && (!has(self.envFrom) || oldSelf.envFrom == self.envFrom) && (has(oldSelf.filesFrom)
+                == has(self.filesFrom)) && (!has(self.filesFrom) || oldSelf.filesFrom
+                == self.filesFrom) && (has(oldSelf.additionalPorts) == has(self.additionalPorts))
+                && (!has(self.additionalPorts) || oldSelf.additionalPorts == self.additionalPorts)
+                && (has(oldSelf.liveness) == has(self.liveness)) && (!has(self.liveness)
+                || oldSelf.liveness == self.liveness) && (has(oldSelf.readiness) ==
+                has(self.readiness)) && (!has(self.readiness) || oldSelf.readiness
+                == self.readiness) && (has(oldSelf.startup) == has(self.startup))
+                && (!has(self.startup) || oldSelf.startup == self.startup) && (has(oldSelf.accessPolicy)
+                == has(self.accessPolicy)) && (!has(self.accessPolicy) || oldSelf.accessPolicy
+                == self.accessPolicy) && (has(oldSelf.gcp) == has(self.gcp)) && (!has(self.gcp)
+                || oldSelf.gcp == self.gcp) && (has(oldSelf.restartPolicy) == has(self.restartPolicy))
+                && (!has(self.restartPolicy) || oldSelf.restartPolicy == self.restartPolicy)
+                && (has(oldSelf.podSettings) == has(self.podSettings)) && (!has(self.podSettings)
+                || oldSelf.podSettings == self.podSettings)) || has(self.cron))
           status:
             description: |-
               SkiperatorStatus
@@ -2115,13 +2150,13 @@ spec:
                   description: Status
                   properties:
                     message:
-                      default: hello
+                      default: Resource accepted by Kubernetes. Waiting for Skiperator
+                        to become aware of the resource and start processing.
                       type: string
                     status:
-                      default: Synced
+                      default: Pending
                       type: string
                     timestamp:
-                      default: hello
                       type: string
                   required:
                   - message
@@ -2133,13 +2168,13 @@ spec:
                 description: Status
                 properties:
                   message:
-                    default: hello
+                    default: Resource accepted by Kubernetes. Waiting for Skiperator
+                      to become aware of the resource and start processing.
                     type: string
                   status:
-                    default: Synced
+                    default: Pending
                     type: string
                   timestamp:
-                    default: hello
                     type: string
                 required:
                 - message

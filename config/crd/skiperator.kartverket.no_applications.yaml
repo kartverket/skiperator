@@ -1509,13 +1509,13 @@ spec:
                   description: Status
                   properties:
                     message:
-                      default: hello
+                      default: Resource accepted by Kubernetes. Waiting for Skiperator
+                        to become aware of the resource and start processing.
                       type: string
                     status:
-                      default: Synced
+                      default: Pending
                       type: string
                     timestamp:
-                      default: hello
                       type: string
                   required:
                   - message
@@ -1527,13 +1527,13 @@ spec:
                 description: Status
                 properties:
                   message:
-                    default: hello
+                    default: Resource accepted by Kubernetes. Waiting for Skiperator
+                      to become aware of the resource and start processing.
                     type: string
                   status:
-                    default: Synced
+                    default: Pending
                     type: string
                   timestamp:
-                    default: hello
                     type: string
                 required:
                 - message

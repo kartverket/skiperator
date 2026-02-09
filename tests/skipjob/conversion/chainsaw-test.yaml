@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: skipjob-conversion-roundtrip
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: skipjob-v1alpha1.yaml
+        - assert:
+            file: alpha-to-beta-conversion-assert.yaml
+    - try:
+        - apply:
+            file: skipjob-v1beta1-patch.yaml
+        - assert:
+            file: beta-to-alpha-conversion-assert.yaml
