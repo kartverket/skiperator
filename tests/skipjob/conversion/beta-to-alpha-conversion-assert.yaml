@@ -12,6 +12,7 @@ spec:
             custom: beta-label
             team: beta-team
         spec:
+          restartPolicy: Never
           containers:
             - name: conversion-roundtrip-skipjob
               image: "perl:5.36.0"

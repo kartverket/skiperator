@@ -12,6 +12,7 @@ spec:
             custom: alpha-label
             team: alpha-team
         spec:
+          restartPolicy: Never
           containers:
             - name: conversion-roundtrip-skipjob
               image: "perl:5.34.0"
