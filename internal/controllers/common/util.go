@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/chmike/domain"
+	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
-	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -85,7 +85,7 @@ func IsExternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
 	return true
 }
 
-func GetInternalRulesCondition(obj skiperatorv1beta1.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
+func GetInternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
 	message := "Internal rules are valid"
 	if status == metav1.ConditionFalse {
 		message = "Internal rules are invalid, applications or namespaces defined might not exist or have invalid ports"
@@ -100,7 +100,7 @@ func GetInternalRulesCondition(obj skiperatorv1beta1.SKIPObject, status metav1.C
 	}
 }
 
-func GetExternalRulesCondition(obj skiperatorv1beta1.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
+func GetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
 	message := "External rules are valid"
 	if status == metav1.ConditionFalse {
 		message = "External rules are invalid – hostname may be empty or duplicate, or the hostname may not be a valid DNS name"
