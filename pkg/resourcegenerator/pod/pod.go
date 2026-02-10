@@ -3,8 +3,9 @@ package pod
 import (
 	"fmt"
 
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
@@ -161,19 +162,19 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 	}
 }
 
-func CreateJobContainer(skipJob *skiperatorv1alpha1.SKIPJob, volumeMounts []corev1.VolumeMount, envVars []corev1.EnvVar) corev1.Container {
+func CreateJobContainer(skipJob *skiperatorv1beta1.SKIPJob, volumeMounts []corev1.VolumeMount, envVars []corev1.EnvVar) corev1.Container {
 	return corev1.Container{
 		Name:                     skipJob.KindPostFixedName(),
-		Image:                    skipJob.Spec.Container.Image,
+		Image:                    skipJob.Spec.Image,
 		ImagePullPolicy:          corev1.PullAlways,
-		Command:                  skipJob.Spec.Container.Command,
+		Command:                  skipJob.Spec.Command,
 		SecurityContext:          &util.LeastPrivilegeContainerSecurityContext,
-		EnvFrom:                  getEnvFrom(skipJob.Spec.Container.EnvFrom),
-		Resources:                getResourceRequirements(skipJob.Spec.Container.Resources),
+		EnvFrom:                  getEnvFrom(skipJob.Spec.EnvFrom),
+		Resources:                getResourceRequirements(skipJob.Spec.Resources),
 		Env:                      envVars,
-		ReadinessProbe:           getProbe(skipJob.Spec.Container.Readiness),
-		LivenessProbe:            getProbe(skipJob.Spec.Container.Liveness),
-		StartupProbe:             getProbe(skipJob.Spec.Container.Startup),
+		ReadinessProbe:           getProbe(skipJob.Spec.Readiness),
+		LivenessProbe:            getProbe(skipJob.Spec.Liveness),
+		StartupProbe:             getProbe(skipJob.Spec.Startup),
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 		VolumeMounts:             volumeMounts,

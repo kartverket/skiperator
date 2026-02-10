@@ -18,7 +18,7 @@ metadata:
     app.kubernetes.io/managed-by: "skiperator"
     skiperator.kartverket.no/controller: "skipjob"
   ownerReferences:
-    - apiVersion: skiperator.kartverket.no/v1alpha1
+    - apiVersion: skiperator.kartverket.no/v1beta1
       blockOwnerDeletion: true
       controller: true
       kind: SKIPJob

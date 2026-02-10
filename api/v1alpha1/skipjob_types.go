@@ -5,9 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -88,7 +85,7 @@ type SKIPJobSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
-	IstioSettings *istiotypes.IstioSettingsBase `json:"istioSettings,omitempty"`
+	IstioSettings *IstioSettingsBase `json:"istioSettings,omitempty"`
 
 	// Prometheus settings for pod running in job. Fields are identical to Application and if set,
 	// a podmonitoring object is created.
@@ -122,29 +119,29 @@ type ContainerSettings struct {
 	Command []string `json:"command,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	Resources *podtypes.ResourceRequirements `json:"resources,omitempty"`
+	Resources *ResourceRequirements `json:"resources,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 	//+kubebuilder:validation:Optional
-	EnvFrom []podtypes.EnvFrom `json:"envFrom,omitempty"`
+	EnvFrom []EnvFrom `json:"envFrom,omitempty"`
 	//+kubebuilder:validation:Optional
-	FilesFrom []podtypes.FilesFrom `json:"filesFrom,omitempty"`
+	FilesFrom []FilesFrom `json:"filesFrom,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AdditionalPorts []podtypes.InternalPort `json:"additionalPorts,omitempty"`
+	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
 	//+kubebuilder:validation:Optional
-	Liveness *podtypes.Probe `json:"liveness,omitempty"`
+	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Readiness *podtypes.Probe `json:"readiness,omitempty"`
+	Readiness *Probe `json:"readiness,omitempty"`
 	//+kubebuilder:validation:Optional
-	Startup *podtypes.Probe `json:"startup,omitempty"`
+	Startup *Probe `json:"startup,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	AccessPolicy *podtypes.AccessPolicy `json:"accessPolicy,omitempty"`
+	AccessPolicy *AccessPolicy `json:"accessPolicy,omitempty"`
 
 	//+kubebuilder:validation:Optional
-	GCP *podtypes.GCP `json:"gcp,omitempty"`
+	GCP *GCP `json:"gcp,omitempty"`
 
 	// +kubebuilder:validation:Enum=OnFailure;Never
 	// +kubebuilder:default="Never"
@@ -152,71 +149,7 @@ type ContainerSettings struct {
 	RestartPolicy *corev1.RestartPolicy `json:"restartPolicy"`
 
 	//+kubebuilder:validation:Optional
-	PodSettings *podtypes.PodSettings `json:"podSettings,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type JobSettings struct {
-	// ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
-	// the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.
-	//
-	//+kubebuilder:validation:Optional
-	ActiveDeadlineSeconds *int64 `json:"activeDeadlineSeconds,omitempty"`
-
-	// Specifies the number of retry attempts before determining the job as failed. Defaults to 6.
-	//
-	//+kubebuilder:validation:Optional
-	BackoffLimit *int32 `json:"backoffLimit,omitempty"`
-
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
-	// all running Pods will be terminated.
-	//
-	//+kubebuilder:validation:Optional
-	Suspend *bool `json:"suspend,omitempty"`
-
-	// The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
-	// It is recommended to set this to avoid clutter in your resource tree.
-	//
-	//+kubebuilder:validation:Optional
-	TTLSecondsAfterFinished *int32 `json:"ttlSecondsAfterFinished,omitempty"`
-}
-
-// +kubebuilder:object:generate=true
-type CronSettings struct {
-	// Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
-	// Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
-	// Replace will replace the current active Job with the newer scheduled Job.
-	//
-	// +kubebuilder:validation:Enum=Allow;Forbid;Replace
-	// +kubebuilder:default="Allow"
-	// +kubebuilder:validation:Optional
-	ConcurrencyPolicy batchv1.ConcurrencyPolicy `json:"allowConcurrency,omitempty"`
-
-	// A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
-	// Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.
-	//
-	//+kubebuilder:validation:Required
-	Schedule string `json:"schedule"`
-
-	// The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
-	// this will default to the time zone of the cluster.
-	//
-	// Example: "Europe/Oslo"
-	//
-	// +kubebuilder:validation:Optional
-	TimeZone *string `json:"timeZone,omitempty"`
-
-	// Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
-	// If unset, Jobs missing their deadline will be considered failed jobs and will not start.
-	//
-	//+kubebuilder:validation:Optional
-	StartingDeadlineSeconds *int64 `json:"startingDeadlineSeconds,omitempty"`
-
-	// If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
-	// all running Pods will be terminated.
-	//
-	//+kubebuilder:validation:Optional
-	Suspend *bool `json:"suspend,omitempty"`
+	PodSettings *PodSettings `json:"podSettings,omitempty"`
 }
 
 func (skipJob *SKIPJob) KindPostFixedName() string {
