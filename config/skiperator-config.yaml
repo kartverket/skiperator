@@ -40,5 +40,6 @@ data:
         ]
       },
       "gcpIdentityProvider": "testProvider",
-      "gcpWorkloadIdentityPool": "testPool"
+      "gcpWorkloadIdentityPool": "testPool",
+      "enableWebhooks": true
     }

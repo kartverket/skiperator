@@ -1,13 +1,14 @@
 package deployment
 
 import (
+	"testing"
+
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"testing"
 )
 
 func TestDeploymentMinimalAppShouldHaveLabels(t *testing.T) {

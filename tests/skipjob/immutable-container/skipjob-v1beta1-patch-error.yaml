@@ -1,0 +1,11 @@
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: minimal-job
+spec:
+  image: "perl:5.34.2"
+  command:
+    - "perl"
+    - "-Mbignum=bpi"
+    - "-wle"
+    - "print bpi(2000)"

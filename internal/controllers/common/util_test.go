@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	istiov1alpha1 "github.com/kartverket/skiperator/api/common/istiotypes"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/api/v1alpha1"
-	istiov1alpha1 "github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

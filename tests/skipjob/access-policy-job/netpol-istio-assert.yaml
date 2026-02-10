@@ -10,7 +10,7 @@ metadata:
     skiperator.kartverket.no/skipjob: 'true'
     skiperator.kartverket.no/skipjobName: istio-policy-job
   ownerReferences:
-    - apiVersion: skiperator.kartverket.no/v1alpha1
+    - apiVersion: skiperator.kartverket.no/v1beta1
       blockOwnerDeletion: true
       controller: true
       kind: SKIPJob

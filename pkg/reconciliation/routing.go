@@ -2,6 +2,7 @@ package reconciliation
 
 import (
 	"context"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"k8s.io/client-go/rest"

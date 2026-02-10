@@ -44,7 +44,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: "Prune=false"
   ownerReferences:
-    - apiVersion: skiperator.kartverket.no/v1alpha1
+    - apiVersion: skiperator.kartverket.no/v1beta1
       blockOwnerDeletion: true
       controller: true
       kind: SKIPJob
