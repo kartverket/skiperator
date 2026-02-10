@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"maps"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -27,7 +27,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("job only supports skipjob type, got %s", r.GetType())
 	}
 
-	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob := r.GetSKIPObject().(*skiperatorv1beta1.SKIPJob)
 
 	meta := metav1.ObjectMeta{
 		Namespace: skipJob.Namespace,
@@ -61,7 +61,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
+func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.CronJobSpec {
 	spec := batchv1.CronJobSpec{
 		Schedule:                skipJob.Spec.Cron.Schedule,
 		TimeZone:                skipJob.Spec.Cron.TimeZone,
@@ -84,12 +84,11 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, sel
 	return spec
 }
 
-func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
-	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.Container.FilesFrom)
-	envVars := skipJob.Spec.Container.Env
-
-	if skipJob.Spec.Container.GCP != nil {
-		gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
+func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
+	envVars := skipJob.Spec.Env
+	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.FilesFrom)
+	gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
+	if skipJob.Spec.GCP != nil {
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()
 		gcpEnvVar := gcp.GetGCPEnvVar()
 
@@ -101,8 +100,8 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 	skipJobContainer := pod.CreateJobContainer(skipJob, containerVolumeMounts, envVars)
 
 	containers := []corev1.Container{skipJobContainer}
-	if util.IsCloudSqlProxyEnabled(skipJob.Spec.Container.GCP) {
-		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.Container.GCP.CloudSQLProxy)
+	if util.IsCloudSqlProxyEnabled(skipJob.Spec.GCP) {
+		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(skipJob.Spec.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 
@@ -119,9 +118,9 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 				containers,
 				podVolumes,
 				skipJob.KindPostFixedName(),
-				skipJob.Spec.Container.Priority,
-				skipJob.Spec.Container.RestartPolicy,
-				skipJob.Spec.Container.PodSettings,
+				skipJob.Spec.Priority,
+				skipJob.Spec.RestartPolicy,
+				skipJob.Spec.PodSettings,
 				skipJob.Name,
 			),
 			ObjectMeta: metav1.ObjectMeta{
@@ -141,9 +140,9 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, selecto
 	return jobSpec
 }
 
-func setJobLabels(logger *log.Logger, skipJob *skiperatorv1alpha1.SKIPJob, labels map[string]string) {
+func setJobLabels(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, labels map[string]string) {
 	labels["app"] = skipJob.KindPostFixedName()
-	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Container.Image)
+	labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(logger, skipJob.Spec.Image)
 
 	// Adds team label if it has been set
 	if len(skipJob.Spec.Team) > 0 {
