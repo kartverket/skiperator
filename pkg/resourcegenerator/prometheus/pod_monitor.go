@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -23,7 +23,7 @@ func generateForSkipJob(r reconciliation.Reconciliation) error {
 		return fmt.Errorf("podmonitor only supports skipjob type, got %s", r.GetType())
 	}
 
-	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)
+	skipJob := r.GetSKIPObject().(*skiperatorv1beta1.SKIPJob)
 
 	if skipJob.Spec.Prometheus == nil {
 		return nil

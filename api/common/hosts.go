@@ -1,9 +1,10 @@
-package v1alpha1
+package common
 
 import (
 	"fmt"
-	"github.com/chmike/domain"
 	"strings"
+
+	"github.com/chmike/domain"
 )
 
 const hostnameSecretSeparator = "+"
