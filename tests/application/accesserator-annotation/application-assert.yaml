@@ -1,0 +1,14 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podsettings
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        argocd.argoproj.io/sync-options: "Prune=false"
+        "accesserator.kartverket.no/inject-sidecars": "true"
+    spec:
+      terminationGracePeriodSeconds: 30

@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
-	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
-	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
+	AnnotationKeyLinkPrefix                 = "link.argocd.argoproj.io/external-link"
+	DefaultDigdiratorMaskinportenMountPath  = "/var/run/secrets/skip/maskinporten"
+	DefaultDigdiratorIDportenMountPath      = "/var/run/secrets/skip/idporten"
+	AccesseratorInjectSidecarsAnnotationKey = "accesserator.kartverket.no/inject-sidecars"
 )
 
 // TODO should clean up
@@ -142,6 +143,10 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if application.Spec.PodSettings != nil && len(application.Spec.PodSettings.Annotations) > 0 {
 		maps.Copy(generatedSpecAnnotations, application.Spec.PodSettings.Annotations)
+	}
+
+	if application.Annotations[AccesseratorInjectSidecarsAnnotationKey] != "" {
+		generatedSpecAnnotations[AccesseratorInjectSidecarsAnnotationKey] = application.Annotations[AccesseratorInjectSidecarsAnnotationKey]
 	}
 
 	var containers []corev1.Container
