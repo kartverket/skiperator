@@ -113,7 +113,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
 			var subErr *util.SubResourceError
 			if goerrors.As(err, &subErr) {
-				r.SetErrorState(ctx, routing, subErr.WrapErr, subErr.Error(), "ResourceGenerationFailure")
+				r.SetErrorState(ctx, routing, subErr.GetWrapErr(), subErr.Error(), subErr.GetReason())
 			} else {
 				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
 				r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")

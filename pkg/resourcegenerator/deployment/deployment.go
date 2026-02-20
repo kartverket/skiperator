@@ -34,13 +34,13 @@ const (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		err := &util.SubResourceError{Message: "Unsupported type in deployment resource", WrapErr: fmt.Errorf("Unsupported type %s", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &util.SubResourceError{Message: "Unsupported type in deployment resource", WrapErr: fmt.Errorf("unsupported type %s", r.GetType()), Reason: util.UnsupportedTypeResource}
 		ctxLog.Error(err, err.Message)
 		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate deployment resource", WrapErr: fmt.Errorf("Failed to cast resource to application"), Reason: util.InternalError}
+		err := &util.SubResourceError{Message: "Failed to generate deployment resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
 		ctxLog.Error(err, err.Message)
 		return err
 	}

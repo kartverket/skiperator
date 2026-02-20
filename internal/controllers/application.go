@@ -253,10 +253,10 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
 			var subErr *util.SubResourceError
 			if goerrors.As(err, &subErr) {
-				r.SetErrorState(ctx, application, subErr.WrapErr, subErr.Error(), subErr.ReasonString())
+				r.SetErrorState(ctx, application, subErr.GetWrapErr(), subErr.Error(), subErr.GetReason())
 			} else {
 				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
-				r.SetErrorState(ctx, application, err, "failed to genereate application resource", "ResourceGenerationFailure")
+				r.SetErrorState(ctx, application, err, "failed to generate application resource", "ResourceGenerationFailure")
 			}
 			return common.RequeueWithError(err)
 		}

@@ -29,6 +29,13 @@ func (e *SubResourceError) Unwrap() error {
 	return e.WrapErr
 }
 
-func (e *SubResourceError) ReasonString() string {
+func (e *SubResourceError) GetReason() string {
 	return string(e.Reason)
+}
+
+func (e *SubResourceError) GetWrapErr() error {
+	if e.WrapErr == nil {
+		return fmt.Errorf("%s", e.Message)
+	}
+	return e.WrapErr
 }
