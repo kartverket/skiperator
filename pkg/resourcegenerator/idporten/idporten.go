@@ -2,6 +2,9 @@ package idporten
 
 import (
 	"fmt"
+	"net/url"
+	"path"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
@@ -11,8 +14,6 @@ import (
 	digdiratorTypes "github.com/nais/digdirator/pkg/digdir/types"
 	naisiov1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"net/url"
-	"path"
 )
 
 const (
@@ -25,12 +26,12 @@ const (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in idporten resource", r.GetType())
+		return &util.SubResourceError{Message: "Failed to get application when generating idporten resource", WrapErr: fmt.Errorf("unsupported type %s in idporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "Failed to generate idporten resource")
+		err := &util.SubResourceError{Message: "Failed to generate ID porten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		ctxLog.Error(err, err.Message)
 		return err
 	}
 	if application.Spec.IDPorten == nil {
@@ -53,6 +54,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	idporten.Spec, err = getIDPortenSpec(application)
 	if err != nil {
+		err := &util.SubResourceError{Message: "Failed to generate ID porten resource spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
 		return err
 	}
 

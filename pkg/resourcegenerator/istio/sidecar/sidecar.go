@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kartverket/skiperator/pkg/reconciliation"
+	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +16,8 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate istio sidecar resource for namespace", "namespace", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.NamespaceType {
-		return fmt.Errorf("istio sidecar resource only supports the namespace type")
+		err := &util.SubResourceError{Message: "Unsupported type in istio sidecar resource", WrapErr: fmt.Errorf("istio sidecar resource only supports the namespace type, got %s", r.GetType()), Reason: util.UnsupportedTypeResource}
+		return err
 	}
 
 	sidecar := networkingv1.Sidecar{ObjectMeta: metav1.ObjectMeta{Namespace: r.GetSKIPObject().GetName(), Name: "sidecar"}}

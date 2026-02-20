@@ -15,12 +15,13 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in peer authentication", r.GetType())
+		err := &util.SubResourceError{Message: "Unsupported type in peer authentication", WrapErr: fmt.Errorf("unsupported type %s in peer authentication", r.GetType()), Reason: util.UnsupportedTypeResource}
+		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "Failed to generate peer authentication")
+		err := &util.SubResourceError{Message: "Failed to generate peer authentication", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		ctxLog.Error(err, err.Message)
 		return err
 	}
 	ctxLog.Debug("Attempting to generate peer authentication for application", "application", application.Name)

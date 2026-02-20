@@ -26,12 +26,12 @@ var defaultPrometheusPort = corev1.ServicePort{
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in service resource", r.GetType())
+		return &util.SubResourceError{Message: "Unsupported type in service resource", WrapErr: fmt.Errorf("unsupported type %s in service resource", r.GetType()), Reason: util.UnsupportedTypeResource}
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "failed to generate service resource")
+		err := &util.SubResourceError{Message: "Failed to generate service resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		ctxLog.Error(err, err.Message)
 		return err
 	}
 	ctxLog.Debug("Attempting to create service for application", "application", application.Name)

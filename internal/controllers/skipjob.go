@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"maps"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
+	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -148,6 +150,12 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	if err := common.ValidateContainerImageString(skipJob); err != nil {
+		rLog.Error(err, "invalid container image reference")
+		r.SetErrorState(ctx, skipJob, err, "invalid container image reference", "ValidationFailure")
+		return common.RequeueWithError(err)
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, skipJob)
@@ -174,7 +182,13 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate skipjob resource")
 			// At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(ctx, skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure")
+			var subErr *util.SubResourceError
+			if goerrors.As(err, &subErr) {
+				r.SetErrorState(ctx, skipJob, subErr.WrapErr, subErr.Error(), "ResourceGenerationFailure")
+			} else {
+				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
+				r.SetErrorState(ctx, skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure")
+			}
 			return common.RequeueWithError(err)
 		}
 	}

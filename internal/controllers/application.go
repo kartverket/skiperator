@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
-
-	"maps"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
@@ -165,12 +165,6 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
-	if err := validateIngresses(application); err != nil {
-		rLog.Error(err, "invalid ingress in application manifest")
-		r.SetErrorState(ctx, application, err, "invalid ingress in application manifest", "InvalidApplication")
-		return common.RequeueWithError(err)
-	}
-
 	// Copy application so we can check for diffs. Should be none on existing applications.
 	tmpApplication := application.DeepCopy()
 
@@ -198,6 +192,18 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Debug("Queuing for spec diff")
 		err := r.GetClient().Update(ctx, application)
 		return reconcile.Result{}, err
+	}
+
+	if err := validateIngresses(application); err != nil {
+		rLog.Error(err, "invalid ingress in application manifest")
+		r.SetErrorState(ctx, application, err, "invalid ingress in application manifest", "InvalidApplication")
+		return common.RequeueWithError(err)
+	}
+
+	if err := common.ValidateContainerImageString(application); err != nil {
+		rLog.Error(err, "invalid container image in application manifest")
+		r.SetErrorState(ctx, application, err, "invalid container image in application manifest", "InvalidApplication")
+		return common.RequeueWithError(err)
 	}
 
 	//We try to feed the access policy with port values dynamically,
@@ -245,7 +251,13 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		if err = f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate application resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(ctx, application, err, "failed to generate application resource", "ResourceGenerationFailure")
+			var subErr *util.SubResourceError
+			if goerrors.As(err, &subErr) {
+				r.SetErrorState(ctx, application, subErr.WrapErr, subErr.Error(), subErr.ReasonString())
+			} else {
+				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
+				r.SetErrorState(ctx, application, err, "failed to genereate application resource", "ResourceGenerationFailure")
+			}
 			return common.RequeueWithError(err)
 		}
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils/generator"
+	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
@@ -13,7 +14,10 @@ var (
 )
 
 func Generate(r reconciliation.Reconciliation) error {
-	return multiGenerator.Generate(r, "PrometheusCRD")
+	if err := multiGenerator.Generate(r, "PrometheusCRD"); err != nil {
+		return &util.SubResourceError{Message: "Failed to generate prometheus resource", WrapErr: err, Reason: util.SubResourceGenerateFailed}
+	}
+	return nil
 }
 
 func getScrapeInterval(pc *v1alpha1.PrometheusConfig) pov1.Duration {

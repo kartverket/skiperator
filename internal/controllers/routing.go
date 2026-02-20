@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -16,6 +17,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
+	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -109,7 +111,13 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		if err := f(reconciliation); err != nil {
 			rLog.Error(err, "failed to generate routing resource")
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")
+			var subErr *util.SubResourceError
+			if goerrors.As(err, &subErr) {
+				r.SetErrorState(ctx, routing, subErr.WrapErr, subErr.Error(), "ResourceGenerationFailure")
+			} else {
+				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
+				r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")
+			}
 			return common.RequeueWithError(err)
 		}
 	}
