@@ -35,7 +35,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	} else if replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 		minReplicas = replicasStruct.Min
 	} else {
-		err := &util.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+		err := &util.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: util.InternalError}
 		ctxLog.Error(err, err.Message)
 		return err
 	}

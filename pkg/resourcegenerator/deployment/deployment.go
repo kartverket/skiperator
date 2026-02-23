@@ -78,7 +78,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if idporten.IdportenSpecifiedInSpec(application.Spec.IDPorten) {
 		secretName, err := idporten.GetIDPortenSecretName(application.Name)
 		if err != nil {
-			err := &util.SubResourceError{Message: "Could not get idporten secret name", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+			err := &util.SubResourceError{Message: "Failed to get idporten secret name", WrapErr: err, Reason: util.ResourceDependencyNotFound}
 			ctxLog.Error(err, err.Message)
 			return err
 		}
@@ -94,7 +94,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if maskinporten.MaskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
 		secretName, err := maskinporten.GetMaskinportenSecretName(application.Name)
 		if err != nil {
-			err := &util.SubResourceError{Message: "Could not get maskinporten secret name", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+			err := &util.SubResourceError{Message: "Failed to get maskinporten secret name", WrapErr: err, Reason: util.ResourceDependencyNotFound}
 			ctxLog.Error(err, err.Message)
 			return err
 		}
@@ -206,7 +206,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
-			err := &util.SubResourceError{Message: "Could not get replicas from application spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+			err := &util.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: util.InternalError}
 			ctxLog.Error(err, err.Message)
 			return err
 		}

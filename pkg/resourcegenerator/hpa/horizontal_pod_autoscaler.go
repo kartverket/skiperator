@@ -34,7 +34,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 	if err != nil {
-		return &util.SubResourceError{Message: "Failed to get application replicas", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+		return &util.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: util.InternalError}
 	}
 
 	metrics := []autoscalingv2.MetricSpec{}
