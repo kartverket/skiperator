@@ -26,7 +26,7 @@ const (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return &util.SubResourceError{Message: "Failed to get application when generating idporten resource", WrapErr: fmt.Errorf("unsupported type %s in idporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
+		return &util.SubResourceError{Message: "Unsupported type in ID porten resource", WrapErr: fmt.Errorf("unsupported type %s in idporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
