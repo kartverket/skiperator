@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kartverket/skiperator/api/v1alpha1"
+	istiov1alpha1 "github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/stretchr/testify/assert"
@@ -175,4 +176,30 @@ func externalPolicyTo(rules ...podtypes.ExternalRule) *podtypes.AccessPolicy {
 			External: rules,
 		},
 	}
+}
+
+func TestValidateContainerImageString(t *testing.T) {
+	t.Run("valid_image", func(t *testing.T) {
+		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
+			Spec: v1alpha1.ApplicationSpec{
+				Image: "valid-image/string:latest",
+				// Needed to set IstioSettings to avoid nil pointer dereference in validation
+				IstioSettings: &istiov1alpha1.IstioSettingsApplication{
+					IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
+				},
+			},
+		}))
+	})
+
+	t.Run("invalid_image", func(t *testing.T) {
+		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
+			Spec: v1alpha1.ApplicationSpec{
+				Image: "invalid image_string *4'20",
+				// Needed to set IstioSettings to avoid nil pointer dereference in validation
+				IstioSettings: &istiov1alpha1.IstioSettingsApplication{
+					IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
+				},
+			},
+		}))
+	})
 }
