@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: conversion-roundtrip
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            custom: alpha-label
+            team: alpha-team
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: conversion-roundtrip-skipjob
+              image: "perl:5.34.0"
+---
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: conversion-roundtrip
+spec:
+  image: "perl:5.34.0"
+  labels:
+    custom: alpha-label
+  team: alpha-team

@@ -3,9 +3,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: skiperator-system/skiperator-webhook-ca
     controller-gen.kubebuilder.io/version: v0.19.0
   name: skipjobs.skiperator.kartverket.no
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: skipjob-conversion-webhook
+          namespace: skiperator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: skiperator.kartverket.no
   names:
     kind: SKIPJob
@@ -1052,13 +1063,13 @@ spec:
                   description: Status
                   properties:
                     message:
-                      default: hello
+                      default: Resource accepted by Kubernetes. Waiting for Skiperator
+                        to become aware of the resource and start processing.
                       type: string
                     status:
-                      default: Synced
+                      default: Pending
                       type: string
                     timestamp:
-                      default: hello
                       type: string
                   required:
                   - message
@@ -1070,13 +1081,1100 @@ spec:
                 description: Status
                 properties:
                   message:
-                    default: hello
+                    default: Resource accepted by Kubernetes. Waiting for Skiperator
+                      to become aware of the resource and start processing.
                     type: string
                   status:
-                    default: Synced
+                    default: Pending
                     type: string
                   timestamp:
-                    default: hello
+                    type: string
+                required:
+                - message
+                - status
+                - timestamp
+                type: object
+            required:
+            - accessPolicies
+            - conditions
+            - subresources
+            - summary
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.summary.status
+      name: Status
+      type: string
+    - jsonPath: .status.accessPolicies
+      name: AccessPolicies
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: SKIPJob is the Schema for the skipjobs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              SKIPJobSpec defines the desired state of SKIPJob
+
+              A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
+            properties:
+              accessPolicy:
+                description: |-
+                  AccessPolicy
+
+                  Zero trust dictates that only applications with a reason for being able
+                  to access another resource should be able to reach it. This is set up by
+                  default by denying all ingress and egress traffic from the Pods in the
+                  Deployment. The AccessPolicy field is an allowlist of other applications and hostnames
+                  that are allowed to talk with this Application and which resources this app can talk to
+                properties:
+                  inbound:
+                    description: Inbound specifies the ingress rules. Which apps on
+                      the cluster can talk to this app?
+                    properties:
+                      rules:
+                        description: |-
+                          The rules list specifies a list of applications. When no namespace is
+                          specified it refers to an app in the current namespace. For apps in
+                          other namespaces namespace is required
+                        items:
+                          description: |-
+                            InternalRule
+
+                            The rules list specifies a list of applications. When no namespace is
+                            specified it refers to an app in the current namespace. For apps in
+                            other namespaces, namespace is required.
+                          properties:
+                            application:
+                              description: |-
+                                The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
+                                be suffixed with -skipjob
+                              type: string
+                            namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
+                              type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    required:
+                    - rules
+                    type: object
+                  outbound:
+                    description: |-
+                      Outbound specifies egress rules. Which apps on the cluster and the
+                      internet is the Application allowed to send requests to?
+                    properties:
+                      external:
+                        description: |-
+                          External specifies which applications on the internet the application
+                          can reach. Only host is required unless it is on another port than HTTPS port 443.
+                          If other ports or protocols are required then `ports` must be specified as well
+                        items:
+                          description: |-
+                            ExternalRule
+
+                            Describes a rule for allowing your Application to route traffic to external applications and hosts.
+                          properties:
+                            host:
+                              description: The allowed hostname. Note that this does
+                                not include subdomains.
+                              type: string
+                            ip:
+                              description: |-
+                                Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
+                                Only required for TCP requests.
+
+                                Note: Hostname must always be defined even if IP is set statically
+                              type: string
+                            ports:
+                              description: |-
+                                The ports to allow for the above hostname. When not specified HTTP and
+                                HTTPS on port 80 and 443 respectively are put into the allowlist
+                              items:
+                                description: |-
+                                  ExternalPort
+
+                                  A custom port describing an external host
+                                properties:
+                                  name:
+                                    description: Name is required and is an arbitrary
+                                      name. Must be unique within all ExternalRule
+                                      ports.
+                                    type: string
+                                  port:
+                                    description: The port number of the external host
+                                    type: integer
+                                  protocol:
+                                    description: 'The protocol to use for communication
+                                      with the host. Supported protocols are: HTTP,
+                                      HTTPS, TCP and TLS.'
+                                    enum:
+                                    - HTTP
+                                    - HTTPS
+                                    - TCP
+                                    - TLS
+                                    type: string
+                                required:
+                                - name
+                                - port
+                                - protocol
+                                type: object
+                              type: array
+                          required:
+                          - host
+                          type: object
+                        type: array
+                      rules:
+                        description: Rules apply the same in-cluster rules as InboundPolicy
+                        items:
+                          description: |-
+                            InternalRule
+
+                            The rules list specifies a list of applications. When no namespace is
+                            specified it refers to an app in the current namespace. For apps in
+                            other namespaces, namespace is required.
+                          properties:
+                            application:
+                              description: |-
+                                The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
+                                be suffixed with -skipjob
+                              type: string
+                            namespace:
+                              description: The namespace in which the Application
+                                you are allowing traffic to/from resides. If unset,
+                                uses namespace of Application.
+                              type: string
+                            namespacesByLabel:
+                              additionalProperties:
+                                type: string
+                              description: Namespace label value-pair in which the
+                                Application you are allowing traffic to/from resides.
+                                If both namespace and namespacesByLabel are set, namespace
+                                takes precedence and namespacesByLabel is omitted.
+                              type: object
+                            ports:
+                              description: The ports to allow for the above application.
+                              items:
+                                description: NetworkPolicyPort describes a port to
+                                  allow traffic on
+                                properties:
+                                  endPort:
+                                    description: |-
+                                      endPort indicates that the range of ports from port to endPort if set, inclusive,
+                                      should be allowed by the policy. This field cannot be defined if the port field
+                                      is not defined or if the port field is defined as a named (string) port.
+                                      The endPort must be equal or greater than port.
+                                    format: int32
+                                    type: integer
+                                  port:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: |-
+                                      port represents the port on the given protocol. This can either be a numerical or named
+                                      port on a pod. If this field is not provided, this matches all port names and
+                                      numbers.
+                                      If present, only traffic on the specified protocol AND port will be matched.
+                                    x-kubernetes-int-or-string: true
+                                  protocol:
+                                    description: |-
+                                      protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
+                                      If not specified, this field defaults to TCP.
+                                    type: string
+                                type: object
+                              type: array
+                          required:
+                          - application
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              additionalPorts:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    port:
+                      format: int32
+                      type: integer
+                    protocol:
+                      description: Protocol defines network protocols supported for
+                        things like container ports.
+                      enum:
+                      - TCP
+                      - UDP
+                      - SCTP
+                      type: string
+                  required:
+                  - name
+                  - port
+                  - protocol
+                  type: object
+                type: array
+              command:
+                items:
+                  type: string
+                type: array
+              cron:
+                description: Settings for the Job if you are running a scheduled job.
+                  Optional as Jobs may be one-off.
+                properties:
+                  allowConcurrency:
+                    default: Allow
+                    description: |-
+                      Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
+                      Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
+                      Replace will replace the current active Job with the newer scheduled Job.
+                    enum:
+                    - Allow
+                    - Forbid
+                    - Replace
+                    type: string
+                  schedule:
+                    description: |-
+                      A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
+                      Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.
+                    type: string
+                  startingDeadlineSeconds:
+                    description: |-
+                      Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
+                      If unset, Jobs missing their deadline will be considered failed jobs and will not start.
+                    format: int64
+                    type: integer
+                  suspend:
+                    description: |-
+                      If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
+                      all running Pods will be terminated.
+                    type: boolean
+                  timeZone:
+                    description: |-
+                      The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
+                      this will default to the time zone of the cluster.
+
+                      Example: "Europe/Oslo"
+                    type: string
+                required:
+                - schedule
+                type: object
+              env:
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: |-
+                        Name of the environment variable.
+                        May consist of any printable ASCII characters except '='.
+                      type: string
+                    value:
+                      description: |-
+                        Variable references $(VAR_NAME) are expanded
+                        using the previously defined environment variables in the container and
+                        any service environment variables. If a variable cannot be resolved,
+                        the reference in the input string will be unchanged. Double $$ are reduced
+                        to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                        "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                        Escaped references will never be expanded, regardless of whether the variable
+                        exists or not.
+                        Defaults to "".
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fieldRef:
+                          description: |-
+                            Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fileKeyRef:
+                          description: |-
+                            FileKeyRef selects a key of the env file.
+                            Requires the EnvFiles feature gate to be enabled.
+                          properties:
+                            key:
+                              description: |-
+                                The key within the env file. An invalid key will prevent the pod from starting.
+                                The keys defined within a source may consist of any printable ASCII characters except '='.
+                                During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                              type: string
+                            optional:
+                              default: false
+                              description: |-
+                                Specify whether the file or its key must be defined. If the file or key
+                                does not exist, then the env var is not published.
+                                If optional is set to true and the specified key does not exist,
+                                the environment variable will not be set in the Pod's containers.
+
+                                If optional is set to false and the specified key does not exist,
+                                an error will be returned during Pod creation.
+                              type: boolean
+                            path:
+                              description: |-
+                                The path within the volume from which to select the file.
+                                Must be relative and may not contain the '..' path or start with '..'.
+                              type: string
+                            volumeName:
+                              description: The name of the volume mount containing
+                                the env file.
+                              type: string
+                          required:
+                          - key
+                          - path
+                          - volumeName
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        resourceFieldRef:
+                          description: |-
+                            Selects a resource of the container: only resources limits and requests
+                            (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              envFrom:
+                items:
+                  properties:
+                    configMap:
+                      description: Name of Kubernetes ConfigMap in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
+                      type: string
+                    secret:
+                      description: Name of Kubernetes Secret in which the deployment
+                        should mount environment variables from. Must be in the same
+                        namespace as the Application
+                      type: string
+                  type: object
+                type: array
+              filesFrom:
+                items:
+                  description: |-
+                    FilesFrom
+
+                    Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
+                    One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
+                    NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+                  properties:
+                    configMap:
+                      type: string
+                    defaultMode:
+                      description: |-
+                        defaultMode is optional: mode bits used to set permissions on created files by default.
+                        Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+                        YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+                        Defaults to 0644.
+                        Directories within the path are not affected by this setting.
+                        This might be in conflict with other options that affect the file
+                        mode, like fsGroup, and the result can be other mode bits set.
+                      type: integer
+                    emptyDir:
+                      type: string
+                    mountPath:
+                      description: The path to mount the file in the Pods directory.
+                        Required.
+                      type: string
+                    persistentVolumeClaim:
+                      type: string
+                    secret:
+                      type: string
+                  required:
+                  - mountPath
+                  type: object
+                type: array
+              gcp:
+                description: |-
+                  GCP
+
+                  Configuration for interacting with Google Cloud Platform
+                properties:
+                  auth:
+                    description: |-
+                      Configuration for authenticating a Pod with Google Cloud Platform
+                      For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
+                      to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
+                      service account and bind this to the Pod's Kubernetes SA.
+                      Documentation on how this is done can be found here (Closed Wiki):
+                      https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA
+                    properties:
+                      serviceAccount:
+                        description: |-
+                          Name of the service account in which you are trying to authenticate your pod with
+                          Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com
+                        type: string
+                    required:
+                    - serviceAccount
+                    type: object
+                  cloudSqlProxy:
+                    description: |-
+                      CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
+                      This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.
+                    properties:
+                      connectionName:
+                        description: |-
+                          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
+                          The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".
+                        pattern: ^[^:]+:[^:]+:[^:]+$
+                        type: string
+                      ip:
+                        description: The IP address of the CloudSQL instance. This
+                          is used to create a serviceentry for the CloudSQL proxy.
+                        type: string
+                      publicIP:
+                        default: false
+                        type: boolean
+                      serviceAccount:
+                        description: Service account used by cloudsql auth proxy.
+                          This service account must have the roles/cloudsql.client
+                          role.
+                        type: string
+                      version:
+                        description: Image version for the CloudSQL proxy sidecar.
+                        type: string
+                    required:
+                    - connectionName
+                    - ip
+                    - serviceAccount
+                    type: object
+                type: object
+              image:
+                type: string
+              istioSettings:
+                default:
+                  telemetry:
+                    tracing:
+                    - randomSamplingPercentage: 10
+                description: |-
+                  IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
+                  interval for tracing is the only supported option.
+                  By default, tracing is enabled with a random sampling percentage of 10%.
+                properties:
+                  telemetry:
+                    default:
+                      tracing:
+                      - randomSamplingPercentage: 10
+                    description: Telemetry is a placeholder for all relevant telemetry
+                      types, and may be extended in the future to configure additional
+                      telemetry settings.
+                    properties:
+                      tracing:
+                        default:
+                        - randomSamplingPercentage: 10
+                        description: Tracing is a list of tracing configurations for
+                          the telemetry resource. Normally only one tracing configuration
+                          is needed.
+                        items:
+                          description: Tracing contains relevant settings for tracing
+                            in the telemetry configuration
+                          properties:
+                            randomSamplingPercentage:
+                              default: 10
+                              description: |-
+                                RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
+                                Setting RandomSamplingPercentage to 0 will disable tracing.
+                              maximum: 100
+                              minimum: 0
+                              type: integer
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              job:
+                description: Settings for the actual Job. If you use a scheduled job,
+                  the settings in here will also specify the template of the job.
+                properties:
+                  activeDeadlineSeconds:
+                    description: |-
+                      ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
+                      the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.
+                    format: int64
+                    type: integer
+                  backoffLimit:
+                    description: Specifies the number of retry attempts before determining
+                      the job as failed. Defaults to 6.
+                    format: int32
+                    type: integer
+                  suspend:
+                    description: |-
+                      If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
+                      all running Pods will be terminated.
+                    type: boolean
+                  ttlSecondsAfterFinished:
+                    description: |-
+                      The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
+                      It is recommended to set this to avoid clutter in your resource tree.
+                    format: int32
+                    type: integer
+                type: object
+              labels:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Labels can be used if you want every resource created by your SKIPJob to
+                  have the same labels, including the Job/CronJob itself. This could for example be useful for
+                  metrics, where a certain label and the corresponding resources liveliness can be combined.
+                  Any amount of labels can be added as wanted, and they will all cascade down to all resources.
+                type: object
+              liveness:
+                description: |-
+                  Probe
+
+                  Type configuration for all types of Kubernetes probes.
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              podSettings:
+                description: PodSettings
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations that are set on Pods created by Skiperator.
+                      These annotations can for example be used to change the behaviour
+                      of sidecars and similar.
+                    type: object
+                  disablePodSpreadTopologyConstraints:
+                    default: false
+                    description: |-
+                      DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
+                      a given pod.
+                    type: boolean
+                  terminationGracePeriodSeconds:
+                    default: 30
+                    description: |-
+                      TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than
+                      30 seconds to terminate, you should increase TerminationGracePeriodSeconds.
+                    format: int64
+                    type: integer
+                type: object
+              priority:
+                default: medium
+                enum:
+                - low
+                - medium
+                - high
+                type: string
+              prometheus:
+                description: |-
+                  Prometheus settings for pod running in job. Fields are identical to Application and if set,
+                  a podmonitoring object is created.
+                properties:
+                  allowAllMetrics:
+                    default: false
+                    description: |-
+                      Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
+                      metrics will be dropped by default. See util/constants.go for the default list.
+                    type: boolean
+                  path:
+                    default: /metrics
+                    description: The HTTP path where Prometheus compatible metrics
+                      exists
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The port number or name where metrics are exposed
+                      (at the Pod level).
+                    x-kubernetes-int-or-string: true
+                  scrapeInterval:
+                    default: 60s
+                    description: |-
+                      ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
+                      The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
+                      If minutes ("Xm") are used, the value must be at least 1m.
+                    type: string
+                    x-kubernetes-validations:
+                    - messageExpression: '''Rejected: '' + self + '' as an invalid
+                        value. ScrapeInterval must be empty (default applies) or in
+                        the format of <number>s or <number>m.'''
+                      rule: self == '' || self.matches('^([0-9]+[sm])+$')
+                    - messageExpression: '''Rejected: '' + self + '' as an invalid
+                        value. ScrapeInterval must be at least 15s (if using <s>)
+                        and divisible by 5, or at least 1m (if using <m>).'''
+                      rule: self == '' || (self.endsWith('m') && int(self.split('m')[0])
+                        >= 1) || (self.endsWith('s') && int(self.split('s')[0]) >=
+                        15 && int(self.split('s')[0]) % 5 == 0)
+                required:
+                - port
+                type: object
+              readiness:
+                description: |-
+                  Probe
+
+                  Type configuration for all types of Kubernetes probes.
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              resources:
+                description: |-
+                  ResourceRequirements
+
+                  A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.
+                  For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes
+                properties:
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits set the maximum the app is allowed to use. Exceeding this limit will
+                      make kubernetes kill the app and restart it.
+
+                      Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests set the initial allocation that is done for the app and will
+                      thus be available to the app on startup. More is allocated on demand
+                      until the limit is reached.
+
+                      Requests can be set on the CPU and memory.
+                    type: object
+                type: object
+              restartPolicy:
+                default: Never
+                description: |-
+                  RestartPolicy describes how the container should be restarted.
+                  Only one of the following restart policies may be specified.
+                  If none of the following policies is specified, the default one
+                  is RestartPolicyAlways.
+                enum:
+                - OnFailure
+                - Never
+                type: string
+              startup:
+                description: |-
+                  Probe
+
+                  Type configuration for all types of Kubernetes probes.
+                properties:
+                  failureThreshold:
+                    default: 3
+                    description: |-
+                      Minimum consecutive failures for the probe to be considered failed after
+                      having succeeded. Defaults to 3. Minimum value is 1
+                    format: int32
+                    type: integer
+                  initialDelay:
+                    default: 0
+                    description: |-
+                      Delay sending the first probe by X seconds. Can be useful for applications that
+                      are slow to start.
+                    format: int32
+                    type: integer
+                  path:
+                    description: The path to access on the HTTP server
+                    type: string
+                  period:
+                    default: 10
+                    description: Number of seconds Kubernetes waits between each probe.
+                      Defaults to 10 seconds.
+                    format: int32
+                    type: integer
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Number of the port to access on the container
+                    x-kubernetes-int-or-string: true
+                  successThreshold:
+                    default: 1
+                    description: |-
+                      Minimum consecutive successes for the probe to be considered successful after having failed.
+                      Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                    format: int32
+                    type: integer
+                  timeout:
+                    default: 1
+                    description: |-
+                      Number of seconds after which the probe times out. Defaults to 1 second.
+                      Minimum value is 1
+                    format: int32
+                    type: integer
+                required:
+                - path
+                - port
+                type: object
+              team:
+                description: |-
+                  Team specifies the team who owns this particular SKIPJob.
+                  Usually sourced from the namespace label.
+                type: string
+            required:
+            - image
+            type: object
+            x-kubernetes-validations:
+            - message: After creation of a SKIPJob you may not remove the Cron field
+                if it was previously present, or add it if it was previously omitted.
+                Please delete the SKIPJob to change its nature from a one-off/scheduled
+                job.
+              rule: (has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) &&
+                !has(self.cron))
+            - message: The container configuration is immutable for one-off jobs.
+                Please delete your SKIPJob to change image, command, resources, networking,
+                probes, env/files, or pod settings.
+              rule: ((!has(self.cron) && oldSelf.image == self.image && oldSelf.priority
+                == self.priority && (has(oldSelf.command) == has(self.command)) &&
+                (!has(self.command) || oldSelf.command == self.command) && (has(oldSelf.resources)
+                == has(self.resources)) && (!has(self.resources) || oldSelf.resources
+                == self.resources) && (has(oldSelf.env) == has(self.env)) && (!has(self.env)
+                || oldSelf.env == self.env) && (has(oldSelf.envFrom) == has(self.envFrom))
+                && (!has(self.envFrom) || oldSelf.envFrom == self.envFrom) && (has(oldSelf.filesFrom)
+                == has(self.filesFrom)) && (!has(self.filesFrom) || oldSelf.filesFrom
+                == self.filesFrom) && (has(oldSelf.additionalPorts) == has(self.additionalPorts))
+                && (!has(self.additionalPorts) || oldSelf.additionalPorts == self.additionalPorts)
+                && (has(oldSelf.liveness) == has(self.liveness)) && (!has(self.liveness)
+                || oldSelf.liveness == self.liveness) && (has(oldSelf.readiness) ==
+                has(self.readiness)) && (!has(self.readiness) || oldSelf.readiness
+                == self.readiness) && (has(oldSelf.startup) == has(self.startup))
+                && (!has(self.startup) || oldSelf.startup == self.startup) && (has(oldSelf.accessPolicy)
+                == has(self.accessPolicy)) && (!has(self.accessPolicy) || oldSelf.accessPolicy
+                == self.accessPolicy) && (has(oldSelf.gcp) == has(self.gcp)) && (!has(self.gcp)
+                || oldSelf.gcp == self.gcp) && (has(oldSelf.restartPolicy) == has(self.restartPolicy))
+                && (!has(self.restartPolicy) || oldSelf.restartPolicy == self.restartPolicy)
+                && (has(oldSelf.podSettings) == has(self.podSettings)) && (!has(self.podSettings)
+                || oldSelf.podSettings == self.podSettings)) || has(self.cron))
+          status:
+            description: |-
+              SkiperatorStatus
+
+              A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
+            properties:
+              accessPolicies:
+                description: Indicates if access policies are valid
+                type: string
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              subresources:
+                additionalProperties:
+                  description: Status
+                  properties:
+                    message:
+                      default: Resource accepted by Kubernetes. Waiting for Skiperator
+                        to become aware of the resource and start processing.
+                      type: string
+                    status:
+                      default: Pending
+                      type: string
+                    timestamp:
+                      type: string
+                  required:
+                  - message
+                  - status
+                  - timestamp
+                  type: object
+                type: object
+              summary:
+                description: Status
+                properties:
+                  message:
+                    default: Resource accepted by Kubernetes. Waiting for Skiperator
+                      to become aware of the resource and start processing.
+                    type: string
+                  status:
+                    default: Pending
+                    type: string
+                  timestamp:
                     type: string
                 required:
                 - message

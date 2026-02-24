@@ -1,0 +1,28 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: skiperator-mutating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: skiperator-system/skiperator-webhook-serving-cert
+webhooks:
+- name: mskipjob.skiperator.kartverket.no
+  admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: skipjob-conversion-webhook
+      namespace: skiperator-system
+      path: /mutate-skiperator-kartverket-no-v1beta1-skipjob
+  failurePolicy: Fail
+  sideEffects: None
+  rules:
+  - apiGroups:
+    - skiperator.kartverket.no
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - skipjobs

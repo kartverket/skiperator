@@ -4,8 +4,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/istiotypes"
+	"github.com/kartverket/skiperator/api/common/digdirator"
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 )
 
 type AuthConfigs []AuthConfig

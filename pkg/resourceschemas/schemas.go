@@ -9,6 +9,7 @@ import (
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -31,6 +32,7 @@ import (
 func AddSchemas(scheme *runtime.Scheme) {
 	utilruntime.Must(goclientscheme.AddToScheme(scheme))
 	utilruntime.Must(skiperatorv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(skiperatorv1beta1.AddToScheme(scheme))
 	utilruntime.Must(autoscalingv2.AddToScheme(scheme))
 	utilruntime.Must(securityv1.AddToScheme(scheme))
 	utilruntime.Must(istionetworkingv1.AddToScheme(scheme))
