@@ -191,6 +191,16 @@ func TestValidateContainerImageString(t *testing.T) {
 		}))
 	})
 
+	t.Run("image_without_tag", func(t *testing.T) {
+		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
+			Spec: v1alpha1.ApplicationSpec{
+				Image:         "myrepo/myimage",
+				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
+			},
+		}))
+	})
+
+	// Invalid cases
 	t.Run("invalid_image", func(t *testing.T) {
 		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
@@ -201,19 +211,11 @@ func TestValidateContainerImageString(t *testing.T) {
 			},
 		}))
 	})
+
 	t.Run("empty_image", func(t *testing.T) {
 		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
 				Image:         "",
-				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
-			},
-		}))
-	})
-
-	t.Run("image_without_tag", func(t *testing.T) {
-		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
-			Spec: v1alpha1.ApplicationSpec{
-				Image:         "myrepo/myimage",
 				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
 			},
 		}))
