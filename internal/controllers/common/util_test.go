@@ -195,11 +195,28 @@ func TestValidateContainerImageString(t *testing.T) {
 		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
 				Image: "invalid image_string *4'20",
-				// Needed to set IstioSettings to avoid nil pointer dereference in validation
 				IstioSettings: &istiov1alpha1.IstioSettingsApplication{
 					IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
 				},
 			},
 		}))
 	})
+	t.Run("empty_image", func(t *testing.T) {
+		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
+			Spec: v1alpha1.ApplicationSpec{
+				Image:         "",
+				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
+			},
+		}))
+	})
+
+	t.Run("image_without_tag", func(t *testing.T) {
+		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
+			Spec: v1alpha1.ApplicationSpec{
+				Image:         "myrepo/myimage",
+				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
+			},
+		}))
+	})
+
 }
