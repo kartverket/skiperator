@@ -29,13 +29,10 @@ type CredentialSource struct {
 }
 
 func Generate(r reconciliation.Reconciliation) error {
-	ctxLog := r.GetLogger()
-
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
 		return getConfigMap(r)
 	} else {
 		err := &util.SubResourceError{Message: "Unsupported type in GCP configmap", WrapErr: fmt.Errorf("unsupported type %s in gcp configmap", r.GetType()), Reason: util.UnsupportedTypeResource}
-		ctxLog.Error(err, err.Message)
 		return err
 	}
 }

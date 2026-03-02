@@ -25,7 +25,6 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	if r.GetType() != reconciliation.JobType {
 		err := &util.SubResourceError{Message: "Unsupported type in job resource", WrapErr: fmt.Errorf("job only supports skipjob type, got %s", r.GetType()), Reason: util.UnsupportedTypeResource}
-		ctxLog.Error(err, err.Message)
 		return err
 	}
 

@@ -19,7 +19,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
 		err := &util.SubResourceError{Message: "Failed to generate default AuthorizationPolicy", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
-		ctxLog.Error(err, err.Message)
 		return err
 	}
 	ctxLog.Debug("Attempting to generate default deny AuthorizationPolicy for application", "application", application.Name)
