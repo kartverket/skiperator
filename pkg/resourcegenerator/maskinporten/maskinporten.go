@@ -14,12 +14,12 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		err := &util.SubResourceError{Message: "Unsupported type in maskin porten resource", WrapErr: fmt.Errorf("unsupported type %s in maskin porten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &util.SubResourceError{Message: "Unsupported type in maskinporten resource", WrapErr: fmt.Errorf("unsupported type %s in maskinporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
 		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate maskin porten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		err := &util.SubResourceError{Message: "Failed to generate maskinporten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
 		return err
 	}
 
@@ -28,7 +28,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	ctxLog.Debug("Attempting to generate maskin porten resource  for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate maskinporten resource  for application", "application", application.Name)
 
 	var err error
 
@@ -45,12 +45,12 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	maskinporten.Spec, err = getMaskinportenSpec(application)
 	if err != nil {
-		err := &util.SubResourceError{Message: "Failed to generate maskin porten resource spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+		err := &util.SubResourceError{Message: "Failed to generate maskinporten resource spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
 		return err
 	}
 
 	r.AddResource(&maskinporten)
-	ctxLog.Debug("Finished generating maskin porten resource for application", "application", application.Name)
+	ctxLog.Debug("Finished generating maskinporten resource for application", "application", application.Name)
 	return nil
 }
 
