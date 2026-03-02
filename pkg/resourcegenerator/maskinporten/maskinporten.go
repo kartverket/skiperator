@@ -28,7 +28,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	ctxLog.Debug("Attempting to generate maskinporten resource  for application", "application", application.Name)
+	ctxLog.Debug("Attempting to generate maskinporten resource for application", "application", application.Name)
 
 	var err error
 
