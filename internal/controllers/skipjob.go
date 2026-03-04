@@ -24,7 +24,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/prometheus"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
-	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	telemetryv1 "istio.io/client-go/pkg/apis/telemetry/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -153,7 +152,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if err := common.ValidateContainerImageString(skipJob); err != nil {
 		rLog.Error(err, "invalid container image reference")
 		r.SetErrorState(ctx, skipJob, err, "invalid container image reference", "ValidationFailure")
-		return common.RequeueWithError(err)
+		return common.DoNotRequeue()
 	}
 
 	//We try to feed the access policy with port values dynamically,
@@ -166,7 +165,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 
-	reconciliation := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
+	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,
@@ -179,9 +178,9 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, f := range resourceGeneration {
-		if err := f(reconciliation); err != nil {
+		if err := f(reconciliationJob); err != nil {
 			// At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			var subErr *util.SubResourceError
+			var subErr *reconciliation.SubResourceError
 			if goerrors.As(err, &subErr) {
 				rLog.Error(subErr.GetWrapErr(), subErr.Message)
 				r.SetErrorState(ctx, skipJob, subErr.GetWrapErr(), subErr.Message, subErr.GetReason())
@@ -194,7 +193,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 	}
 
-	if err = r.setResourceDefaults(reconciliation.GetResources(), skipJob); err != nil {
+	if err = r.setResourceDefaults(reconciliationJob.GetResources(), skipJob); err != nil {
 		rLog.Error(err, "error when trying to set resource defaults")
 		r.SetErrorState(ctx, skipJob, err, "failed to set skipjob resource defaults", "ResourceDefaultsFailure")
 		return common.RequeueWithError(err)
@@ -202,7 +201,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetJobSchemas(r.GetScheme()), r.GetScheme())
 
-	if errs := processor.Process(reconciliation); len(errs) > 0 {
+	if errs := processor.Process(reconciliationJob); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(skipJob, "ReconcileEndFail", fmt.Sprintf("Failed to process skipjob resources: %s", err.Error()))

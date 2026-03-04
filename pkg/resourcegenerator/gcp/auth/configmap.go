@@ -6,7 +6,6 @@ import (
 
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,7 +31,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
 		return getConfigMap(r)
 	} else {
-		err := &util.SubResourceError{Message: "Unsupported type in GCP configmap", WrapErr: fmt.Errorf("unsupported type %s in gcp configmap", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in GCP configmap", WrapErr: fmt.Errorf("unsupported type %s in gcp configmap", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 }

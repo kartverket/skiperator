@@ -18,7 +18,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
 		return getServiceEntries(r)
 	} else {
-		err := &util.SubResourceError{Message: "Unsupported type in service entry", WrapErr: fmt.Errorf("unsupported type %s in service entry", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in service entry", WrapErr: fmt.Errorf("unsupported type %s in service entry", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 }

@@ -15,12 +15,12 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		err := &util.SubResourceError{Message: "Unsupported type in pod disruption budget", WrapErr: fmt.Errorf("unsupported type %s in pod disruption budget", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in pod disruption budget", WrapErr: fmt.Errorf("unsupported type %s in pod disruption budget", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate pod disruption budget", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate pod disruption budget", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 	ctxLog.Debug("Attempting to generate pdb for application", "application", application.Name)
@@ -34,7 +34,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	} else if replicasStruct, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 		minReplicas = replicasStruct.Min
 	} else {
-		err := &util.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: util.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: reconciliation.InternalError}
 		return err
 	}
 

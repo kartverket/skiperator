@@ -17,7 +17,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
-	"github.com/kartverket/skiperator/pkg/util"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -99,7 +98,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 
-	reconciliation := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
+	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -108,9 +107,9 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, f := range resourceGeneration {
-		if err := f(reconciliation); err != nil {
+		if err := f(reconciliationRouting); err != nil {
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			var subErr *util.SubResourceError
+			var subErr *reconciliation.SubResourceError
 			if goerrors.As(err, &subErr) {
 				rLog.Error(subErr.GetWrapErr(), subErr.Message)
 				r.SetErrorState(ctx, routing, subErr.GetWrapErr(), subErr.Message, subErr.GetReason())
@@ -124,7 +123,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
-	if err = r.setRoutingResourceDefaults(reconciliation.GetResources(), routing); err != nil {
+	if err = r.setRoutingResourceDefaults(reconciliationRouting.GetResources(), routing); err != nil {
 		rLog.Error(err, "failed to set routing resource defaults")
 		r.SetErrorState(ctx, routing, err, "failed to set routing resource defaults", "ResourceDefaultsFailure")
 		return common.RequeueWithError(err)
@@ -132,7 +131,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
 
-	if errs := processor.Process(reconciliation); len(errs) > 0 {
+	if errs := processor.Process(reconciliationRouting); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))

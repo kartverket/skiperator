@@ -19,7 +19,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate istio telemetry resource for skipobj", "skipobj", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.ApplicationType && r.GetType() != reconciliation.JobType {
-		err := &util.SubResourceError{Message: "Unsupported type in istio telemetry resource", WrapErr: fmt.Errorf("istio telemetry resource only supports the application and skipjob type, got %s", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in istio telemetry resource", WrapErr: fmt.Errorf("istio telemetry resource only supports the application and skipjob type, got %s", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 

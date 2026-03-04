@@ -26,11 +26,11 @@ const (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return &util.SubResourceError{Message: "Unsupported type in ID porten resource", WrapErr: fmt.Errorf("unsupported type %s in idporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
+		return &reconciliation.SubResourceError{Message: "Unsupported type in ID porten resource", WrapErr: fmt.Errorf("unsupported type %s in idporten resource", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate ID porten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate ID porten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 	if application.Spec.IDPorten == nil {
@@ -53,7 +53,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	idporten.Spec, err = getIDPortenSpec(application)
 	if err != nil {
-		err := &util.SubResourceError{Message: "Failed to generate ID porten resource spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate ID porten resource spec", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 		return err
 	}
 

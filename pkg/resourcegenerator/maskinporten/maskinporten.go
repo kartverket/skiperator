@@ -14,12 +14,12 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		err := &util.SubResourceError{Message: "Unsupported type in maskinporten resource", WrapErr: fmt.Errorf("unsupported type %s in maskinporten resource", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in maskinporten resource", WrapErr: fmt.Errorf("unsupported type %s in maskinporten resource", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate maskinporten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate maskinporten resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 
@@ -45,7 +45,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	maskinporten.Spec, err = getMaskinportenSpec(application)
 	if err != nil {
-		err := &util.SubResourceError{Message: "Failed to generate maskinporten resource spec", WrapErr: err, Reason: util.ResourceDependencyNotFound}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate maskinporten resource spec", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 		return err
 	}
 

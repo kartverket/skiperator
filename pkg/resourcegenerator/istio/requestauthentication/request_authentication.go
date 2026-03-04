@@ -17,12 +17,12 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		err := &util.SubResourceError{Message: "Unsupported type in RequestAuthentication", WrapErr: fmt.Errorf("unsupported type %s in RequestAuthentication", r.GetType()), Reason: util.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in RequestAuthentication", WrapErr: fmt.Errorf("unsupported type %s in RequestAuthentication", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := &util.SubResourceError{Message: "Failed to generate RequestAuthentication", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: util.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Failed to generate RequestAuthentication", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 
