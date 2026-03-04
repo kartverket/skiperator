@@ -179,14 +179,15 @@ func externalPolicyTo(rules ...podtypes.ExternalRule) *podtypes.AccessPolicy {
 }
 
 func TestValidateContainerImageString(t *testing.T) {
+	var dummyIstioSettings = &istiov1alpha1.IstioSettingsApplication{
+	IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
+}
 	t.Run("valid_image", func(t *testing.T) {
 		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
 				Image: "valid-image/string:latest",
 				// Needed to set IstioSettings to avoid nil pointer dereference in validation
-				IstioSettings: &istiov1alpha1.IstioSettingsApplication{
-					IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
-				},
+				IstioSettings: dummyIstioSettings,
 			},
 		}))
 	})
@@ -195,7 +196,7 @@ func TestValidateContainerImageString(t *testing.T) {
 		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
 				Image:         "myrepo/myimage",
-				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
+				IstioSettings: dummyIstioSettings,
 			},
 		}))
 	})
@@ -204,10 +205,8 @@ func TestValidateContainerImageString(t *testing.T) {
 	t.Run("invalid_image", func(t *testing.T) {
 		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
-				Image: "invalid image_string *4'20",
-				IstioSettings: &istiov1alpha1.IstioSettingsApplication{
-					IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
-				},
+				Image:         "invalid image_string *4'20",
+				IstioSettings: dummyIstioSettings,
 			},
 		}))
 	})
@@ -216,7 +215,7 @@ func TestValidateContainerImageString(t *testing.T) {
 		assert.Error(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
 				Image:         "",
-				IstioSettings: &istiov1alpha1.IstioSettingsApplication{},
+				IstioSettings: dummyIstioSettings,
 			},
 		}))
 	})
