@@ -13,7 +13,10 @@ var (
 )
 
 func Generate(r reconciliation.Reconciliation) error {
-	return multiGenerator.Generate(r, "PrometheusCRD")
+	if err := multiGenerator.Generate(r, "PrometheusCRD"); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getScrapeInterval(pc *v1alpha1.PrometheusConfig) pov1.Duration {

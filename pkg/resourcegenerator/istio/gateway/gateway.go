@@ -8,5 +8,8 @@ import (
 var multiGenerator = generator.NewMulti()
 
 func Generate(r reconciliation.Reconciliation) error {
-	return multiGenerator.Generate(r, "Gateway")
+	if err := multiGenerator.Generate(r, "Gateway"); err != nil {
+		return err
+	}
+	return nil
 }

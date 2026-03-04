@@ -32,9 +32,11 @@ func (g *MultiGenerator) Register(objectType reconciliation.ObjectType, generato
 func (g *MultiGenerator) Generate(r reconciliation.Reconciliation, resourceType string) error {
 	generator, found := g.generators[r.GetType()]
 	if !found {
-		err := fmt.Errorf("unsupported type %s for resource %s", r.GetType(), resourceType)
-		r.GetLogger().Error(err, "failed to generate resource", "resourceType", resourceType, "reconciliationType", r.GetType())
-		return err
+		return &reconciliation.SubResourceError{
+			Message: "Failed to generate resource",
+			WrapErr: fmt.Errorf("unsupported type %s for resource %s", r.GetType(), resourceType),
+			Reason:  reconciliation.SubResourceGenerateFailed,
+		}
 	}
 
 	return generator(r)

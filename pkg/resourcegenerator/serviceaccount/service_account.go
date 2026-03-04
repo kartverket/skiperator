@@ -11,7 +11,10 @@ import (
 var multiGenerator = generator.NewMulti()
 
 func Generate(r reconciliation.Reconciliation) error {
-	return multiGenerator.Generate(r, "ServiceAccount")
+	if err := multiGenerator.Generate(r, "ServiceAccount"); err != nil {
+		return err
+	}
+	return nil
 }
 
 func setGCPSAAnnotation(serviceAccount *corev1.ServiceAccount, saEmail string) {

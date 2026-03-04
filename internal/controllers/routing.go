@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -97,7 +98,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 
-	reconciliation := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
+	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -106,16 +107,23 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, f := range resourceGeneration {
-		if err := f(reconciliation); err != nil {
-			rLog.Error(err, "failed to generate routing resource")
+		if err := f(reconciliationRouting); err != nil {
 			//At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")
+			var subErr *reconciliation.SubResourceError
+			if goerrors.As(err, &subErr) {
+				rLog.Error(subErr.GetWrapErr(), subErr.Message)
+				r.SetErrorState(ctx, routing, subErr.GetWrapErr(), subErr.Message, subErr.GetReason())
+			} else {
+				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
+				rLog.Error(err, "failed to generate routing resource")
+				r.SetErrorState(ctx, routing, err, "failed to generate routing resource", "ResourceGenerationFailure")
+			}
 			return common.RequeueWithError(err)
 		}
 	}
 
 	// We need to do this here, so we are sure it's done. Not setting GVK can cause big issues
-	if err = r.setRoutingResourceDefaults(reconciliation.GetResources(), routing); err != nil {
+	if err = r.setRoutingResourceDefaults(reconciliationRouting.GetResources(), routing); err != nil {
 		rLog.Error(err, "failed to set routing resource defaults")
 		r.SetErrorState(ctx, routing, err, "failed to set routing resource defaults", "ResourceDefaultsFailure")
 		return common.RequeueWithError(err)
@@ -123,7 +131,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
 
-	if errs := processor.Process(reconciliation); len(errs) > 0 {
+	if errs := processor.Process(reconciliationRouting); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(routing, "ReconcileEndFail", fmt.Sprintf("Failed to process routing resources: %s", err.Error()))

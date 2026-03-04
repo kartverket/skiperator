@@ -12,5 +12,8 @@ const (
 var multiGenerator = generator.NewMulti()
 
 func Generate(r reconciliation.Reconciliation) error {
-	return multiGenerator.Generate(r, "Certificate")
+	if err := multiGenerator.Generate(r, "Certificate"); err != nil {
+		return err
+	}
+	return nil
 }

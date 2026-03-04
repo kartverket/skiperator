@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/chmike/domain"
+	"github.com/google/go-containerregistry/pkg/name"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
@@ -137,4 +138,12 @@ func filterOutStatusTimestamps(changelog diff.Changelog) diff.Changelog {
 	changelog = changelog.FilterOut([]string{"Conditions", ".*", "LastTransitionTime"})
 	changelog = changelog.FilterOut([]string{"SubResources", ".*", "TimeStamp"})
 	return changelog
+}
+
+func ValidateContainerImageString(obj skiperatorv1alpha1.SKIPObject) error {
+	_, err := name.ParseReference(obj.GetCommonSpec().Image)
+	if err != nil {
+		return err
+	}
+	return nil
 }
