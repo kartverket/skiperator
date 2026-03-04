@@ -501,6 +501,11 @@ spec:
                           type: string
                         secret:
                           type: string
+                        subPath:
+                          description: The sub-path inside the volume from which the
+                            file should be mounted. Optional, defaults to the root
+                            of the volume.
+                          type: string
                       required:
                       - mountPath
                       type: object

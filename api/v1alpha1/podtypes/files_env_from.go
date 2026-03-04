@@ -23,6 +23,11 @@ type FilesFrom struct {
 	//+kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
+	// The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.
+	//
+	//+kubebuilder:validation:Optional
+	SubPath string `json:"subPath,omitempty"`
+	
 	//+kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
 	//+kubebuilder:validation:Optional
