@@ -26,6 +26,10 @@ func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMou
 		} else if len(file.PersistentVolumeClaim) > 0 {
 			volumeName = file.PersistentVolumeClaim
 		}
+		if volumeName == "" {
+			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
+			continue
+		}
 		if file.SubPath != "" {
 			containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
 				Name:      volumeName,
