@@ -107,6 +107,10 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				},
 			}
 		}
+		if volume.Name == "" {
+			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
+			continue
+		}
 
 		if _, exists := podVolumesMap[volume.Name]; !exists {
 			podVolumesMap[volume.Name] = volume
