@@ -6,8 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// Should we split this up? It seems handy to create both from one loop, but the function does two things
-func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]corev1.Volume, []corev1.VolumeMount) {
+func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMount {
 	containerVolumeMounts := []corev1.VolumeMount{
 		{
 			Name:      "tmp",
@@ -15,14 +14,54 @@ func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]co
 		},
 	}
 
-	podVolumes := []corev1.Volume{
-		{
+	for _, file := range filesFrom {
+
+		volumeName := ""
+		if len(file.ConfigMap) > 0 {
+			volumeName = file.ConfigMap
+		} else if len(file.Secret) > 0 {
+			volumeName = file.Secret
+		} else if len(file.EmptyDir) > 0 {
+			volumeName = file.EmptyDir
+		} else if len(file.PersistentVolumeClaim) > 0 {
+			volumeName = file.PersistentVolumeClaim
+		}
+		if volumeName == "" {
+			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
+			continue
+		}
+		if file.SubPath != "" {
+			containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
+				Name:      volumeName,
+				MountPath: file.MountPath,
+				SubPath:   file.SubPath,
+			})
+		} else {
+			containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
+				Name:      volumeName,
+				MountPath: file.MountPath,
+			})
+		}
+	}
+
+	return containerVolumeMounts
+}
+
+func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
+
+	// Use a map to avoid duplicates
+	podVolumesMap := map[string]corev1.Volume{
+		"tmp": {
 			Name: "tmp",
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
 		},
 	}
+
+	// Track insertion order to ensure consistent output for testing
+	insertionOrder := make([]string, 0)
+	insertionOrder = append(insertionOrder, "tmp")
 
 	for _, file := range filesFrom {
 		volume := corev1.Volume{}
@@ -68,13 +107,21 @@ func GetContainerVolumeMountsAndPodVolumes(filesFrom []podtypes.FilesFrom) ([]co
 				},
 			}
 		}
+		if volume.Name == "" {
+			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
+			continue
+		}
 
-		podVolumes = append(podVolumes, volume)
-		containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
-			Name:      volume.Name,
-			MountPath: file.MountPath,
-		})
+		if _, exists := podVolumesMap[volume.Name]; !exists {
+			podVolumesMap[volume.Name] = volume
+			insertionOrder = append(insertionOrder, volume.Name)
+		}
 	}
 
-	return podVolumes, containerVolumeMounts
+	podVolumes := make([]corev1.Volume, 0, len(insertionOrder))
+	for _, key := range insertionOrder {
+		podVolumes = append(podVolumes, podVolumesMap[key])
+	}
+
+	return podVolumes
 }

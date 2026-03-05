@@ -1,0 +1,66 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: test-deployment-volumes
+spec:
+  image: image
+  port: 8080
+  filesFrom:
+    - mountPath: /config-map
+      configMap: config-map
+
+    - mountPath: /secret
+      secret: secret
+
+    - mountPath: /empty-dir
+      emptyDir: empty-dir
+
+    - mountPath: /persistent
+      persistentVolumeClaim: persistent-volume-claim
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: test-deployment-volumes-subpath
+spec:
+  image: image
+  port: 8080
+  filesFrom:
+    - mountPath: /config-map/sub-path.sub
+      configMap: config-map
+      subPath: sub-path.sub
+
+    - mountPath: /secret/sub-path
+      secret: secret
+      subPath: sub-path
+
+    - mountPath: /empty-dir/sub-path
+      emptyDir: empty-dir
+      subPath: sub-path
+
+    - mountPath: /persistent-volume-claim/sub-path
+      persistentVolumeClaim: persistent-volume-claim
+      subPath: sub-path
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: test-deployment-volumes-mixed
+spec:
+  image: image
+  port: 8080
+  filesFrom:
+    - mountPath: /config-map/sub-path.sub
+      configMap: config-map
+      subPath: sub-path.sub
+
+    - mountPath: /secret
+      secret: secret
+
+    - mountPath: /secret/sub-path
+      secret: secret
+      subPath: sub-path
+
+    - mountPath: /secret/password
+      secret: secret
+      subPath: password

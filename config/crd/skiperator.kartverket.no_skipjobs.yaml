@@ -501,9 +501,20 @@ spec:
                           type: string
                         secret:
                           type: string
+                        subPath:
+                          description: The sub-path inside the volume from which the
+                            file should be mounted. Optional, defaults to the root
+                            of the volume.
+                          type: string
                       required:
                       - mountPath
                       type: object
+                      x-kubernetes-validations:
+                      - message: Exactly one of configMap, secret, emptyDir or persistentVolumeClaim
+                          must be set
+                        rule: '(has(self.configMap) ? 1 : 0) + (has(self.secret) ?
+                          1 : 0) + (has(self.emptyDir) ? 1 : 0) + (has(self.persistentVolumeClaim)
+                          ? 1 : 0) == 1'
                     type: array
                   gcp:
                     description: |-

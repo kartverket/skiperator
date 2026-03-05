@@ -17,11 +17,17 @@ type EnvFrom struct {
 // Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
 // One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
 // NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+//+kubebuilder:validation:XValidation:rule="(has(self.configMap) ? 1 : 0) + (has(self.secret) ? 1 : 0) + (has(self.emptyDir) ? 1 : 0) + (has(self.persistentVolumeClaim) ? 1 : 0) == 1",message="Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set"
 type FilesFrom struct {
 	// The path to mount the file in the Pods directory. Required.
 	//
 	//+kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
+
+	// The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.
+	//
+	//+kubebuilder:validation:Optional
+	SubPath string `json:"subPath,omitempty"`
 
 	//+kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
