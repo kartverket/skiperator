@@ -78,3 +78,39 @@ spec:
         - name: persistent-volume-claim
           persistentVolumeClaim:
             claimName: persistent-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment-volumes-mixed
+spec:
+  template:
+    spec:
+      containers:
+        - name: test-deployment-volumes-mixed
+          image: image
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config-map
+              mountPath: /config-map/sub-path.sub
+              subPath: sub-path.sub
+            - name: secret
+              mountPath: /secret
+            - name: secret
+              mountPath: /secret/sub-path
+              subPath: sub-path
+            - name: secret
+              mountPath: /secret/password
+              subPath: password
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config-map
+          configMap:
+            name: config-map
+        - name: secret
+          secret:
+            secretName: secret
