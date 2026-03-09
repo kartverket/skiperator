@@ -1,6 +1,8 @@
 package reconciliation
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Reason string
 
@@ -13,9 +15,10 @@ const (
 )
 
 type SubResourceError struct {
-	Message string
-	WrapErr error
-	Reason  Reason
+	Message   string
+	WrapErr   error
+	Reason    Reason
+	Retryable bool
 }
 
 func (e *SubResourceError) Error() string {
@@ -38,4 +41,19 @@ func (e *SubResourceError) GetWrapErr() error {
 		return fmt.Errorf("%s", e.Message)
 	}
 	return e.WrapErr
+}
+
+// IsRetryable returns true if the error is retryable from a reconciler perspective.
+func (e *SubResourceError) IsRetryable() bool {
+	switch e.Reason {
+	// Dependency might become available later (depending on other controllers)
+	case ResourceDependencyNotFound:
+		return true
+	// Will not automatically fix itself
+	case InternalError, UnsupportedTypeResource, ContainerImageNotFound:
+		return false
+	// New/unknown statuses must signal whether they are retriable
+	default:
+		return e.Retryable
+	}
 }

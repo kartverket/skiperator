@@ -254,6 +254,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 			if goerrors.As(err, &subErr) {
 				rLog.Error(subErr.GetWrapErr(), subErr.Message)
 				r.SetErrorState(ctx, application, subErr.GetWrapErr(), subErr.Message, subErr.GetReason())
+				if !subErr.IsRetryable() {
+					return common.DoNotRequeue()
+				}
 			} else {
 				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
 				rLog.Error(err, "failed to generate application resource")
