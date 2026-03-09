@@ -8,9 +8,5 @@ import (
 var multiGenerator = generator.NewMulti()
 
 func Generate(r reconciliation.Reconciliation) error {
-	err := multiGenerator.Generate(r, "VirtualService")
-	if err != nil {
-		return err
-	}
-	return nil
+	return multiGenerator.Generate(r, "VirtualService")
 }
