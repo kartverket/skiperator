@@ -357,8 +357,8 @@ type PrometheusConfig struct {
 
 func NewDefaultReplicas() Replicas {
 	return Replicas{
-		Min:                  2,
-		Max:                  5,
+		Min: 2,
+		Max: 5,
 	}
 }
 

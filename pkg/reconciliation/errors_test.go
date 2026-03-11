@@ -60,8 +60,8 @@ func TestSubResourceError_GetWrapErr(t *testing.T) {
 	wrapped := errors.New("wrapped")
 
 	tests := []struct {
-		name string
-		err  *SubResourceError
+		name  string
+		err   *SubResourceError
 		check func(t *testing.T, got error)
 	}{
 		{
@@ -109,32 +109,32 @@ func TestSubResourceError_IsRetryable(t *testing.T) {
 	}{
 		{
 			name: "resource dependency not found is always retryable",
-			err: &SubResourceError{Reason: ResourceDependencyNotFound, Retryable: false},
+			err:  &SubResourceError{Reason: ResourceDependencyNotFound, Retryable: false},
 			want: true,
 		},
 		{
 			name: "internal error is never retryable",
-			err: &SubResourceError{Reason: InternalError, Retryable: true},
+			err:  &SubResourceError{Reason: InternalError, Retryable: true},
 			want: false,
 		},
 		{
 			name: "unsupported type resource is never retryable",
-			err: &SubResourceError{Reason: UnsupportedTypeResource, Retryable: true},
+			err:  &SubResourceError{Reason: UnsupportedTypeResource, Retryable: true},
 			want: false,
 		},
 		{
 			name: "container image not found is never retryable",
-			err: &SubResourceError{Reason: ContainerImageNotFound, Retryable: true},
+			err:  &SubResourceError{Reason: ContainerImageNotFound, Retryable: true},
 			want: false,
 		},
 		{
 			name: "default branch uses retryable field when true",
-			err: &SubResourceError{Reason: SubResourceGenerateFailed, Retryable: true},
+			err:  &SubResourceError{Reason: SubResourceGenerateFailed, Retryable: true},
 			want: true,
 		},
 		{
 			name: "default branch uses retryable field when false",
-			err: &SubResourceError{Reason: SubResourceGenerateFailed, Retryable: false},
+			err:  &SubResourceError{Reason: SubResourceGenerateFailed, Retryable: false},
 			want: false,
 		},
 	}
