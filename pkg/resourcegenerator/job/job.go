@@ -24,7 +24,8 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("Attempting to generate job for skipjob", "skipjob", r.GetSKIPObject().GetName())
 
 	if r.GetType() != reconciliation.JobType {
-		return fmt.Errorf("job only supports skipjob type, got %s", r.GetType())
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in job resource", WrapErr: fmt.Errorf("job only supports skipjob type, got %s", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
+		return err
 	}
 
 	skipJob := r.GetSKIPObject().(*skiperatorv1alpha1.SKIPJob)

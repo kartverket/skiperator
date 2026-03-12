@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"maps"
 
@@ -148,6 +149,12 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
+	if err := common.ValidateContainerImageString(skipJob); err != nil {
+		rLog.Error(err, "invalid container image reference")
+		r.SetErrorState(ctx, skipJob, err, "invalid container image reference", "ValidationFailure")
+		return common.DoNotRequeue()
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, skipJob)
@@ -158,7 +165,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 
-	reconciliation := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
+	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,
@@ -171,15 +178,22 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	for _, f := range resourceGeneration {
-		if err := f(reconciliation); err != nil {
-			rLog.Error(err, "failed to generate skipjob resource")
+		if err := f(reconciliationJob); err != nil {
 			// At this point we don't have the gvk of the resource yet, so we can't set subresource status.
-			r.SetErrorState(ctx, skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure")
+			var subErr *reconciliation.SubResourceError
+			if goerrors.As(err, &subErr) {
+				rLog.Error(subErr.GetWrapErr(), subErr.Message)
+				r.SetErrorState(ctx, skipJob, subErr.GetWrapErr(), subErr.Message, subErr.GetReason())
+			} else {
+				// Safe fallback if the error is not of type SubResourceError, to avoid losing error context
+				rLog.Error(err, "failed to generate skipjob resource")
+				r.SetErrorState(ctx, skipJob, err, "failed to generate skipjob resource", "ResourceGenerationFailure")
+			}
 			return common.RequeueWithError(err)
 		}
 	}
 
-	if err = r.setResourceDefaults(reconciliation.GetResources(), skipJob); err != nil {
+	if err = r.setResourceDefaults(reconciliationJob.GetResources(), skipJob); err != nil {
 		rLog.Error(err, "error when trying to set resource defaults")
 		r.SetErrorState(ctx, skipJob, err, "failed to set skipjob resource defaults", "ResourceDefaultsFailure")
 		return common.RequeueWithError(err)
@@ -187,7 +201,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetJobSchemas(r.GetScheme()), r.GetScheme())
 
-	if errs := processor.Process(reconciliation); len(errs) > 0 {
+	if errs := processor.Process(reconciliationJob); len(errs) > 0 {
 		for _, err = range errs {
 			rLog.Error(err, "failed to process resource")
 			r.EmitWarningEvent(skipJob, "ReconcileEndFail", fmt.Sprintf("Failed to process skipjob resources: %s", err.Error()))
