@@ -34,12 +34,12 @@ const (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in deployment resource", r.GetType())
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in deployment resource", WrapErr: fmt.Errorf("unsupported type %s", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
+		return err
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "Failed to generate deployment resource")
+		err := &reconciliation.SubResourceError{Message: "Failed to generate deployment resource", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 
@@ -77,7 +77,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if idporten.IdportenSpecifiedInSpec(application.Spec.IDPorten) {
 		secretName, err := idporten.GetIDPortenSecretName(application.Name)
 		if err != nil {
-			ctxLog.Error(err, "could not get idporten secret name")
+			err := &reconciliation.SubResourceError{Message: "Failed to get idporten secret name", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 			return err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
@@ -92,7 +92,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if maskinporten.MaskinportenSpecifiedInSpec(application.Spec.Maskinporten) {
 		secretName, err := maskinporten.GetMaskinportenSecretName(application.Name)
 		if err != nil {
-			ctxLog.Error(err, "could not get maskinporten secret name")
+			err := &reconciliation.SubResourceError{Message: "Failed to get maskinporten secret name", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 			return err
 		}
 		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
@@ -203,7 +203,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
 			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
 		} else {
-			ctxLog.Error(err, "could not get replicas from application spec")
+			err := &reconciliation.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: reconciliation.InternalError}
 			return err
 		}
 	}
@@ -224,7 +224,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			//TODO fix this
 			// Exclude dummy image used in tests for decreased verbosity
 			if !strings.Contains(err.Error(), "https://index.docker.io/v2/library/image/manifests/latest") {
-				ctxLog.Error(err, "could not resolve container image to digest")
+				err := &reconciliation.SubResourceError{Message: "Could not resolve container image to digest", WrapErr: err, Reason: reconciliation.ContainerImageNotFound}
 				return err
 			}
 		}

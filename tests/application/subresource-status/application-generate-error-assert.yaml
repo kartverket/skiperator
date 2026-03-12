@@ -16,7 +16,7 @@ spec:
 status:
   summary:
     message: >-
-      failed to generate application resource: json: cannot unmarshal string
+      Failed to get replicas from application spec: json: cannot unmarshal string
       into Go value of type v1alpha1.Replicas
     status: Error
 

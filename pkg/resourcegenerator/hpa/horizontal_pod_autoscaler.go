@@ -2,6 +2,7 @@ package hpa
 
 import (
 	"fmt"
+
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
@@ -13,12 +14,11 @@ import (
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
 	if r.GetType() != reconciliation.ApplicationType {
-		return fmt.Errorf("unsupported type %s in horizontal pod autoscaler", r.GetType())
+		return &reconciliation.SubResourceError{Message: "Unsupported type in HPA", WrapErr: fmt.Errorf("unsupported type %s in horizontal pod autoscaler", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 	}
 	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
 	if !ok {
-		err := fmt.Errorf("failed to cast resource to application")
-		ctxLog.Error(err, "Failed to generate horizontal pod autoscaler")
+		err := &reconciliation.SubResourceError{Message: "Failed to generate HPA", WrapErr: fmt.Errorf("failed to cast resource to application"), Reason: reconciliation.InternalError}
 		return err
 	}
 
@@ -33,7 +33,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas)
 	if err != nil {
-		return err
+		return &reconciliation.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: reconciliation.InternalError}
 	}
 
 	metrics := []autoscalingv2.MetricSpec{}
@@ -72,7 +72,6 @@ func Generate(r reconciliation.Reconciliation) error {
 		MaxReplicas: int32(replicas.Max),
 		Metrics:     metrics,
 	}
-	
 
 	r.AddResource(&horizontalPodAutoscaler)
 
