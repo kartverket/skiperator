@@ -244,7 +244,7 @@ func TestValidateFilesFrom(t *testing.T) {
 	},
 	)
 
-	t.Run("duplicate_volume_names", func(t *testing.T) {
+	t.Run("duplicate_volume_names_config_map", func(t *testing.T) {
 		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
 			{
 				MountPath: "/config-map",
@@ -257,7 +257,33 @@ func TestValidateFilesFrom(t *testing.T) {
 		}))
 	},
 	)
+	t.Run("duplicate_volume_names_secret", func(t *testing.T) {
+		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
+			{
+				MountPath: "/secret",
+				Secret:    "shared-name",
+			},
+			{
+				MountPath:             "/pvc",
+				PersistentVolumeClaim: "shared-name",
+			},
+		}))
+	},
+	)
+	t.Run("duplicate_volume_names_pvc", func(t *testing.T) {
+		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
+			{
 
+				MountPath:             "/pvc",
+				PersistentVolumeClaim: "shared-name",
+			},
+			{
+				MountPath: "/config-map",
+				ConfigMap: "shared-name",
+			},
+		}))
+	},
+	)
 	t.Run("duplicate_volume_names_with_tmp", func(t *testing.T) {
 		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
 			{

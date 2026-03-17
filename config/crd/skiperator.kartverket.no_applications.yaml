@@ -518,6 +518,7 @@ spec:
                     NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
                   properties:
                     configMap:
+                      minLength: 1
                       type: string
                     defaultMode:
                       description: |-
@@ -532,14 +533,17 @@ spec:
                       minimum: 0
                       type: integer
                     emptyDir:
+                      minLength: 1
                       type: string
                     mountPath:
                       description: The path to mount the file in the Pods directory.
                         Required.
                       type: string
                     persistentVolumeClaim:
+                      minLength: 1
                       type: string
                     secret:
+                      minLength: 1
                       type: string
                     subPath:
                       description: The sub-path inside the volume from which the file

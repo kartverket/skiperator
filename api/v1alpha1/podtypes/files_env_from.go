@@ -3,12 +3,12 @@ package podtypes
 type EnvFrom struct {
 	// Name of Kubernetes ConfigMap in which the deployment should mount environment variables from. Must be in the same namespace as the Application
 	//
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
 
 	// Name of Kubernetes Secret in which the deployment should mount environment variables from. Must be in the same namespace as the Application
 	//
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Secret string `json:"secret,omitempty"`
 }
 
@@ -21,21 +21,25 @@ type EnvFrom struct {
 type FilesFrom struct {
 	// The path to mount the file in the Pods directory. Required.
 	//
-	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
 	// The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.
 	//
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	SubPath string `json:"subPath,omitempty"`
 
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	Secret string `json:"secret,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	EmptyDir string `json:"emptyDir,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 	// defaultMode is optional: mode bits used to set permissions on created files by default.
 	// Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
