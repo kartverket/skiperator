@@ -179,14 +179,14 @@ func externalPolicyTo(rules ...podtypes.ExternalRule) *podtypes.AccessPolicy {
 }
 
 func TestValidateContainerImageString(t *testing.T) {
+	// IstioSettings to avoid nil pointer dereference in validation
 	var dummyIstioSettings = &istiov1alpha1.IstioSettingsApplication{
 		IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
 	}
 	t.Run("valid_image", func(t *testing.T) {
 		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
-				Image: "valid-image/string:latest",
-				// Needed to set IstioSettings to avoid nil pointer dereference in validation
+				Image:         "valid-image/string:latest",
 				IstioSettings: dummyIstioSettings,
 			},
 		}))
@@ -219,5 +219,52 @@ func TestValidateContainerImageString(t *testing.T) {
 			},
 		}))
 	})
+}
 
+func TestValidateFilesFrom(t *testing.T) {
+	t.Run("valid_files_from", func(t *testing.T) {
+		assert.NoError(t, ValidateFilesFrom([]podtypes.FilesFrom{
+			{
+				MountPath: "/config-map",
+				ConfigMap: "config-map",
+			},
+			{
+				MountPath: "/secret",
+				Secret:    "secret",
+			},
+			{
+				MountPath: "/empty-dir",
+				EmptyDir:  "empty-dir",
+			},
+			{
+				MountPath:             "/pvc",
+				PersistentVolumeClaim: "pvc",
+			},
+		}))
+	},
+	)
+
+	t.Run("duplicate_volume_names", func(t *testing.T) {
+		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
+			{
+				MountPath: "/config-map",
+				ConfigMap: "shared-name",
+			},
+			{
+				MountPath: "/empty-dir",
+				EmptyDir:  "shared-name",
+			},
+		}))
+	},
+	)
+
+	t.Run("duplicate_volume_names_with_tmp", func(t *testing.T) {
+		assert.Error(t, ValidateFilesFrom([]podtypes.FilesFrom{
+			{
+				MountPath:             "/tmp",
+				PersistentVolumeClaim: "tmp",
+			},
+		}))
+	},
+	)
 }

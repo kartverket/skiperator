@@ -151,7 +151,13 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	if err := common.ValidateContainerImageString(skipJob); err != nil {
 		rLog.Error(err, "invalid container image reference")
-		r.SetErrorState(ctx, skipJob, err, "invalid container image reference", "ValidationFailure")
+		r.SetErrorState(ctx, skipJob, err, "invalid container image reference", "InvalidSKIPJob")
+		return common.DoNotRequeue()
+	}
+
+	if err := common.ValidateFilesFrom(skipJob.Spec.Container.FilesFrom); err != nil {
+		rLog.Error(err, "invalid filesFrom in SKIPJob manifest")
+		r.SetErrorState(ctx, skipJob, err, "invalid filesFrom in SKIPJob manifest", "InvalidSKIPJob")
 		return common.DoNotRequeue()
 	}
 

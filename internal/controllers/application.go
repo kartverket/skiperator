@@ -206,6 +206,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	if err := common.ValidateFilesFrom(application.Spec.FilesFrom); err != nil {
+		rLog.Error(err, "invalid filesFrom in application manifest")
+		r.SetErrorState(ctx, application, err, "invalid filesFrom in application manifest", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, application)

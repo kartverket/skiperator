@@ -30,7 +30,7 @@ func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMou
 			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
 			continue
 		}
-		if file.SubPath != "" {
+		if len(file.SubPath) > 0 {
 			containerVolumeMounts = append(containerVolumeMounts, corev1.VolumeMount{
 				Name:      volumeName,
 				MountPath: file.MountPath,
@@ -107,11 +107,6 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				},
 			}
 		}
-		if volume.Name == "" {
-			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
-			continue
-		}
-
 		if _, exists := podVolumesMap[volume.Name]; !exists {
 			podVolumesMap[volume.Name] = volume
 			insertionOrder = append(insertionOrder, volume.Name)

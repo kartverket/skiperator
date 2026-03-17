@@ -147,3 +147,38 @@ func ValidateContainerImageString(obj skiperatorv1alpha1.SKIPObject) error {
 	}
 	return nil
 }
+
+func ValidateFilesFrom(filesFrom []podtypes.FilesFrom) error {
+	seenVolumeNames := map[string]string{}
+	// The 'tmp' volume is always present as an EmptyDir.
+	seenVolumeNames["tmp"] = "EmptyDir"
+	// Check that the same volume name is not used for different volume types.
+	for _, file := range filesFrom {
+		if len(file.ConfigMap) > 0 {
+			if fileType, exists := seenVolumeNames[file.ConfigMap]; exists && fileType != "ConfigMap" {
+				return fmt.Errorf("volume name %s is used for both ConfigMap and %s", file.ConfigMap, fileType)
+			}
+			seenVolumeNames[file.ConfigMap] = "ConfigMap"
+
+		} else if len(file.Secret) > 0 {
+			if fileType, exists := seenVolumeNames[file.Secret]; exists && fileType != "Secret" {
+				return fmt.Errorf("volume name %s is used for both Secret and %s", file.Secret, fileType)
+			}
+			seenVolumeNames[file.Secret] = "Secret"
+
+		} else if len(file.EmptyDir) > 0 {
+			if fileType, exists := seenVolumeNames[file.EmptyDir]; exists && fileType != "EmptyDir" {
+				return fmt.Errorf("volume name %s is used for both EmptyDir and %s", file.EmptyDir, fileType)
+			}
+			seenVolumeNames[file.EmptyDir] = "EmptyDir"
+
+		} else if len(file.PersistentVolumeClaim) > 0 {
+			if fileType, exists := seenVolumeNames[file.PersistentVolumeClaim]; exists && fileType != "PersistentVolumeClaim" {
+				return fmt.Errorf("volume name %s is used for both PersistentVolumeClaim and %s", file.PersistentVolumeClaim, fileType)
+			}
+			seenVolumeNames[file.PersistentVolumeClaim] = "PersistentVolumeClaim"
+		}
+
+	}
+	return nil
+}

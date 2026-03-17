@@ -528,6 +528,8 @@ spec:
                         Directories within the path are not affected by this setting.
                         This might be in conflict with other options that affect the file
                         mode, like fsGroup, and the result can be other mode bits set.
+                      maximum: 511
+                      minimum: 0
                       type: integer
                     emptyDir:
                       type: string
