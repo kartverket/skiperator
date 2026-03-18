@@ -26,7 +26,7 @@ spec:
                   namespace: $TEST_NS
                 spec:
                   container:
-                    image: "imag"e
+                    image: image
                   labels:
                     app: test-label
               EOF
