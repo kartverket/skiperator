@@ -1,0 +1,50 @@
+# Checks if labels "app" as key are rejected in the manifest spec, due to bug with selectors of subresources.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: reject-app-label
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - script:
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                apiVersion: skiperator.kartverket.no/v1alpha1
+                kind: Application
+                metadata:
+                  name: app-label
+                  namespace: $TEST_NS
+                spec:
+                  image: image
+                  port: 8080
+                  labels:
+                    app: test
+              EOF
+            check:
+              ($error != null): true
+              '(contains($stderr, ''The label key "app" is reserved and cannot be used as a label.''))': true
+        - script:
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                apiVersion: skiperator.kartverket.no/v1alpha1
+                kind: Application
+                metadata:
+                  name: app-label
+                  namespace: $TEST_NS
+                spec:
+                  image: image
+                  port: 8080
+                  labels:
+                    test: app
+              EOF
+            check:
+              ($error == null): true

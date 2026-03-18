@@ -891,6 +891,10 @@ spec:
                   metrics, where a certain label and the corresponding resources liveliness can be combined.
                   Any amount of labels can be added as wanted, and they will all cascade down to all resources.
                 type: object
+                x-kubernetes-validations:
+                - message: The label key "app" is reserved and cannot be used as a
+                    label.
+                  rule: '!self.exists(k, k == ''app'')'
               liveness:
                 description: |-
                   Liveness probes define a resource that returns 200 OK when the app is running

@@ -1,4 +1,4 @@
-apiVersion: chainsaw.kyverno.io/v1alpha1  
+apiVersion: chainsaw.kyverno.io/v1alpha1
 kind: Test
 metadata:
   name: skipjob-label
@@ -6,14 +6,33 @@ spec:
   skip: false
   concurrent: true
   skipDelete: false
-  
+
   steps:
     - try:
         - apply:
             file: skipjob.yaml
         - assert:
             file: skipjob-assert.yaml
-
+        - script:
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                apiVersion: skiperator.kartverket.no/v1alpha1
+                kind: SKIPJob
+                metadata:
+                  name: skipjob-app-label
+                  namespace: $TEST_NS
+                spec:
+                  container:
+                    image: "imag"e
+                  labels:
+                    app: test-label
+              EOF
+            check:
+              ($error != null): true
+              '(contains($stderr, ''The label key "app" is reserved and cannot be used as a label.''))': true
     - try:
         - delete:
             ref:

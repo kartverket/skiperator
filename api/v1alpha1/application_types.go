@@ -227,6 +227,7 @@ type ApplicationSpec struct {
 	// Any amount of labels can be added as wanted, and they will all cascade down to all resources.
 	//
 	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:XValidation:rule="!self.exists(k, k == 'app')", message="The label key \"app\" is reserved and cannot be used as a label."
 	Labels map[string]string `json:"labels,omitempty"`
 
 	// ResourceLabels can be used if you want to add a label to a specific resources created by
