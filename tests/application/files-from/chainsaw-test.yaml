@@ -18,12 +18,16 @@ spec:
         # Test CEL validation for FilesFrom
         - script:
             # Invalid defaultMode value, decimal
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-invalid-default-mode
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
@@ -37,12 +41,16 @@ spec:
               "(contains($stderr, 'Invalid value: 532:'))": true
         - script:
             # Invalid defaultMode value, octal and negative
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-negative-default-mode
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
@@ -56,12 +64,16 @@ spec:
               "(contains($stderr, 'Invalid value: -447:'))": true
         - script:
             # Valid defaultMode value, octal
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-valid-default-mode
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
@@ -74,12 +86,16 @@ spec:
               ($error == null): true
         - script:
             # Checks that filesFrom entries can only have one volume source type
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-volume-source
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
@@ -93,12 +109,16 @@ spec:
               "(contains($stderr, 'Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set'))": true
         - script:
             # Checks that filesFrom entries must have at least one volume source type
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-volume-source2
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
@@ -110,12 +130,16 @@ spec:
               "(contains($stderr, 'Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set'))": true
         - script:
             # Checks that filesFrom entries with the same volume source and name are rejected to prevent duplicate volume names
+            env:
+              - name: TEST_NS
+                value: ($namespace)
             content: |
               kubectl apply -f - <<EOF
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                   metadata:
-                      name: files-from
+                      name: files-from-volume-name
+                      namespace: $TEST_NS
                   spec:
                       image: image
                       port: 8080
