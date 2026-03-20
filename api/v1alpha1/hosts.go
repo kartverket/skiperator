@@ -16,7 +16,7 @@ type Host struct {
 }
 
 type HostCollection struct {
-	hosts map[string]*Host
+	hosts           map[string]*Host
 	hostInsertOrder []string
 }
 
@@ -60,7 +60,7 @@ func (h *Host) UsesCustomCert() bool {
 
 func NewCollection() HostCollection {
 	return HostCollection{
-		hosts: map[string]*Host{},
+		hosts:           map[string]*Host{},
 		hostInsertOrder: []string{},
 	}
 }
