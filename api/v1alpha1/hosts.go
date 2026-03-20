@@ -98,7 +98,7 @@ func (hs *HostCollection) AllHosts() []*Host {
 }
 
 func (hs *HostCollection) Hostnames() []string {
-	hostnames := make([]string, 0, len(hs.hosts))
+	hostnames := make([]string, len(hs.hostInsertOrder))
 	copy(hostnames, hs.hostInsertOrder)
 	return hostnames
 }
