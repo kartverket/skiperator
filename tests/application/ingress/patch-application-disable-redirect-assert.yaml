@@ -34,9 +34,11 @@ spec:
     - .
     - istio-system
     - istio-gateways
-  gateways:
-    - ingresses-ingress-34888c0b0c2a4a2c
-    - ingresses-ingress-3a90cb5d70dc06a
+
+  # Check that both gateways are listed in the virtualservice, Checks this way since the order of gateways in the list is not guaranteed
+  (contains(gateways,'ingresses-ingress-34888c0b0c2a4a2c')): true
+  (contains(gateways,'ingresses-ingress-3a90cb5d70dc06a')): true
+
   hosts:
     - test.com
     - foo.com
@@ -44,4 +46,3 @@ spec:
     - route:
         - destination:
             host: ingresses
-
