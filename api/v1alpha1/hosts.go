@@ -73,19 +73,14 @@ func (hs *HostCollection) Add(hostname string) error {
 
 	existingValue, alreadyPresent := hs.hosts[h.Hostname]
 
-	switch alreadyPresent {
-	case true:
+	if alreadyPresent {
 		if existingValue.UsesCustomCert() {
 			return fmt.Errorf("host '%s' is already defined and using a custom certificate", existingValue.Hostname)
 		}
-		fallthrough
-	case false:
-		fallthrough
-	default:
+	} else {
 		hs.hostInsertOrder = append(hs.hostInsertOrder, h.Hostname)
-		hs.hosts[h.Hostname] = h
 	}
-
+	hs.hosts[h.Hostname] = h
 	return nil
 }
 
