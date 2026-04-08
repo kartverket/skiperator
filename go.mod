@@ -6,6 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.19.3
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
+	github.com/google/go-containerregistry v0.20.2
 	github.com/google/k8s-digester v0.1.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20250915232004-16996a5ada83
@@ -99,7 +100,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/go-errors/errors v1.5.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.2 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/jsonpointer v0.22.1 // indirect
@@ -115,7 +116,6 @@ require (
 	github.com/google/cel-go v0.26.0 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20241111191718-6bce25ecf029 // indirect
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20241111191718-6bce25ecf029 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
