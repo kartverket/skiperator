@@ -16,7 +16,8 @@ type Host struct {
 }
 
 type HostCollection struct {
-	hosts map[string]*Host
+	hosts           map[string]*Host
+	hostInsertOrder []string
 }
 
 func NewHost(hostname string) (*Host, error) {
@@ -59,7 +60,8 @@ func (h *Host) UsesCustomCert() bool {
 
 func NewCollection() HostCollection {
 	return HostCollection{
-		hosts: map[string]*Host{},
+		hosts:           map[string]*Host{},
+		hostInsertOrder: []string{},
 	}
 }
 
@@ -71,34 +73,28 @@ func (hs *HostCollection) Add(hostname string) error {
 
 	existingValue, alreadyPresent := hs.hosts[h.Hostname]
 
-	switch alreadyPresent {
-	case true:
+	if alreadyPresent {
 		if existingValue.UsesCustomCert() {
 			return fmt.Errorf("host '%s' is already defined and using a custom certificate", existingValue.Hostname)
 		}
-		fallthrough
-	case false:
-		fallthrough
-	default:
-		hs.hosts[h.Hostname] = h
+	} else {
+		hs.hostInsertOrder = append(hs.hostInsertOrder, h.Hostname)
 	}
-
+	hs.hosts[h.Hostname] = h
 	return nil
 }
 
 func (hs *HostCollection) AllHosts() []*Host {
 	hosts := make([]*Host, 0, len(hs.hosts))
-	for _, host := range hs.hosts {
-		hosts = append(hosts, host)
+	for _, hostname := range hs.hostInsertOrder {
+		hosts = append(hosts, hs.hosts[hostname])
 	}
 	return hosts
 }
 
 func (hs *HostCollection) Hostnames() []string {
-	hostnames := make([]string, 0, len(hs.hosts))
-	for hostname := range hs.hosts {
-		hostnames = append(hostnames, hostname)
-	}
+	hostnames := make([]string, len(hs.hostInsertOrder))
+	copy(hostnames, hs.hostInsertOrder)
 	return hostnames
 }
 
