@@ -45,7 +45,7 @@ $ kind create cluster
 Make sure Kind is the active context
 
 ```
-$ kubectx kind-kind
+$ kubectx kind-skiperator
 ```
 
 Optionally you may create a new namespace for Skiperator, for example
@@ -93,8 +93,8 @@ $ kubectl apply -f samples/ --recursive
 
 To start `skiperator` locally on your computer, you can use the the make target `run-local`
 which will generate CRD's, apply them in your local kind-cluster, build and run skiperator.
-The default `kubectl` context is `kind-kind`. To override, set the env-variable `SKIPERATOR_CONTEXT`
-to the name of the desired context.
+The default `kubectl` context used by the Makefile is `kind-skiperator`. To override, set the
+environment variable `SKIPERATOR_CONTEXT` to the name of the desired context.
 
 ```
 $ make run-local
