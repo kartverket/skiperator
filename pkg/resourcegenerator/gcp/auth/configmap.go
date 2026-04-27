@@ -63,7 +63,6 @@ func getConfigMap(r reconciliation.Reconciliation) error {
 
 	credentialsBytes, err := json.Marshal(credentials)
 	if err != nil {
-		ctxLog.Error(err, "could not marshall gcp identity configmap")
 		err := &reconciliation.SubResourceError{Message: "Could not marshall GCP identity ConfigMap", WrapErr: err, Reason: reconciliation.InternalError}
 		return err
 	}
