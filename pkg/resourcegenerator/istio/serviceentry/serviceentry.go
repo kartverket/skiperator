@@ -32,7 +32,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 	accessPolicy, err := setCloudSqlRule(accessPolicy, object)
 
 	if err != nil {
-		err := &reconciliation.SubResourceError{Message: "Could not set Cloud SQL Rules", WrapErr: err, Reason: reconciliation.InternalError}
+		err := &reconciliation.SubResourceError{Message: "Could not set Cloud SQL Rules for Service Entry", WrapErr: err, Reason: reconciliation.InternalError}
 		return err
 	}
 
@@ -58,7 +58,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 
 			ports, err := getPorts(rule.Ports, rule.Ip)
 			if err != nil {
-				err := &reconciliation.SubResourceError{Message: "Could not set port", WrapErr:err, Reason: reconciliation.InternalError }
+				err := &reconciliation.SubResourceError{Message: "Could not set port for Service Entry", WrapErr:err, Reason: reconciliation.InternalError }
 				return err
 			}
 

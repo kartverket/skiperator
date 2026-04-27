@@ -31,7 +31,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.GetType() == reconciliation.ApplicationType || r.GetType() == reconciliation.JobType {
 		return getConfigMap(r)
 	} else {
-		err := &reconciliation.SubResourceError{Message: "Unsupported type in GCP configmap", WrapErr: fmt.Errorf("unsupported type %s in gcp configmap", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
+		err := &reconciliation.SubResourceError{Message: "Unsupported type in GCP ConfigMap", WrapErr: fmt.Errorf("unsupported type %s in gcp configmap", r.GetType()), Reason: reconciliation.UnsupportedTypeResource}
 		return err
 	}
 }
@@ -63,8 +63,8 @@ func getConfigMap(r reconciliation.Reconciliation) error {
 
 	credentialsBytes, err := json.Marshal(credentials)
 	if err != nil {
-		ctxLog.Error(err, "could not marshall gcp identity config map")
-		err := &reconciliation.SubResourceError{Message: "Could not marshall gcp identity config map", WrapErr: err, Reason: reconciliation.InternalError}
+		ctxLog.Error(err, "could not marshall gcp identity configmap")
+		err := &reconciliation.SubResourceError{Message: "Could not marshall GCP identity ConfigMap", WrapErr: err, Reason: reconciliation.InternalError}
 		return err
 	}
 
