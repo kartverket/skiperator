@@ -3,12 +3,12 @@ package podtypes
 type EnvFrom struct {
 	// Name of Kubernetes ConfigMap in which the deployment should mount environment variables from. Must be in the same namespace as the Application
 	//
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	ConfigMap string `json:"configMap,omitempty"`
 
 	// Name of Kubernetes Secret in which the deployment should mount environment variables from. Must be in the same namespace as the Application
 	//
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
 	Secret string `json:"secret,omitempty"`
 }
 
@@ -17,19 +17,29 @@ type EnvFrom struct {
 // Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
 // One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
 // NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+// +kubebuilder:validation:XValidation:rule="(has(self.configMap) ? 1 : 0) + (has(self.secret) ? 1 : 0) + (has(self.emptyDir) ? 1 : 0) + (has(self.persistentVolumeClaim) ? 1 : 0) == 1",message="Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set"
 type FilesFrom struct {
 	// The path to mount the file in the Pods directory. Required.
 	//
-	//+kubebuilder:validation:Required
+	// +kubebuilder:validation:Required
 	MountPath string `json:"mountPath"`
 
-	//+kubebuilder:validation:Optional
+	// The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.
+	//
+	// +kubebuilder:validation:Optional
+	SubPath string `json:"subPath,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	ConfigMap string `json:"configMap,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	Secret string `json:"secret,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	EmptyDir string `json:"emptyDir,omitempty"`
-	//+kubebuilder:validation:Optional
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MinLength=1
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 	// defaultMode is optional: mode bits used to set permissions on created files by default.
 	// Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
@@ -38,8 +48,8 @@ type FilesFrom struct {
 	// Directories within the path are not affected by this setting.
 	// This might be in conflict with other options that affect the file
 	// mode, like fsGroup, and the result can be other mode bits set.
-	// +kubebuilder:validation:min=0
-	// +kubebuilder:validation:max=777
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=511
 	// +kubebuilder:validation:Optional
 	DefaultMode int `json:"defaultMode,omitempty"`
 }

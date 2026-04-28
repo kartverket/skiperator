@@ -61,7 +61,8 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	var err error
 
-	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
+	podVolumes := volume.GetPodVolumes(application.Spec.FilesFrom)
+	containerVolumeMounts := volume.GetContainerVolumeMounts(application.Spec.FilesFrom)
 
 	if util.IsGCPAuthEnabled(application.Spec.GCP) {
 		gcpPodVolume := gcp.GetGCPContainerVolume(r.GetSkiperatorConfig().GCPWorkloadIdentityPool, application.Name)

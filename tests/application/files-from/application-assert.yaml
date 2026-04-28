@@ -45,3 +45,84 @@ spec:
           secret:
             secretName: secret2
             defaultMode: 384
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-subpath
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: normal
+              mountPath: /temp/nothing-to-se-here
+            - name: config-map
+              mountPath: /config-map/sub-path.sub
+              subPath: sub-path.sub
+            - name: secret
+              mountPath: /secret/sub-path
+              subPath: sub-path
+            - name: empty-dir
+              mountPath: /empty-dir/sub-path
+              subPath: sub-path
+            - name: persistent-volume-claim
+              mountPath: /persistent-volume-claim/sub-path
+              subPath: sub-path
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: normal
+          emptyDir: {}
+        - name: config-map
+          configMap:
+            name: config-map
+        - name: secret
+          secret:
+            secretName: secret
+        - name: empty-dir
+          emptyDir: {}
+        - name: persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: persistent-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-same-volumes
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: config-map
+              mountPath: /config-map
+            - name: config-map
+              mountPath: /config-map/han-konfigur
+            - name: secret
+              mountPath: /secret
+            - name: secret
+              mountPath: /secret/secret-within-a-secret
+              subPath: secret-within-a-secret
+            - name: tmp
+              mountPath: /tmp/another-empty-dir
+            - name: persistent-volume-claim
+              mountPath: /persistent-volume-claim
+            - name: persistent-volume-claim
+              mountPath: /persistent-volume-claim/hippety-hoppety
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: config-map
+          configMap:
+            name: config-map
+        - name: secret
+          secret:
+            secretName: secret
+        - name: persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: persistent-volume-claim

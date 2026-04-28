@@ -1,0 +1,15 @@
+# This test verifies that filesFrom in a SkipJob is set correctly. Most of the functionality of filesFrom is tested in application/files-from.
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: files-from-skipjob
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml

@@ -1,0 +1,21 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: skipjob-filesfrom
+spec:
+  container:
+    image: image
+    filesFrom:
+      - mountPath: /config-map
+        configMap: config-map
+        defaultMode: 0600
+      - mountPath: /secret/secret1
+        secret: secret
+        subPath: secret1
+      - mountPath: /secret/secret2-electric-boogaloo
+        secret: secret
+        subPath: secret2-electric-boogaloo
+      - mountPath: /empty-dir
+        emptyDir: empty-dir
+      - mountPath: /persistent-volume-claim
+        persistentVolumeClaim: persistent-volume-claim
