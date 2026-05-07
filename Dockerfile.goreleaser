@@ -1,4 +1,4 @@
-FROM golang:1.25.9 AS base
+FROM golang:1.26.2 AS base
 # Needed for ca-certs
 
 FROM scratch
