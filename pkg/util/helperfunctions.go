@@ -105,7 +105,7 @@ func GetService(client client.Client, ctx context.Context, namespacedName types.
 
 func ErrIsMissingOrNil(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
 	if errors.IsNotFound(err) {
-		recorder.Eventf(
+		recorder.Event(
 			object,
 			corev1.EventTypeWarning, "Missing",
 			message,
