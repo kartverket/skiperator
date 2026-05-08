@@ -12,14 +12,13 @@ extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' '
 #### TOOLS ####
 TOOLS_DIR                          := $(PWD)/.tools
 KIND                               := $(TOOLS_DIR)/kind
-KIND_VERSION                       := v0.26.0
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
-KUBERNETES_VERSION          = 1.32.5
+KUBERNETES_VERSION          = 1.34.3
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
 

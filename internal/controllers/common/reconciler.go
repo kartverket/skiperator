@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -37,7 +38,7 @@ type ReconcilerBase struct {
 	scheme           *runtime.Scheme
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
-	Logger           logr.Logger
+	Logger           log.Logger
 }
 
 func NewReconcilerBase(
@@ -53,6 +54,7 @@ func NewReconcilerBase(
 		scheme:           scheme,
 		restConfig:       restConfig,
 		recorder:         recorder,
+		Logger:           log.NewLogger().WithName("base-reconciler"),
 	}
 }
 
@@ -155,15 +157,25 @@ func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1alpha1.SK
 }
 
 func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIPObject) {
-	latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
 	key := client.ObjectKeyFromObject(skipObj)
+	desiredStatus := skipObj.GetStatus().DeepCopy()
 
-	if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
-		r.Logger.Error(err, "Failed to get latest object version")
-	}
-	latestObj.SetStatus(*skipObj.GetStatus())
-	if err := r.GetClient().Status().Update(ctx, latestObj); err != nil {
-		r.Logger.Error(err, "Failed to update status")
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
+		if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
+			return err
+		}
+		latestObj.SetStatus(*desiredStatus)
+		return r.GetClient().Status().Update(ctx, latestObj)
+	})
+
+	if err != nil {
+		r.Logger.Error(err,
+			"failed to update status",
+			"name", key.Name,
+			"namespace", key.Namespace,
+			"kind", skipObj.GetObjectKind().GroupVersionKind().Kind,
+		)
 	}
 }
 
