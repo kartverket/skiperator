@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ type ReconcilerBase struct {
 	scheme           *runtime.Scheme
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
-	Logger           logr.Logger
+	Logger           log.Logger
 }
 
 func NewReconcilerBase(
@@ -54,6 +54,7 @@ func NewReconcilerBase(
 		scheme:           scheme,
 		restConfig:       restConfig,
 		recorder:         recorder,
+		Logger:           log.NewLogger().WithName("base-reconciler"),
 	}
 }
 
