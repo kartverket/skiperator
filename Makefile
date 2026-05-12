@@ -36,7 +36,7 @@ generate:
 patch-skipjob-crd:
 	@tmp_file=$$(mktemp -t skipjob-crd.XXXXXXX); \
 	normalized_file=$$(mktemp -t skipjob-crd-normalized.XXXXXXX); \
-	kustomize build --load-restrictor LoadRestrictionsNone config/crd/skipjob > "$$tmp_file"; \
+	kubectl kustomize --load-restrictor LoadRestrictionsNone config/crd/skipjob > "$$tmp_file"; \
 	if [ ! -s "$$tmp_file" ]; then \
 		echo "ERROR: generated SKIPJob CRD is empty"; \
 		rm -f "$$tmp_file" "$$normalized_file"; \
@@ -146,13 +146,22 @@ install-digdirator-crds:
 install-skiperator: generate
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/cert-manager --context $(SKIPERATOR_CONTEXT) || true
-	@kustomize build config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
+	@kubectl kustomize config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/rbac --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/static --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/skiperator-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/docker-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/github-config.yaml --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f tests/cluster-config/ --recursive --context $(SKIPERATOR_CONTEXT) || true
+	# Wait for PKI infrastructure to be ready (webhook)
+	@kubectl wait certificate skiperator-webhook-ca --for=condition=Ready --timeout=60s --namespace skiperator-system --context $(SKIPERATOR_CONTEXT)
+	@kubectl wait certificate skiperator-webhook-serving-cert --for=condition=Ready --timeout=60s --namespace skiperator-system --context $(SKIPERATOR_CONTEXT)
+	# CRD's must be present and accepted by the cluster
+	@kubectl wait --for=condition=Established --timeout=60s \
+		crd/applications.skiperator.kartverket.no \
+		crd/routings.skiperator.kartverket.no \
+		crd/skipjobs.skiperator.kartverket.no \
+		--context $(SKIPERATOR_CONTEXT)
 
 .PHONY: install-webhook
 install-webhook: install-skiperator
