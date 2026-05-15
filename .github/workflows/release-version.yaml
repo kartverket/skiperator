@@ -72,7 +72,10 @@ jobs:
         shell: bash
         run: |
           image="${REGISTRY}/${IMAGE_NAME}:${GITHUB_REF_NAME}"
-          digest="$(docker buildx imagetools inspect "${image}" --format '{{ printf "%s" .Manifest.Digest }}')"
+          digest="$(awk -v image="${image}" '$2 == image { print $1; found = 1 } END { exit !found }' dist/digests.txt)"
+          if [[ "${digest}" != sha256:* ]]; then
+            digest="sha256:${digest}"
+          fi
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
 
       - name: Attest released image provenance
