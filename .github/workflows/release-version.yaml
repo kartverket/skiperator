@@ -92,7 +92,7 @@ jobs:
           subject-digest: ${{ steps.image-digest.outputs.digest }}
           push-to-registry: true
           sbom-path: dist/skiperator-image.spdx.json
-          create-storage-record: false
+          create-storage-record: true
 
       - name: Attest released image provenance
         if: startsWith(github.ref, 'refs/tags/v')
