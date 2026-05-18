@@ -1,7 +1,8 @@
 version: 2
 
 builds:
-  - env:
+  - id: skiperator
+    env:
       - CGO_ENABLED=0
     flags:
       - -trimpath
@@ -20,10 +21,9 @@ builds:
     tags:
       - osusergo
       - netgo
-    main: ./cmd/skiperator/
 
 archives:
-  - builds:
+  - ids:
       - skiperator
     files:
       - README.md
@@ -39,33 +39,30 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
 
-dockers:
-  - image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-amd64"
-    use: buildx
+dockers_v2:
+  - images:
+      - "ghcr.io/kartverket/skiperator"
+    tags:
+      - "{{ .Tag }}"
     dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
+    ids:
+      - skiperator
+    annotations:
+      "index:org.opencontainers.image.description": "{{ if not .IsSnapshot }}Skiperator is an operator intended to make the setup of applications simple from the users' point of view.{{ end }}"
+      "index:org.opencontainers.image.created": "{{.Date}}"
+      "index:org.opencontainers.image.name": "{{.ProjectName}}"
+      "index:org.opencontainers.image.revision": "{{.FullCommit}}"
+      "index:org.opencontainers.image.version": "{{.Version}}"
+      "index:org.opencontainers.image.source": "{{.GitURL}}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    sbom: false
+    flags:
       - "--pull"
-      - "--platform=linux/amd64"
-    goos: linux
-    goarch: amd64
-  - image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-arm64"
-    use: buildx
-    dockerfile: Dockerfile.goreleaser
-    build_flag_templates:
-      - "--pull"
-      - "--platform=linux/arm64"
-    goos: linux
-    goarch: arm64
-
-docker_manifests:
-  - name_template: "ghcr.io/kartverket/skiperator:{{ .Tag }}"
-    image_templates:
-      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-arm64"
-      - "ghcr.io/kartverket/skiperator:{{ .Tag }}-linux-amd64"
 
 docker_signs:
   - artifacts: all
@@ -73,21 +70,27 @@ docker_signs:
     args:
       - "sign"
       - "--use-signing-config=false"
+      # sigstore/policy-controller v0.15.x verifies image signatures from the
+      # legacy cosign .sig tag; cosign v3 defaults to OCI referrer bundles.
+      - "--new-bundle-format=false"
+      - "--registry-referrers-mode=legacy"
       - "--oidc-issuer=https://token.actions.githubusercontent.com"
       - "${artifact}"
       - "--yes"
 
 signs:
-  - artifacts: all
+  - artifacts: checksum
     cmd: cosign
-    signature: "${artifact}.sig"
+    signature: "${artifact}.sigstore.json"
     args:
-    - "sign-blob"
-    - "--use-signing-config=false"
-    - "--oidc-issuer=https://token.actions.githubusercontent.com"
-    - "--output-signature=${signature}"
-    - "${artifact}"
-    - "--yes"
+      - "sign-blob"
+      - "--use-signing-config=false"
+      - "--oidc-issuer=https://token.actions.githubusercontent.com"
+      # Cosign v3 stores blob verification material in a bundle; signing the
+      # checksum file covers the release assets without one Rekor entry each.
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
 
 sboms:
   - artifacts: archive
