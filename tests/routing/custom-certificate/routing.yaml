@@ -3,7 +3,7 @@ kind: Routing
 metadata:
   name: some-routing
 spec:
-  hostname: example.com+some-cert
+  hostname: example.com+routes-some-cert
   routes:
     - pathPrefix: /app1
       targetApp: some-app
