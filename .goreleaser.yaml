@@ -10,14 +10,9 @@ builds:
       - -s -w -X main.Version={{.Version}} -X main.Commit={{.ShortCommit}}
     goos:
       - linux
-      - windows
-      - darwin
     goarch:
       - amd64
       - arm64
-    ignore:
-      - goos: darwin
-        goarch: i386
     tags:
       - osusergo
       - netgo
@@ -37,11 +32,6 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
-    format_overrides:
-      - goos: windows
-        formats:
-          - zip
 
 dockers_v2:
   - images:
