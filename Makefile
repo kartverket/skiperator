@@ -129,7 +129,18 @@ install-cert-manager:
 
 	@echo "Installing cert-manager"
 	@kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml --context $(SKIPERATOR_CONTEXT)
-
+	@echo "Waiting for cert-manager to be ready..."
+	@kubectl wait deployment --for=condition=Available --all --timeout=120s --namespace cert-manager --context $(SKIPERATOR_CONTEXT)
+	@echo "Waiting for cert-manager-webhook EndpointSlice to be ready..."
+	@until kubectl get endpointslice \
+		-n cert-manager \
+		-l kubernetes.io/service-name=cert-manager-webhook \
+		--context $(SKIPERATOR_CONTEXT) \
+		-o jsonpath='{.items[*].endpoints[?(@.conditions.ready==true)].addresses[*]}' \
+		| grep -q .; do \
+			echo "Waiting for cert-manager-webhook EndpointSlice..."; \
+			sleep 2; \
+		done
 
 .PHONY: install-prometheus-crds
 install-prometheus-crds:
