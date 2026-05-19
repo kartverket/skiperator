@@ -21,6 +21,7 @@ builds:
     tags:
       - osusergo
       - netgo
+    main: ./cmd/skiperator/
 
 archives:
   - ids:
