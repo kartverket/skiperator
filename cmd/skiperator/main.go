@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -128,6 +129,11 @@ func main() {
 
 		// Initialize webhook certificate watcher if webhook cert directory is provided
 		if len(*webhookCertDir) > 0 {
+			if !fs.ValidPath(*webhookCertName) {
+				setupLog.Error(fmt.Errorf("webhook cert directory '%s' is invalid", *webhookCertDir), "invalid path")
+				os.Exit(1)
+			}
+
 			certPath := filepath.Join(*webhookCertDir, *webhookCertName)
 			keyPath := filepath.Join(*webhookCertDir, *webhookKeyName)
 
