@@ -21,7 +21,10 @@ jobs:
 
       - name: Run crdoc Docker container
         run: |
-         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/skiperator/config/crd --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+         mkdir -p crdoc-resources
+         cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
+         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+         rm -rf crdoc-resources
 
       - name: Checkout target repository
         uses: actions/checkout@v6
