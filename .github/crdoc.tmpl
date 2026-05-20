@@ -1,33 +1,47 @@
 # API Reference
 
-Packages:
-{{range .Groups}}
-- {{.Group}}/{{.Version}}
-{{- end -}}{{/* range .Groups */}}
+## Packages
 
+| Package | Resource types |
+| --- | --- |
 {{- range .Groups }}
+| `{{ .Group }}/{{ .Version }}` | {{ range .Kinds }}{{ $kind := . }}{{ range .Types }}{{ if .IsTopLevel }}[{{ $kind.Name }}](#{{ .Key }})<br/>{{ end }}{{ end }}{{ end }} |
+{{- end }}
+
+{{ range .Groups -}}
 {{- $group := . }}
+## Package `{{ .Group }}/{{ .Version }}`
 
-# {{.Group}}/{{.Version}}
+Resource types in this package:
+{{ range .Kinds -}}
+{{- $kind := . -}}
+{{ range .Types -}}
+{{- if .IsTopLevel }}
+- [{{ $kind.Name }}](#{{ .Key }})
+{{- end }}
+{{- end }}
+{{ end }}
 
-Resource Types:
-{{range .Kinds}}
-- [{{.Name}}](#{{ anchorize .Name }})
-{{end}}{{/* range .Kinds */}}
+{{ range .Kinds -}}
+{{- $kind := . -}}
+{{ range .Types }}
+<a id="{{ .Key }}"></a>
+{{ if .IsTopLevel -}}
+### {{ $kind.Name }}
 
-{{range .Kinds}}
-{{$kind := .}}
-## {{.Name}}
+| Field | Value |
+| --- | --- |
+| Package | `{{ $group.Group }}/{{ $group.Version }}` |
+| API version | `{{ $group.Group }}/{{ $group.Version }}` |
+| Kind | `{{ $kind.Name }}` |
 
-{{range .Types}}
+{{ else -}}
+#### {{ .Name }}
 
-{{if not .IsTopLevel}}
-### {{.Name}}
-{{if .ParentKey}}<sup><sup>[↩ Parent](#{{.ParentKey}})</sup></sup>{{end}}
-{{end}}
+{{ if .ParentKey }}<sup>[Parent](#{{ .ParentKey }})</sup>{{ end }}
 
-
-{{.Description}}
+{{ end -}}
+{{ .Description }}
 
 <table>
     <thead>
@@ -39,17 +53,17 @@ Resource Types:
         </tr>
     </thead>
     <tbody>
-      {{- if .IsTopLevel -}}
+      {{- if .IsTopLevel }}
       <tr>
       <td><b>apiVersion</b></td>
       <td>string</td>
-      <td>{{$group.Group}}/{{$group.Version}}</td>
+      <td>{{ $group.Group }}/{{ $group.Version }}</td>
       <td>true</td>
       </tr>
       <tr>
       <td><b>kind</b></td>
       <td>string</td>
-      <td>{{$kind.Name}}</td>
+      <td>{{ $kind.Name }}</td>
       <td>true</td>
       </tr>
       <tr>
@@ -58,21 +72,21 @@ Resource Types:
       <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
       <td>true</td>
       </tr>
-      {{- end -}}
-      {{- range .Fields -}}
+      {{- end }}
+      {{- range .Fields }}
       <tr>
-        <td><b>{{if .TypeKey}}<a href="#{{.TypeKey}}">{{.Name}}</a>{{else}}{{.Name}}{{end}}</b></td>
-        <td>{{.Type}}</td>
+        <td><b>{{ if .TypeKey }}<a href="#{{ .TypeKey }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}</b></td>
+        <td>{{ .Type }}</td>
         <td>
-          {{.Description}}<br/>
+          {{ .Description }}<br/>
           {{- if or .Schema.XValidations .Schema.Format .Schema.Enum .Schema.Default .Schema.Minimum .Schema.Maximum }}
           <br/>
-          {{- end}}
+          {{- end }}
           {{- if .Schema.XValidations }}
             <i>Validations</i>:
-            {{- range .Schema.XValidations -}}
+            {{- range .Schema.XValidations }}
               <li>{{ .Rule }}: {{ .Message }}</li>
-            {{- end -}}
+            {{- end }}
           {{- end }}
           {{- if .Schema.Format }}
             <i>Format</i>: {{ .Schema.Format }}<br/>
@@ -90,12 +104,11 @@ Resource Types:
             <i>Maximum</i>: {{ .Schema.Maximum }}<br/>
           {{- end }}
         </td>
-        <td>{{.Required}}</td>
+        <td>{{ .Required }}</td>
       </tr>
-      {{- end -}}
+      {{- end }}
     </tbody>
 </table>
-
-{{- end}}{{/* range .Types */}}
-{{- end}}{{/* range .Kinds */}}
-{{- end}}{{/* range .Groups */}}
+{{- end }}
+{{- end }}
+{{- end }}
