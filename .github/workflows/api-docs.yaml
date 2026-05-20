@@ -1,6 +1,7 @@
 name: write api-docs to skip.kartverket.no
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
