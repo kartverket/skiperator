@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-logr/logr"
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/api/common/podtypes"
+	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -37,7 +38,7 @@ type ReconcilerBase struct {
 	scheme           *runtime.Scheme
 	restConfig       *rest.Config
 	recorder         record.EventRecorder
-	Logger           logr.Logger
+	Logger           log.Logger
 }
 
 func NewReconcilerBase(
@@ -53,6 +54,7 @@ func NewReconcilerBase(
 		scheme:           scheme,
 		restConfig:       restConfig,
 		recorder:         recorder,
+		Logger:           log.NewLogger().WithName("base-reconciler"),
 	}
 }
 
@@ -136,34 +138,44 @@ func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipO
 	return nil
 }
 
-func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj v1alpha1.SKIPObject, err error, message string, reason string) {
+func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj common.SKIPObject, err error, message string, reason string) {
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIPObject) {
-	latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
+func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	key := client.ObjectKeyFromObject(skipObj)
+	desiredStatus := skipObj.GetStatus().DeepCopy()
 
-	if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
-		r.Logger.Error(err, "Failed to get latest object version")
-	}
-	latestObj.SetStatus(*skipObj.GetStatus())
-	if err := r.GetClient().Status().Update(ctx, latestObj); err != nil {
-		r.Logger.Error(err, "Failed to update status")
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latestObj := skipObj.DeepCopyObject().(common.SKIPObject)
+		if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
+			return err
+		}
+		latestObj.SetStatus(*desiredStatus)
+		return r.GetClient().Status().Update(ctx, latestObj)
+	})
+
+	if err != nil {
+		r.Logger.Error(err,
+			"failed to update status",
+			"name", key.Name,
+			"namespace", key.Namespace,
+			"kind", skipObj.GetObjectKind().GroupVersionKind().Kind,
+		)
 	}
 }
 
@@ -186,7 +198,7 @@ func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName 
 	return servicePorts, nil
 }
 
-func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SKIPObject) {
+func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj common.SKIPObject) {
 	if obj.GetCommonSpec().AccessPolicy == nil {
 		return
 	}

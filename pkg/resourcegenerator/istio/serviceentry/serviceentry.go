@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
@@ -32,6 +32,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 	accessPolicy, err := setCloudSqlRule(accessPolicy, object)
 
 	if err != nil {
+		err := &reconciliation.SubResourceError{Message: "Could not set Cloud SQL Rules for Service Entry", WrapErr: err, Reason: reconciliation.InternalError}
 		return err
 	}
 
@@ -57,6 +58,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 
 			ports, err := getPorts(rule.Ports, rule.Ip)
 			if err != nil {
+				err := &reconciliation.SubResourceError{Message: "Could not set port for Service Entry", WrapErr: err, Reason: reconciliation.InternalError}
 				return err
 			}
 

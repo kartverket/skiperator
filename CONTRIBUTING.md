@@ -9,6 +9,7 @@ You're going to want to make sure to have the following things installed:
 - [Operator SDK](https://sdk.operatorframework.io/docs/building-operators/golang/installation)
 - golang
 - kubectl
+- kustomize
 - [kubectx and kubens](https://github.com/ahmetb/kubectx) (Optional)
 - docker version 17.03+.
 - [kind](https://kind.sigs.k8s.io)
@@ -30,10 +31,17 @@ $ cd skiperator/
 make setup-local
 make run-local
 ```
+
 `make setup-local` will create a kind cluster called `kind-skiperator`, with all dependencies installed.
 `make run-local` will build and run the operator. This step can be replaced with building through your IDE if you need debugging.
 
 If for any reason you need a clean local environment, delete your local kind cluster with `kind delete cluster --name skiperator`
+
+#### NOTE: If istio doesn´t load
+Allocate more memory to docker with colima(or whatever you are running)
+```bash
+colima start --cpu 8 --memory 16 --disk 100
+```
 
 #### Manual setup
 Start a cluster on docker using `kind`.
@@ -45,7 +53,7 @@ $ kind create cluster
 Make sure Kind is the active context
 
 ```
-$ kubectx kind-kind
+$ kubectx kind-skiperator
 ```
 
 Optionally you may create a new namespace for Skiperator, for example
@@ -93,12 +101,14 @@ $ kubectl apply -f samples/ --recursive
 
 To start `skiperator` locally on your computer, you can use the the make target `run-local`
 which will generate CRD's, apply them in your local kind-cluster, build and run skiperator.
-The default `kubectl` context is `kind-kind`. To override, set the env-variable `SKIPERATOR_CONTEXT`
-to the name of the desired context.
+The default `kubectl` context used by the Makefile is `kind-skiperator`. To override, set the
+environment variable `SKIPERATOR_CONTEXT` to the name of the desired context.
 
 ```
 $ make run-local
 ```
+
+> NOTE: If you want to run Skiperator in debug mode, use `make local-webhook` instead of `make run-local`. Then, add the output target directory (e.g., `/tmp/skiperator-webhook-certs.XXXXXX`) as argument: `--webhook-cert-dir=/tmp/skiperator-webhook-certs.XXXXXX --webhook-host=0.0.0.0`
 
 Now you should have a running app in your namespace. Run the following command
 to see all the created resources.

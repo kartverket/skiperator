@@ -9,8 +9,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/kartverket/skiperator/api/v1alpha1/digdirator"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/common/digdirator"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/mitchellh/hashstructure/v2"
 	nais_io_v1 "github.com/nais/liberator/pkg/apis/nais.io/v1"
 	"github.com/nais/liberator/pkg/namegen"
@@ -105,7 +105,7 @@ func GetService(client client.Client, ctx context.Context, namespacedName types.
 
 func ErrIsMissingOrNil(recorder record.EventRecorder, err error, message string, object runtime.Object) bool {
 	if errors.IsNotFound(err) {
-		recorder.Eventf(
+		recorder.Event(
 			object,
 			corev1.EventTypeWarning, "Missing",
 			message,

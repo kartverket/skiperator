@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Secret
 metadata:
-  name: some-cert
+  name: routes-some-cert
   namespace: istio-gateways
 type: kubernetes.io/tls
 data:

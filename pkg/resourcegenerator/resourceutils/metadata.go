@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -91,7 +92,7 @@ func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing)
 }
 
 // TODO Porbably smart to move these SET functions to the controllers or types
-func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1alpha1.SKIPJob) {
+func SetSKIPJobLabels(object client.Object, skipJob *skiperatorv1beta1.SKIPJob) {
 	labels := object.GetLabels()
 	if len(labels) == 0 {
 		labels = make(map[string]string)

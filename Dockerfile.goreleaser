@@ -1,11 +1,12 @@
-FROM golang:1.25.7 AS base
+FROM --platform=$BUILDPLATFORM golang:1.26.3 AS base
 # Needed for ca-certs
 
 FROM scratch
+ARG TARGETPLATFORM
 
 COPY --from=base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy prebuilt binaries for that arch
-COPY skiperator /skiperator
+COPY $TARGETPLATFORM/skiperator /skiperator
 
 USER 65532:65532
 ENTRYPOINT ["/skiperator"]

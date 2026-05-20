@@ -1,4 +1,4 @@
-package v1alpha1
+package common
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,11 +21,10 @@ type SkiperatorStatus struct {
 //
 // +kubebuilder:object:generate=true
 type Status struct {
-	// +kubebuilder:default="Synced"
+	// +kubebuilder:default=Pending
 	Status StatusNames `json:"status"`
-	// +kubebuilder:default="hello"
-	Message string `json:"message"`
-	// +kubebuilder:default="hello"
+	// +kubebuilder:default="Resource accepted by Kubernetes. Waiting for Skiperator to become aware of the resource and start processing."
+	Message   string `json:"message"`
 	TimeStamp string `json:"timestamp"`
 }
 
