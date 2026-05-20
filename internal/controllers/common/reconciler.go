@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kartverket/skiperator/api/v1alpha1"
-	"github.com/kartverket/skiperator/api/v1alpha1/podtypes"
+	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -138,30 +138,30 @@ func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipO
 	return nil
 }
 
-func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj v1alpha1.SKIPObject, err error, message string, reason string) {
+func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj common.SKIPObject, err error, message string, reason string) {
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj v1alpha1.SKIPObject, message string) {
+func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
 	r.updateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj v1alpha1.SKIPObject) {
+func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	key := client.ObjectKeyFromObject(skipObj)
 	desiredStatus := skipObj.GetStatus().DeepCopy()
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		latestObj := skipObj.DeepCopyObject().(v1alpha1.SKIPObject)
+		latestObj := skipObj.DeepCopyObject().(common.SKIPObject)
 		if err := r.GetClient().Get(ctx, key, latestObj); err != nil {
 			return err
 		}
@@ -198,7 +198,7 @@ func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName 
 	return servicePorts, nil
 }
 
-func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj v1alpha1.SKIPObject) {
+func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj common.SKIPObject) {
 	if obj.GetCommonSpec().AccessPolicy == nil {
 		return
 	}
