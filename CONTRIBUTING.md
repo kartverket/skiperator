@@ -108,6 +108,8 @@ environment variable `SKIPERATOR_CONTEXT` to the name of the desired context.
 $ make run-local
 ```
 
+> NOTE: If you want to run Skiperator in debug mode, use `make local-webhook` instead of `make run-local`. Then, add the output target directory (e.g., `/tmp/skiperator-webhook-certs.XXXXXX`) as argument: `--webhook-cert-dir=/tmp/skiperator-webhook-certs.XXXXXX --webhook-host=0.0.0.0`
+
 Now you should have a running app in your namespace. Run the following command
 to see all the created resources.
 
