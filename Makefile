@@ -4,6 +4,7 @@ SHELL = bash
 $(shell mkdir -p bin)
 export OS   := $(shell if [ "$(shell uname)" = "Darwin" ]; then echo "darwin"; else echo "linux"; fi)
 export ARCH := $(shell if [ "$(shell uname -m)" = "x86_64" ]; then echo "amd64"; else echo "arm64"; fi)
+export PATH := $(PATH):$(PWD)/bin
 
 # Extracts the version number for a given dependency found in go.mod.
 # Makes the test setup be in sync with what the operator itself uses.
@@ -11,6 +12,7 @@ extract-version = $(shell cat go.mod | grep $(1) | awk '{$$1=$$1};1' | cut -d' '
 
 #### TOOLS ####
 TOOLS_DIR                          := $(PWD)/.tools
+KUBECTL                            := $(PWD)/bin/kubectl
 KIND                               := $(TOOLS_DIR)/kind
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
@@ -27,13 +29,26 @@ WEBHOOK_HOST                = 0.0.0.0
 WEBHOOK_ARGS                = --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 SKIPJOB_CRD_FILE            ?= config/crd/skiperator.kartverket.no_skipjobs.yaml
 
+.PHONY: ensure-kubectl
+ensure-kubectl:
+	@if command -v kubectl >/dev/null 2>&1; then \
+		:; \
+	else \
+		echo "kubectl not found on PATH, downloading v$(KUBERNETES_VERSION) to $(KUBECTL)"; \
+		mkdir -p $(dir $(KUBECTL)); \
+		tmp_file=$$(mktemp -t kubectl.XXXXXXX); \
+		curl -fL -o "$$tmp_file" https://dl.k8s.io/release/v$(KUBERNETES_VERSION)/bin/$(OS)/$(ARCH)/kubectl; \
+		chmod +x "$$tmp_file"; \
+		mv "$$tmp_file" $(KUBECTL); \
+	fi
+
 .PHONY: generate
 generate:
 	go generate ./...
 	@$(MAKE) patch-skipjob-crd SKIPJOB_CRD_FILE=$(SKIPJOB_CRD_FILE)
 
 .PHONY: patch-skipjob-crd
-patch-skipjob-crd:
+patch-skipjob-crd: ensure-kubectl
 	@tmp_file=$$(mktemp -t skipjob-crd.XXXXXXX); \
 	normalized_file=$$(mktemp -t skipjob-crd-normalized.XXXXXXX); \
 	kubectl kustomize --load-restrictor LoadRestrictionsNone config/crd/skipjob > "$$tmp_file"; \
@@ -66,7 +81,7 @@ setup-local: kind-cluster install-istio install-cert-manager install-prometheus-
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
 
 .PHONY: local-webhook
-local-webhook:
+local-webhook: ensure-kubectl
 	@echo "Extracting webhook certificates for local development..."
 	./hack/extract-webhook-certs.sh $(LOCAL_WEBHOOK_CERTS_DIR) $(SKIPERATOR_CONTEXT)
 	@echo "Setting up webhook service to route to host..."
@@ -90,7 +105,7 @@ kind-cluster: check-kind
 ISTIO_IMAGES = docker.io/istio/proxyv2:$(ISTIO_VERSION) docker.io/istio/pilot:$(ISTIO_VERSION)
 
 .PHONY: install-istio
-install-istio:
+install-istio: ensure-kubectl
 	@echo "Creating istio-gateways namespace..."
 	@kubectl create namespace istio-gateways --context $(SKIPERATOR_CONTEXT) || true
 
@@ -112,7 +127,7 @@ install-istio:
 	@echo "Istio installation complete."
 
 .PHONY: install-cert-manager
-install-cert-manager:
+install-cert-manager: ensure-kubectl
 	# Manually pull and load images into the cluster for local testing
 	@echo "Pulling and loading cert-manager images"
 	@curl -L -s https://github.com/cert-manager/cert-manager/releases/download/v$(CERT_MANAGER_VERSION)/cert-manager.yaml \
@@ -143,18 +158,18 @@ install-cert-manager:
 		done
 
 .PHONY: install-prometheus-crds
-install-prometheus-crds:
+install-prometheus-crds: ensure-kubectl
 	@echo "Installing prometheus crds"
 	@kubectl apply -f https://github.com/prometheus-operator/prometheus-operator/releases/download/v$(PROMETHEUS_VERSION)/stripped-down-crds.yaml --context $(SKIPERATOR_CONTEXT)
 
 .PHONY: install-digdirator-crds
-install-digdirator-crds:
+install-digdirator-crds: ensure-kubectl
 	@echo "Installing digdirator crds"
 	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_idportenclients.yaml --context $(SKIPERATOR_CONTEXT)
 	@kubectl apply -f https://raw.githubusercontent.com/nais/liberator/main/config/crd/bases/nais.io_maskinportenclients.yaml --context $(SKIPERATOR_CONTEXT)
 
 .PHONY: install-skiperator
-install-skiperator: generate
+install-skiperator: generate ensure-kubectl
 	@kubectl create namespace skiperator-system --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl apply -f config/cert-manager --context $(SKIPERATOR_CONTEXT) || true
 	@kubectl kustomize config/crd | kubectl apply -f - --context $(SKIPERATOR_CONTEXT) || true
