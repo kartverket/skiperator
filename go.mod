@@ -18,8 +18,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	istio.io/api v1.29.2
-	istio.io/client-go v1.29.2
+	istio.io/api v1.30.0-rc.0.0.20260508191950-a283232d9647
+	istio.io/client-go v1.30.0
 	k8s.io/api v0.36.1
 	k8s.io/apiextensions-apiserver v0.36.1
 	k8s.io/apimachinery v0.36.1
