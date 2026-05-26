@@ -18,10 +18,11 @@ updates:
         patterns:
           - "k8s.io/*"
     ignore:
-      versions:
-        - ".*-alpha.*"
-        - ".*-beta.*"
-        - ".*-rc.*"
+      - dependency-name: "*"
+        versions:
+          - ".*-alpha.*"
+          - ".*-beta.*"
+          - ".*-rc.*"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
