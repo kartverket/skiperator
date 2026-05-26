@@ -5,8 +5,18 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "08:00"
+      time: "09:00"
       timezone: "Europe/Oslo"
+    groups:
+      nais-apis:
+        patterns:
+          - "github.com/nais/*"
+      istio-io:
+        patterns:
+          - "istio.io/*"
+      k8s-io:
+        patterns:
+          - "k8s.io/*"
     ignore:
       versions:
         - ".*-alpha.*"
