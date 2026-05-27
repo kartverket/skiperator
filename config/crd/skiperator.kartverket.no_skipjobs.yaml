@@ -32,10 +32,13 @@ spec:
     - jsonPath: .status.accessPolicies
       name: AccessPolicies
       type: string
+    deprecated: true
+    deprecationWarning: SKIPJob v1alpha1 is deprecated in favor of v1beta1
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: SKIPJob is the Schema for the skipjobs API
+        description: SKIPJob is the deprecated schema for the SKIPJobs API. Please
+          migrate to v1beta1.
         properties:
           apiVersion:
             description: |-
@@ -1117,7 +1120,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: SKIPJob is the Schema for the skipjobs API
+        description: SKIPJob is the supported schema for the SKIPJobs API.
         properties:
           apiVersion:
             description: |-

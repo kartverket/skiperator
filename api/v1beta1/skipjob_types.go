@@ -35,7 +35,7 @@ type SKIPJobStatus struct {
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
 // +kubebuilder:storageversion
 //
-// SKIPJob is the Schema for the skipjobs API
+// SKIPJob is the supported schema for the SKIPJobs API.
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
