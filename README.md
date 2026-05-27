@@ -184,10 +184,10 @@ spec:
 ## SKIPJob reference
 
 Below you will find a list of all accepted input parameters to the `SKIPJob`
-custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#skipjob)
+custom resource. Use `v1beta1` for new SKIPJobs. Only types are shown here. The fields are documented in the API, see [the API](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#skipjob-1)
 
 ```yaml
-apiVersion: skiperator.kartverket.no/v1alpha1
+apiVersion: skiperator.kartverket.no/v1beta1
 kind: SKIPJob
 metadata:
   namespace: sample
@@ -208,74 +208,73 @@ spec:
     path: /metrics
     port: 8080  
   
-  container:
-    # Pod
-    image: ""
-    command:
-      - ""
-    resources:
-      requests:
-        cpu: 10m
-        memory: 128Mi
-      limits:
-        memory: 256Mi
-    
-    # Networking
-    accessPolicy:
-      inbound:
-        rules:
-          - application: ""
-            namespace: ""
-      outbound:
-        external:
-          - host: ""
-            ip: ""
-            ports:
-              - name: ""
-                port: 10
-                protocol: ""
-    additionalPorts:
-      - name: ""
-        port: 10
-        protocol: ""
-        
-    # Volumes / environment    
-    env:
-      - name: ""
-        value: ""
-    envFrom:
-      - configMap: ""
-      - secret: ""
-    filesFrom:
-      - mountPath: ""
-        # + one of:
-        secret: ""
-        configMap: ""
-        emptyDir: ""
-        persistentVolumeClaim: ""
-      
-    gcp:
-      auth:
-        serviceAccount: ""
+  # Pod
+  image: ""
+  command:
+    - ""
+  resources:
+    requests:
+      cpu: 10m
+      memory: 128Mi
+    limits:
+      memory: 256Mi
 
-    # Probes
-    startup:
-      path: ""
-      port: 0
-      failureThreshold: 0
-      initialDelay: 0
-      period: 0
-      successThreshold: 0
-      timeout: 0
-    # Same as startup
-    liveness:
-      ...
-    readiness:
-      ...
+  # Networking
+  accessPolicy:
+    inbound:
+      rules:
+        - application: ""
+          namespace: ""
+    outbound:
+      external:
+        - host: ""
+          ip: ""
+          ports:
+            - name: ""
+              port: 10
+              protocol: ""
+  additionalPorts:
+    - name: ""
+      port: 10
+      protocol: ""
 
-    # Miscellaneous
-    priority: ""    
-    restartPolicy: ""
+  # Volumes / environment
+  env:
+    - name: ""
+      value: ""
+  envFrom:
+    - configMap: ""
+    - secret: ""
+  filesFrom:
+    - mountPath: ""
+      # + one of:
+      secret: ""
+      configMap: ""
+      emptyDir: ""
+      persistentVolumeClaim: ""
+
+  gcp:
+    auth:
+      serviceAccount: ""
+
+  # Probes
+  startup:
+    path: ""
+    port: 0
+    failureThreshold: 0
+    initialDelay: 0
+    period: 0
+    successThreshold: 0
+    timeout: 0
+  # Same as startup
+  liveness:
+    ...
+  readiness:
+    ...
+
+  # Miscellaneous
+  priority: ""
+  restartPolicy: ""
 ```
 
 ## Routing reference
