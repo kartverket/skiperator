@@ -534,10 +534,6 @@ func (a *Application) FillDefaultsStatus() {
 	if len(a.Status.Conditions) == 0 {
 		a.Status.Conditions = make([]metav1.Condition, 0)
 	}
-
-	if a.Status.ApplicationKind == "" {
-		a.Status.ApplicationKind = a.ExpectedApplicationKind()
-	}
 }
 
 func (a *Application) GetStatus() *SkiperatorStatus {

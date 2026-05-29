@@ -303,29 +303,32 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	r.updateConditions(application)
+	r.updateStatus(application)
 	r.SetSyncedState(ctx, application, "Application has been reconciled")
 
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
+func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {
+	app.Status.Conditions, app.Status.AccessPolicies = getConditions(app)
+	app.Status.ApplicationKind = app.ExpectedApplicationKind()
+}
+
+func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, skiperatorv1alpha1.StatusNames) {
 	var conditions []metav1.Condition
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
-	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
-	} else {
-		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-		app.Status.AccessPolicies = skiperatorv1alpha1.READY
+		return conditions, skiperatorv1alpha1.INVALIDCONFIG
 	}
-
-	app.Status.Conditions = conditions
+	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
+		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+	}
+	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
+	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
+	return conditions, skiperatorv1alpha1.READY
 }
 
 func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {
