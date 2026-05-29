@@ -8,6 +8,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/statefulset"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -54,6 +55,25 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("created service manifest for application", "application", application.Name)
 
 	r.AddResource(&service)
+
+	if application.IsStateful() {
+		// statefulset needs headless service
+		// https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#limitations
+		headless := corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: application.Namespace,
+				Name:      statefulset.HeadlessServiceName(application.Name),
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP:                corev1.ClusterIPNone,
+				Selector:                 util.GetPodAppSelector(application.Name),
+				Ports:                    ports,
+				PublishNotReadyAddresses: true,
+			},
+		}
+		r.AddResource(&headless)
+		ctxLog.Debug("created headless service manifest for stateful application", "application", application.Name)
+	}
 
 	return nil
 }

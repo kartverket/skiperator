@@ -1,0 +1,52 @@
+# spec.stateful=true with no volumeClaimTemplates
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: invalid-stateful-no-vct
+spec:
+  image: image
+  port: 8080
+  stateful: true
+  replicas: 1
+---
+# spec.stateful=true with Recreate strategy
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: invalid-stateful-recreate
+spec:
+  image: image
+  port: 8080
+  stateful: true
+  replicas: 1
+  strategy:
+    type: Recreate
+  volumeClaimTemplates:
+    - name: data
+      mountPath: /data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
+---
+# spec.stateful=true with HPA-range replicas
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: invalid-stateful-hpa
+spec:
+  image: image
+  port: 8080
+  stateful: true
+  replicas:
+    min: 2
+    max: 5
+  volumeClaimTemplates:
+    - name: data
+      mountPath: /data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi

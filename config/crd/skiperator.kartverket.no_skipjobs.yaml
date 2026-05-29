@@ -1005,6 +1005,10 @@ spec:
               accessPolicies:
                 description: Indicates if access policies are valid
                 type: string
+              applicationKind:
+                description: Kind generated for this Application on first reconcile
+                  (Deployment|StatefulSet). Used to detect spec.stateful changes
+                type: string
               conditions:
                 items:
                   description: Condition contains details for one aspect of the current
@@ -2091,6 +2095,10 @@ spec:
             properties:
               accessPolicies:
                 description: Indicates if access policies are valid
+                type: string
+              applicationKind:
+                description: Kind generated for this Application on first reconcile
+                  (Deployment|StatefulSet). Used to detect spec.stateful changes
                 type: string
               conditions:
                 items:

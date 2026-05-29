@@ -62,6 +62,7 @@ func addGVKToList(lists []client.ObjectList, scheme *runtime.Scheme) []unstructu
 func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
 	return addGVKToList([]client.ObjectList{
 		&appsv1.DeploymentList{},
+		&appsv1.StatefulSetList{},
 		&corev1.ServiceList{},
 		&corev1.ConfigMapList{},
 		&istionetworkingv1.ServiceEntryList{},

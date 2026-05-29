@@ -3,12 +3,15 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/common"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // +kubebuilder:object:root=true
@@ -250,6 +253,86 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
 	IstioSettings *IstioSettingsApplication `json:"istioSettings,omitempty"`
+
+	// When true, generates a StatefulSet instead of a Deployment.
+	// Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
+	// This value is immutable - delete and recreate the Application to change
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=false
+	Stateful bool `json:"stateful,omitempty"`
+
+	// Per-pod PersistentVolumeClaims provisioned by the StatefulSet controller.
+	// Each replica gets its own PVC named `<template.metadata.name>-<app>-<ordinal>`.
+	// Only valid when stateful=true
+	//
+	//+kubebuilder:validation:Optional
+	VolumeClaimTemplates []VolumeClaimTemplate `json:"volumeClaimTemplates,omitempty"`
+
+	// Controls pod creation and update order. OrderedReady creates pods one at a time, Parallel creates them simultaneously.
+	// Only valid when stateful=true
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Enum=OrderedReady;Parallel
+	PodManagementPolicy string `json:"podManagementPolicy,omitempty"`
+
+	// Staged rollouts - only pods with ordinal >= Partition are updated.
+	// Set Partition equal to replicas to pause updates.
+	// Only valid when stateful=true
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Minimum=0
+	Partition *int32 `json:"partition,omitempty"`
+
+	// PVC fate when the StatefulSet is deleted. Defaults to Retain.
+	// Only valid when stateful=true
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Enum=Retain;Delete
+	PVCRetentionWhenDeleted string `json:"pvcRetentionWhenDeleted,omitempty"`
+
+	// PVC fate when the StatefulSet is scaled down. Defaults to Retain.
+	// Only valid when stateful=true
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:Enum=Retain;Delete
+	PVCRetentionWhenScaled string `json:"pvcRetentionWhenScaled,omitempty"`
+}
+
+// VolumeClaimTemplate describes a per-pod PersistentVolumeClaim provisioned by the StatefulSet
+// controller. Name serves as both the pod volume reference and the PVC prefix
+//
+// +kubebuilder:object:generate=true
+type VolumeClaimTemplate struct {
+	// Pod volume name and PVC name prefix. Resulting PVCs are named `<name>-<app>-<ordinal>`
+	//
+	//+kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// PVC spec
+	//
+	//+kubebuilder:validation:Required
+	Spec corev1.PersistentVolumeClaimSpec `json:"spec"`
+
+	// Optional labels applied to PVCs
+	//
+	//+kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// Optional annotations applied to PVCs
+	//
+	//+kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// Where the volume is mounted inside the container
+	//
+	//+kubebuilder:validation:Required
+	MountPath string `json:"mountPath"`
+
+	// Subpath within the volume to mount instead of its root
+	//
+	//+kubebuilder:validation:Optional
+	SubPath string `json:"subPath,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -371,16 +454,62 @@ func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
 }
 
 func (a *Application) FillDefaultsSpec() {
-	if a.Spec.Replicas == nil {
-		defaultReplicas := NewDefaultReplicas()
-		defaultReplicas.ApplyDefaultUtilization()
-		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
-	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
-		if replicas.Min > replicas.Max {
-			replicas.Max = replicas.Min
-			a.Spec.Replicas = MarshalledReplicas(replicas)
+	if a.IsStateful() {
+		if a.Spec.Replicas == nil {
+			a.Spec.Replicas = MarshalledReplicas(uint(1))
+		}
+		if a.Spec.PodManagementPolicy == "" {
+			a.Spec.PodManagementPolicy = "OrderedReady"
+		}
+		if a.Spec.PVCRetentionWhenDeleted == "" {
+			a.Spec.PVCRetentionWhenDeleted = "Retain"
+		}
+		if a.Spec.PVCRetentionWhenScaled == "" {
+			a.Spec.PVCRetentionWhenScaled = "Retain"
+		}
+	} else {
+		if a.Spec.Replicas == nil {
+			defaultReplicas := NewDefaultReplicas()
+			defaultReplicas.ApplyDefaultUtilization()
+			a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
+		} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
+			if replicas.Min > replicas.Max {
+				replicas.Max = replicas.Min
+				a.Spec.Replicas = MarshalledReplicas(replicas)
+			}
 		}
 	}
+}
+
+func (a *Application) IsStateful() bool {
+	return a.Spec.Stateful
+}
+
+// ResolvePortNumber resolves an IntOrString port to the numeric string value.
+// Falls back to the input string if the name can't be resolved
+func (a *Application) ResolvePortNumber(port intstr.IntOrString, log logr.Logger) string {
+	if numericPort := port.IntValue(); numericPort > 0 {
+		return fmt.Sprintf("%d", numericPort)
+	}
+	desiredPortName := port.String()
+	if desiredPortName == "main" {
+		return fmt.Sprintf("%d", a.Spec.Port)
+	}
+	for _, p := range a.Spec.AdditionalPorts {
+		if p.Name == desiredPortName {
+			return fmt.Sprintf("%d", p.Port)
+		}
+	}
+	log.Error(errors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
+	return desiredPortName
+}
+
+// ExpectedApplicationKind returns the workload kind that the current spec maps to
+func (a *Application) ExpectedApplicationKind() string {
+	if a.IsStateful() {
+		return common.ApplicationKindStatefulSet
+	}
+	return common.ApplicationKindDeployment
 }
 
 func (a *Application) FillDefaultsStatus() {
@@ -404,6 +533,10 @@ func (a *Application) FillDefaultsStatus() {
 
 	if len(a.Status.Conditions) == 0 {
 		a.Status.Conditions = make([]metav1.Condition, 0)
+	}
+
+	if a.Status.ApplicationKind == "" {
+		a.Status.ApplicationKind = a.ExpectedApplicationKind()
 	}
 }
 

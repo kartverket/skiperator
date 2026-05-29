@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: stateful-change-rejected
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - patch:
+            file: application-patch.yaml
+        - assert:
+            file: invalid-event-assert.yaml

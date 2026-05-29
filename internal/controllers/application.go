@@ -37,6 +37,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/statefulset"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -66,6 +67,7 @@ import (
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
@@ -93,6 +95,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
+		Owns(&appsv1.StatefulSet{}, builder.WithPredicates(common.StatefulSetPredicate)).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&istionetworkingv1.ServiceEntry{}).
@@ -206,6 +209,18 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	if err := validateStatefulUnchanged(application); err != nil {
+		rLog.Error(err, "spec.stateful changed")
+		r.SetErrorState(ctx, application, err, "spec.stateful cannot be changed", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
+	if err := validateApplicationStatefulFields(application); err != nil {
+		rLog.Error(err, "invalid application spec")
+		r.SetErrorState(ctx, application, err, "invalid application spec", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, application)
@@ -244,7 +259,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
-		deployment.Generate,
+	}
+	if application.IsStateful() {
+		funcs = append(funcs, statefulset.Generate)
+	} else {
+		funcs = append(funcs, deployment.Generate)
 	}
 
 	for _, f := range funcs {
@@ -606,4 +625,51 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 	}
 
 	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
+}
+
+// rejects when spec.stateful disagrees with the value recorded on first reconcile (status.applicationKind)
+func validateStatefulUnchanged(app *skiperatorv1alpha1.Application) error {
+	recorded := app.Status.ApplicationKind
+	if recorded == "" {
+		return nil
+	}
+
+	want := app.ExpectedApplicationKind()
+	if recorded != want {
+		return fmt.Errorf("spec.stateful cannot be changed (recorded applicationKind=%q, current spec implies %q) — delete the Application and recreate to change workload kind", recorded, want)
+	}
+
+	return nil
+}
+
+// validates stateful application option fields
+func validateApplicationStatefulFields(app *skiperatorv1alpha1.Application) error {
+	isStsOnlyFieldSet := len(app.Spec.VolumeClaimTemplates) > 0 ||
+		app.Spec.PodManagementPolicy != "" ||
+		app.Spec.Partition != nil ||
+		app.Spec.PVCRetentionWhenDeleted != "" ||
+		app.Spec.PVCRetentionWhenScaled != ""
+
+	if !app.IsStateful() {
+		if isStsOnlyFieldSet {
+			return fmt.Errorf("StatefulSet-only fields (volumeClaimTemplates, podManagementPolicy, partition, pvcRetentionWhenDeleted, pvcRetentionWhenScaled) require spec.stateful=true")
+		}
+		return nil
+	}
+
+	if len(app.Spec.VolumeClaimTemplates) == 0 {
+		return fmt.Errorf("spec.stateful=true requires at least one entry in spec.volumeClaimTemplates")
+	}
+
+	if app.Spec.Strategy.Type == "Recreate" {
+		return fmt.Errorf("spec.strategy.type=Recreate is not supported for stateful workloads")
+	}
+
+	if app.Spec.Replicas != nil {
+		if _, err := skiperatorv1alpha1.GetStaticReplicas(app.Spec.Replicas); err != nil {
+			return fmt.Errorf("spec.replicas must be a static integer when spec.stateful=true (HPA-style min/max is not supported): %w", err)
+		}
+	}
+
+	return nil
 }

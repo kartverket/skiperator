@@ -38,8 +38,28 @@ var DeploymentPredicate = predicate.Funcs{
 		// HPA Should not trigger reconciles
 		// Manually adjusting replicas will no longer trigger reconciles, but this saves us 1 full reconcile
 		newDep.Spec.Replicas = oldDep.Spec.Replicas
-		oldHash := util.GetHashForStructs([]interface{}{&oldDep.Spec, &oldDep.Labels})
-		newHash := util.GetHashForStructs([]interface{}{&newDep.Spec, &newDep.Labels})
+		oldHash := util.GetHashForStructs([]any{&oldDep.Spec, &oldDep.Labels})
+		newHash := util.GetHashForStructs([]any{&newDep.Spec, &newDep.Labels})
+
+		return oldHash != newHash
+	},
+}
+
+var StatefulSetPredicate = predicate.Funcs{
+	UpdateFunc: func(e event.UpdateEvent) bool {
+		if e.ObjectOld == nil || e.ObjectNew == nil {
+			return true
+		}
+
+		oldCopy := e.ObjectOld.DeepCopyObject()
+		newCopy := e.ObjectNew.DeepCopyObject()
+
+		oldSts := oldCopy.(*appsv1.StatefulSet)
+		newSts := newCopy.(*appsv1.StatefulSet)
+
+		newSts.Spec.Replicas = oldSts.Spec.Replicas
+		oldHash := util.GetHashForStructs([]any{&oldSts.Spec, &oldSts.Labels})
+		newHash := util.GetHashForStructs([]any{&newSts.Spec, &newSts.Labels})
 
 		return oldHash != newHash
 	},
