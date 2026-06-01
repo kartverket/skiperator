@@ -98,7 +98,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	var vctTemplates []corev1.PersistentVolumeClaim
-	for _, vct := range application.Spec.VolumeClaimTemplates {
+	for _, vct := range application.Spec.Stateful.VolumeClaimTemplates {
 		vctTemplates = append(vctTemplates, corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        vct.Name,
@@ -179,9 +179,9 @@ func Generate(r reconciliation.Reconciliation) error {
 			Spec:       podTemplate.Spec,
 		},
 		VolumeClaimTemplates:                 vctTemplates,
-		PodManagementPolicy:                  appsv1.PodManagementPolicyType(application.Spec.PodManagementPolicy),
-		UpdateStrategy:                       buildUpdateStrategy(application.Spec.Partition),
-		PersistentVolumeClaimRetentionPolicy: buildPVCRetentionPolicy(application.Spec.PVCRetentionWhenDeleted, application.Spec.PVCRetentionWhenScaled),
+		PodManagementPolicy:                  appsv1.PodManagementPolicyType(application.Spec.Stateful.PodManagementPolicy),
+		UpdateStrategy:                       buildUpdateStrategy(application.Spec.Stateful.Partition),
+		PersistentVolumeClaimRetentionPolicy: buildPVCRetentionPolicy(application.Spec.Stateful.PVCRetentionWhenDeleted, application.Spec.Stateful.PVCRetentionWhenScaled),
 		RevisionHistoryLimit:                 new(int32(2)),
 	}
 

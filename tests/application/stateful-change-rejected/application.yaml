@@ -5,14 +5,15 @@ metadata:
 spec:
   image: image
   port: 8080
-  stateful: true
   replicas: 1
-  volumeClaimTemplates:
-    - name: data
-      mountPath: /data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
+  stateful:
+    enabled: true
+    volumeClaimTemplates:
+      - name: data
+        mountPath: /data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

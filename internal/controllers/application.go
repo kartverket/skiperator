@@ -630,7 +630,7 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
 }
 
-// rejects when spec.stateful disagrees with the value recorded on first reconcile (status.applicationKind)
+// rejects when spec.stateful.enabled disagrees with the value recorded on first reconcile (status.applicationKind)
 func validateStatefulUnchanged(app *skiperatorv1alpha1.Application) error {
 	recorded := app.Status.ApplicationKind
 	if recorded == "" {
@@ -639,7 +639,7 @@ func validateStatefulUnchanged(app *skiperatorv1alpha1.Application) error {
 
 	want := app.ExpectedApplicationKind()
 	if recorded != want {
-		return fmt.Errorf("spec.stateful cannot be changed (recorded applicationKind=%q, current spec implies %q) — delete the Application and recreate to change workload kind", recorded, want)
+		return fmt.Errorf("spec.stateful.enabled cannot be changed (recorded applicationKind=%q, current spec implies %q) — delete the Application and recreate to change workload kind", recorded, want)
 	}
 
 	return nil
@@ -647,21 +647,12 @@ func validateStatefulUnchanged(app *skiperatorv1alpha1.Application) error {
 
 // validates stateful application option fields
 func validateApplicationStatefulFields(app *skiperatorv1alpha1.Application) error {
-	isStsOnlyFieldSet := len(app.Spec.VolumeClaimTemplates) > 0 ||
-		app.Spec.PodManagementPolicy != "" ||
-		app.Spec.Partition != nil ||
-		app.Spec.PVCRetentionWhenDeleted != "" ||
-		app.Spec.PVCRetentionWhenScaled != ""
-
 	if !app.IsStateful() {
-		if isStsOnlyFieldSet {
-			return fmt.Errorf("StatefulSet-only fields (volumeClaimTemplates, podManagementPolicy, partition, pvcRetentionWhenDeleted, pvcRetentionWhenScaled) require spec.stateful=true")
-		}
 		return nil
 	}
 
-	if len(app.Spec.VolumeClaimTemplates) == 0 {
-		return fmt.Errorf("spec.stateful=true requires at least one entry in spec.volumeClaimTemplates")
+	if len(app.Spec.Stateful.VolumeClaimTemplates) == 0 {
+		return fmt.Errorf("spec.stateful.enabled=true requires at least one entry in spec.stateful.volumeClaimTemplates")
 	}
 
 	if app.Spec.Strategy.Type == "Recreate" {
@@ -670,7 +661,7 @@ func validateApplicationStatefulFields(app *skiperatorv1alpha1.Application) erro
 
 	if app.Spec.Replicas != nil {
 		if _, err := skiperatorv1alpha1.GetStaticReplicas(app.Spec.Replicas); err != nil {
-			return fmt.Errorf("spec.replicas must be a static integer when spec.stateful=true (HPA-style min/max is not supported): %w", err)
+			return fmt.Errorf("spec.replicas must be a static integer when spec.stateful.enabled=true (HPA-style min/max is not supported): %w", err)
 		}
 	}
 

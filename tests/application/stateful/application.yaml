@@ -5,18 +5,19 @@ metadata:
 spec:
   image: image
   port: 8080
-  stateful: true
   replicas: 2
-  podManagementPolicy: Parallel
-  partition: 0
-  pvcRetentionWhenDeleted: Delete
-  pvcRetentionWhenScaled: Retain
-  volumeClaimTemplates:
-    - name: data
-      mountPath: /data
-      spec:
-        accessModes:
-          - ReadWriteOnce
-        resources:
-          requests:
-            storage: 1Gi
+  stateful:
+    enabled: true
+    podManagementPolicy: Parallel
+    partition: 0
+    pvcRetentionWhenDeleted: Delete
+    pvcRetentionWhenScaled: Retain
+    volumeClaimTemplates:
+      - name: data
+        mountPath: /data
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 1Gi

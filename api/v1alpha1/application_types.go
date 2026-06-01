@@ -254,85 +254,12 @@ type ApplicationSpec struct {
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
 	IstioSettings *IstioSettingsApplication `json:"istioSettings,omitempty"`
 
-	// When true, generates a StatefulSet instead of a Deployment.
+	// Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.
 	// Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
-	// This value is immutable - delete and recreate the Application to change
+	// The enabled flag is immutable - delete and recreate the Application to change.
 	//
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=false
-	Stateful bool `json:"stateful,omitempty"`
-
-	// Per-pod PersistentVolumeClaims provisioned by the StatefulSet controller.
-	// Each replica gets its own PVC named `<template.metadata.name>-<app>-<ordinal>`.
-	// Only valid when stateful=true
-	//
-	//+kubebuilder:validation:Optional
-	VolumeClaimTemplates []VolumeClaimTemplate `json:"volumeClaimTemplates,omitempty"`
-
-	// Controls pod creation and update order. OrderedReady creates pods one at a time, Parallel creates them simultaneously.
-	// Only valid when stateful=true
-	//
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Enum=OrderedReady;Parallel
-	PodManagementPolicy string `json:"podManagementPolicy,omitempty"`
-
-	// Staged rollouts - only pods with ordinal >= Partition are updated.
-	// Set Partition equal to replicas to pause updates.
-	// Only valid when stateful=true
-	//
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Minimum=0
-	Partition *int32 `json:"partition,omitempty"`
-
-	// PVC fate when the StatefulSet is deleted. Defaults to Retain.
-	// Only valid when stateful=true
-	//
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Enum=Retain;Delete
-	PVCRetentionWhenDeleted string `json:"pvcRetentionWhenDeleted,omitempty"`
-
-	// PVC fate when the StatefulSet is scaled down. Defaults to Retain.
-	// Only valid when stateful=true
-	//
-	//+kubebuilder:validation:Optional
-	//+kubebuilder:validation:Enum=Retain;Delete
-	PVCRetentionWhenScaled string `json:"pvcRetentionWhenScaled,omitempty"`
-}
-
-// VolumeClaimTemplate describes a per-pod PersistentVolumeClaim provisioned by the StatefulSet
-// controller. Name serves as both the pod volume reference and the PVC prefix
-//
-// +kubebuilder:object:generate=true
-type VolumeClaimTemplate struct {
-	// Pod volume name and PVC name prefix. Resulting PVCs are named `<name>-<app>-<ordinal>`
-	//
-	//+kubebuilder:validation:Required
-	Name string `json:"name"`
-
-	// PVC spec
-	//
-	//+kubebuilder:validation:Required
-	Spec corev1.PersistentVolumeClaimSpec `json:"spec"`
-
-	// Optional labels applied to PVCs
-	//
-	//+kubebuilder:validation:Optional
-	Labels map[string]string `json:"labels,omitempty"`
-
-	// Optional annotations applied to PVCs
-	//
-	//+kubebuilder:validation:Optional
-	Annotations map[string]string `json:"annotations,omitempty"`
-
-	// Where the volume is mounted inside the container
-	//
-	//+kubebuilder:validation:Required
-	MountPath string `json:"mountPath"`
-
-	// Subpath within the volume to mount instead of its root
-	//
-	//+kubebuilder:validation:Optional
-	SubPath string `json:"subPath,omitempty"`
+	Stateful *StatefulSpec `json:"stateful,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -458,14 +385,14 @@ func (a *Application) FillDefaultsSpec() {
 		if a.Spec.Replicas == nil {
 			a.Spec.Replicas = MarshalledReplicas(uint(1))
 		}
-		if a.Spec.PodManagementPolicy == "" {
-			a.Spec.PodManagementPolicy = "OrderedReady"
+		if a.Spec.Stateful.PodManagementPolicy == "" {
+			a.Spec.Stateful.PodManagementPolicy = "OrderedReady"
 		}
-		if a.Spec.PVCRetentionWhenDeleted == "" {
-			a.Spec.PVCRetentionWhenDeleted = "Retain"
+		if a.Spec.Stateful.PVCRetentionWhenDeleted == "" {
+			a.Spec.Stateful.PVCRetentionWhenDeleted = "Retain"
 		}
-		if a.Spec.PVCRetentionWhenScaled == "" {
-			a.Spec.PVCRetentionWhenScaled = "Retain"
+		if a.Spec.Stateful.PVCRetentionWhenScaled == "" {
+			a.Spec.Stateful.PVCRetentionWhenScaled = "Retain"
 		}
 	} else {
 		if a.Spec.Replicas == nil {
@@ -482,7 +409,7 @@ func (a *Application) FillDefaultsSpec() {
 }
 
 func (a *Application) IsStateful() bool {
-	return a.Spec.Stateful
+	return a.Spec.Stateful != nil && a.Spec.Stateful.Enabled
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.
