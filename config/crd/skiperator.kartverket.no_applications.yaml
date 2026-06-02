@@ -1424,37 +1424,32 @@ spec:
                     default: false
                     description: |-
                       When true, generates a StatefulSet instead of a Deployment.
-                      Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
                       This value is immutable - delete and recreate the Application to change
                     type: boolean
                   partition:
                     description: |-
                       Staged rollouts - only pods with ordinal >= Partition are updated.
                       Set Partition equal to replicas to pause updates.
-                      Only valid when enabled=true
                     format: int32
                     minimum: 0
                     type: integer
                   podManagementPolicy:
-                    description: |-
-                      Controls pod creation and update order. OrderedReady creates pods one at a time, Parallel creates them simultaneously.
-                      Only valid when enabled=true
+                    description: Controls pod creation and update order. OrderedReady
+                      creates pods one at a time, Parallel creates them simultaneously.
                     enum:
                     - OrderedReady
                     - Parallel
                     type: string
                   pvcRetentionWhenDeleted:
-                    description: |-
-                      PVC fate when the StatefulSet is deleted. Defaults to Retain.
-                      Only valid when enabled=true
+                    description: PVC fate when the StatefulSet is deleted. Defaults
+                      to Retain.
                     enum:
                     - Retain
                     - Delete
                     type: string
                   pvcRetentionWhenScaled:
-                    description: |-
-                      PVC fate when the StatefulSet is scaled down. Defaults to Retain.
-                      Only valid when enabled=true
+                    description: PVC fate when the StatefulSet is scaled down. Defaults
+                      to Retain.
                     enum:
                     - Retain
                     - Delete
@@ -1463,7 +1458,6 @@ spec:
                     description: |-
                       Per-pod PersistentVolumeClaims provisioned by the StatefulSet controller.
                       Each replica gets its own PVC named `<template.metadata.name>-<app>-<ordinal>`.
-                      Only valid when enabled=true
                     items:
                       description: |-
                         VolumeClaimTemplate describes a per-pod PersistentVolumeClaim provisioned by the StatefulSet
