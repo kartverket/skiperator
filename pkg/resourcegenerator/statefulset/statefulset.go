@@ -185,8 +185,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		RevisionHistoryLimit:                 new(int32(2)),
 	}
 
-	replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas)
-	if err == nil {
+	if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
 		sts.Spec.Replicas = new(int32(replicas))
 	} else {
 		return &reconciliation.SubResourceError{Message: "Failed to get replicas from application spec (stateful workloads require static replicas)", WrapErr: err, Reason: reconciliation.InternalError}
