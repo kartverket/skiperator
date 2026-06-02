@@ -23,6 +23,9 @@ spec:
     - jsonPath: .status.accessPolicies
       name: AccessPolicies
       type: string
+    - jsonPath: .status.applicationKind
+      name: WorkloadType
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -1722,17 +1725,16 @@ spec:
             - port
             type: object
           status:
-            description: |-
-              SkiperatorStatus
-
-              A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
+            description: ApplicationStatus is a specialized status specific to the
+              Application kind.
             properties:
               accessPolicies:
                 description: Indicates if access policies are valid
                 type: string
               applicationKind:
-                description: Kind generated for this Application on first reconcile
-                  (Deployment|StatefulSet). Used to detect spec.stateful changes
+                description: |-
+                  Kind generated for this Application after a successful reconcile.
+                  Used to prevent switching between Deployment and StatefulSet.
                 type: string
               conditions:
                 items:

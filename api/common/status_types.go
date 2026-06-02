@@ -5,12 +5,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Kind values for the workload skiperator generates for an Application
-const (
-	ApplicationKindDeployment  = "Deployment"
-	ApplicationKindStatefulSet = "StatefulSet"
-)
-
 // SkiperatorStatus
 //
 // A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
@@ -21,8 +15,6 @@ type SkiperatorStatus struct {
 	Conditions   []metav1.Condition `json:"conditions"`
 	// Indicates if access policies are valid
 	AccessPolicies StatusNames `json:"accessPolicies"`
-	// Kind generated for this Application on first reconcile (Deployment|StatefulSet). Used to detect spec.stateful changes
-	ApplicationKind string `json:"applicationKind,omitempty"`
 }
 
 // Status

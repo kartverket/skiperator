@@ -55,6 +55,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -303,10 +304,34 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	r.updateStatus(application)
-	r.SetSyncedState(ctx, application, "Application has been reconciled")
+	r.setSyncedApplicationState(ctx, application, "Application has been reconciled")
 
 	return common.DoNotRequeue()
+}
+
+func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string) {
+	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
+	app.GetStatus().SetSummarySynced()
+	r.updateStatus(app)
+	r.updateApplicationStatus(ctx, app)
+}
+
+func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app *skiperatorv1alpha1.Application) {
+	key := client.ObjectKeyFromObject(app)
+	desiredStatus := app.Status.DeepCopy()
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latestApp := &skiperatorv1alpha1.Application{}
+		if err := r.GetClient().Get(ctx, key, latestApp); err != nil {
+			return err
+		}
+		latestApp.Status = *desiredStatus
+		return r.GetClient().Status().Update(ctx, latestApp)
+	})
+
+	if err != nil {
+		r.Logger.Error(err, "failed to update status", "name", key.Name, "namespace", key.Namespace, "kind", app.GetObjectKind().GroupVersionKind().Kind)
+	}
 }
 
 func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {

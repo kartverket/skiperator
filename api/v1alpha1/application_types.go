@@ -14,6 +14,24 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+type ApplicationKind string
+
+// Kind values for the workload skiperator generates for an Application
+const (
+	ApplicationKindDeployment  ApplicationKind = "Deployment"
+	ApplicationKindStatefulSet ApplicationKind = "StatefulSet"
+)
+
+// ApplicationStatus is a specialized status specific to the Application kind.
+//
+// +kubebuilder:object:generate=true
+type ApplicationStatus struct {
+	SkiperatorStatus `json:",inline"`
+	// Kind generated for this Application after a successful reconcile.
+	// Used to prevent switching between Deployment and StatefulSet.
+	ApplicationKind ApplicationKind `json:"applicationKind,omitempty"`
+}
+
 // +kubebuilder:object:root=true
 type ApplicationList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -32,12 +50,13 @@ type ApplicationList struct {
 // +kubebuilder:resource:shortName="app"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ApplicationSpec  `json:"spec,omitempty"`
-	Status SkiperatorStatus `json:"status,omitempty"`
+	Spec   ApplicationSpec   `json:"spec,omitempty"`
+	Status ApplicationStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
@@ -432,26 +451,20 @@ func (a *Application) ResolvePortNumber(port intstr.IntOrString, log logr.Logger
 }
 
 // ExpectedApplicationKind returns the workload kind that the current spec maps to
-func (a *Application) ExpectedApplicationKind() string {
+func (a *Application) ExpectedApplicationKind() ApplicationKind {
 	if a.IsStateful() {
-		return common.ApplicationKindStatefulSet
+		return ApplicationKindStatefulSet
 	}
-	return common.ApplicationKindDeployment
+	return ApplicationKindDeployment
 }
 
 func (a *Application) FillDefaultsStatus() {
-	var msg string
-
 	if a.Status.Summary.Status == "" {
-		msg = "Default Application status, it has not initialized yet"
-	} else {
-		msg = "Application is trying to reconcile"
-	}
-
-	a.Status.Summary = Status{
-		Status:    PENDING,
-		Message:   msg,
-		TimeStamp: time.Now().String(),
+		a.Status.Summary = Status{
+			Status:    PENDING,
+			Message:   "Default Application status, it has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
 	}
 
 	if a.Status.SubResources == nil {
@@ -464,11 +477,11 @@ func (a *Application) FillDefaultsStatus() {
 }
 
 func (a *Application) GetStatus() *SkiperatorStatus {
-	return &a.Status
+	return &a.Status.SkiperatorStatus
 }
 
 func (a *Application) SetStatus(status SkiperatorStatus) {
-	a.Status = status
+	a.Status.SkiperatorStatus = status
 }
 
 // TODO clean up labels
