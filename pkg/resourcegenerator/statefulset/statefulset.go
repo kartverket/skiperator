@@ -19,13 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
-	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
-	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
-
-	HeadlessServiceSuffix = "-headless"
-)
+const HeadlessServiceSuffix = "-headless"
 
 func HeadlessServiceName(appName string) string {
 	return appName + HeadlessServiceSuffix
@@ -79,7 +73,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorIDportenMountPath,
+			volume.DefaultDigdiratorIDportenMountPath,
 		)
 	}
 
@@ -93,7 +87,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorMaskinportenMountPath,
+			volume.DefaultDigdiratorMaskinportenMountPath,
 		)
 	}
 
@@ -197,7 +191,7 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	ingresses := application.Spec.Ingresses
 	if len(ingresses) > 0 {
-		sts.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		sts.Annotations[resourceutils.AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
 	if !podOpts.LocalBuiltImages {

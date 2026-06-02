@@ -22,12 +22,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-const (
-	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
-	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
-	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
-)
-
 // TODO should clean up
 func Generate(r reconciliation.Reconciliation) error {
 	ctxLog := r.GetLogger()
@@ -80,7 +74,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorIDportenMountPath,
+			volume.DefaultDigdiratorIDportenMountPath,
 		)
 	}
 
@@ -95,7 +89,7 @@ func Generate(r reconciliation.Reconciliation) error {
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorMaskinportenMountPath,
+			volume.DefaultDigdiratorMaskinportenMountPath,
 		)
 	}
 
@@ -209,7 +203,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if len(ingresses) > 0 {
-		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		deployment.Annotations[resourceutils.AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
 	if !podOpts.LocalBuiltImages {

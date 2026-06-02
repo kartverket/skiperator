@@ -16,6 +16,8 @@ var (
 		// https://argo-cd.readthedocs.io/en/stable/user-guide/sync-options/#no-prune-resources
 		"argocd.argoproj.io/sync-options": "Prune=false",
 	}
+
+	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
 )
 
 func SetCommonAnnotations(object client.Object) {
