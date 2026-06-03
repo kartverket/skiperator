@@ -1718,6 +1718,11 @@ spec:
             - image
             - port
             type: object
+            x-kubernetes-validations:
+            - message: spec.stateful.enabled is immutable. Delete and recreate the
+                Application to change workload kind.
+              rule: '(has(oldSelf.stateful) ? oldSelf.stateful.enabled : false) ==
+                (has(self.stateful) ? self.stateful.enabled : false)'
           status:
             description: ApplicationStatus is a specialized status specific to the
               Application kind.

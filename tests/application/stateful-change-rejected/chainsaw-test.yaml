@@ -15,5 +15,9 @@ spec:
     - try:
         - patch:
             file: application-patch.yaml
-        - assert:
-            file: invalid-event-assert.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  ($error != null): true

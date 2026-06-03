@@ -60,6 +60,7 @@ type Application struct {
 }
 
 // +kubebuilder:object:generate=true
+// +kubebuilder:validation:XValidation:rule="(has(oldSelf.stateful) ? oldSelf.stateful.enabled : false) == (has(self.stateful) ? self.stateful.enabled : false)", message="spec.stateful.enabled is immutable. Delete and recreate the Application to change workload kind."
 type ApplicationSpec struct {
 	// The image the application will run. This image will be added to a Deployment resource
 	//
