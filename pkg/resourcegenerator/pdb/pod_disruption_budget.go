@@ -46,15 +46,29 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	// Otherwise, use the enablePDB logic as before
 	if application.Spec.EnablePDB != nil && *application.Spec.EnablePDB {
-		pdb.Spec = policyv1.PodDisruptionBudgetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: util.GetPodAppSelector(application.Name),
-			},
-			MinAvailable: determineMinAvailable(minReplicas),
+		if application.IsStateful() {
+			if minReplicas < 2 {
+				ctxLog.Info("Skipping PDB for stateful application with <2 replicas", "application", application.Name)
+				return nil
+			}
+			pdb.Spec = policyv1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: util.GetPodAppSelector(application.Name),
+				},
+				// maxUnavailable=1, only replace one at a time
+				MaxUnavailable: new(intstr.FromInt32(1)),
+			}
+		} else {
+			pdb.Spec = policyv1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: util.GetPodAppSelector(application.Name),
+				},
+				MinAvailable: determineMinAvailable(minReplicas),
+			}
 		}
 
 		if k8sfeatures.EnhancedPDBAvailable() {
-			pdb.Spec.UnhealthyPodEvictionPolicy = util.PointTo(policyv1.AlwaysAllow)
+			pdb.Spec.UnhealthyPodEvictionPolicy = new(policyv1.AlwaysAllow)
 		}
 		r.AddResource(&pdb)
 	}

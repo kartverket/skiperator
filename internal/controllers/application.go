@@ -37,6 +37,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/service"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/serviceaccount"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/statefulset"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -54,6 +55,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -66,6 +68,7 @@ import (
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
@@ -93,6 +96,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
+		Owns(&appsv1.StatefulSet{}, builder.WithPredicates(common.StatefulSetPredicate)).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&istionetworkingv1.ServiceEntry{}).
@@ -206,6 +210,18 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	if err := validateStatefulUnchanged(application); err != nil {
+		rLog.Error(err, "spec.stateful changed")
+		r.SetErrorState(ctx, application, err, "spec.stateful cannot be changed", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
+	if err := validateApplicationStatefulFields(application); err != nil {
+		rLog.Error(err, "invalid application spec")
+		r.SetErrorState(ctx, application, err, "invalid application spec", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, application)
@@ -244,7 +260,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		prometheus.Generate,
 		idporten.Generate,
 		maskinporten.Generate,
-		deployment.Generate,
+	}
+	if application.IsStateful() {
+		funcs = append(funcs, statefulset.Generate)
+	} else {
+		funcs = append(funcs, deployment.Generate)
 	}
 
 	for _, f := range funcs {
@@ -284,29 +304,56 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	r.updateConditions(application)
-	r.SetSyncedState(ctx, application, "Application has been reconciled")
+	r.setSyncedApplicationState(ctx, application, "Application has been reconciled")
 
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) updateConditions(app *skiperatorv1alpha1.Application) {
+func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string) {
+	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
+	app.GetStatus().SetSummarySynced()
+	r.updateStatus(app)
+	r.updateApplicationStatus(ctx, app)
+}
+
+func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app *skiperatorv1alpha1.Application) {
+	key := client.ObjectKeyFromObject(app)
+	desiredStatus := app.Status.DeepCopy()
+
+	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		latestApp := &skiperatorv1alpha1.Application{}
+		if err := r.GetClient().Get(ctx, key, latestApp); err != nil {
+			return err
+		}
+		latestApp.Status = *desiredStatus
+		return r.GetClient().Status().Update(ctx, latestApp)
+	})
+
+	if err != nil {
+		r.Logger.Error(err, "failed to update status", "name", key.Name, "namespace", key.Namespace, "kind", app.GetObjectKind().GroupVersionKind().Kind)
+	}
+}
+
+func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {
+	app.Status.Conditions, app.Status.AccessPolicies = getConditions(app)
+	app.Status.ApplicationKind = app.ExpectedApplicationKind()
+}
+
+func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, skiperatorv1alpha1.StatusNames) {
 	var conditions []metav1.Condition
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
-	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		app.Status.AccessPolicies = skiperatorv1alpha1.INVALIDCONFIG
-	} else {
-		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-		app.Status.AccessPolicies = skiperatorv1alpha1.READY
+		return conditions, skiperatorv1alpha1.INVALIDCONFIG
 	}
-
-	app.Status.Conditions = conditions
+	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
+		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+	}
+	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
+	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
+	return conditions, skiperatorv1alpha1.READY
 }
 
 func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {
@@ -606,4 +653,42 @@ func (r *ApplicationReconciler) getDigdiratorSecretName(ctx context.Context, dig
 	}
 
 	return nil, fmt.Errorf("digdirator client doesn't exist: %s", namespacedName)
+}
+
+// rejects when spec.stateful.enabled disagrees with the value recorded on first reconcile (status.applicationKind)
+func validateStatefulUnchanged(app *skiperatorv1alpha1.Application) error {
+	recorded := app.Status.ApplicationKind
+	if recorded == "" {
+		return nil
+	}
+
+	want := app.ExpectedApplicationKind()
+	if recorded != want {
+		return fmt.Errorf("spec.stateful.enabled cannot be changed (recorded applicationKind=%q, current spec implies %q) — delete the Application and recreate to change workload kind", recorded, want)
+	}
+
+	return nil
+}
+
+// validates stateful application option fields
+func validateApplicationStatefulFields(app *skiperatorv1alpha1.Application) error {
+	if !app.IsStateful() {
+		return nil
+	}
+
+	if len(app.Spec.Stateful.VolumeClaimTemplates) == 0 {
+		return fmt.Errorf("spec.stateful.enabled=true requires at least one entry in spec.stateful.volumeClaimTemplates")
+	}
+
+	if app.Spec.Strategy.Type == "Recreate" {
+		return fmt.Errorf("spec.strategy.type=Recreate is not supported for stateful workloads")
+	}
+
+	if app.Spec.Replicas != nil {
+		if _, err := skiperatorv1alpha1.GetStaticReplicas(app.Spec.Replicas); err != nil {
+			return fmt.Errorf("spec.replicas must be a static integer when spec.stateful.enabled=true (HPA-style min/max is not supported): %w", err)
+		}
+	}
+
+	return nil
 }

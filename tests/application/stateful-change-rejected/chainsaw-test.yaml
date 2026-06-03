@@ -1,0 +1,23 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: stateful-change-rejected
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - patch:
+            file: application-patch.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  ($error != null): true

@@ -3,13 +3,34 @@ package v1alpha1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/common"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+type ApplicationKind string
+
+// Kind values for the workload skiperator generates for an Application
+const (
+	ApplicationKindDeployment  ApplicationKind = "Deployment"
+	ApplicationKindStatefulSet ApplicationKind = "StatefulSet"
+)
+
+// ApplicationStatus is a specialized status specific to the Application kind.
+//
+// +kubebuilder:object:generate=true
+type ApplicationStatus struct {
+	SkiperatorStatus `json:",inline"`
+	// Kind generated for this Application after a successful reconcile.
+	// Used to prevent switching between Deployment and StatefulSet.
+	ApplicationKind ApplicationKind `json:"applicationKind,omitempty"`
+}
 
 // +kubebuilder:object:root=true
 type ApplicationList struct {
@@ -29,15 +50,17 @@ type ApplicationList struct {
 // +kubebuilder:resource:shortName="app"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ApplicationSpec  `json:"spec,omitempty"`
-	Status SkiperatorStatus `json:"status,omitempty"`
+	Spec   ApplicationSpec   `json:"spec,omitempty"`
+	Status ApplicationStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:generate=true
+// +kubebuilder:validation:XValidation:rule="(has(oldSelf.stateful) ? oldSelf.stateful.enabled : false) == (has(self.stateful) ? self.stateful.enabled : false)", message="spec.stateful.enabled is immutable. Delete and recreate the Application to change workload kind."
 type ApplicationSpec struct {
 	// The image the application will run. This image will be added to a Deployment resource
 	//
@@ -250,6 +273,13 @@ type ApplicationSpec struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:={telemetry: {tracing: {{randomSamplingPercentage: 10}}}}
 	IstioSettings *IstioSettingsApplication `json:"istioSettings,omitempty"`
+
+	// Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.
+	// Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
+	// The enabled flag is immutable - delete and recreate the Application to change.
+	//
+	//+kubebuilder:validation:Optional
+	Stateful *StatefulSpec `json:"stateful,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -371,31 +401,71 @@ func IsHPAEnabled(jsonReplicas *apiextensionsv1.JSON) bool {
 }
 
 func (a *Application) FillDefaultsSpec() {
-	if a.Spec.Replicas == nil {
-		defaultReplicas := NewDefaultReplicas()
-		defaultReplicas.ApplyDefaultUtilization()
-		a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
-	} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
-		if replicas.Min > replicas.Max {
-			replicas.Max = replicas.Min
-			a.Spec.Replicas = MarshalledReplicas(replicas)
+	if a.IsStateful() {
+		if a.Spec.Replicas == nil {
+			a.Spec.Replicas = MarshalledReplicas(uint(1))
+		}
+		if a.Spec.Stateful.PodManagementPolicy == "" {
+			a.Spec.Stateful.PodManagementPolicy = "OrderedReady"
+		}
+		if a.Spec.Stateful.PVCRetentionWhenDeleted == "" {
+			a.Spec.Stateful.PVCRetentionWhenDeleted = "Retain"
+		}
+		if a.Spec.Stateful.PVCRetentionWhenScaled == "" {
+			a.Spec.Stateful.PVCRetentionWhenScaled = "Retain"
+		}
+	} else {
+		if a.Spec.Replicas == nil {
+			defaultReplicas := NewDefaultReplicas()
+			defaultReplicas.ApplyDefaultUtilization()
+			a.Spec.Replicas = MarshalledReplicas(defaultReplicas)
+		} else if replicas, err := GetScalingReplicas(a.Spec.Replicas); err == nil {
+			if replicas.Min > replicas.Max {
+				replicas.Max = replicas.Min
+				a.Spec.Replicas = MarshalledReplicas(replicas)
+			}
 		}
 	}
 }
 
-func (a *Application) FillDefaultsStatus() {
-	var msg string
+func (a *Application) IsStateful() bool {
+	return a.Spec.Stateful != nil && a.Spec.Stateful.Enabled
+}
 
-	if a.Status.Summary.Status == "" {
-		msg = "Default Application status, it has not initialized yet"
-	} else {
-		msg = "Application is trying to reconcile"
+// ResolvePortNumber resolves an IntOrString port to the numeric string value.
+// Falls back to the input string if the name can't be resolved
+func (a *Application) ResolvePortNumber(port intstr.IntOrString, log logr.Logger) string {
+	if numericPort := port.IntValue(); numericPort > 0 {
+		return fmt.Sprintf("%d", numericPort)
 	}
+	desiredPortName := port.String()
+	if desiredPortName == "main" {
+		return fmt.Sprintf("%d", a.Spec.Port)
+	}
+	for _, p := range a.Spec.AdditionalPorts {
+		if p.Name == desiredPortName {
+			return fmt.Sprintf("%d", p.Port)
+		}
+	}
+	log.Error(errors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
+	return desiredPortName
+}
 
-	a.Status.Summary = Status{
-		Status:    PENDING,
-		Message:   msg,
-		TimeStamp: time.Now().String(),
+// ExpectedApplicationKind returns the workload kind that the current spec maps to
+func (a *Application) ExpectedApplicationKind() ApplicationKind {
+	if a.IsStateful() {
+		return ApplicationKindStatefulSet
+	}
+	return ApplicationKindDeployment
+}
+
+func (a *Application) FillDefaultsStatus() {
+	if a.Status.Summary.Status == "" {
+		a.Status.Summary = Status{
+			Status:    PENDING,
+			Message:   "Default Application status, it has not initialized yet",
+			TimeStamp: time.Now().String(),
+		}
 	}
 
 	if a.Status.SubResources == nil {
@@ -408,11 +478,11 @@ func (a *Application) FillDefaultsStatus() {
 }
 
 func (a *Application) GetStatus() *SkiperatorStatus {
-	return &a.Status
+	return &a.Status.SkiperatorStatus
 }
 
 func (a *Application) SetStatus(status SkiperatorStatus) {
-	a.Status = status
+	a.Status.SkiperatorStatus = status
 }
 
 // TODO clean up labels
