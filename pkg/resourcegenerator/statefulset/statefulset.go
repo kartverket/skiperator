@@ -19,10 +19,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const HeadlessServiceSuffix = "-headless"
+const headlessServiceSuffix = "-headless"
 
 func HeadlessServiceName(appName string) string {
-	return appName + HeadlessServiceSuffix
+	return appName + headlessServiceSuffix
 }
 
 func Generate(r reconciliation.Reconciliation) error {
