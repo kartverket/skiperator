@@ -78,7 +78,7 @@ Resource types in this package:
         <td><b>{{ if .TypeKey }}<a href="#{{ .TypeKey }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}</b></td>
         <td>{{ .Type }}</td>
         <td>
-          {{ .Description }}<br/>
+          {{ .Description | html | replace "\n" "<br/>" }}<br/>
           {{- if or .Schema.Format .Schema.Enum .Schema.Default .Schema.Minimum .Schema.Maximum }}
           <br/>
           {{- end }}
