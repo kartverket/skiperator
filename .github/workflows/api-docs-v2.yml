@@ -26,12 +26,14 @@ jobs:
           cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
           sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
           rm -rf crdoc-resources
+  
+  update-docs:
+    needs: run-crdoc
+    uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
 
-      - name: Update documentation in target repository
-        uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
-        with:
-          source_path: "api-docs.md"
-          target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
-          branch_name: "update-skiperator-docs-branch"
-          author_name: "GithubActions <skiperator@kartverket.no>"
-          identity: "skiperator"
+    with:
+      source_path: "api-docs.md"
+      target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
+      branch_name: "update-skiperator-docs-branch"
+      author_name: "GithubActions <skiperator@kartverket.no>"
+      identity: "skiperator"
