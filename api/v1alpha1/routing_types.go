@@ -38,6 +38,7 @@ type Routing struct {
 
 // +kubebuilder:object:generate=true
 // +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || self.routingProvider == 'Standard'",message="spec.ownership=Shared requires spec.routingProvider=Standard"
+// +kubebuilder:validation:XValidation:rule="self.hostname == oldSelf.hostname",message="spec.hostname is immutable"
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`
@@ -82,6 +83,8 @@ type Route struct {
 	//+kubebuilder:validation:Required
 	TargetApp string `json:"targetApp"`
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength=1
+	//+kubebuilder:validation:Pattern=`^\/`
 	PathPrefix string `json:"pathPrefix"`
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false

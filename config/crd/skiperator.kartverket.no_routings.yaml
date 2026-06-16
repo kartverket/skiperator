@@ -67,6 +67,8 @@ spec:
                 items:
                   properties:
                     pathPrefix:
+                      minLength: 1
+                      pattern: ^\/
                       type: string
                     port:
                       format: int32
@@ -98,6 +100,8 @@ spec:
             - message: spec.ownership=Shared requires spec.routingProvider=Standard
               rule: '!has(self.ownership) || self.ownership != ''Shared'' || self.routingProvider
                 == ''Standard'''
+            - message: spec.hostname is immutable
+              rule: self.hostname == oldSelf.hostname
           status:
             description: |-
               SkiperatorStatus
