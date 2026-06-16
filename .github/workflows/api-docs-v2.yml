@@ -29,6 +29,7 @@ jobs:
   
   update-docs:
     needs: run-crdoc
+    permissions: {}
     uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
 
     with:
