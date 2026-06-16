@@ -95,9 +95,9 @@ spec:
             - routes
             type: object
             x-kubernetes-validations:
-            - message: spec.ownership=Shared requires spec.routingProvider=standard
+            - message: spec.ownership=Shared requires spec.routingProvider=Standard
               rule: '!has(self.ownership) || self.ownership != ''Shared'' || self.routingProvider
-                == ''standard'''
+                == ''Standard'''
           status:
             description: |-
               SkiperatorStatus

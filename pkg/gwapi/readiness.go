@@ -7,7 +7,6 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/kartverket/skiperator/api/common"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -38,13 +37,22 @@ type routeCheck struct {
 	Name      string
 }
 
-type standardRoutingPlan struct {
+// planInput is the per-kind data a planner supplies to build a readinessPlan.
+type planInput struct {
 	namespace       string
 	routeBaseName   string
 	redirectToHTTPS bool
 	hosts           common.HostCollection
 	certificateName func(*common.Host) (string, error)
 	sharedRouting   bool
+}
+
+// readinessPlan is the fully-resolved set of probe targets for one routable.
+// It is produced purely (no cluster I/O) by buildReadinessPlan and consumed by
+// observeReadiness, which performs the actual reads.
+type readinessPlan struct {
+	hosts  []standardHost
+	routes []routeCheck
 }
 
 // legacyRoutingExists reports whether legacy Istio routing resources are
@@ -93,82 +101,43 @@ func legacyResourceExists(ctx context.Context, c client.Client, key types.Namesp
 	return true, nil
 }
 
-// applicationStandardRoutingReady checks the Gateway API resources generated
-// for one Application.
+// buildReadinessPlan resolves every probe target for a routable without any
+// cluster I/O — the pure Plan stage. In legacy Istio terms it replaces
+// "VirtualService and Gateway exist" with the set of certificates, ListenerSets,
+// and HTTPRoutes that must be ready before legacy routing can be pruned.
 //
-// In legacy Istio terms this replaces "VirtualService and Gateway exist" with
-// "certificates are usable, ListenerSets are accepted and programmed, and
-// HTTPRoutes are accepted by their parent Gateway".
-func applicationStandardRoutingReady(ctx context.Context, c client.Client, application *skiperatorv1alpha1.Application) Readiness {
-	hosts, err := application.Hostnames()
-	if err != nil {
-		return Readiness{Message: err.Error()}
+// An empty hosts collection yields an empty plan; observeStandardRouting reads
+// that as "no Gateway API hosts" and reports ready.
+func buildReadinessPlan(in planInput) (readinessPlan, error) {
+	if in.hosts.Count() == 0 {
+		return readinessPlan{}, nil
 	}
 
-	return standardRoutingReadiness(ctx, c, application, standardRoutingPlan{
-		namespace:       application.Namespace,
-		routeBaseName:   application.Name,
-		redirectToHTTPS: application.Spec.RedirectToHTTPS != nil && *application.Spec.RedirectToHTTPS,
-		hosts:           hosts,
-		certificateName: application.GetCertificateName,
-	})
-}
-
-// routingStandardRoutingReady checks the Gateway API resources generated for
-// one Routing object. Routing may have several backend rules, but they are
-// represented by a single backend HTTPRoute plus an optional redirect route.
-func routingStandardRoutingReady(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing) Readiness {
-	hosts, err := routing.Hostnames()
-	if err != nil {
-		return Readiness{Message: err.Error()}
+	plan := readinessPlan{
+		routes: []routeCheck{{Namespace: in.namespace, Name: in.routeBaseName}},
 	}
-	return standardRoutingReadiness(ctx, c, routing, standardRoutingPlan{
-		namespace:       routing.Namespace,
-		routeBaseName:   RoutingResourcePrefix(routing.Name),
-		redirectToHTTPS: routing.GetRedirectToHTTPS(),
-		hosts:           hosts,
-		certificateName: routing.GetCertificateName,
-		sharedRouting:   routing.UsesSharedOwnership(),
-	})
-}
-
-func standardRoutingReadiness(ctx context.Context, c client.Client, routable Routable, plan standardRoutingPlan) Readiness {
-	if plan.hosts.Count() == 0 {
-		return Readiness{Ready: true, Message: "object has no Gateway API hosts"}
-	}
-
-	routeChecks := []routeCheck{{Namespace: plan.namespace, Name: plan.routeBaseName}}
-	if plan.redirectToHTTPS {
-		redirectRoute := routeCheck{Namespace: plan.namespace, Name: RedirectRouteName(plan.routeBaseName)}
-		if plan.sharedRouting {
+	if in.redirectToHTTPS {
+		redirectRoute := routeCheck{Namespace: in.namespace, Name: RedirectRouteName(in.routeBaseName)}
+		if in.sharedRouting {
 			redirectRoute.Namespace = IstioGatewayNamespace
-			redirectRoute.Name = SharedRedirectRouteName(plan.hosts.AllHosts()[0].Hostname)
+			redirectRoute.Name = SharedRedirectRouteName(in.hosts.AllHosts()[0].Hostname)
 		}
-		routeChecks = append(routeChecks, redirectRoute)
+		plan.routes = append(plan.routes, redirectRoute)
 	}
-	standardHosts, err := standardHostsFor(routable, plan)
-	if err != nil {
-		return Readiness{Message: err.Error()}
-	}
-	return standardRoutingReady(ctx, c, routeChecks, standardHosts)
-}
-
-func standardHostsFor(routable Routable, plan standardRoutingPlan) ([]standardHost, error) {
-	standardHosts := make([]standardHost, 0, plan.hosts.Count())
-	for _, host := range plan.hosts.AllHosts() {
-		name, err := plan.certificateName(host)
+	for _, host := range in.hosts.AllHosts() {
+		name, err := in.certificateName(host)
 		if err != nil {
-			return nil, err
+			return readinessPlan{}, err
 		}
-		namespace := routable.GetNamespace()
-		// Key off the plan's (kind-qualified) base name, the same prefix the
-		// generator uses, so Application and Routing ListenerSets stay distinct.
-		listenerSetName := ListenerSetName(plan.routeBaseName, host.Hostname)
-		if plan.sharedRouting {
+		namespace := in.namespace
+		// Key off the (kind-qualified) base name, the same prefix the generator
+		// uses, so Application and Routing ListenerSets stay distinct.
+		listenerSetName := ListenerSetName(in.routeBaseName, host.Hostname)
+		if in.sharedRouting {
 			namespace = IstioGatewayNamespace
 			listenerSetName = SharedListenerSetName(host.Hostname)
 		}
-		standardHosts = append(standardHosts, standardHost{
+		plan.hosts = append(plan.hosts, standardHost{
 			Hostname:        host.Hostname,
 			CertificateName: name,
 			CustomSecret:    host.CustomCertificateSecret,
@@ -176,16 +145,32 @@ func standardHostsFor(routable Routable, plan standardRoutingPlan) ([]standardHo
 			ListenerSetName: listenerSetName,
 		})
 	}
-	return standardHosts, nil
+	return plan, nil
 }
 
-// standardRoutingReady returns the first missing or unready dependency.
+// observeStandardRouting builds the planner's readiness plan and probes it.
+// A plan-building error (e.g. unparseable hostname) is surfaced as a not-ready
+// Readiness rather than a hard error, matching the migration state machine's
+// "not ready, keep legacy" expectation.
+func observeStandardRouting(ctx context.Context, c client.Client, planner routablePlanner) Readiness {
+	plan, err := planner.readinessPlan()
+	if err != nil {
+		return Readiness{Message: err.Error()}
+	}
+	if len(plan.hosts) == 0 {
+		return Readiness{Ready: true, Message: "object has no Gateway API hosts"}
+	}
+	return observeReadiness(ctx, c, plan)
+}
+
+// observeReadiness returns the first missing or unready dependency — the I/O
+// Observe stage.
 //
 // This deliberately behaves like an ordered probe rather than a state machine.
 // The caller only needs to know if the whole Gateway API path is ready, and if
 // not, which dependency blocks safe legacy pruning.
-func standardRoutingReady(ctx context.Context, c client.Client, routeChecks []routeCheck, hosts []standardHost) Readiness {
-	for _, host := range hosts {
+func observeReadiness(ctx context.Context, c client.Client, plan readinessPlan) Readiness {
+	for _, host := range plan.hosts {
 		certificateName := host.CertificateName
 		if host.CustomSecret == nil {
 			if ready := managedCertificateReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
@@ -201,7 +186,7 @@ func standardRoutingReady(ctx context.Context, c client.Client, routeChecks []ro
 			return ready
 		}
 	}
-	for _, route := range routeChecks {
+	for _, route := range plan.routes {
 		if ready := httpRouteReady(ctx, c, route.Namespace, route.Name); !ready.Ready {
 			return ready
 		}

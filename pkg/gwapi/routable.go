@@ -2,10 +2,8 @@ package gwapi
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kartverket/skiperator/api/common"
-	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,16 +28,14 @@ type legacyRoutable interface {
 //
 // Application conflicts are hostname based because an Application owns its
 // ListenerSets directly. Routing conflicts are hostname and path-prefix based
-// because multiple Routing objects may intentionally share one hostname.
+// because multiple Routing objects may intentionally share one hostname. The
+// per-kind rule lives behind the planner, so this stays a thin dispatch.
 func ValidateConflicts(ctx context.Context, c client.Client, routable Routable) error {
-	switch obj := routable.(type) {
-	case *skiperatorv1alpha1.Application:
-		return validateApplicationConflicts(ctx, c, obj)
-	case *skiperatorv1alpha1.Routing:
-		return validateRoutingConflicts(ctx, c, obj)
-	default:
-		return fmt.Errorf("unsupported Gateway API routable type %T", routable)
+	planner, err := plannerFor(routable)
+	if err != nil {
+		return err
 	}
+	return planner.validateConflicts(ctx, c)
 }
 
 // EvaluateRoutingState inspects generated resources and returns the migration
@@ -55,36 +51,19 @@ func EvaluateRoutingState(ctx context.Context, c client.Client, routable Routabl
 		migrationStartedAt = status.MigrationStartedAt
 	}
 
-	switch obj := routable.(type) {
-	case *skiperatorv1alpha1.Application:
-		if !obj.UsesStandardRouting() {
-			return determineRoutingState(false, Readiness{}, false, migrationStartedAt), nil
-		}
-		legacyExists, err := legacyRoutingExists(ctx, c, obj)
-		if err != nil {
-			return RoutingStateResult{}, err
-		}
-		return determineRoutingState(
-			true,
-			applicationStandardRoutingReady(ctx, c, obj),
-			legacyExists,
-			migrationStartedAt,
-		), nil
-	case *skiperatorv1alpha1.Routing:
-		if !obj.UsesStandardRouting() {
-			return determineRoutingState(false, Readiness{}, false, migrationStartedAt), nil
-		}
-		legacyExists, err := legacyRoutingExists(ctx, c, obj)
-		if err != nil {
-			return RoutingStateResult{}, err
-		}
-		return determineRoutingState(
-			true,
-			routingStandardRoutingReady(ctx, c, obj),
-			legacyExists,
-			migrationStartedAt,
-		), nil
-	default:
-		return RoutingStateResult{}, fmt.Errorf("unsupported Gateway API routable type %T", routable)
+	// The planner holds the only Application-vs-Routing type switch; from here on
+	// the migration state machine is type-agnostic.
+	planner, err := plannerFor(routable)
+	if err != nil {
+		return RoutingStateResult{}, err
 	}
+
+	if !routable.UsesStandardRouting() {
+		return determineRoutingState(false, Readiness{}, false, migrationStartedAt), nil
+	}
+	legacyExists, err := legacyRoutingExists(ctx, c, planner)
+	if err != nil {
+		return RoutingStateResult{}, err
+	}
+	return determineRoutingState(true, observeStandardRouting(ctx, c, planner), legacyExists, migrationStartedAt), nil
 }

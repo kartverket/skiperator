@@ -37,7 +37,7 @@ type Routing struct {
 }
 
 // +kubebuilder:object:generate=true
-// +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || self.routingProvider == 'standard'",message="spec.ownership=Shared requires spec.routingProvider=standard"
+// +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || self.routingProvider == 'Standard'",message="spec.ownership=Shared requires spec.routingProvider=Standard"
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`

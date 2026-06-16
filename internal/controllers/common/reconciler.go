@@ -175,6 +175,7 @@ func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPOb
 
 func (r *ReconcilerBase) UpdateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	key := client.ObjectKeyFromObject(skipObj)
+	skipObj.GetStatus().SortConditions()
 	desiredStatus := skipObj.GetStatus().DeepCopy()
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

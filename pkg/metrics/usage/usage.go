@@ -114,7 +114,12 @@ func forEachRoutableResource(ctx context.Context, k client.Client, logger log.Lo
 			continue
 		}
 		for _, item := range list.Items {
-			labels := labelsByNamespace[item.GetNamespace()]
+			labels, ok := labelsByNamespace[item.GetNamespace()]
+			if !ok {
+				// Namespace appeared between the namespace and resource list calls;
+				// fall back to defaults instead of empty label values.
+				labels = nsLabels{team: unknownValue, division: unknownValue}
+			}
 			fn(item, resource.kind, labels.team, labels.division)
 		}
 	}
