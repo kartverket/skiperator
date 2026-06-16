@@ -37,6 +37,12 @@ make run-local
 
 If for any reason you need a clean local environment, delete your local kind cluster with `kind delete cluster --name skiperator`
 
+#### NOTE: Port 9443 must be reachable from the kind cluster
+If you get a webhook error, the port may be blocked. You can open it with:
+```bash
+sudo iptables -A INPUT -p tcp --dport 9443 -j ACCEPT
+```
+
 #### NOTE: If istio doesn´t load
 Allocate more memory to docker with colima(or whatever you are running)
 ```bash
