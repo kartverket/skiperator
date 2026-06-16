@@ -1,0 +1,93 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-shared-routing
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    # Two Routings in different namespaces contribute to one hostname with shared
+    # ownership. Skiperator must create exactly one shared ListenerSet in
+    # istio-gateways and add the shared-routing finalizer to both contributors.
+    - try:
+        - apply:
+            file: namespaces.yaml
+        - apply:
+            file: routing-a.yaml
+        - apply:
+            file: routing-b.yaml
+        - script:
+            content: |
+              SEL="skiperator.kartverket.no/controller=routing-shared,skiperator.kartverket.no/hostname=1c53b7a99ed1939a"
+
+              wait_shared_count() {
+                want="$1"
+                for i in $(seq 1 120); do
+                  got=$(kubectl -n istio-gateways get listenerset -l "$SEL" -o name 2>/dev/null | wc -l | tr -d ' ')
+                  if [ "$got" = "$want" ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                echo "expected $want shared ListenerSet(s), found $got"
+                kubectl -n istio-gateways get listenerset -l "$SEL" -o wide
+                return 1
+              }
+
+              wait_has_finalizer() {
+                ns="$1"; name="$2"
+                for i in $(seq 1 60); do
+                  if kubectl -n "$ns" get routing "$name" -o jsonpath='{.metadata.finalizers}' | grep -q "shared-routing-cleanup"; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                echo "routing $ns/$name never got the shared-routing finalizer"
+                kubectl -n "$ns" get routing "$name" -o yaml
+                return 1
+              }
+
+              # One shared ListenerSet for the hostname, both contributors finalized.
+              wait_shared_count 1
+              wait_has_finalizer gateway-api-shared-a contributor-a
+              wait_has_finalizer gateway-api-shared-b contributor-b
+
+    # Deleting one contributor must NOT remove the shared resources: the other
+    # contributor still uses the hostname.
+    - try:
+        - script:
+            content: |
+              SEL="skiperator.kartverket.no/controller=routing-shared,skiperator.kartverket.no/hostname=1c53b7a99ed1939a"
+
+              kubectl -n gateway-api-shared-b delete routing contributor-b --wait=true --timeout=120s
+
+              # Give the finalizer cleanup time to (wrongly) fire, then confirm the
+              # shared ListenerSet is still present.
+              sleep 5
+              got=$(kubectl -n istio-gateways get listenerset -l "$SEL" -o name 2>/dev/null | wc -l | tr -d ' ')
+              if [ "$got" != "1" ]; then
+                echo "shared ListenerSet was removed while a contributor still exists (found $got)"
+                kubectl -n istio-gateways get listenerset -l "$SEL" -o wide
+                exit 1
+              fi
+
+    # Deleting the last contributor must remove the shared ListenerSet (and any
+    # other shared resources) from istio-gateways.
+    - try:
+        - script:
+            content: |
+              SEL="skiperator.kartverket.no/controller=routing-shared,skiperator.kartverket.no/hostname=1c53b7a99ed1939a"
+
+              kubectl -n gateway-api-shared-a delete routing contributor-a --wait=true --timeout=120s
+
+              for i in $(seq 1 120); do
+                got=$(kubectl -n istio-gateways get listenerset -l "$SEL" -o name 2>/dev/null | wc -l | tr -d ' ')
+                if [ "$got" = "0" ]; then
+                  exit 0
+                fi
+                sleep 1
+              done
+              echo "shared resources leaked after the last contributor was deleted"
+              kubectl -n istio-gateways get listenerset,httproute,certificate -l "$SEL" -o wide
+              exit 1

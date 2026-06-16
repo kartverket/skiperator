@@ -6,7 +6,6 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -40,37 +39,16 @@ func init() {
 }
 
 func updateRoutingProviderUsage(ctx context.Context, k client.Client, logger log.Logger, currentGauge *prometheus.GaugeVec) {
-	namespaces := &corev1.NamespaceList{}
-	if err := k.List(ctx, namespaces); err != nil {
-		logger.Error(err, "failed to list namespaces")
-		return
-	}
-
 	counts := make(map[routingProviderMetricKey]float64)
-	for _, ns := range namespaces.Items {
-		team := valueOrDefault(ns.Labels[labelTeam])
-		division := valueOrDefault(ns.Labels[labelDivision])
-
-		for _, resource := range routingProviderResources {
-			list := &unstructured.UnstructuredList{}
-			list.SetGroupVersionKind(resource.gvr.GroupVersion().WithKind(resource.kind + "List"))
-
-			if err := k.List(ctx, list, client.InNamespace(ns.Name)); err != nil {
-				logger.Error(err, "failed to list resources for", "gvr", resource.gvr, "namespace", ns.Name)
-				continue
-			}
-
-			for _, item := range list.Items {
-				key := routingProviderMetricKey{
-					team:            team,
-					division:        division,
-					kind:            resource.kind,
-					routingProvider: routingProviderOrLegacy(routingProviderFromObject(item)),
-				}
-				counts[key]++
-			}
+	forEachRoutableResource(ctx, k, logger, func(item unstructured.Unstructured, kind, team, division string) {
+		key := routingProviderMetricKey{
+			team:            team,
+			division:        division,
+			kind:            kind,
+			routingProvider: routingProviderOrLegacy(routingProviderFromObject(item)),
 		}
-	}
+		counts[key]++
+	})
 
 	currentGauge.Reset()
 	for key, count := range counts {

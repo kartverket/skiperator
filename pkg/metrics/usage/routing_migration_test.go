@@ -15,11 +15,11 @@ func TestHasStalledRoutingMigration(t *testing.T) {
 				// Real stalled migrations set Ready and StandardRoutingReady.
 				map[string]interface{}{
 					"type":   commontypes.ReadyConditionType,
-					"reason": migrationStalledReason,
+					"reason": commontypes.MigrationStalledReason,
 				},
 				map[string]interface{}{
 					"type":   commontypes.StandardRoutingReadyConditionType,
-					"reason": migrationStalledReason,
+					"reason": commontypes.MigrationStalledReason,
 				},
 			},
 		},
@@ -35,7 +35,7 @@ func TestHasStalledRoutingMigrationIgnoresReadyOnlyStalledCondition(t *testing.T
 				// Ready alone is not enough; metric must key off StandardRoutingReady.
 				map[string]interface{}{
 					"type":   commontypes.ReadyConditionType,
-					"reason": migrationStalledReason,
+					"reason": commontypes.MigrationStalledReason,
 				},
 				map[string]interface{}{
 					"type":   commontypes.StandardRoutingReadyConditionType,

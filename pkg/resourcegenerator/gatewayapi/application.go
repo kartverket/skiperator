@@ -37,7 +37,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	redirectToHTTPS := application.Spec.RedirectToHTTPS != nil && *application.Spec.RedirectToHTTPS
 	if redirectToHTTPS {
-		r.AddResource(newRedirectRoute(application.Namespace, application.Name, listenerSetNames, hostnames))
+		r.AddResource(newRedirectRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames))
 	}
 
 	backend, err := backendRule("default-app-route", int32(application.Spec.Port), "/", false, applicationRetries(application), func(field string, value string) {
@@ -48,7 +48,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 	backend.BackendRefs[0].Name = gatewayapiv1.ObjectName(application.Name)
 
-	r.AddResource(newBackendRoute(application.Namespace, application.Name, listenerSetNames, hostnames, []gatewayapiv1.HTTPRouteRule{backend}))
+	r.AddResource(newBackendRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames, []gatewayapiv1.HTTPRouteRule{backend}))
 
 	ctxLog.Debug("Finished generating gateway api resources for application", "application", application.Name)
 	return nil

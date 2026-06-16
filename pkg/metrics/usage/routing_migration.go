@@ -6,7 +6,6 @@ import (
 	commontypes "github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -28,39 +27,13 @@ func init() {
 }
 
 func updateRoutingMigrationStalled(ctx context.Context, k client.Client, logger log.Logger, currentGauge *prometheus.GaugeVec) {
-	namespaces := &corev1.NamespaceList{}
-	if err := k.List(ctx, namespaces); err != nil {
-		logger.Error(err, "failed to list namespaces")
-		return
-	}
-
 	counts := make(map[routingMigrationMetricKey]float64)
-	for _, ns := range namespaces.Items {
-		team := valueOrDefault(ns.Labels[labelTeam])
-		division := valueOrDefault(ns.Labels[labelDivision])
-
-		for _, resource := range routingProviderResources {
-			list := &unstructured.UnstructuredList{}
-			list.SetGroupVersionKind(resource.gvr.GroupVersion().WithKind(resource.kind + "List"))
-
-			if err := k.List(ctx, list, client.InNamespace(ns.Name)); err != nil {
-				logger.Error(err, "failed to list resources for", "gvr", resource.gvr, "namespace", ns.Name)
-				continue
-			}
-
-			for _, item := range list.Items {
-				if !hasStalledRoutingMigration(item) {
-					continue
-				}
-				key := routingMigrationMetricKey{
-					team:     team,
-					division: division,
-					kind:     resource.kind,
-				}
-				counts[key]++
-			}
+	forEachRoutableResource(ctx, k, logger, func(item unstructured.Unstructured, kind, team, division string) {
+		if !hasStalledRoutingMigration(item) {
+			return
 		}
-	}
+		counts[routingMigrationMetricKey{team: team, division: division, kind: kind}]++
+	})
 
 	currentGauge.Reset()
 	for key, count := range counts {
@@ -83,7 +56,7 @@ func hasStalledRoutingMigration(obj unstructured.Unstructured) bool {
 		reason, _, _ := unstructured.NestedString(conditionMap, "reason")
 		// Ready can also use MigrationStalled. Count only the Gateway API
 		// routing condition so the metric tracks migration health specifically.
-		if conditionType == commontypes.StandardRoutingReadyConditionType && reason == migrationStalledReason {
+		if conditionType == commontypes.StandardRoutingReadyConditionType && reason == commontypes.MigrationStalledReason {
 			return true
 		}
 	}

@@ -68,12 +68,14 @@ func TestClearGatewayAPIConditions(t *testing.T) {
 	app.GetStatus().SetReadyCondition(v1.ConditionTrue, 1, "Reconciled", "ready")
 	app.GetStatus().SetStandardRoutingReadyCondition(v1.ConditionFalse, 1, "MigrationStalled", "stalled")
 	app.GetStatus().SetLegacyRoutingActiveCondition(v1.ConditionTrue, 1, "LegacyRoutingActive", "active")
+	app.GetStatus().SetSharedRoutingResourcesCondition(v1.ConditionTrue, 1, "SharedRoutingResourcesActive", "shared")
 
 	ClearGatewayAPIConditions(app)
 
 	assert.NotNil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.ReadyConditionType))
 	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.StandardRoutingReadyConditionType))
 	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.LegacyRoutingActiveConditionType))
+	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.SharedRoutingResourcesType))
 }
 
 func TestShouldNormalizeHosts(t *testing.T) {

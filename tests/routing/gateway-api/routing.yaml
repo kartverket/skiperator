@@ -4,7 +4,7 @@ metadata:
   name: api
 spec:
   hostname: api.example.com
-  routingProvider: standard
+  routingProvider: Standard
   redirectToHTTPS: true
   routes:
     - pathPrefix: /app1

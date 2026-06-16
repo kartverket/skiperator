@@ -15,9 +15,9 @@ status:
       status: "True"
       reason: StandardRoutingReady
   subresources:
-    HTTPRoute[migration-routing-redirect]:
+    HTTPRoute[migration-routing-routing-redirect]:
       status: Synced
-    HTTPRoute[migration-routing]:
+    HTTPRoute[migration-routing-routing]:
       status: Synced
-    ListenerSet[migration-routing-listener-6ec458aa1f12ad13]:
+    ListenerSet[migration-routing-routing-listener-6ec458aa1f12ad13]:
       status: Synced

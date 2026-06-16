@@ -25,7 +25,10 @@ import (
 
 //TODO Clean up this file, move functions to more appropriate files
 
-var internalPattern = regexp.MustCompile(`[^.]\.skip\.statkart\.no|[^.]\.kartverket-intern.cloud`)
+// Anchored at the end so an internal suffix only matches the real domain, not
+// a lookalike like "app.skip.statkart.no.attacker.com". The dot before each TLD
+// is escaped so it matches a literal dot rather than any character.
+var internalPattern = regexp.MustCompile(`(?i)[^.]\.(?:skip\.statkart\.no|kartverket-intern\.cloud)$`)
 
 func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)

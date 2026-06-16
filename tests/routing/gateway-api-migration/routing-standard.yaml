@@ -4,7 +4,7 @@ metadata:
   name: migration-routing
 spec:
   hostname: migration-routing.example.com+migration-routing-tls
-  routingProvider: standard
+  routingProvider: Standard
   redirectToHTTPS: true
   routes:
     - pathPrefix: /api

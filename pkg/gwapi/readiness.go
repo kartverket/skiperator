@@ -29,7 +29,13 @@ type standardHost struct {
 	Hostname        string
 	CertificateName string
 	CustomSecret    *string
+	Namespace       string
 	ListenerSetName string
+}
+
+type routeCheck struct {
+	Namespace string
+	Name      string
 }
 
 type standardRoutingPlan struct {
@@ -38,34 +44,53 @@ type standardRoutingPlan struct {
 	redirectToHTTPS bool
 	hosts           common.HostCollection
 	certificateName func(*common.Host) (string, error)
+	sharedRouting   bool
 }
 
-func legacyRoutingExists(ctx context.Context, c client.Client, routable legacyRoutable) bool {
+// legacyRoutingExists reports whether legacy Istio routing resources are
+// present. A non-NotFound API error is returned rather than swallowed: a
+// transient error must not be read as "legacy absent", or the migration state
+// machine would prune legacy routing while standard routing is not yet ready.
+func legacyRoutingExists(ctx context.Context, c client.Client, routable legacyRoutable) (bool, error) {
 	virtualService := &istionetworkingv1.VirtualService{}
-	if legacyResourceExists(ctx, c, types.NamespacedName{Namespace: routable.GetNamespace(), Name: routable.GetVirtualServiceName()}, virtualService) {
-		return true
+	exists, err := legacyResourceExists(ctx, c, types.NamespacedName{Namespace: routable.GetNamespace(), Name: routable.GetVirtualServiceName()}, virtualService)
+	if err != nil {
+		return false, err
+	}
+	if exists {
+		return true, nil
 	}
 
 	gatewayNames, err := routable.GetGatewayNames()
 	if err != nil {
-		return false
+		return false, err
 	}
 	for _, name := range gatewayNames {
 		gateway := &istionetworkingv1.Gateway{}
-		if legacyResourceExists(ctx, c, types.NamespacedName{Namespace: routable.GetNamespace(), Name: name}, gateway) {
-			return true
+		exists, err := legacyResourceExists(ctx, c, types.NamespacedName{Namespace: routable.GetNamespace(), Name: name}, gateway)
+		if err != nil {
+			return false, err
+		}
+		if exists {
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
-func legacyResourceExists(ctx context.Context, c client.Client, key types.NamespacedName, obj client.Object) bool {
+func legacyResourceExists(ctx context.Context, c client.Client, key types.NamespacedName, obj client.Object) (bool, error) {
 	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
 		return !apierrors.IsNotFound(err)
 	}, func() error {
 		return c.Get(ctx, key, obj)
 	})
-	return err == nil
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // applicationStandardRoutingReady checks the Gateway API resources generated
@@ -99,10 +124,11 @@ func routingStandardRoutingReady(ctx context.Context, c client.Client, routing *
 	}
 	return standardRoutingReadiness(ctx, c, routing, standardRoutingPlan{
 		namespace:       routing.Namespace,
-		routeBaseName:   routing.Name,
+		routeBaseName:   RoutingResourcePrefix(routing.Name),
 		redirectToHTTPS: routing.GetRedirectToHTTPS(),
 		hosts:           hosts,
 		certificateName: routing.GetCertificateName,
+		sharedRouting:   routing.UsesSharedOwnership(),
 	})
 }
 
@@ -111,29 +137,43 @@ func standardRoutingReadiness(ctx context.Context, c client.Client, routable Rou
 		return Readiness{Ready: true, Message: "object has no Gateway API hosts"}
 	}
 
-	routeNames := []string{RouteName(plan.routeBaseName)}
+	routeChecks := []routeCheck{{Namespace: plan.namespace, Name: plan.routeBaseName}}
 	if plan.redirectToHTTPS {
-		routeNames = append(routeNames, RedirectRouteName(plan.routeBaseName))
+		redirectRoute := routeCheck{Namespace: plan.namespace, Name: RedirectRouteName(plan.routeBaseName)}
+		if plan.sharedRouting {
+			redirectRoute.Namespace = IstioGatewayNamespace
+			redirectRoute.Name = SharedRedirectRouteName(plan.hosts.AllHosts()[0].Hostname)
+		}
+		routeChecks = append(routeChecks, redirectRoute)
 	}
-	standardHosts, err := standardHostsFor(routable, plan.hosts, plan.certificateName)
+	standardHosts, err := standardHostsFor(routable, plan)
 	if err != nil {
 		return Readiness{Message: err.Error()}
 	}
-	return standardRoutingReady(ctx, c, plan.namespace, routeNames, standardHosts)
+	return standardRoutingReady(ctx, c, routeChecks, standardHosts)
 }
 
-func standardHostsFor(routable Routable, hosts common.HostCollection, certificateName func(*common.Host) (string, error)) ([]standardHost, error) {
-	standardHosts := make([]standardHost, 0, hosts.Count())
-	for _, host := range hosts.AllHosts() {
-		name, err := certificateName(host)
+func standardHostsFor(routable Routable, plan standardRoutingPlan) ([]standardHost, error) {
+	standardHosts := make([]standardHost, 0, plan.hosts.Count())
+	for _, host := range plan.hosts.AllHosts() {
+		name, err := plan.certificateName(host)
 		if err != nil {
 			return nil, err
+		}
+		namespace := routable.GetNamespace()
+		// Key off the plan's (kind-qualified) base name, the same prefix the
+		// generator uses, so Application and Routing ListenerSets stay distinct.
+		listenerSetName := ListenerSetName(plan.routeBaseName, host.Hostname)
+		if plan.sharedRouting {
+			namespace = IstioGatewayNamespace
+			listenerSetName = SharedListenerSetName(host.Hostname)
 		}
 		standardHosts = append(standardHosts, standardHost{
 			Hostname:        host.Hostname,
 			CertificateName: name,
 			CustomSecret:    host.CustomCertificateSecret,
-			ListenerSetName: ListenerSetName(routable.GetName(), host.Hostname),
+			Namespace:       namespace,
+			ListenerSetName: listenerSetName,
 		})
 	}
 	return standardHosts, nil
@@ -144,25 +184,25 @@ func standardHostsFor(routable Routable, hosts common.HostCollection, certificat
 // This deliberately behaves like an ordered probe rather than a state machine.
 // The caller only needs to know if the whole Gateway API path is ready, and if
 // not, which dependency blocks safe legacy pruning.
-func standardRoutingReady(ctx context.Context, c client.Client, namespace string, routeNames []string, hosts []standardHost) Readiness {
+func standardRoutingReady(ctx context.Context, c client.Client, routeChecks []routeCheck, hosts []standardHost) Readiness {
 	for _, host := range hosts {
 		certificateName := host.CertificateName
 		if host.CustomSecret == nil {
-			if ready := managedCertificateReady(ctx, c, namespace, certificateName); !ready.Ready {
+			if ready := managedCertificateReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
 				return ready
 			}
 		} else {
 			certificateName = *host.CustomSecret
 		}
-		if ready := tlsSecretReady(ctx, c, namespace, certificateName); !ready.Ready {
+		if ready := tlsSecretReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
 			return ready
 		}
-		if ready := listenerSetReady(ctx, c, namespace, host.ListenerSetName); !ready.Ready {
+		if ready := listenerSetReady(ctx, c, host.Namespace, host.ListenerSetName); !ready.Ready {
 			return ready
 		}
 	}
-	for _, routeName := range routeNames {
-		if ready := httpRouteReady(ctx, c, namespace, routeName); !ready.Ready {
+	for _, route := range routeChecks {
+		if ready := httpRouteReady(ctx, c, route.Namespace, route.Name); !ready.Ready {
 			return ready
 		}
 	}

@@ -5,7 +5,7 @@ metadata:
 spec:
   image: image
   port: 8080
-  routingProvider: standard
+  routingProvider: Standard
   ingresses:
     - migration-app.example.com
     - migration-app-custom.example.com+migration-app-custom-tls
