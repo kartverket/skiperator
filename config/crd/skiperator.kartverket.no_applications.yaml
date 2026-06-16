@@ -1366,13 +1366,13 @@ spec:
                     type: object
                 type: object
               routingProvider:
-                default: legacy
+                default: Legacy
                 description: |-
                   RoutingProvider controls which routing API Skiperator uses for ingresses.
-                  legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+                  Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
                 enum:
-                - legacy
-                - standard
+                - Legacy
+                - Standard
                 type: string
               startup:
                 description: |-

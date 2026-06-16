@@ -13,7 +13,7 @@ metadata:
 apiVersion: gateway.networking.k8s.io/v1
 kind: ListenerSet
 metadata:
-  name: migration-routing-listener-6ec458aa1f12ad13
+  name: migration-routing-routing-listener-6ec458aa1f12ad13
   namespace: gateway-api-routing-migration
 spec:
   parentRef:
@@ -40,25 +40,25 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: migration-routing-redirect
+  name: migration-routing-routing-redirect
   namespace: gateway-api-routing-migration
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
-      name: migration-routing-listener-6ec458aa1f12ad13
+      name: migration-routing-routing-listener-6ec458aa1f12ad13
       sectionName: http
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: migration-routing
+  name: migration-routing-routing
   namespace: gateway-api-routing-migration
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
-      name: migration-routing-listener-6ec458aa1f12ad13
+      name: migration-routing-routing-listener-6ec458aa1f12ad13
       sectionName: https
   rules:
     - name: migration-backend

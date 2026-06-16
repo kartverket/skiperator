@@ -117,6 +117,18 @@ func GetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionSta
 	}
 }
 
+// SetInternalRulesCondition and SetExternalRulesCondition merge the rules
+// conditions in place via meta.SetStatusCondition, which preserves
+// LastTransitionTime when the status does not change (unlike rebuilding the
+// condition slice from scratch every reconcile).
+func SetInternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) {
+	meta.SetStatusCondition(&obj.GetStatus().Conditions, GetInternalRulesCondition(obj, status))
+}
+
+func SetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) {
+	meta.SetStatusCondition(&obj.GetStatus().Conditions, GetExternalRulesCondition(obj, status))
+}
+
 func SetReadyInvalidConfig(obj common.SKIPObject, message string) []metav1.Condition {
 	return SetReadyCondition(obj, metav1.ConditionFalse, "InvalidConfig", message)
 }
@@ -128,6 +140,10 @@ func SetReadyReconciled(obj common.SKIPObject, message string) []metav1.Conditio
 func ClearGatewayAPIConditions(obj common.SKIPObject) {
 	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.StandardRoutingReadyConditionType)
 	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.LegacyRoutingActiveConditionType)
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.SharedRoutingResourcesType)
+	// Drop the migration clock too, so switching back to legacy does not leave
+	// a stale start time that mis-seeds a future migration as already stalled.
+	obj.GetStatus().MigrationStartedAt = nil
 }
 
 func SetReadyCondition(obj common.SKIPObject, status metav1.ConditionStatus, reason string, message string) []metav1.Condition {

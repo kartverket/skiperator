@@ -98,7 +98,7 @@ metadata:
   name: standard
   namespace: gateway-api-application
 spec:
-  routingProvider: standard
+  routingProvider: Standard
 status:
   summary:
     status: Synced

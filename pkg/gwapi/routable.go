@@ -49,7 +49,7 @@ func ValidateConflicts(ctx context.Context, c client.Client, routable Routable) 
 // Gateway and VirtualService resources must stay in the desired resource set.
 // When false, resource processing may prune them. Standard routing readiness is
 // based on Gateway API and certificate status, not on Skiperator object sync.
-func EvaluateRoutingState(ctx context.Context, c client.Client, routable Routable, status *common.SkiperatorStatus) RoutingStateResult {
+func EvaluateRoutingState(ctx context.Context, c client.Client, routable Routable, status *common.SkiperatorStatus) (RoutingStateResult, error) {
 	var migrationStartedAt *metav1.Time
 	if status != nil {
 		migrationStartedAt = status.MigrationStartedAt
@@ -58,29 +58,33 @@ func EvaluateRoutingState(ctx context.Context, c client.Client, routable Routabl
 	switch obj := routable.(type) {
 	case *skiperatorv1alpha1.Application:
 		if !obj.UsesStandardRouting() {
-			return determineRoutingState(false, Readiness{}, false, migrationStartedAt)
+			return determineRoutingState(false, Readiness{}, false, migrationStartedAt), nil
+		}
+		legacyExists, err := legacyRoutingExists(ctx, c, obj)
+		if err != nil {
+			return RoutingStateResult{}, err
 		}
 		return determineRoutingState(
 			true,
 			applicationStandardRoutingReady(ctx, c, obj),
-			legacyRoutingExists(ctx, c, obj),
+			legacyExists,
 			migrationStartedAt,
-		)
+		), nil
 	case *skiperatorv1alpha1.Routing:
 		if !obj.UsesStandardRouting() {
-			return determineRoutingState(false, Readiness{}, false, migrationStartedAt)
+			return determineRoutingState(false, Readiness{}, false, migrationStartedAt), nil
+		}
+		legacyExists, err := legacyRoutingExists(ctx, c, obj)
+		if err != nil {
+			return RoutingStateResult{}, err
 		}
 		return determineRoutingState(
 			true,
 			routingStandardRoutingReady(ctx, c, obj),
-			legacyRoutingExists(ctx, c, obj),
+			legacyExists,
 			migrationStartedAt,
-		)
+		), nil
 	default:
-		return RoutingStateResult{
-			GenerateLegacyRouting: false,
-			Readiness:             Readiness{Message: fmt.Sprintf("unsupported Gateway API routable type %T", routable)},
-			state:                 routingStateInvalid,
-		}
+		return RoutingStateResult{}, fmt.Errorf("unsupported Gateway API routable type %T", routable)
 	}
 }

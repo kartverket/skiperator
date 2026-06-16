@@ -11,6 +11,6 @@ metadata:
 spec:
   image: image
   port: 8080
-  routingProvider: standard
+  routingProvider: Standard
   ingresses:
     - no-istio.example.com

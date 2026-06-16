@@ -86,6 +86,7 @@ import (
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=listenersets;httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
@@ -213,9 +214,20 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	// Resolve Istio enablement once and reuse it for both the Gateway API
+	// prerequisite check and the reconciliation, instead of looking the
+	// namespace up twice. A lookup error requeues rather than being read as
+	// "Istio disabled".
+	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	if err != nil {
+		rLog.Error(err, "failed to check Istio revision label for namespace")
+		r.SetErrorState(ctx, application, err, "failed to check Istio revision label for namespace", "NamespaceLookupFailure")
+		return common.RequeueWithError(err)
+	}
+
 	// Gateway API uses shared cluster resources, so fail before generating
 	// resources if namespace setup or ownership checks are invalid.
-	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, rLog) {
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, istioEnabled, rLog) {
 		return common.DoNotRequeue()
 	}
 
@@ -245,16 +257,29 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	rLog.Debug("Starting reconciliation loop", "application", application.Name)
 	r.SetProgressingState(ctx, application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
-
 	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
 	if err != nil {
 		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
 	}
 
 	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
-	routingState := gwapi.EvaluateRoutingState(ctx, r.GetClient(), application, application.GetStatus())
+	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), application, application.GetStatus())
+	if err != nil {
+		// A failed routing-state lookup must not be read as "legacy absent":
+		// requeue without generating resources so legacy routing is preserved.
+		rLog.Error(err, "failed to evaluate Gateway API routing state")
+		r.SetErrorState(ctx, application, err, "failed to evaluate Gateway API routing state", "RoutingStateFailure")
+		return common.RequeueWithError(err)
+	}
 	reconciliationApp.SetGenerateLegacyRouting(routingState.GenerateLegacyRouting)
+
+	// Prime migration status (start time + stall detection) from current
+	// readiness before generating resources, so the migration clock advances and
+	// stalls are surfaced even if resource generation keeps failing. The status
+	// is persisted by the subsequent success or error path.
+	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
+		emitMigrationEvents(&r.ReconcilerBase, application, gwapi.UpdateRoutingStatus(application.GetStatus(), application.GetGeneration(), routingState))
+	}
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -331,14 +356,18 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 }
 
 func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string, routingState gwapi.RoutingStateResult) {
-	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
-	app.GetStatus().SetSummarySynced()
-	r.updateStatus(app)
-	if app.UsesStandardRouting() {
-		// Standard routing status comes from Gateway API readiness, not just
-		// successful reconciliation of generated resources.
-		emitMigrationEvents(&r.ReconcilerBase, app, gwapi.UpdateRoutingStatus(app.GetStatus(), app.GetGeneration(), routingState))
+	if r.updateStatus(app) == skiperatorv1alpha1.INVALIDCONFIG {
+		// Access policy is invalid: keep the InvalidConfig Ready condition, drop
+		// any stale routing conditions, and do not overwrite Ready with routing
+		// status.
+		common.ClearGatewayAPIConditions(app)
+		app.GetStatus().SetSummaryError("Access policy configuration is invalid")
+		r.updateApplicationStatus(ctx, app)
+		return
 	}
+	// Ready/summary come from the shared routing-status assembler, the same path
+	// Routing uses, so the two controllers cannot drift.
+	finalizeRoutingStatus(&r.ReconcilerBase, app, routingState, message)
 	r.updateApplicationStatus(ctx, app)
 }
 
@@ -360,29 +389,33 @@ func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app
 	}
 }
 
-func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {
-	app.Status.Conditions, app.Status.AccessPolicies = getConditions(app)
+func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) skiperatorv1alpha1.StatusNames {
+	name := applyApplicationConditions(app)
+	app.Status.AccessPolicies = name
 	app.Status.ApplicationKind = app.ExpectedApplicationKind()
+	return name
 }
 
-func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, skiperatorv1alpha1.StatusNames) {
-	var conditions []metav1.Condition
+// applyApplicationConditions merges the access-policy conditions in place
+// (preserving LastTransitionTime). For valid config the Ready condition is left
+// to the routing-status assembler; only invalid config sets Ready here so it is
+// not overwritten by routing status.
+func applyApplicationConditions(app *skiperatorv1alpha1.Application) skiperatorv1alpha1.StatusNames {
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.SetReadyInvalidConfig(app, "Internal rules are invalid")...)
-		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "Internal rules are invalid")
+		common.SetInternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
 	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.SetReadyInvalidConfig(app, "External rules are invalid")...)
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "External rules are invalid")
+		common.SetExternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
-	conditions = append(conditions, common.SetReadyReconciled(app, "Application has been reconciled")...)
-	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
-	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-	return conditions, skiperatorv1alpha1.READY
+	common.SetInternalRulesCondition(app, metav1.ConditionTrue)
+	common.SetExternalRulesCondition(app, metav1.ConditionTrue)
+	return skiperatorv1alpha1.READY
 }
 
 func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {

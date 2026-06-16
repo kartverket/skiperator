@@ -173,7 +173,12 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop")
 	r.SetProgressingState(ctx, skipJob, fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
-	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
+	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
+	if err != nil {
+		rLog.Error(err, "failed to check Istio revision label for namespace")
+		r.SetErrorState(ctx, skipJob, err, "failed to check Istio revision label for namespace", "NamespaceLookupFailure")
+		return common.RequeueWithError(err)
+	}
 
 	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
 

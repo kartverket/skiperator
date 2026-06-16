@@ -12,7 +12,7 @@ import (
 const (
 	standardRoutingReadyReason    = "StandardRoutingReady"
 	standardRoutingNotReadyReason = "StandardRoutingNotReady"
-	migrationStalledReason        = "MigrationStalled"
+	migrationStalledReason        = commontypes.MigrationStalledReason
 	legacyRoutingActiveReason     = "LegacyRoutingActive"
 	legacyRoutingInactiveReason   = "LegacyRoutingInactive"
 
@@ -28,7 +28,6 @@ const (
 	routingStateMigrationStalled        routingState = "MigrationStalled"
 	routingStateCutoverReadyPruneLegacy routingState = "CutoverReadyPruneLegacy"
 	routingStateStandardOnly            routingState = "StandardOnly"
-	routingStateInvalid                 routingState = "Invalid"
 )
 
 type routingState string

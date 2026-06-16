@@ -49,3 +49,17 @@ func TestSetLegacyRoutingActiveCondition(t *testing.T) {
 		assert.Equal(t, "legacy routing is active", requirement.Message)
 	}
 }
+
+func TestSetSharedRoutingResourcesCondition(t *testing.T) {
+	status := &SkiperatorStatus{}
+
+	status.SetSharedRoutingResourcesCondition(metav1.ConditionTrue, 6, "SharedRoutingResourcesActive", "shared routing resources are active")
+
+	requirement := meta.FindStatusCondition(status.Conditions, SharedRoutingResourcesType)
+	if assert.NotNil(t, requirement) {
+		assert.Equal(t, metav1.ConditionTrue, requirement.Status)
+		assert.Equal(t, int64(6), requirement.ObservedGeneration)
+		assert.Equal(t, "SharedRoutingResourcesActive", requirement.Reason)
+		assert.Equal(t, "shared routing resources are active", requirement.Message)
+	}
+}

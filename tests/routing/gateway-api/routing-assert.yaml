@@ -15,7 +15,7 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: ListenerSet
 metadata:
-  name: api-listener-f28e273ed55ce9a6
+  name: api-routing-listener-f28e273ed55ce9a6
   namespace: gateway-api-routing
 spec:
   parentRef:
@@ -43,13 +43,13 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: api-redirect
+  name: api-routing-redirect
   namespace: gateway-api-routing
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
-      name: api-listener-f28e273ed55ce9a6
+      name: api-routing-listener-f28e273ed55ce9a6
       sectionName: http
   hostnames:
     - api.example.com
@@ -68,13 +68,13 @@ spec:
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: api
+  name: api-routing
   namespace: gateway-api-routing
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: ListenerSet
-      name: api-listener-f28e273ed55ce9a6
+      name: api-routing-listener-f28e273ed55ce9a6
       sectionName: https
   hostnames:
     - api.example.com
@@ -115,7 +115,7 @@ metadata:
   name: api
   namespace: gateway-api-routing
 spec:
-  routingProvider: standard
+  routingProvider: Standard
 status:
   summary:
     status: Synced
@@ -132,9 +132,9 @@ status:
   subresources:
     Certificate[gateway-api-routing-api-routing-ingress-af0fa765]:
       status: Synced
-    HTTPRoute[api-redirect]:
+    HTTPRoute[api-routing-redirect]:
       status: Synced
-    HTTPRoute[api]:
+    HTTPRoute[api-routing]:
       status: Synced
-    ListenerSet[api-listener-f28e273ed55ce9a6]:
+    ListenerSet[api-routing-listener-f28e273ed55ce9a6]:
       status: Synced

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/nais/liberator/pkg/namegen"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -36,17 +37,26 @@ type Routing struct {
 }
 
 // +kubebuilder:object:generate=true
+// +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || self.routingProvider == 'standard'",message="spec.ownership=Shared requires spec.routingProvider=standard"
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`
 
 	// RoutingProvider controls which routing API Skiperator uses.
-	// legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+	// Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
 	//
-	//+kubebuilder:validation:Enum=legacy;standard
+	//+kubebuilder:validation:Enum=Legacy;Standard
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=legacy
+	//+kubebuilder:default=Legacy
 	RoutingProvider RoutingProvider `json:"routingProvider,omitempty"`
+
+	// Ownership controls whether this Routing owns the hostname exclusively or
+	// contributes paths to a shared hostname.
+	//
+	//+kubebuilder:validation:Enum=Standalone;Shared
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=Standalone
+	Ownership RoutingOwnership `json:"ownership,omitempty"`
 
 	//+kubebuilder:validation:Required
 	Routes []Route `json:"routes"`
@@ -55,6 +65,17 @@ type RoutingSpec struct {
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
 }
+
+// RoutingOwnership controls whether one Routing owns a hostname or shares it
+// with other Routing objects using non-overlapping path prefixes.
+type RoutingOwnership string
+
+const (
+	// RoutingOwnershipStandalone means this Routing owns the whole hostname.
+	RoutingOwnershipStandalone RoutingOwnership = "Standalone"
+	// RoutingOwnershipShared means this Routing contributes paths to shared hostname resources.
+	RoutingOwnershipShared RoutingOwnership = "Shared"
+)
 
 // +kubebuilder:object:generate=true
 type Route struct {
@@ -87,8 +108,10 @@ func (in *Routing) UsesStandardRouting() bool {
 	return in.Spec.RoutingProvider == RoutingProviderStandard
 }
 
-func (in *Routing) UsesLegacyRouting() bool {
-	return !in.UsesStandardRouting()
+// UsesSharedOwnership returns true when Gateway API resources that terminate
+// TLS and expose listeners should live in the shared istio-gateways namespace.
+func (in *Routing) UsesSharedOwnership() bool {
+	return in.Spec.Ownership == RoutingOwnershipShared
 }
 
 func (in *Routing) Hostnames() (common.HostCollection, error) {
@@ -116,6 +139,13 @@ func (in *Routing) GetVirtualServiceName() string {
 func (in *Routing) GetCertificateName(host *common.Host) (string, error) {
 	if host.UsesCustomCert() {
 		return *host.CustomCertificateSecret, nil
+	}
+	if in.UsesSharedOwnership() {
+		// Shared ownership: key the certificate on the hostname (not the
+		// contributing Routing's identity) so every contributor converges on a
+		// single shared certificate in istio-gateways, instead of each writing a
+		// different cert ref into the shared ListenerSet.
+		return namegen.ShortName(fmt.Sprintf("shared-%x-routing-ingress", util.GenerateHashFromName(host.Hostname)), validation.DNS1035LabelMaxLength)
 	}
 	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
 	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82

@@ -33,7 +33,7 @@ func NewHost(hostname string) (*Host, error) {
 	switch len(results) {
 	// No custom cert present
 	case 1:
-		h = Host{Hostname: results[0], CustomCertificateSecret: nil}
+		h = Host{Hostname: strings.ToLower(results[0]), CustomCertificateSecret: nil}
 	// Custom cert present
 	case 2:
 		secret := results[1]
@@ -41,7 +41,7 @@ func NewHost(hostname string) (*Host, error) {
 			return nil, fmt.Errorf("%s: not valid, custom certificate secret cannot be empty", hostname)
 		}
 
-		h = Host{Hostname: results[0], CustomCertificateSecret: &secret}
+		h = Host{Hostname: strings.ToLower(results[0]), CustomCertificateSecret: &secret}
 	// More than one '+' characters present
 	default:
 		return nil, fmt.Errorf("%s: not valid, contains multiple '%s' characters", hostname, hostnameSecretSeparator)

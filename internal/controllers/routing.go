@@ -7,6 +7,7 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	commontypes "github.com/kartverket/skiperator/api/common"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/gwapi"
@@ -23,14 +24,22 @@ import (
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
+
+// sharedRoutingFinalizer drives ref-counted cleanup of shared Gateway API
+// resources in istio-gateways, which are not owned by any single contributor.
+const sharedRoutingFinalizer = "skiperator.kartverket.no/shared-routing-cleanup"
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=routings;routings/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch
@@ -39,6 +48,7 @@ import (
 // +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;virtualservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=listenersets;httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch
 
 type RoutingReconciler struct {
 	common.ReconcilerBase
@@ -56,7 +66,15 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&skiperatorv1alpha1.Application{},
 			handler.EnqueueRequestsFromMapFunc(r.skiperatorApplicationsChanges)).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+		WithEventFilter(predicate.Or(
+			predicate.GenerationChangedPredicate{},
+			predicate.LabelChangedPredicate{},
+			// Finalizer-driven deletes arrive as metadata-only updates (deletion
+			// timestamp set, generation unchanged), so let those through too.
+			predicate.Funcs{UpdateFunc: func(e event.UpdateEvent) bool {
+				return !e.ObjectNew.GetDeletionTimestamp().IsZero()
+			}},
+		)).
 		Complete(r)
 }
 
@@ -74,6 +92,13 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
 		return common.RequeueWithError(err)
+	}
+
+	// Shared routing resources in istio-gateways are not owned by any single
+	// contributor, so a finalizer drives ref-counted cleanup when the last
+	// contributor for a hostname is deleted.
+	if handled, result, err := r.reconcileSharedRoutingFinalizer(ctx, routing, rLog); handled {
+		return result, err
 	}
 
 	if !common.ShouldReconcile(routing) {
@@ -104,17 +129,40 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
 	r.SetProgressingState(ctx, routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
+	// Resolve Istio enablement once and reuse it for both the Gateway API
+	// prerequisite check and the reconciliation, instead of looking the
+	// namespace up twice. A lookup error requeues rather than being read as
+	// "Istio disabled".
+	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
+	if err != nil {
+		rLog.Error(err, "failed to check Istio revision label for namespace")
+		r.SetErrorState(ctx, routing, err, "failed to check Istio revision label for namespace", "NamespaceLookupFailure")
+		return common.RequeueWithError(err)
+	}
+
 	// Gateway API uses shared cluster resources, so fail before generating
 	// resources if namespace setup or ownership checks are invalid.
-	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, routing, rLog) {
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, routing, istioEnabled, rLog) {
 		return common.DoNotRequeue()
 	}
 
-	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
-
 	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
-	routingState := gwapi.EvaluateRoutingState(ctx, r.GetClient(), routing, routing.GetStatus())
+	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), routing, routing.GetStatus())
+	if err != nil {
+		// A failed routing-state lookup must not be read as "legacy absent":
+		// requeue without generating resources so legacy routing is preserved.
+		rLog.Error(err, "failed to evaluate Gateway API routing state")
+		r.SetErrorState(ctx, routing, err, "failed to evaluate Gateway API routing state", "RoutingStateFailure")
+		return common.RequeueWithError(err)
+	}
 	reconciliationRouting.SetGenerateLegacyRouting(routingState.GenerateLegacyRouting)
+
+	// Prime migration status (start time + stall detection) before generating
+	// resources, so the migration clock advances and stalls are surfaced even if
+	// resource generation keeps failing. Persisted by the success or error path.
+	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
+		emitMigrationEvents(&r.ReconcilerBase, routing, gwapi.UpdateRoutingStatus(routing.GetStatus(), routing.GetGeneration(), routingState))
+	}
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -157,16 +205,11 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	routing.GetStatus().SetSummarySynced()
+	// Ready/summary come from the shared routing-status assembler, the same path
+	// Application uses, so the two controllers cannot drift.
+	finalizeRoutingStatus(&r.ReconcilerBase, routing, routingState, "Routing has been reconciled")
 	if routing.UsesStandardRouting() {
-		// Standard routing status comes from Gateway API readiness, not just
-		// successful reconciliation of generated resources.
-		emitMigrationEvents(&r.ReconcilerBase, routing, gwapi.UpdateRoutingStatus(routing.GetStatus(), routing.GetGeneration(), routingState))
-	} else {
-		// TODO: Rebuild Routing conditions from typed helpers like Application
-		// does, instead of mutating existing status in place.
-		common.ClearGatewayAPIConditions(routing)
-		common.SetReadyReconciled(routing, "Routing has been reconciled")
+		setSharedRoutingResourcesCondition(routing)
 	}
 	r.UpdateStatus(ctx, routing)
 	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
@@ -174,6 +217,21 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	}
 
 	return common.DoNotRequeue()
+}
+
+// setSharedRoutingResourcesCondition exposes shared Gateway API infrastructure
+// only when active, without adding conditions to standalone Routing objects.
+func setSharedRoutingResourcesCondition(routing *skiperatorv1alpha1.Routing) {
+	if routing.UsesSharedOwnership() {
+		routing.GetStatus().SetSharedRoutingResourcesCondition(
+			metav1.ConditionTrue,
+			routing.GetGeneration(),
+			"SharedRoutingResourcesActive",
+			"Routing uses shared Gateway API resources in istio-gateways",
+		)
+		return
+	}
+	meta.RemoveStatusCondition(&routing.GetStatus().Conditions, commontypes.SharedRoutingResourcesType)
 }
 
 func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Routing, error) {
@@ -199,6 +257,119 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	return processor.Process(reconciliation)
 }
 
+// reconcileSharedRoutingFinalizer adds/removes the shared-routing finalizer and,
+// on deletion, performs ref-counted cleanup of shared istio-gateways resources.
+// It returns handled=true when it owns the outcome of this reconcile pass.
+func (r *RoutingReconciler) reconcileSharedRoutingFinalizer(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) (bool, reconcile.Result, error) {
+	if !routing.GetDeletionTimestamp().IsZero() {
+		if !ctrlutil.ContainsFinalizer(routing, sharedRoutingFinalizer) {
+			return true, reconcile.Result{}, nil
+		}
+		if err := r.handleSharedRoutingDeletion(ctx, routing, rLog); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		ctrlutil.RemoveFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{}, nil
+	}
+
+	hasFinalizer := ctrlutil.ContainsFinalizer(routing, sharedRoutingFinalizer)
+	// Add the finalizer for shared routings, remove it if a Routing switched away
+	// from shared ownership. Requeue so the rest of the reconcile runs cleanly.
+	if routing.UsesSharedOwnership() && !hasFinalizer {
+		ctrlutil.AddFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{Requeue: true}, nil
+	}
+	if !routing.UsesSharedOwnership() && hasFinalizer {
+		ctrlutil.RemoveFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{Requeue: true}, nil
+	}
+	return false, reconcile.Result{}, nil
+}
+
+// handleSharedRoutingDeletion prunes the deleted Routing's own resources, then
+// deletes the shared istio-gateways resources only if no other live Routing
+// still contributes to the same hostname.
+func (r *RoutingReconciler) handleSharedRoutingDeletion(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) error {
+	if errs := r.cleanUpWatchedResources(ctx, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name}); len(errs) > 0 {
+		return fmt.Errorf("failed to clean up routing resources: %w", errs[0])
+	}
+
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
+
+	last, err := r.isLastSharedContributor(ctx, routing, host.Hostname)
+	if err != nil {
+		return err
+	}
+	if !last {
+		rLog.Debug("Other shared Routings still use hostname, keeping shared resources", "hostname", host.Hostname)
+		return nil
+	}
+
+	return r.deleteSharedRoutingResources(ctx, routing, host)
+}
+
+// isLastSharedContributor reports whether routing is the only live shared
+// Routing for the hostname (ignoring itself and any others being deleted).
+func (r *RoutingReconciler) isLastSharedContributor(ctx context.Context, routing *skiperatorv1alpha1.Routing, hostname string) (bool, error) {
+	routings := &skiperatorv1alpha1.RoutingList{}
+	if err := r.GetClient().List(ctx, routings); err != nil {
+		return false, err
+	}
+	for i := range routings.Items {
+		other := &routings.Items[i]
+		if other.Namespace == routing.Namespace && other.Name == routing.Name {
+			continue
+		}
+		if !other.GetDeletionTimestamp().IsZero() || !other.UsesSharedOwnership() {
+			continue
+		}
+		otherHost, err := other.Spec.GetHost()
+		if err != nil {
+			continue
+		}
+		if otherHost.Hostname == hostname {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// deleteSharedRoutingResources deletes the shared ListenerSet, redirect HTTPRoute
+// and certificate for a hostname from istio-gateways. Missing resources are
+// ignored so the cleanup is idempotent.
+func (r *RoutingReconciler) deleteSharedRoutingResources(ctx context.Context, routing *skiperatorv1alpha1.Routing, host *commontypes.Host) error {
+	resources := []client.Object{
+		&gatewayapiv1.ListenerSet{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: gwapi.SharedListenerSetName(host.Hostname)}},
+		&gatewayapiv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: gwapi.SharedRedirectRouteName(host.Hostname)}},
+	}
+	if !host.UsesCustomCert() {
+		certName, err := routing.GetCertificateName(host)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, &certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: certName}})
+	}
+
+	for _, obj := range resources {
+		if err := r.GetClient().Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete shared routing resource %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
+		}
+	}
+	return nil
+}
+
 // TODO Do this with application too for dynamic port allocation?
 func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) error {
 	for i := range routing.Spec.Routes {
@@ -215,13 +386,32 @@ func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skipera
 }
 
 func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
 	for _, resource := range resources {
 		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
 			return err
 		}
+		if routing.UsesSharedOwnership() && resource.GetNamespace() == gwapi.IstioGatewayNamespace && isSharedRoutingInfrastructure(resource) {
+			resourceutils.SetSharedRoutingLabels(resource, host.Hostname)
+			continue
+		}
 		resourceutils.SetRoutingLabels(resource, routing)
 	}
 	return nil
+}
+
+// isSharedRoutingInfrastructure selects the cross-namespace objects whose
+// labels must be stable across all Routing contributors for one hostname.
+func isSharedRoutingInfrastructure(resource client.Object) bool {
+	switch resource.(type) {
+	case *certmanagerv1.Certificate, *gatewayapiv1.ListenerSet, *gatewayapiv1.HTTPRoute:
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *RoutingReconciler) skiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {

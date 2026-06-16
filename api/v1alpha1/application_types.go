@@ -23,8 +23,8 @@ const (
 	ApplicationKindDeployment  ApplicationKind = "Deployment"
 	ApplicationKindStatefulSet ApplicationKind = "StatefulSet"
 
-	RoutingProviderLegacy   RoutingProvider = "legacy"
-	RoutingProviderStandard RoutingProvider = "standard"
+	RoutingProviderLegacy   RoutingProvider = "Legacy"
+	RoutingProviderStandard RoutingProvider = "Standard"
 )
 
 // ApplicationStatus is a specialized status specific to the Application kind.
@@ -100,11 +100,11 @@ type ApplicationSpec struct {
 	Ingresses []string `json:"ingresses,omitempty"`
 
 	// RoutingProvider controls which routing API Skiperator uses for ingresses.
-	// legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+	// Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
 	//
-	//+kubebuilder:validation:Enum=legacy;standard
+	//+kubebuilder:validation:Enum=Legacy;Standard
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=legacy
+	//+kubebuilder:default=Legacy
 	RoutingProvider RoutingProvider `json:"routingProvider,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
@@ -450,10 +450,6 @@ func (a *Application) IsStateful() bool {
 
 func (a *Application) UsesStandardRouting() bool {
 	return a.Spec.RoutingProvider == RoutingProviderStandard
-}
-
-func (a *Application) UsesLegacyRouting() bool {
-	return !a.UsesStandardRouting()
 }
 
 func (a *Application) Hostnames() (common.HostCollection, error) {

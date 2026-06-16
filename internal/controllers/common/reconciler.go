@@ -108,29 +108,28 @@ func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, m
 	)
 }
 
-func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+// IsIstioEnabledForNamespace reports whether the namespace carries the Istio
+// revision label. A lookup error is returned rather than swallowed, so callers
+// can requeue instead of treating a transient failure as "Istio disabled".
+// Transient errors are retried by the reconciler requeue, not in-line here.
+func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) (bool, error) {
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 		},
 	}
 
-	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
-		return !errors.IsNotFound(err)
-	}, func() error {
-		return r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
-	})
-	if err != nil {
-		return false
+	if err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace); err != nil {
+		return false, err
 	}
 
 	v, exists := namespace.Labels[util.IstioRevisionLabel]
 
-	return exists && len(v) > 0
+	return exists && len(v) > 0, nil
 }
 
-func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(ctx context.Context, usesStandardRouting bool, namespaceName string) error {
-	if !usesStandardRouting || r.IsIstioEnabledForNamespace(ctx, namespaceName) {
+func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, istioEnabled bool, namespaceName string) error {
+	if !usesStandardRouting || istioEnabled {
 		return nil
 	}
 	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label", namespaceName, util.IstioRevisionLabel)

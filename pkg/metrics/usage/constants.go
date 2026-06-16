@@ -20,6 +20,4 @@ const (
 	// For massaging data
 	countKey     = "count"
 	unknownValue = "unknown"
-
-	migrationStalledReason = "MigrationStalled"
 )

@@ -185,11 +185,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Signal-driven context shared by the usage-metrics goroutine and the
+	// manager, so background work stops cleanly on shutdown.
+	signalCtx := ctrl.SetupSignalHandler()
+
 	// Run leader-specific tasks when elected
 	go func() {
-		<-mgr.Elected() // Wait until this instance is elected as leader
+		select {
+		case <-mgr.Elected(): // Wait until this instance is elected as leader
+		case <-signalCtx.Done():
+			return
+		}
 		setupLog.Info("I am the captain now – configuring usage metrics")
-		if err := usage.NewUsageMetrics(kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
+		if err := usage.NewUsageMetrics(signalCtx, kubeconfig, log.NewLogger().WithName("usage-metrics")); err != nil {
 			setupLog.Error(err, "unable to configure usage metrics")
 		}
 	}()
@@ -298,7 +306,7 @@ func main() {
 		os.Exit(1)
 	}
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(signalCtx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}

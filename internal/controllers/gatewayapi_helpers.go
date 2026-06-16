@@ -19,8 +19,8 @@ type gatewayAPIRoutable interface {
 	gwapi.Routable
 }
 
-func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, logger log.Logger) bool {
-	if err := r.ValidateIstioEnabledForGatewayAPI(ctx, obj.UsesStandardRouting(), obj.GetNamespace()); err != nil {
+func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, istioEnabled bool, logger log.Logger) bool {
+	if err := r.ValidateIstioEnabledForGatewayAPI(obj.UsesStandardRouting(), istioEnabled, obj.GetNamespace()); err != nil {
 		logger.Error(err, "gateway api requires istio revision label")
 		r.SetErrorState(ctx, obj, err, "gateway api requires istio revision label", "NamespaceMissingIstioInjection")
 		return true
@@ -33,6 +33,31 @@ func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.Recon
 	}
 
 	return false
+}
+
+// finalizeRoutingStatus writes the routing-derived Ready/StandardRoutingReady/
+// LegacyRoutingActive conditions and the summary, shared by Application and
+// Routing so the two controllers cannot drift. Standard routing's Ready comes
+// from Gateway API readiness; legacy routing reports reconciled and clears any
+// stale Gateway API conditions (and migration clock) from a prior attempt.
+func finalizeRoutingStatus(r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, routingState gwapi.RoutingStateResult, message string) {
+	if obj.UsesStandardRouting() {
+		emitMigrationEvents(r, obj, gwapi.UpdateRoutingStatus(obj.GetStatus(), obj.GetGeneration(), routingState))
+		if routingState.Readiness.Ready {
+			r.EmitNormalEvent(obj, "ReconcileEndSuccess", message)
+			obj.GetStatus().SetSummarySynced()
+		} else {
+			// Subresources reconciled, but standard routing is not ready yet:
+			// do not report Synced while the object is not routable.
+			obj.GetStatus().SetSummaryProgressingMessage("Subresources reconciled, standard routing migration in progress")
+		}
+		return
+	}
+
+	controllercommon.ClearGatewayAPIConditions(obj)
+	controllercommon.SetReadyReconciled(obj, message)
+	r.EmitNormalEvent(obj, "ReconcileEndSuccess", message)
+	obj.GetStatus().SetSummarySynced()
 }
 
 func emitMigrationEvents(r *controllercommon.ReconcilerBase, obj runtime.Object, events []gwapi.MigrationEvent) {

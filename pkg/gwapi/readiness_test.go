@@ -41,8 +41,26 @@ func TestLegacyRoutingExistsRetriesTransientGetFailure(t *testing.T) {
 		failures: 1,
 	}
 
-	assert.True(t, legacyRoutingExists(context.Background(), c, routing))
+	exists, err := legacyRoutingExists(context.Background(), c, routing)
+	require.NoError(t, err)
+	assert.True(t, exists)
 	assert.GreaterOrEqual(t, c.gets, 2)
+}
+
+func TestLegacyRoutingExistsReturnsErrorOnPersistentFailure(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, istionetworkingv1.AddToScheme(scheme))
+	routing := &skiperatorv1alpha1.Routing{ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"}}
+	c := &transientGetClient{
+		Client:   fake.NewClientBuilder().WithScheme(scheme).Build(),
+		failures: 1000,
+	}
+
+	// A persistent non-NotFound error must surface as an error, not be read as
+	// "legacy absent" (which would prune legacy routing mid-migration).
+	exists, err := legacyRoutingExists(context.Background(), c, routing)
+	require.Error(t, err)
+	assert.False(t, exists)
 }
 
 func TestLegacyRoutingExistsDoesNotRetryNotFound(t *testing.T) {
@@ -53,6 +71,8 @@ func TestLegacyRoutingExistsDoesNotRetryNotFound(t *testing.T) {
 		Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
 	}
 
-	assert.False(t, legacyRoutingExists(context.Background(), c, routing))
+	exists, err := legacyRoutingExists(context.Background(), c, routing)
+	require.NoError(t, err)
+	assert.False(t, exists)
 	assert.Equal(t, 2, c.gets)
 }
