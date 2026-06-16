@@ -2,7 +2,6 @@ package virtualservice
 
 import (
 	"fmt"
-	"hash/fnv"
 	"strconv"
 	"strings"
 
@@ -27,10 +26,13 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	virtualService := networkingv1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      application.Name + "-ingress",
+			Name:      application.GetVirtualServiceName(),
 			Namespace: application.Namespace,
 		},
 	}
@@ -89,11 +91,7 @@ func getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []s
 	hosts, _ := application.Spec.Hosts()
 	gateways := make([]string, 0, hosts.Count())
 	for _, hostname := range hosts.Hostnames() {
-		// Generate gateway name
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
-		gateways = append(gateways, name)
+		gateways = append(gateways, application.GetGatewayName(hostname))
 	}
 
 	return gateways

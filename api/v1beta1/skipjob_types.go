@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	commontypes "github.com/kartverket/skiperator/api/common"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -31,8 +32,9 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:object:generate=true
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
-// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`,priority=1
 // +kubebuilder:storageversion
 //
 // SKIPJob is the supported schema for the SKIPJobs API.
@@ -200,6 +202,13 @@ func (skipJob *SKIPJob) FillDefaultStatus() {
 
 	if len(skipJob.Status.Conditions) == 0 {
 		skipJob.Status.Conditions = []metav1.Condition{
+			{
+				Type:               commontypes.ReadyConditionType,
+				Status:             metav1.ConditionUnknown,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "NotReconciled",
+				Message:            "SKIPJob has not been reconciled yet",
+			},
 			{
 				Type:               ConditionRunning,
 				Status:             metav1.ConditionFalse,

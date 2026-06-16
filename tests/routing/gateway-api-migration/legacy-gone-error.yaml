@@ -1,0 +1,11 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration

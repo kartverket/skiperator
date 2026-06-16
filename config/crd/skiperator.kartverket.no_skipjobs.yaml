@@ -1081,6 +1081,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status
@@ -1131,11 +1134,15 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
-    - jsonPath: .status.summary.status
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
       type: string
     - jsonPath: .status.accessPolicies
       name: AccessPolicies
+      priority: 1
       type: string
     name: v1beta1
     schema:
@@ -2187,6 +2194,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status

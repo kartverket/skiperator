@@ -4,11 +4,13 @@ import (
 	"testing"
 	"time"
 
+	commontypes "github.com/kartverket/skiperator/api/common"
 	istiov1alpha1 "github.com/kartverket/skiperator/api/common/istiotypes"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/testutil"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -59,6 +61,19 @@ func TestStatusDiffWithTimestamp(t *testing.T) {
 	diff, err := GetObjectDiff(tmpStatus, status)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(diff))
+}
+
+func TestClearGatewayAPIConditions(t *testing.T) {
+	app := &v1alpha1.Application{}
+	app.GetStatus().SetReadyCondition(v1.ConditionTrue, 1, "Reconciled", "ready")
+	app.GetStatus().SetStandardRoutingReadyCondition(v1.ConditionFalse, 1, "MigrationStalled", "stalled")
+	app.GetStatus().SetLegacyRoutingActiveCondition(v1.ConditionTrue, 1, "LegacyRoutingActive", "active")
+
+	ClearGatewayAPIConditions(app)
+
+	assert.NotNil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.ReadyConditionType))
+	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.StandardRoutingReadyConditionType))
+	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.LegacyRoutingActiveConditionType))
 }
 
 func TestShouldNormalizeHosts(t *testing.T) {

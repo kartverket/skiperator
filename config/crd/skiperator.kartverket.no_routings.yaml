@@ -17,8 +17,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.summary.status
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
+      type: string
+    - jsonPath: .spec.routingProvider
+      name: Routing
       type: string
     name: v1alpha1
     schema:
@@ -66,6 +72,15 @@ spec:
                   - targetApp
                   type: object
                 type: array
+              routingProvider:
+                default: legacy
+                description: |-
+                  RoutingProvider controls which routing API Skiperator uses.
+                  legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+                enum:
+                - legacy
+                - standard
+                type: string
             required:
             - hostname
             - routes
@@ -135,6 +150,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status
@@ -180,6 +198,8 @@ spec:
         required:
         - spec
         type: object
+    selectableFields:
+    - jsonPath: .spec.routingProvider
     served: true
     storage: true
     subresources:

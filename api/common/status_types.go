@@ -1,6 +1,7 @@
 package common
 
 import (
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -10,9 +11,10 @@ import (
 // A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
 // +kubebuilder:object:generate=true
 type SkiperatorStatus struct {
-	Summary      Status             `json:"summary"`
-	SubResources map[string]Status  `json:"subresources"`
-	Conditions   []metav1.Condition `json:"conditions"`
+	Summary            Status             `json:"summary"`
+	SubResources       map[string]Status  `json:"subresources"`
+	Conditions         []metav1.Condition `json:"conditions"`
+	MigrationStartedAt *metav1.Time       `json:"migrationStartedAt,omitempty"`
 	// Indicates if access policies are valid
 	AccessPolicies StatusNames `json:"accessPolicies"`
 }
@@ -37,6 +39,10 @@ const (
 	PENDING       StatusNames = "Pending"
 	READY         StatusNames = "Ready"
 	INVALIDCONFIG StatusNames = "InvalidConfig"
+
+	ReadyConditionType                = "Ready"
+	StandardRoutingReadyConditionType = "StandardRoutingReady"
+	LegacyRoutingActiveConditionType  = "LegacyRoutingActive"
 )
 
 func (s *SkiperatorStatus) SetSummaryPending() {
@@ -75,6 +81,39 @@ func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
 	if s.Conditions == nil {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
+}
+
+func (s *SkiperatorStatus) SetReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
+		Type:               ReadyConditionType,
+		Status:             status,
+		ObservedGeneration: observedGeneration,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	})
+}
+
+func (s *SkiperatorStatus) SetStandardRoutingReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
+		Type:               StandardRoutingReadyConditionType,
+		Status:             status,
+		ObservedGeneration: observedGeneration,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	})
+}
+
+func (s *SkiperatorStatus) SetLegacyRoutingActiveCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
+		Type:               LegacyRoutingActiveConditionType,
+		Status:             status,
+		ObservedGeneration: observedGeneration,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	})
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {
