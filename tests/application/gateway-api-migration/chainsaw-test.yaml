@@ -1,0 +1,75 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-application-migration
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: gateway-api-application-migration
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - create:
+            file: application-legacy.yaml
+        - assert:
+            file: legacy-assert.yaml
+    - try:
+        - apply:
+            file: application-standard.yaml
+        - assert:
+            file: standard-not-ready-assert.yaml
+    - try:
+        - apply:
+            file: ready-secret.yaml
+        - script:
+            content: |
+              kubectl -n gateway-api-application-migration wait certificate gateway-api-application-migration-migration-app-ingress-a58ae9650224440c --for=condition=Ready --timeout=120s
+              kubectl -n gateway-api-application-migration wait certificate migration-app-custom-tls --for=condition=Ready --timeout=120s
+        - script:
+            content: |
+              wait_listener_ready() {
+                name="$1"
+                kubectl -n gateway-api-application-migration wait listenerset "$name" --for=condition=Accepted --timeout=120s
+                kubectl -n gateway-api-application-migration wait listenerset "$name" --for=condition=Programmed --timeout=120s
+                for i in $(seq 1 120); do
+                  resolved=$(kubectl -n gateway-api-application-migration get listenerset "$name" -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                  conflicted=$(kubectl -n gateway-api-application-migration get listenerset "$name" -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="Conflicted")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                  if [ "$resolved" -ge 2 ] && [ "$conflicted" -eq 0 ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                kubectl -n gateway-api-application-migration get listenerset "$name" -o yaml
+                return 1
+              }
+
+              wait_route_ready() {
+                name="$1"
+                expected="$2"
+                for i in $(seq 1 120); do
+                  accepted=$(kubectl -n gateway-api-application-migration get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  resolved=$(kubectl -n gateway-api-application-migration get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  if [ "$accepted" -ge "$expected" ] && [ "$resolved" -ge "$expected" ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                kubectl -n gateway-api-application-migration get httproute "$name" -o yaml
+                return 1
+              }
+
+              wait_listener_ready migration-app-listener-489984a8ae28cf26
+              wait_listener_ready migration-app-listener-a58ae9650224440c
+              wait_route_ready migration-app 2
+              wait_route_ready migration-app-redirect 2
+        - script:
+            content: |
+              # Test-side reconcile nudge only. Migration cutover is driven by
+              # spec.routingProvider plus Gateway API readiness, not this label.
+              kubectl -n gateway-api-application-migration label applications.skiperator.kartverket.no migration-app dummy-force-reconcile=true --overwrite
+        - assert:
+            file: standard-ready-assert.yaml
+        - error:
+            file: legacy-gone-error.yaml

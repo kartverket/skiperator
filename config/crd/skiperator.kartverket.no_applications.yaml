@@ -17,11 +17,18 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.summary.status
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
       type: string
     - jsonPath: .status.accessPolicies
       name: AccessPolicies
+      priority: 1
+      type: string
+    - jsonPath: .spec.routingProvider
+      name: Routing
       type: string
     - jsonPath: .status.applicationKind
       name: WorkloadType
@@ -1358,6 +1365,15 @@ spec:
                       Requests can be set on the CPU and memory.
                     type: object
                 type: object
+              routingProvider:
+                default: legacy
+                description: |-
+                  RoutingProvider controls which routing API Skiperator uses for ingresses.
+                  legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+                enum:
+                - legacy
+                - standard
+                type: string
               startup:
                 description: |-
                   Kubernetes uses startup probes to know when a container application has started.
@@ -1791,6 +1807,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status
@@ -1834,6 +1853,8 @@ spec:
             - summary
             type: object
         type: object
+    selectableFields:
+    - jsonPath: .spec.routingProvider
     served: true
     storage: true
     subresources:

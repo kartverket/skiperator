@@ -27,6 +27,9 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	hosts, err := application.Spec.Hosts()
 	if err != nil {
@@ -35,7 +38,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	// Generate separate gateway for each ingress
 	for _, h := range hosts.AllHosts() {
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, util.GenerateHashFromName(h.Hostname))
+		name := application.GetGatewayName(h.Hostname)
 		gateway := networkingv1.Gateway{ObjectMeta: metav1.ObjectMeta{Namespace: application.Namespace, Name: name}}
 
 		gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)

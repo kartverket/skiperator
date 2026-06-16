@@ -28,6 +28,9 @@ spec:
     schedule: "* * * * *"
 status:
   conditions:
+    - type: Ready
+      status: "Unknown"
+      reason: JobRunning
     - type: Failed
       status: "False"
     - type: Running

@@ -1,0 +1,140 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-api-routing-api-routing-ingress-af0fa765
+  namespace: gateway-api-routing
+spec:
+  dnsNames:
+    - api.example.com
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: gateway-api-routing-api-routing-ingress-af0fa765
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: api-listener-f28e273ed55ce9a6
+  namespace: gateway-api-routing
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-external
+    namespace: istio-gateways
+  listeners:
+    - name: http
+      hostname: api.example.com
+      port: 80
+      protocol: HTTP
+    - name: https
+      hostname: api.example.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: gateway-api-routing-api-routing-ingress-af0fa765
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api-redirect
+  namespace: gateway-api-routing
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: api-listener-f28e273ed55ce9a6
+      sectionName: http
+  hostnames:
+    - api.example.com
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 308
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: api
+  namespace: gateway-api-routing
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: api-listener-f28e273ed55ce9a6
+      sectionName: https
+  hostnames:
+    - api.example.com
+  rules:
+    - name: app-1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /app1
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: app-1
+          port: 8081
+          weight: 1
+    - name: app-2
+      matches:
+        - path:
+            type: PathPrefix
+            value: /app2
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: app-2
+          port: 9000
+          weight: 1
+
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: api
+  namespace: gateway-api-routing
+spec:
+  routingProvider: standard
+status:
+  summary:
+    status: Synced
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+    - type: LegacyRoutingActive
+      status: "False"
+      reason: LegacyRoutingInactive
+    - type: StandardRoutingReady
+      status: "True"
+      reason: StandardRoutingReady
+  subresources:
+    Certificate[gateway-api-routing-api-routing-ingress-af0fa765]:
+      status: Synced
+    HTTPRoute[api-redirect]:
+      status: Synced
+    HTTPRoute[api]:
+      status: Synced
+    ListenerSet[api-listener-f28e273ed55ce9a6]:
+      status: Synced

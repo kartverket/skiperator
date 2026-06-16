@@ -18,13 +18,14 @@ func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1
 	logger log.Logger, istioEnabled bool, restConfig *rest.Config, authConfigs *auth.AuthConfigs, skiperatorConfig config.SkiperatorConfig) *ApplicationReconciliation {
 	return &ApplicationReconciliation{
 		baseReconciliation: baseReconciliation{
-			ctx:              ctx,
-			logger:           logger,
-			istioEnabled:     istioEnabled,
-			restConfig:       restConfig,
-			skipObject:       application,
-			authConfigs:      authConfigs,
-			skiperatorConfig: skiperatorConfig,
+			ctx:                   ctx,
+			logger:                logger,
+			istioEnabled:          istioEnabled,
+			restConfig:            restConfig,
+			skipObject:            application,
+			authConfigs:           authConfigs,
+			skiperatorConfig:      skiperatorConfig,
+			generateLegacyRouting: true,
 		},
 	}
 }

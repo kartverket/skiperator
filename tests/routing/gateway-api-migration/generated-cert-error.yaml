@@ -1,0 +1,5 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-api-routing-migration-migration-routing-routin-1a126e27
+  namespace: gateway-api-routing-migration

@@ -16,11 +16,12 @@ func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.R
 	logger log.Logger, istioEnabled bool, restConfig *rest.Config) *RoutingReconciliation {
 	return &RoutingReconciliation{
 		baseReconciliation: baseReconciliation{
-			ctx:          ctx,
-			logger:       logger,
-			istioEnabled: istioEnabled,
-			restConfig:   restConfig,
-			skipObject:   routing,
+			ctx:                   ctx,
+			logger:                logger,
+			istioEnabled:          istioEnabled,
+			restConfig:            restConfig,
+			skipObject:            routing,
+			generateLegacyRouting: true,
 		},
 	}
 }

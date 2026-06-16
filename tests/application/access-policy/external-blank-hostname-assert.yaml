@@ -14,6 +14,9 @@ spec:
 status:
   accessPolicies: InvalidConfig
   conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
     - type: ExternalRulesValid
       message: External rules are invalid – hostname may be empty or duplicate, or the hostname may not be a valid DNS name
       reason: ApplicationReconciled

@@ -26,6 +26,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"go.uber.org/zap/zapcore"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
@@ -116,6 +117,7 @@ func main() {
 	setupLog.Info(fmt.Sprintf("Starting skiperator using kube-apiserver at %s", kubeconfig.Host))
 
 	detectK8sVersion(kubeconfig)
+	requireGatewayAPI(ctx, kubeconfig)
 
 	pprofBindAddr := ""
 	if activeConfig.EnableProfiling {
@@ -315,4 +317,25 @@ func detectK8sVersion(kubeconfig *rest.Config) {
 	}
 	k8sfeatures.NewVersionInfo(ver)
 	setupLog.Info("detected server version", "version", ver)
+}
+
+func requireGatewayAPI(ctx context.Context, kubeconfig *rest.Config) {
+	xc, err := apiextensionsclient.NewForConfig(kubeconfig)
+	if err != nil {
+		setupLog.Error(err, "could not create API extensions client")
+		os.Exit(1)
+	}
+
+	err = k8sfeatures.CheckCRDsPresent(
+		ctx,
+		xc,
+		k8sfeatures.CRDRequirement{Name: "gateways.gateway.networking.k8s.io", Versions: []string{"v1"}},
+		k8sfeatures.CRDRequirement{Name: "httproutes.gateway.networking.k8s.io", Versions: []string{"v1"}},
+		k8sfeatures.CRDRequirement{Name: "listenersets.gateway.networking.k8s.io", Versions: []string{"v1"}},
+	)
+	if err != nil {
+		setupLog.Error(err, "Gateway API >= 1.5.0 is required")
+		os.Exit(1)
+	}
+	setupLog.Info("detected Gateway API v1 with ListenerSet support")
 }

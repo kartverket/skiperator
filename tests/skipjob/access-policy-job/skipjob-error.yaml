@@ -26,12 +26,15 @@ spec:
                 protocol: TCP
 status:
   conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
     - type: Failed
       status: "False"
     - type: Running
-      status: "True"
-    - type: Finished
       status: "False"
+    - type: Finished
+      status: "True"
     - type: InternalRulesValid
       status: "True"
     - type: ExternalRulesValid

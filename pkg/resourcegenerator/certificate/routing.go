@@ -3,11 +3,8 @@ package certificate
 import (
 	"fmt"
 
-	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func init() {
@@ -37,23 +34,17 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		return nil
 	}
 
-	certificateName, err := routing.GetCertificateName()
+	certificateName, err := routing.GetCertificateName(h)
 	if err != nil {
 		return err
 	}
 
-	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
-
-	certificate.Spec = certmanagerv1.CertificateSpec{
-		IssuerRef: certmanagermetav1.ObjectReference{
-			Kind: "ClusterIssuer",
-			Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
-		},
-		DNSNames:   []string{h.Hostname},
-		SecretName: certificateName,
+	if r.GenerateLegacyRouting() {
+		r.AddResource(newCertificate(IstioGatewayNamespace, certificateName, h.Hostname))
 	}
-
-	r.AddResource(&certificate)
+	if routing.UsesStandardRouting() {
+		r.AddResource(newCertificate(routing.Namespace, certificateName, h.Hostname))
+	}
 
 	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)
 	return nil

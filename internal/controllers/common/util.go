@@ -13,6 +13,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -114,6 +115,28 @@ func GetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionSta
 		Reason:             "ApplicationReconciled",
 		Message:            message,
 	}
+}
+
+func SetReadyInvalidConfig(obj common.SKIPObject, message string) []metav1.Condition {
+	return SetReadyCondition(obj, metav1.ConditionFalse, "InvalidConfig", message)
+}
+
+func SetReadyReconciled(obj common.SKIPObject, message string) []metav1.Condition {
+	return SetReadyCondition(obj, metav1.ConditionTrue, "Reconciled", message)
+}
+
+func ClearGatewayAPIConditions(obj common.SKIPObject) {
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.StandardRoutingReadyConditionType)
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.LegacyRoutingActiveConditionType)
+}
+
+func SetReadyCondition(obj common.SKIPObject, status metav1.ConditionStatus, reason string, message string) []metav1.Condition {
+	obj.GetStatus().SetReadyCondition(status, obj.GetGeneration(), reason, message)
+	readyCondition := meta.FindStatusCondition(obj.GetStatus().Conditions, common.ReadyConditionType)
+	if readyCondition == nil {
+		return nil
+	}
+	return []metav1.Condition{*readyCondition}
 }
 
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {

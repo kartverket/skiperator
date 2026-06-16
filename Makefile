@@ -15,6 +15,7 @@ TOOLS_DIR                          := $(PWD)/.tools
 KUBECTL                            := $(PWD)/bin/kubectl
 KIND                               := $(TOOLS_DIR)/kind
 CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-manager/cert-manager)
+GWAPI_VERSION                      := $(call extract-version,sigs.k8s.io/gateway-api)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 
@@ -106,6 +107,9 @@ ISTIO_IMAGES = docker.io/istio/proxyv2:$(ISTIO_VERSION) docker.io/istio/pilot:$(
 
 .PHONY: install-istio
 install-istio: ensure-kubectl
+	@echo "Installing Gateway API crds"
+	@kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v$(GWAPI_VERSION)/standard-install.yaml --context $(SKIPERATOR_CONTEXT)
+
 	@echo "Creating istio-gateways namespace..."
 	@kubectl create namespace istio-gateways --context $(SKIPERATOR_CONTEXT) || true
 
@@ -124,6 +128,8 @@ install-istio: ensure-kubectl
 	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
 	@echo "Installing Istio on Kubernetes cluster..."
 	@./istio-$(ISTIO_VERSION)/bin/istioctl install -y --context $(SKIPERATOR_CONTEXT)
+	@echo "Creating tag asm-stable..."
+	@./istio-$(ISTIO_VERSION)/bin/istioctl tag set asm-stable --revision=default --overwrite --context $(SKIPERATOR_CONTEXT)
 	@echo "Istio installation complete."
 
 .PHONY: install-cert-manager

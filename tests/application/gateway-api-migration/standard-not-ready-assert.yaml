@@ -1,0 +1,100 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-api-application-migration-migration-app-ingress-a58ae9650224440c
+  namespace: gateway-api-application-migration
+spec:
+  dnsNames:
+    - migration-app.example.com
+  secretName: gateway-api-application-migration-migration-app-ingress-a58ae9650224440c
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-app-ingress-a58ae9650224440c
+  namespace: gateway-api-application-migration
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-app-ingress
+  namespace: gateway-api-application-migration
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: migration-app-listener-a58ae9650224440c
+  namespace: gateway-api-application-migration
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-external
+    namespace: istio-gateways
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: migration-app-listener-489984a8ae28cf26
+  namespace: gateway-api-application-migration
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-external
+    namespace: istio-gateways
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: migration-app-redirect
+  namespace: gateway-api-application-migration
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-app-listener-a58ae9650224440c
+      sectionName: http
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-app-listener-489984a8ae28cf26
+      sectionName: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: migration-app
+  namespace: gateway-api-application-migration
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-app-listener-a58ae9650224440c
+      sectionName: https
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-app-listener-489984a8ae28cf26
+      sectionName: https
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: migration-app
+  namespace: gateway-api-application-migration
+status:
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: StandardRoutingNotReady
+    - type: InternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+    - type: LegacyRoutingActive
+      status: "True"
+      reason: LegacyRoutingActive
+    - type: StandardRoutingReady
+      status: "False"
+      reason: StandardRoutingNotReady

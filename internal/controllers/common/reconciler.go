@@ -115,7 +115,11 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 		},
 	}
 
-	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
+		return !errors.IsNotFound(err)
+	}, func() error {
+		return r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
+	})
 	if err != nil {
 		return false
 	}
@@ -123,6 +127,13 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	v, exists := namespace.Labels[util.IstioRevisionLabel]
 
 	return exists && len(v) > 0
+}
+
+func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(ctx context.Context, usesStandardRouting bool, namespaceName string) error {
+	if !usesStandardRouting || r.IsIstioEnabledForNamespace(ctx, namespaceName) {
+		return nil
+	}
+	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label", namespaceName, util.IstioRevisionLabel)
 }
 
 func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {
@@ -141,22 +152,29 @@ func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipO
 func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj common.SKIPObject, err error, message string, reason string) {
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
+	skipObj.GetStatus().SetReadyCondition(metav1.ConditionFalse, skipObj.GetGeneration(), reason, message+": "+err.Error())
 	r.updateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
+	skipObj.GetStatus().SetReadyCondition(metav1.ConditionUnknown, skipObj.GetGeneration(), "Reconciling", message)
 	r.updateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
+	skipObj.GetStatus().SetReadyCondition(metav1.ConditionTrue, skipObj.GetGeneration(), "Reconciled", message)
 	r.updateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPObject) {
+	r.UpdateStatus(ctx, skipObj)
+}
+
+func (r *ReconcilerBase) UpdateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	key := client.ObjectKeyFromObject(skipObj)
 	desiredStatus := skipObj.GetStatus().DeepCopy()
 

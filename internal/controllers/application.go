@@ -7,6 +7,7 @@ import (
 	"maps"
 	"regexp"
 	"strings"
+	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/common/digdirator"
@@ -14,10 +15,13 @@ import (
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
+	"github.com/kartverket/skiperator/pkg/gwapi"
+	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
+	gatewayapigenerator "github.com/kartverket/skiperator/pkg/resourcegenerator/gatewayapi"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
@@ -64,6 +68,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -71,6 +76,7 @@ import (
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
@@ -79,6 +85,7 @@ import (
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=listenersets;httproutes,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
@@ -115,6 +122,8 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
+		Owns(&gatewayapiv1.ListenerSet{}).
+		Owns(&gatewayapiv1.HTTPRoute{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(
@@ -204,6 +213,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	// Gateway API uses shared cluster resources, so fail before generating
+	// resources if namespace setup or ownership checks are invalid.
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, rLog) {
+		return common.DoNotRequeue()
+	}
+
 	if err := common.ValidateContainerImageString(application); err != nil {
 		rLog.Error(err, "invalid container image in application manifest")
 		r.SetErrorState(ctx, application, err, "invalid container image in application manifest", "InvalidApplication")
@@ -238,6 +253,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	routingState := gwapi.EvaluateRoutingState(ctx, r.GetClient(), application, application.GetStatus())
+	reconciliationApp.SetGenerateLegacyRouting(routingState.GenerateLegacyRouting)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -247,6 +264,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		serviceentry.Generate,
 		gateway.Generate,
 		virtualservice.Generate,
+		gatewayapigenerator.Generate,
 		telemetry.Generate,
 		hpa.Generate,
 		peerauthentication.Generate,
@@ -304,15 +322,23 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	r.setSyncedApplicationState(ctx, application, "Application has been reconciled")
+	r.setSyncedApplicationState(ctx, application, "Application has been reconciled", routingState)
+	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string) {
+func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string, routingState gwapi.RoutingStateResult) {
 	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
 	app.GetStatus().SetSummarySynced()
 	r.updateStatus(app)
+	if app.UsesStandardRouting() {
+		// Standard routing status comes from Gateway API readiness, not just
+		// successful reconciliation of generated resources.
+		emitMigrationEvents(&r.ReconcilerBase, app, gwapi.UpdateRoutingStatus(app.GetStatus(), app.GetGeneration(), routingState))
+	}
 	r.updateApplicationStatus(ctx, app)
 }
 
@@ -344,13 +370,16 @@ func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, ski
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.SetReadyInvalidConfig(app, "Internal rules are invalid")...)
 		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
 		return conditions, skiperatorv1alpha1.INVALIDCONFIG
 	}
 	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		conditions = append(conditions, common.SetReadyInvalidConfig(app, "External rules are invalid")...)
 		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
 		return conditions, skiperatorv1alpha1.INVALIDCONFIG
 	}
+	conditions = append(conditions, common.SetReadyReconciled(app, "Application has been reconciled")...)
 	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
 	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
 	return conditions, skiperatorv1alpha1.READY
@@ -435,7 +464,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
-	return r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com")
+	return k8sfeatures.IsCRDPresent(ctx, r.GetApiExtensionsClient(), "servicemonitors.monitoring.coreos.com")
 }
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
@@ -449,20 +478,6 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 		return teamValue, nil
 	}
 	return "", fmt.Errorf("missing value for team label")
-}
-
-// Name in the form of "servicemonitors.monitoring.coreos.com".
-func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) bool {
-	extensionClient := r.GetApiExtensionsClient()
-	if extensionClient == nil {
-		return false
-	}
-	result, err := extensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
-	if err != nil || result == nil {
-		return false
-	}
-
-	return true
 }
 
 func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {

@@ -9,7 +9,8 @@ const (
 	labelDivision = "division"
 
 	// CRD label
-	labelType = "type"
+	labelType            = "type"
+	labelRoutingProvider = "provider"
 
 	// Skiperator CRD types
 	typeApplication = "Application"
@@ -19,4 +20,6 @@ const (
 	// For massaging data
 	countKey     = "count"
 	unknownValue = "unknown"
+
+	migrationStalledReason = "MigrationStalled"
 )

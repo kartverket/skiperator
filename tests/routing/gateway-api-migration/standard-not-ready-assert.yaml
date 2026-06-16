@@ -1,0 +1,91 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: migration-routing-listener-6ec458aa1f12ad13
+  namespace: gateway-api-routing-migration
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-external
+    namespace: istio-gateways
+  listeners:
+    - name: http
+      hostname: migration-routing.example.com
+      port: 80
+      protocol: HTTP
+    - name: https
+      hostname: migration-routing.example.com
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: migration-routing-tls
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: migration-routing-redirect
+  namespace: gateway-api-routing-migration
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-routing-listener-6ec458aa1f12ad13
+      sectionName: http
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: migration-routing
+  namespace: gateway-api-routing-migration
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      name: migration-routing-listener-6ec458aa1f12ad13
+      sectionName: https
+  rules:
+    - name: migration-backend
+      matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: migration-backend
+          port: 8080
+          weight: 1
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: migration-routing
+  namespace: gateway-api-routing-migration
+status:
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: StandardRoutingNotReady
+    - type: LegacyRoutingActive
+      status: "True"
+      reason: LegacyRoutingActive
+    - type: StandardRoutingReady
+      status: "False"
+      reason: StandardRoutingNotReady

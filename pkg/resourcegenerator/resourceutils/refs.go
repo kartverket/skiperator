@@ -9,8 +9,11 @@ import (
 
 func SetOwnerReference(skiperatorObject client.Object, obj client.Object, scheme *runtime.Scheme) error {
 	switch obj.(type) {
-	//Certificates are created in istio-gateways namespace, so we cannot set ownerref
+	// Legacy certificates are created in istio-gateways namespace, so we cannot set ownerref.
 	case *certmanagerv1.Certificate:
+		if skiperatorObject.GetNamespace() == obj.GetNamespace() {
+			return ctrlutil.SetControllerReference(skiperatorObject, obj, scheme)
+		}
 		return nil
 	default:
 		if err := ctrlutil.SetControllerReference(skiperatorObject, obj, scheme); err != nil {

@@ -11,6 +11,7 @@ import (
 
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	commontypes "github.com/kartverket/skiperator/api/common"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/log"
@@ -226,7 +227,9 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	r.SetSyncedState(ctx, skipJob, "SKIPJob has been reconciled")
+	r.EmitNormalEvent(skipJob, "ReconcileEndSuccess", "SKIPJob has been reconciled")
+	skipJob.GetStatus().SetSummarySynced()
+	r.UpdateStatus(ctx, skipJob)
 
 	return common.RequeueWithError(err)
 }
@@ -342,6 +345,17 @@ func (r *SKIPJobReconciler) getConditionFailed(skipJob *skiperatorv1beta1.SKIPJo
 	}
 }
 
+func (r *SKIPJobReconciler) getConditionReady(skipJob *skiperatorv1beta1.SKIPJob, status v1.ConditionStatus, reason string, message string) v1.Condition {
+	return v1.Condition{
+		Type:               commontypes.ReadyConditionType,
+		Status:             status,
+		ObservedGeneration: skipJob.Generation,
+		LastTransitionTime: v1.Now(),
+		Reason:             reason,
+		Message:            message,
+	}
+}
+
 func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skiperatorv1beta1.SKIPJob) error {
 	jobList := &batchv1.JobList{}
 	err := r.GetClient().List(ctx, jobList,
@@ -362,24 +376,28 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 
 	if len(jobList.Items) == 0 {
 		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionReady(skipJob, v1.ConditionUnknown, "JobPending", "Job has not started yet"),
 			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
 			r.getConditionRunning(skipJob, v1.ConditionFalse),
 			r.getConditionFinished(skipJob, v1.ConditionFalse),
 		}
 	} else if isFailed, failedJobMessage := isFailedJob(lastJob); isFailed {
 		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionReady(skipJob, v1.ConditionFalse, "JobFailed", failedJobMessage),
 			r.getConditionFailed(skipJob, v1.ConditionTrue, &failedJobMessage),
 			r.getConditionRunning(skipJob, v1.ConditionFalse),
 			r.getConditionFinished(skipJob, v1.ConditionFalse),
 		}
 	} else if lastJob.Status.CompletionTime != nil {
 		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionReady(skipJob, v1.ConditionTrue, "JobFinished", "Job has completed"),
 			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
 			r.getConditionRunning(skipJob, v1.ConditionFalse),
 			r.getConditionFinished(skipJob, v1.ConditionTrue),
 		}
 	} else {
 		skipJob.Status.Conditions = []v1.Condition{
+			r.getConditionReady(skipJob, v1.ConditionUnknown, "JobRunning", "Job is running"),
 			r.getConditionFailed(skipJob, v1.ConditionFalse, nil),
 			r.getConditionRunning(skipJob, v1.ConditionTrue),
 			r.getConditionFinished(skipJob, v1.ConditionFalse),
@@ -390,9 +408,11 @@ func (r *SKIPJobReconciler) updateConditions(ctx context.Context, skipJob *skipe
 	accessPolicy := skipJob.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
+		skipJob.GetStatus().SetReadyCondition(v1.ConditionFalse, skipJob.GetGeneration(), "InvalidConfig", "Internal rules are invalid")
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetInternalRulesCondition(skipJob, v1.ConditionFalse))
 		skipJob.Status.AccessPolicies = skiperatorv1beta1.INVALIDCONFIG
 	} else if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
+		skipJob.GetStatus().SetReadyCondition(v1.ConditionFalse, skipJob.GetGeneration(), "InvalidConfig", "External rules are invalid")
 		skipJob.Status.Conditions = append(skipJob.Status.Conditions, common.GetExternalRulesCondition(skipJob, v1.ConditionFalse))
 		skipJob.Status.AccessPolicies = skiperatorv1beta1.INVALIDCONFIG
 	} else {

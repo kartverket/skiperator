@@ -1,0 +1,31 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: migration-app
+  namespace: gateway-api-application-migration
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+    - type: InternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+    - type: LegacyRoutingActive
+      status: "False"
+      reason: LegacyRoutingInactive
+    - type: StandardRoutingReady
+      status: "True"
+      reason: StandardRoutingReady
+  subresources:
+    HTTPRoute[migration-app-redirect]:
+      status: Synced
+    HTTPRoute[migration-app]:
+      status: Synced
+    ListenerSet[migration-app-listener-489984a8ae28cf26]:
+      status: Synced
+    ListenerSet[migration-app-listener-a58ae9650224440c]:
+      status: Synced

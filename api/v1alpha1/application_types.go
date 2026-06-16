@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -15,11 +16,15 @@ import (
 )
 
 type ApplicationKind string
+type RoutingProvider string
 
 // Kind values for the workload skiperator generates for an Application
 const (
 	ApplicationKindDeployment  ApplicationKind = "Deployment"
 	ApplicationKindStatefulSet ApplicationKind = "StatefulSet"
+
+	RoutingProviderLegacy   RoutingProvider = "legacy"
+	RoutingProviderStandard RoutingProvider = "standard"
 )
 
 // ApplicationStatus is a specialized status specific to the Application kind.
@@ -48,9 +53,12 @@ type ApplicationList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
-// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`,priority=1
+// +kubebuilder:printcolumn:name="Routing",type=string,JSONPath=`.spec.routingProvider`
 // +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
+// +kubebuilder:selectablefield:JSONPath=".spec.routingProvider"
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -90,6 +98,14 @@ type ApplicationSpec struct {
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
+
+	// RoutingProvider controls which routing API Skiperator uses for ingresses.
+	// legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+	//
+	//+kubebuilder:validation:Enum=legacy;standard
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=legacy
+	RoutingProvider RoutingProvider `json:"routingProvider,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
@@ -430,6 +446,54 @@ func (a *Application) FillDefaultsSpec() {
 
 func (a *Application) IsStateful() bool {
 	return a.Spec.Stateful != nil && a.Spec.Stateful.Enabled
+}
+
+func (a *Application) UsesStandardRouting() bool {
+	return a.Spec.RoutingProvider == RoutingProviderStandard
+}
+
+func (a *Application) UsesLegacyRouting() bool {
+	return !a.UsesStandardRouting()
+}
+
+func (a *Application) Hostnames() (common.HostCollection, error) {
+	return a.Spec.Hosts()
+}
+
+// GetGatewayName returns the legacy Istio Gateway resource name for a hostname.
+// This does not refer to a Kubernetes Gateway API Gateway.
+func (a *Application) GetGatewayName(hostname string) string {
+	return fmt.Sprintf("%s-ingress-%x", a.Name, hashHostname(hostname))
+}
+
+func (a *Application) GetGatewayNames() ([]string, error) {
+	hosts, err := a.Hostnames()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewayNames := make([]string, 0, hosts.Count())
+	for _, host := range hosts.AllHosts() {
+		gatewayNames = append(gatewayNames, a.GetGatewayName(host.Hostname))
+	}
+	return gatewayNames, nil
+}
+
+func (a *Application) GetVirtualServiceName() string {
+	return a.Name + "-ingress"
+}
+
+func (a *Application) GetCertificateName(host *common.Host) (string, error) {
+	if host.UsesCustomCert() {
+		return *host.CustomCertificateSecret, nil
+	}
+	return fmt.Sprintf("%s-%s-ingress-%x", a.Namespace, a.Name, hashHostname(host.Hostname)), nil
+}
+
+func hashHostname(hostname string) uint64 {
+	hash := fnv.New64()
+	_, _ = hash.Write([]byte(hostname))
+	return hash.Sum64()
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.
