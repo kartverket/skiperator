@@ -379,6 +379,7 @@ func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, a
 
 func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app *skiperatorv1alpha1.Application) {
 	key := client.ObjectKeyFromObject(app)
+	app.GetStatus().SortConditions()
 	desiredStatus := app.Status.DeepCopy()
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

@@ -1,6 +1,8 @@
 package common
 
 import (
+	"sort"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -50,6 +52,43 @@ const (
 	// usage metrics package counts exactly the reason gwapi writes.
 	MigrationStalledReason = "MigrationStalled"
 )
+
+// conditionOrder is the canonical order status conditions are persisted in.
+// meta.SetStatusCondition appends new conditions in first-seen order, which
+// makes the stored order depend on reconcile history (e.g. routing conditions
+// primed before access-policy conditions during a pending migration). Sorting
+// by this map before persisting keeps status output deterministic.
+// String literals (not the SKIPJob constants) because api/common is imported by
+// the SKIPJob types, so it cannot import them back.
+var conditionOrder = map[string]int{
+	ReadyConditionType:                0,
+	"Failed":                          1,
+	"Running":                         2,
+	"Finished":                        3,
+	"InternalRulesValid":              4,
+	"ExternalRulesValid":              5,
+	LegacyRoutingActiveConditionType:  6,
+	StandardRoutingReadyConditionType: 7,
+	SharedRoutingResourcesType:        8,
+}
+
+// SortConditions orders Conditions canonically (see conditionOrder), so the
+// persisted status does not depend on the order conditions were first added
+// across reconciles. Unknown condition types are kept, in stable order, after
+// the known ones.
+func (s *SkiperatorStatus) SortConditions() {
+	sort.SliceStable(s.Conditions, func(i, j int) bool {
+		oi, oki := conditionOrder[s.Conditions[i].Type]
+		oj, okj := conditionOrder[s.Conditions[j].Type]
+		if oki != okj {
+			return oki
+		}
+		if !oki {
+			return false
+		}
+		return oi < oj
+	})
+}
 
 func (s *SkiperatorStatus) SetSummaryPending() {
 	s.Summary.Status = PENDING

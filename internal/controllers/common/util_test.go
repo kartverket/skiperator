@@ -64,7 +64,9 @@ func TestStatusDiffWithTimestamp(t *testing.T) {
 }
 
 func TestClearGatewayAPIConditions(t *testing.T) {
+	now := v1.Now()
 	app := &v1alpha1.Application{}
+	app.GetStatus().MigrationStartedAt = &now
 	app.GetStatus().SetReadyCondition(v1.ConditionTrue, 1, "Reconciled", "ready")
 	app.GetStatus().SetStandardRoutingReadyCondition(v1.ConditionFalse, 1, "MigrationStalled", "stalled")
 	app.GetStatus().SetLegacyRoutingActiveCondition(v1.ConditionTrue, 1, "LegacyRoutingActive", "active")
@@ -72,6 +74,7 @@ func TestClearGatewayAPIConditions(t *testing.T) {
 
 	ClearGatewayAPIConditions(app)
 
+	assert.Nil(t, app.GetStatus().MigrationStartedAt)
 	assert.NotNil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.ReadyConditionType))
 	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.StandardRoutingReadyConditionType))
 	assert.Nil(t, meta.FindStatusCondition(app.Status.Conditions, commontypes.LegacyRoutingActiveConditionType))
