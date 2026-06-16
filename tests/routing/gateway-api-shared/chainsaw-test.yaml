@@ -82,7 +82,7 @@ spec:
               kubectl -n gateway-api-shared-a delete routing contributor-a --wait=true --timeout=120s
 
               for i in $(seq 1 120); do
-                got=$(kubectl -n istio-gateways get listenerset -l "$SEL" -o name 2>/dev/null | wc -l | tr -d ' ')
+                got=$(kubectl -n istio-gateways get listenerset,httproute,certificate -l "$SEL" -o name 2>/dev/null | wc -l | tr -d ' ')
                 if [ "$got" = "0" ]; then
                   exit 0
                 fi
