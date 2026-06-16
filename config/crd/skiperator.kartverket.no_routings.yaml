@@ -51,6 +51,15 @@ spec:
             properties:
               hostname:
                 type: string
+              ownership:
+                default: Standalone
+                description: |-
+                  Ownership controls whether this Routing owns the hostname exclusively or
+                  contributes paths to a shared hostname.
+                enum:
+                - Standalone
+                - Shared
+                type: string
               redirectToHTTPS:
                 default: true
                 type: boolean
@@ -73,18 +82,22 @@ spec:
                   type: object
                 type: array
               routingProvider:
-                default: legacy
+                default: Legacy
                 description: |-
                   RoutingProvider controls which routing API Skiperator uses.
-                  legacy uses Istio Gateway and VirtualService. standard uses Kubernetes Gateway API.
+                  Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
                 enum:
-                - legacy
-                - standard
+                - Legacy
+                - Standard
                 type: string
             required:
             - hostname
             - routes
             type: object
+            x-kubernetes-validations:
+            - message: spec.ownership=Shared requires spec.routingProvider=standard
+              rule: '!has(self.ownership) || self.ownership != ''Shared'' || self.routingProvider
+                == ''standard'''
           status:
             description: |-
               SkiperatorStatus

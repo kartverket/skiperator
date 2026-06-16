@@ -1,11 +1,13 @@
 package resourceutils
 
 import (
+	"fmt"
 	"maps"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/pkg/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -90,6 +92,22 @@ func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing)
 		labels = make(map[string]string)
 	}
 	maps.Copy(labels, routing.GetDefaultLabels())
+	object.SetLabels(labels)
+}
+
+// SetSharedRoutingLabels gives shared routing infrastructure labels that are
+// stable for all Routing objects contributing to the same hostname.
+func SetSharedRoutingLabels(object client.Object, hostname string) {
+	hostname = strings.ToLower(hostname)
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "routing-shared",
+		"skiperator.kartverket.no/hostname":   fmt.Sprintf("%x", util.GenerateHashFromName(hostname)),
+	})
 	object.SetLabels(labels)
 }
 

@@ -61,6 +61,9 @@ func validateRoutingConflicts(ctx context.Context, c client.Client, routing *ski
 		return err
 	}
 	host := hosts.AllHosts()[0]
+	if err := validateRoutingHostnameOwnership(ctx, c, routing, host.Hostname); err != nil {
+		return err
+	}
 	routes := &gatewayapiv1.HTTPRouteList{}
 	if err := c.List(ctx, routes); err != nil {
 		return fmt.Errorf("failed to list Gateway API HTTPRoutes: %w", err)
@@ -78,6 +81,36 @@ func validateRoutingConflicts(ctx context.Context, c client.Client, routing *ski
 					return fmt.Errorf("path %q on hostname %q conflicts with accepted HTTPRoute %s/%s", newRoute.PathPrefix, host.Hostname, existing.Namespace, existing.Name)
 				}
 			}
+		}
+	}
+	return nil
+}
+
+// validateRoutingHostnameOwnership prevents standalone Routing from attaching
+// to a hostname already claimed by shared or application-owned ListenerSets.
+func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing, hostname string) error {
+	listenerSets := &gatewayapiv1.ListenerSetList{}
+	if err := c.List(ctx, listenerSets); err != nil {
+		return fmt.Errorf("failed to list Gateway API ListenerSets: %w", err)
+	}
+	for _, listenerSet := range listenerSets.Items {
+		if !skiperatorManaged(listenerSet.Labels) || sameRouting(listenerSet.Labels, routing) {
+			continue
+		}
+		if listenerSet.Spec.ParentRef.Name != GatewayNameForHost(hostname) {
+			continue
+		}
+		for _, listener := range listenerSet.Spec.Listeners {
+			if !listenerCoversHostname(listener.Hostname, hostname) {
+				continue
+			}
+			if routing.UsesSharedOwnership() && sharedRoutingListenerSet(listenerSet.Labels, listenerSet.Name, hostname) {
+				continue
+			}
+			if listenerSetAccepted(listenerSet) {
+				return fmt.Errorf("hostname %q already has an accepted ListenerSet %s/%s", hostname, listenerSet.Namespace, listenerSet.Name)
+			}
+			return fmt.Errorf("hostname %q already has a pending ListenerSet %s/%s", hostname, listenerSet.Namespace, listenerSet.Name)
 		}
 	}
 	return nil
@@ -112,6 +145,13 @@ func sameRouting(labels map[string]string, routing *skiperatorv1alpha1.Routing) 
 		labels["skiperator.kartverket.no/source-namespace"] == routing.Namespace
 }
 
+// sharedRoutingListenerSet identifies the one shared ListenerSet that all
+// shared Routing objects for a hostname are allowed to reuse.
+func sharedRoutingListenerSet(labels map[string]string, name string, hostname string) bool {
+	return labels["skiperator.kartverket.no/controller"] == "routing-shared" &&
+		name == SharedListenerSetName(hostname)
+}
+
 func isRedirectRoute(route gatewayapiv1.HTTPRoute) bool {
 	for _, rule := range route.Spec.Rules {
 		if len(rule.BackendRefs) > 0 {
@@ -132,8 +172,9 @@ func isRedirectRoute(route gatewayapiv1.HTTPRoute) bool {
 }
 
 func routeHasHostname(route gatewayapiv1.HTTPRoute, hostname string) bool {
+	hostname = strings.ToLower(hostname)
 	for _, h := range route.Spec.Hostnames {
-		if string(h) == hostname {
+		if strings.ToLower(string(h)) == hostname {
 			return true
 		}
 	}
@@ -141,7 +182,7 @@ func routeHasHostname(route gatewayapiv1.HTTPRoute, hostname string) bool {
 }
 
 func listenerCoversHostname(listenerHostname *gatewayapiv1.Hostname, hostname string) bool {
-	return listenerHostname == nil || string(*listenerHostname) == hostname
+	return listenerHostname == nil || strings.EqualFold(string(*listenerHostname), hostname)
 }
 
 // routeRuleOverlaps treats Gateway API PathPrefix matches as prefix trees.

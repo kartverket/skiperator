@@ -42,21 +42,25 @@ func parentGatewayRef(hostname string) gatewayapiv1.ParentGatewayReference {
 
 // parentListenerSetRef points an HTTPRoute at one ListenerSet listener. The
 // section selects whether the route is attached to the HTTP or HTTPS listener.
-func parentListenerSetRef(name string, section gatewayapiv1.SectionName) gatewayapiv1.ParentReference {
+func parentListenerSetRef(namespace string, name string, section gatewayapiv1.SectionName) gatewayapiv1.ParentReference {
 	group := gatewayapiv1.Group(gatewayapiv1.GroupName)
 	kind := gatewayapiv1.Kind("ListenerSet")
-	return gatewayapiv1.ParentReference{
+	ref := gatewayapiv1.ParentReference{
 		Group:       &group,
 		Kind:        &kind,
 		Name:        gatewayapiv1.ObjectName(name),
 		SectionName: &section,
 	}
+	if namespace != "" {
+		ref.Namespace = new(gatewayapiv1.Namespace(namespace))
+	}
+	return ref
 }
 
 // newListenerSet adds HTTP and HTTPS listeners for one hostname. TLS
 // termination happens on the HTTPS listener using a Secret in the same namespace
 // as the ListenerSet.
-func newListenerSet(namespace string, name string, hostname string, secretName string) *gatewayapiv1.ListenerSet {
+func newListenerSet(namespace string, name string, hostname string, secretName string, allowCrossNamespaceRoutes bool) *gatewayapiv1.ListenerSet {
 	return &gatewayapiv1.ListenerSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -64,7 +68,7 @@ func newListenerSet(namespace string, name string, hostname string, secretName s
 		},
 		Spec: gatewayapiv1.ListenerSetSpec{
 			ParentRef: parentGatewayRef(hostname),
-			Listeners: listeners(hostname, secretName),
+			Listeners: listeners(hostname, secretName, allowCrossNamespaceRoutes),
 		},
 	}
 }
@@ -72,10 +76,10 @@ func newListenerSet(namespace string, name string, hostname string, secretName s
 // parentRefs expands ListenerSet names into ParentRefs for one listener
 // section. Applications can have several ListenerSets because they can expose
 // several hostnames.
-func parentRefs(listenerSetNames []string, section gatewayapiv1.SectionName) []gatewayapiv1.ParentReference {
+func parentRefs(listenerSetNamespace string, listenerSetNames []string, section gatewayapiv1.SectionName) []gatewayapiv1.ParentReference {
 	parents := make([]gatewayapiv1.ParentReference, 0, len(listenerSetNames))
 	for _, name := range listenerSetNames {
-		parents = append(parents, parentListenerSetRef(name, section))
+		parents = append(parents, parentListenerSetRef(listenerSetNamespace, name, section))
 	}
 	return parents
 }
@@ -89,36 +93,57 @@ func secretRef(name string) gatewayapiv1.SecretObjectReference {
 // addListenerSets creates one ListenerSet per hostname and returns the names
 // and hostnames needed when building HTTPRoutes for those listeners.
 func addListenerSets(r reconciliation.Reconciliation, namespace string, prefix string, hosts common.HostCollection, certificateName func(*common.Host) (string, error)) ([]string, []gatewayapiv1.Hostname, error) {
+	return addListenerSetsWithName(r, namespace, hosts, certificateName, func(hostname string) string {
+		return gwapi.ListenerSetName(prefix, hostname)
+	}, false)
+}
+
+// addSharedListenerSets creates one shared ListenerSet per hostname in
+// istio-gateways and returns names for HTTPRoutes in contributor namespaces.
+func addSharedListenerSets(r reconciliation.Reconciliation, hosts common.HostCollection, certificateName func(*common.Host) (string, error)) ([]string, []gatewayapiv1.Hostname, error) {
+	return addListenerSetsWithName(r, gwapi.IstioGatewayNamespace, hosts, certificateName, gwapi.SharedListenerSetName, true)
+}
+
+// addListenerSetsWithName contains common ListenerSet emission for both
+// namespace-local listeners and shared listeners in istio-gateways.
+func addListenerSetsWithName(r reconciliation.Reconciliation, namespace string, hosts common.HostCollection, certificateName func(*common.Host) (string, error), listenerSetName func(string) string, allowCrossNamespaceRoutes bool) ([]string, []gatewayapiv1.Hostname, error) {
 	listenerSetNames := make([]string, 0, hosts.Count())
 	hostnames := make([]gatewayapiv1.Hostname, 0, hosts.Count())
 
 	for _, h := range hosts.AllHosts() {
-		name := gwapi.ListenerSetName(prefix, h.Hostname)
+		name := listenerSetName(h.Hostname)
 		secretName, err := certificateName(h)
 		if err != nil {
 			return nil, nil, err
 		}
 		listenerSetNames = append(listenerSetNames, name)
 		hostnames = append(hostnames, gatewayapiv1.Hostname(h.Hostname))
-		r.AddResource(newListenerSet(namespace, name, h.Hostname, secretName))
+		r.AddResource(newListenerSet(namespace, name, h.Hostname, secretName, allowCrossNamespaceRoutes))
 	}
 	return listenerSetNames, hostnames, nil
 }
 
 // newRedirectRoute creates the HTTP listener route that sends clients to HTTPS.
-func newRedirectRoute(namespace string, prefix string, listenerSetNames []string, hostnames []gatewayapiv1.Hostname) *gatewayapiv1.HTTPRoute {
-	return newHTTPRoute(namespace, gwapi.RedirectRouteName(prefix), listenerSetNames, httpSectionName, hostnames, []gatewayapiv1.HTTPRouteRule{redirectRule()})
+func newRedirectRoute(namespace string, prefix string, listenerSetNamespace string, listenerSetNames []string, hostnames []gatewayapiv1.Hostname) *gatewayapiv1.HTTPRoute {
+	return newRedirectRouteWithName(namespace, gwapi.RedirectRouteName(prefix), listenerSetNamespace, listenerSetNames, hostnames)
+}
+
+// newRedirectRouteWithName creates redirect routes whose names are not derived
+// from the owning object, such as shared hostname redirects.
+func newRedirectRouteWithName(namespace string, name string, listenerSetNamespace string, listenerSetNames []string, hostnames []gatewayapiv1.Hostname) *gatewayapiv1.HTTPRoute {
+	return newHTTPRoute(namespace, name, listenerSetNamespace, listenerSetNames, httpSectionName, hostnames, []gatewayapiv1.HTTPRouteRule{redirectRule()})
 }
 
 // newBackendRoute creates the HTTPS listener route that sends traffic to
 // Kubernetes Services.
-func newBackendRoute(namespace string, prefix string, listenerSetNames []string, hostnames []gatewayapiv1.Hostname, rules []gatewayapiv1.HTTPRouteRule) *gatewayapiv1.HTTPRoute {
-	return newHTTPRoute(namespace, gwapi.RouteName(prefix), listenerSetNames, httpsSectionName, hostnames, rules)
+func newBackendRoute(namespace string, prefix string, listenerSetNamespace string, listenerSetNames []string, hostnames []gatewayapiv1.Hostname, rules []gatewayapiv1.HTTPRouteRule) *gatewayapiv1.HTTPRoute {
+	// Backend HTTPRoute uses the bare object name.
+	return newHTTPRoute(namespace, prefix, listenerSetNamespace, listenerSetNames, httpsSectionName, hostnames, rules)
 }
 
 // newHTTPRoute builds a route attached to a set of ListenerSets on one listener
 // section. Rules decide whether the route redirects or forwards to backends.
-func newHTTPRoute(namespace string, name string, listenerSetNames []string, section gatewayapiv1.SectionName, hostnames []gatewayapiv1.Hostname, rules []gatewayapiv1.HTTPRouteRule) *gatewayapiv1.HTTPRoute {
+func newHTTPRoute(namespace string, name string, listenerSetNamespace string, listenerSetNames []string, section gatewayapiv1.SectionName, hostnames []gatewayapiv1.Hostname, rules []gatewayapiv1.HTTPRouteRule) *gatewayapiv1.HTTPRoute {
 	return &gatewayapiv1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -126,7 +151,7 @@ func newHTTPRoute(namespace string, name string, listenerSetNames []string, sect
 		},
 		Spec: gatewayapiv1.HTTPRouteSpec{
 			CommonRouteSpec: gatewayapiv1.CommonRouteSpec{
-				ParentRefs: parentRefs(listenerSetNames, section),
+				ParentRefs: parentRefs(listenerSetNamespace, listenerSetNames, section),
 			},
 			Hostnames: hostnames,
 			Rules:     rules,
@@ -136,14 +161,29 @@ func newHTTPRoute(namespace string, name string, listenerSetNames []string, sect
 
 // listeners returns the two listeners Skiperator exposes for each hostname:
 // port 80 HTTP for redirects and port 443 HTTPS for backend routes.
-func listeners(hostname string, secretName string) []gatewayapiv1.ListenerEntry {
+func listeners(hostname string, secretName string, allowCrossNamespaceRoutes bool) []gatewayapiv1.ListenerEntry {
 	terminate := gatewayapiv1.TLSModeTerminate
+
+	// On shared listeners only the HTTPS listener accepts routes from other
+	// namespaces: that is where contributing teams attach their backend routes.
+	// The HTTP listener stays same-namespace because it exists only for
+	// skiperator's own redirect route in istio-gateways; teams must not attach
+	// plain-HTTP backends and bypass TLS. Namespace-local listeners keep the
+	// default (Same) on both.
+	var httpAllowedRoutes, httpsAllowedRoutes *gatewayapiv1.AllowedRoutes
+	if allowCrossNamespaceRoutes {
+		fromAll := gatewayapiv1.NamespacesFromAll
+		fromSame := gatewayapiv1.NamespacesFromSame
+		httpsAllowedRoutes = &gatewayapiv1.AllowedRoutes{Namespaces: &gatewayapiv1.RouteNamespaces{From: &fromAll}}
+		httpAllowedRoutes = &gatewayapiv1.AllowedRoutes{Namespaces: &gatewayapiv1.RouteNamespaces{From: &fromSame}}
+	}
 	return []gatewayapiv1.ListenerEntry{
 		{
-			Name:     httpSectionName,
-			Hostname: new(gatewayapiv1.Hostname(hostname)),
-			Port:     gatewayapiv1.PortNumber(80),
-			Protocol: gatewayapiv1.HTTPProtocolType,
+			Name:          httpSectionName,
+			Hostname:      new(gatewayapiv1.Hostname(hostname)),
+			Port:          gatewayapiv1.PortNumber(80),
+			Protocol:      gatewayapiv1.HTTPProtocolType,
+			AllowedRoutes: httpAllowedRoutes,
 		},
 		{
 			Name:     httpsSectionName,
@@ -154,6 +194,7 @@ func listeners(hostname string, secretName string) []gatewayapiv1.ListenerEntry 
 				Mode:            &terminate,
 				CertificateRefs: []gatewayapiv1.SecretObjectReference{secretRef(secretName)},
 			},
+			AllowedRoutes: httpsAllowedRoutes,
 		},
 	}
 }

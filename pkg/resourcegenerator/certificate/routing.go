@@ -43,7 +43,11 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		r.AddResource(newCertificate(IstioGatewayNamespace, certificateName, h.Hostname))
 	}
 	if routing.UsesStandardRouting() {
-		r.AddResource(newCertificate(routing.Namespace, certificateName, h.Hostname))
+		namespace := routing.Namespace
+		if routing.UsesSharedOwnership() {
+			namespace = IstioGatewayNamespace
+		}
+		r.AddResource(newCertificate(namespace, certificateName, h.Hostname))
 	}
 
 	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)
