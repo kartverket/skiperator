@@ -22,49 +22,16 @@ jobs:
 
       - name: Run crdoc Docker container
         run: |
-         mkdir -p crdoc-resources
-         cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
-         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
-         rm -rf crdoc-resources
+          mkdir -p crdoc-resources
+          cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
+          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+          rm -rf crdoc-resources
 
-      - name: Checkout target repository
-        uses: actions/checkout@v6
+      - name: Update documentation in target repository
+        uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
         with:
-          path: docs
-          repository: kartverket/skip.kartverket.no
-          ssh-key: ${{ secrets.SKIPDOCS_DEPLOY_KEY }}
-
-      - name: Copy generated output to target repo
-        run: |
-          cp api-docs.md docs/docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11.5.2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24.x
-          cache: pnpm
-          cache-dependency-path: docs/pnpm-lock.yaml
-
-      - name: Validate target documentation build
-        run: |
-          cd docs
-          pnpm install --frozen-lockfile
-          pnpm build
-
-      - name: Commit and push changes
-        run: |
-          cd docs
-          git config --global user.email "skiperator@kartverket.no"
-          git config --global user.name "GithubActions"
-          git add .
-          # Only commit if there are changes
-          if git diff --cached --exit-code &>/dev/null; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update Skiperator api-docs"
-            git push origin main
-          fi
+          source_path: "api-docs.md"
+          target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
+          branch_name: "update-skiperator-docs-branch"
+          author_name: "GithubActions <skiperator@kartverket.no>"
+          identity: "skiperator"
