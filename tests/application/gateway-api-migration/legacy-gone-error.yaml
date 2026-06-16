@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-api-application-migration-migration-app-ingress-a58ae9650224440c
+  namespace: istio-gateways
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-app-ingress-a58ae9650224440c
+  namespace: gateway-api-application-migration
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-app-ingress-489984a8ae28cf26
+  namespace: gateway-api-application-migration
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-app-ingress
+  namespace: gateway-api-application-migration

@@ -1,0 +1,16 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: api
+spec:
+  hostname: api.example.com
+  routingProvider: standard
+  redirectToHTTPS: true
+  routes:
+    - pathPrefix: /app1
+      targetApp: app-1
+      port: 8081
+    - pathPrefix: /app2
+      targetApp: app-2
+      port: 9000
+      rewriteUri: true

@@ -31,6 +31,9 @@ spec:
               protocol: TCP
 status:
   conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
     - type: InternalRulesValid
       status: "True"
     - type: ExternalRulesValid

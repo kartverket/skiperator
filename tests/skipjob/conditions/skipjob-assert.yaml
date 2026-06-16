@@ -5,6 +5,9 @@ metadata:
 status:
   accessPolicies: Ready
   conditions:
+    - type: Ready
+      status: "True"
+      reason: JobFinished
     - type: Failed
       status: "False"
     - type: Running
@@ -23,6 +26,9 @@ metadata:
 status:
   accessPolicies: Ready
   conditions:
+    - type: Ready
+      status: "Unknown"
+      reason: JobRunning
     - type: Failed
       status: "False"
     - type: Running
@@ -41,6 +47,9 @@ metadata:
 status:
   accessPolicies: InvalidConfig
   conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
     - type: Failed
       status: "True"
     - type: Running
