@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          path: skiperator
 
       - name: Run crdoc Docker container
         run: |
@@ -29,6 +31,7 @@ jobs:
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
         with:
+          path: skiperator
           commit-message: "Update API docs"
           title: "Update generated API docs"
           body: |
