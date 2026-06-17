@@ -1,19 +1,20 @@
-name: write api-docs to skip.kartverket.no
+name: update api-docs
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - fix-update-api-docs
     paths:
       - 'config/crd/**'
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   run-crdoc:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -27,21 +28,11 @@ jobs:
           sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3 --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
           rm -rf crdoc-resources
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v6
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
         with:
-          name: api-docs
-          path: api-docs.md
-
-  update-docs:
-    permissions:
-      contents: write
-      id-token: write
-    needs: run-crdoc
-    uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
-    with:
-      source_path: "api-docs.md"
-      target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
-      branch_name: "update-skiperator-docs-branch"
-      author_name: "GithubActions <skiperator@kartverket.no>"
-      identity: "skiperator"
+          commit-message: "Update API docs"
+          title: "Update generated API docs"
+          body: |
+              This PR updates the generated API documentation.
+          branch: update/api-docs
