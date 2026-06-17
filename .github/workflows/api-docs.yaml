@@ -24,8 +24,14 @@ jobs:
         run: |
           mkdir -p crdoc-resources
           cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
-          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3 --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
           rm -rf crdoc-resources
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-docs
+          path: api-docs.md
 
       - name: Update documentation in target repository
         uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
