@@ -18,8 +18,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          path: skiperator
 
       - name: Run crdoc Docker container
         run: |
