@@ -34,6 +34,9 @@ jobs:
           path: api-docs.md
 
   update-docs:
+    permissions:
+      contents: write
+      id-token: write
     needs: run-crdoc
     uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
     with:
