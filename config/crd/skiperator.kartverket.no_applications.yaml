@@ -12,7 +12,7 @@ spec:
     listKind: ApplicationList
     plural: applications
     shortNames:
-    - appp
+    - app
     singular: application
   scope: Namespaced
   versions:
