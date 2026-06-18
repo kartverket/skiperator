@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir -p crdoc-resources
           cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
-          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3 --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+          sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3 --resources /workdir/crdoc-resources --output /workdir/skiperator/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
           rm -rf crdoc-resources
 
       - name: Create Pull Request
