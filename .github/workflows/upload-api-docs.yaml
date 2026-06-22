@@ -14,7 +14,7 @@ permissions:
 jobs:
   update-docs:
     name: Update skiperator documentation in skip.kartverket.no
-    uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@13d1bd357bb1f60a920a90cc20b5de0ed7488706
+    uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@fc9d6b1348c8ca79c77edfde133719970b4ef791
     with:
       source_path: "api-docs.md"
       target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
