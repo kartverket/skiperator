@@ -74,9 +74,7 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td><b><a href="#applicationstatus">status</a></b></td>
         <td>object</td>
         <td>
-          SkiperatorStatus
-
-A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
+          ApplicationStatus is a specialized status specific to the Application kind.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -127,8 +125,7 @@ A status field shown on a Skiperator resource which contains information regardi
         <td><b><a href="#applicationspecadditionalportsindex">additionalPorts</a></b></td>
         <td>[]object</td>
         <td>
-          An optional list of extra port to expose on a pod level basis,
-for example so Instana or other APM tools can reach it<br/>
+          An optional list of extra port to expose on a pod level basis,<br/>for example so Instana or other APM tools can reach it<br/>
         </td>
         <td>false</td>
       </tr>
@@ -155,8 +152,7 @@ for example so Instana or other APM tools can reach it<br/>
         <td><b>command</b></td>
         <td>[]string</td>
         <td>
-          Override the command set in the Dockerfile. Usually only used when debugging
-or running third-party containers where you don't have control over the Dockerfile<br/>
+          Override the command set in the Dockerfile. Usually only used when debugging<br/>or running third-party containers where you don&#39;t have control over the Dockerfile<br/>
         </td>
         <td>false</td>
       </tr>
@@ -174,7 +170,7 @@ or running third-party containers where you don't have control over the Dockerfi
         <td><b><a href="#applicationspecenvindex">env</a></b></td>
         <td>[]object</td>
         <td>
-          Environment variables that will be set inside the Deployment's Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.<br/>
+          Environment variables that will be set inside the Deployment&#39;s Pod. See https://pkg.go.dev/k8s.io/api/core/v1#EnvVar for examples.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -182,11 +178,7 @@ or running third-party containers where you don't have control over the Dockerfi
         <td><b><a href="#applicationspecenvfromindex">envFrom</a></b></td>
         <td>[]object</td>
         <td>
-          Environment variables mounted from files. When specified all the keys of the
-resource will be assigned as environment variables. Supports both configmaps
-and secrets.
-
-For mounting as files see FilesFrom.<br/>
+          Environment variables mounted from files. When specified all the keys of the<br/>resource will be assigned as environment variables. Supports both configmaps<br/>and secrets.<br/><br/>For mounting as files see FilesFrom.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -194,12 +186,7 @@ For mounting as files see FilesFrom.<br/>
         <td><b><a href="#applicationspecfilesfromindex">filesFrom</a></b></td>
         <td>[]object</td>
         <td>
-          Mounting volumes into the Deployment are done using the FilesFrom argument
-
-FilesFrom supports ConfigMaps, Secrets and PVCs. The Application resource
-assumes these have already been created by you, and will fail if this is not the case.
-
-For mounting environment variables see EnvFrom.<br/>
+          Mounting volumes into the Deployment are done using the FilesFrom argument<br/><br/>FilesFrom supports ConfigMaps, Secrets and PVCs. The Application resource<br/>assumes these have already been created by you, and will fail if this is not the case.<br/><br/>For mounting environment variables see EnvFrom.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -223,16 +210,7 @@ For mounting environment variables see EnvFrom.<br/>
         <td><b>ingresses</b></td>
         <td>[]string</td>
         <td>
-          Any external hostnames that route to this application. Using a skip.statkart.no-address
-will make the application reachable for kartverket-clients (internal), other addresses
-make the app reachable on the internet. Note that other addresses than skip.statkart.no
-(also known as pretty hostnames) requires additional DNS setup.
-The below hostnames will also have TLS certificates issued and be reachable on both
-HTTP and HTTPS.
-
-Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
-They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
-E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"<br/>
+          Any external hostnames that route to this application. Using a skip.statkart.no-address<br/>will make the application reachable for kartverket-clients (internal), other addresses<br/>make the app reachable on the internet. Note that other addresses than skip.statkart.no<br/>(also known as pretty hostnames) requires additional DNS setup.<br/>The below hostnames will also have TLS certificates issued and be reachable on both<br/>HTTP and HTTPS.<br/><br/>Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period<br/>They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.<br/>E.g. &#34;foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -240,9 +218,7 @@ E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"<br/>
         <td><b><a href="#applicationspecistiosettings">istioSettings</a></b></td>
         <td>object</td>
         <td>
-          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
-interval for tracing is the only supported option.
-By default, tracing is enabled with a random sampling percentage of 10%.<br/>
+          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling<br/>interval for tracing is the only supported option.<br/>By default, tracing is enabled with a random sampling percentage of 10%.<br/>
           <br/>
             <i>Default</i>: `map[telemetry:map[tracing:[map[randomSamplingPercentage:10]]]]`<br/>
         </td>
@@ -252,10 +228,7 @@ By default, tracing is enabled with a random sampling percentage of 10%.<br/>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Labels can be used if you want every resource created by your application to
-have the same labels, including your application. This could for example be useful for
-metrics, where a certain label and the corresponding resources liveliness can be combined.
-Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
+          Labels can be used if you want every resource created by your application to<br/>have the same labels, including your application. This could for example be useful for<br/>metrics, where a certain label and the corresponding resources liveliness can be combined.<br/>Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -263,11 +236,7 @@ Any amount of labels can be added as wanted, and they will all cascade down to a
         <td><b><a href="#applicationspecliveness">liveness</a></b></td>
         <td>object</td>
         <td>
-          Liveness probes define a resource that returns 200 OK when the app is running
-as intended. Returning a non-200 code will make kubernetes restart the app.
-Liveness is optional, but when provided, path and port are required
-
-See Probe for structure definition.<br/>
+          Liveness probes define a resource that returns 200 OK when the app is running<br/>as intended. Returning a non-200 code will make kubernetes restart the app.<br/>Liveness is optional, but when provided, path and port are required<br/><br/>See Probe for structure definition.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -283,8 +252,7 @@ See Probe for structure definition.<br/>
         <td><b><a href="#applicationspecpodsettings">podSettings</a></b></td>
         <td>object</td>
         <td>
-          PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set
-things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.<br/>
+          PodSettings are used to apply specific settings to the Pod Template used by Skiperator to create Deployments. This allows you to set<br/>things like annotations on the Pod to change the behaviour of sidecars, and set relevant Pod options such as TerminationGracePeriodSeconds.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -292,11 +260,7 @@ things like annotations on the Pod to change the behaviour of sidecars, and set 
         <td><b>priority</b></td>
         <td>enum</td>
         <td>
-          An optional priority. Supported values are 'low', 'medium' and 'high'.
-The default value is 'medium'.
-
-Most workloads should not have to specify this field. If you think you
-do, please consult with SKIP beforehand.<br/>
+          An optional priority. Supported values are &#39;low&#39;, &#39;medium&#39; and &#39;high&#39;.<br/>The default value is &#39;medium&#39;.<br/><br/>Most workloads should not have to specify this field. If you think you<br/>do, please consult with SKIP beforehand.<br/>
           <br/>
             <i>Enum</i>: low, medium, high<br/>
             <i>Default</i>: `medium`<br/>
@@ -315,10 +279,7 @@ do, please consult with SKIP beforehand.<br/>
         <td><b><a href="#applicationspecreadiness">readiness</a></b></td>
         <td>object</td>
         <td>
-          Readiness probes define a resource that returns 200 OK when the app is running
-as intended. Kubernetes will wait until the resource returns 200 OK before
-marking the pod as Running and progressing with the deployment strategy.
-Readiness is optional, but when provided, path and port are required<br/>
+          Readiness probes define a resource that returns 200 OK when the app is running<br/>as intended. Kubernetes will wait until the resource returns 200 OK before<br/>marking the pod as Running and progressing with the deployment strategy.<br/>Readiness is optional, but when provided, path and port are required<br/>
         </td>
         <td>false</td>
       </tr>
@@ -326,8 +287,7 @@ Readiness is optional, but when provided, path and port are required<br/>
         <td><b>redirectToHTTPS</b></td>
         <td>boolean</td>
         <td>
-          Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.
-This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.<br/>
+          Controls whether the application will automatically redirect all HTTP calls to HTTPS via the istio VirtualService.<br/>This redirect does not happen on the route /.well-known/acme-challenge/, as the ACME challenge can only be done on port 80.<br/>
           <br/>
             <i>Default</i>: `true`<br/>
         </td>
@@ -337,18 +297,7 @@ This redirect does not happen on the route /.well-known/acme-challenge/, as the 
         <td><b>replicas</b></td>
         <td>JSON</td>
         <td>
-          The number of replicas can either be specified as a static number as follows:
-
-	replicas: 2
-
-Or by specifying a range between min and max to enable HorizontalPodAutoscaling.
-The default value for replicas is:
-	replicas:
-		min: 2
-		max: 5
-		targetCpuUtilization: 80
-     targetMemoryUtilization: 80
-Using autoscaling is the recommended configuration for replicas.<br/>
+          The number of replicas can either be specified as a static number as follows:<br/><br/>	replicas: 2<br/><br/>Or by specifying a range between min and max to enable HorizontalPodAutoscaling.<br/>The default value for replicas is:<br/>	replicas:<br/>		min: 2<br/>		max: 5<br/>		targetCpuUtilization: 80<br/>     targetMemoryUtilization: 80<br/>Using autoscaling is the recommended configuration for replicas.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -356,9 +305,7 @@ Using autoscaling is the recommended configuration for replicas.<br/>
         <td><b>resourceLabels</b></td>
         <td>map[string]map[string]string</td>
         <td>
-          ResourceLabels can be used if you want to add a label to a specific resources created by
-the application. One such label could for example be set on a Deployment, such that
-the deployment avoids certain rules from Gatekeeper, or similar. Any amount of labels may be added per ResourceLabels item.<br/>
+          ResourceLabels can be used if you want to add a label to a specific resources created by<br/>the application. One such label could for example be set on a Deployment, such that<br/>the deployment avoids certain rules from Gatekeeper, or similar. Any amount of labels may be added per ResourceLabels item.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -366,9 +313,7 @@ the deployment avoids certain rules from Gatekeeper, or similar. Any amount of l
         <td><b><a href="#applicationspecresources">resources</a></b></td>
         <td>object</td>
         <td>
-          ResourceRequirements to apply to the deployment. It's common to set some of these to
-prevent the app from swelling in resource usage and consuming all the
-resources of other apps on the cluster.<br/>
+          ResourceRequirements to apply to the deployment. It&#39;s common to set some of these to<br/>prevent the app from swelling in resource usage and consuming all the<br/>resources of other apps on the cluster.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -376,12 +321,15 @@ resources of other apps on the cluster.<br/>
         <td><b><a href="#applicationspecstartup">startup</a></b></td>
         <td>object</td>
         <td>
-          Kubernetes uses startup probes to know when a container application has started.
-If such a probe is configured, it disables liveness and readiness checks until it
-succeeds, making sure those probes don't interfere with the application startup.
-This can be used to adopt liveness checks on slow starting containers, avoiding them
-getting killed by Kubernetes before they are up and running.
-Startup is optional, but when provided, path and port are required<br/>
+          Kubernetes uses startup probes to know when a container application has started.<br/>If such a probe is configured, it disables liveness and readiness checks until it<br/>succeeds, making sure those probes don&#39;t interfere with the application startup.<br/>This can be used to adopt liveness checks on slow starting containers, avoiding them<br/>getting killed by Kubernetes before they are up and running.<br/>Startup is optional, but when provided, path and port are required<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstateful">stateful</a></b></td>
+        <td>object</td>
+        <td>
+          Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.<br/>Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.<br/>The enabled flag is immutable - delete and recreate the Application to change.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -389,13 +337,7 @@ Startup is optional, but when provided, path and port are required<br/>
         <td><b><a href="#applicationspecstrategy">strategy</a></b></td>
         <td>object</td>
         <td>
-          Defines an alternative strategy for the Kubernetes deployment. This is useful when
-the default strategy, RollingUpdate, is not usable. Setting type to
-Recreate will take down all the pods before starting new pods, whereas the
-default of RollingUpdate will try to start the new pods before taking down the
-old ones.
-
-Valid values are: RollingUpdate, Recreate. Default is RollingUpdate<br/>
+          Defines an alternative strategy for the Kubernetes deployment. This is useful when<br/>the default strategy, RollingUpdate, is not usable. Setting type to<br/>Recreate will take down all the pods before starting new pods, whereas the<br/>default of RollingUpdate will try to start the new pods before taking down the<br/>old ones.<br/><br/>Valid values are: RollingUpdate, Recreate. Default is RollingUpdate<br/>
         </td>
         <td>false</td>
       </tr>
@@ -403,8 +345,7 @@ Valid values are: RollingUpdate, Recreate. Default is RollingUpdate<br/>
         <td><b>team</b></td>
         <td>string</td>
         <td>
-          Team specifies the team who owns this particular app.
-Usually sourced from the namespace label.<br/>
+          Team specifies the team who owns this particular app.<br/>Usually sourced from the namespace label.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -439,8 +380,7 @@ The root AccessPolicy for managing zero trust access to your Application. See Ac
         <td><b><a href="#applicationspecaccesspolicyoutbound">outbound</a></b></td>
         <td>object</td>
         <td>
-          Outbound specifies egress rules. Which apps on the cluster and the
-internet is the Application allowed to send requests to?<br/>
+          Outbound specifies egress rules. Which apps on the cluster and the<br/>internet is the Application allowed to send requests to?<br/>
         </td>
         <td>false</td>
       </tr>
@@ -467,9 +407,7 @@ Inbound specifies the ingress rules. Which apps on the cluster can talk to this 
         <td><b><a href="#applicationspecaccesspolicyinboundrulesindex">rules</a></b></td>
         <td>[]object</td>
         <td>
-          The rules list specifies a list of applications. When no namespace is
-specified it refers to an app in the current namespace. For apps in
-other namespaces namespace is required<br/>
+          The rules list specifies a list of applications. When no namespace is<br/>specified it refers to an app in the current namespace. For apps in<br/>other namespaces namespace is required<br/>
         </td>
         <td>true</td>
       </tr>
@@ -500,8 +438,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -552,10 +489,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -565,10 +499,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -576,8 +507,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -605,9 +535,7 @@ internet is the Application allowed to send requests to?
         <td><b><a href="#applicationspecaccesspolicyoutboundexternalindex">external</a></b></td>
         <td>[]object</td>
         <td>
-          External specifies which applications on the internet the application
-can reach. Only host is required unless it is on another port than HTTPS port 443.
-If other ports or protocols are required then `ports` must be specified as well<br/>
+          External specifies which applications on the internet the application<br/>can reach. Only host is required unless it is on another port than HTTPS port 443.<br/>If other ports or protocols are required then `ports` must be specified as well<br/>
         </td>
         <td>false</td>
       </tr>
@@ -652,10 +580,7 @@ Describes a rule for allowing your Application to route traffic to external appl
         <td><b>ip</b></td>
         <td>string</td>
         <td>
-          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
-Only required for TCP requests.
-
-Note: Hostname must always be defined even if IP is set statically<br/>
+          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname<br/>Only required for TCP requests.<br/><br/>Note: Hostname must always be defined even if IP is set statically<br/>
         </td>
         <td>false</td>
       </tr>
@@ -663,8 +588,7 @@ Note: Hostname must always be defined even if IP is set statically<br/>
         <td><b><a href="#applicationspecaccesspolicyoutboundexternalindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above hostname. When not specified HTTP and
-HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
+          The ports to allow for the above hostname. When not specified HTTP and<br/>HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
         </td>
         <td>false</td>
       </tr>
@@ -742,8 +666,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -794,10 +717,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -807,10 +727,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -818,8 +735,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -893,8 +809,7 @@ Used for allow listing certain default blocked endpoints, such as /actuator/ end
         <td><b>allowAll</b></td>
         <td>boolean</td>
         <td>
-          Allows all endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.
-If field is false, the contents of AllowList will be used instead if AllowList is set.<br/>
+          Allows all endpoints by not creating an AuthorizationPolicy, and ignores the content of AllowList.<br/>If field is false, the contents of AllowList will be used instead if AllowList is set.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -904,9 +819,7 @@ If field is false, the contents of AllowList will be used instead if AllowList i
         <td><b>allowList</b></td>
         <td>[]string</td>
         <td>
-          Allows specific endpoints. Common endpoints one might want to allow include /actuator/health, /actuator/startup, /actuator/info.
-
-Note that endpoints are matched specifically on the input, so if you allow /actuator/health, you will *not* allow /actuator/health/<br/>
+          Allows specific endpoints. Common endpoints one might want to allow include /actuator/health, /actuator/startup, /actuator/info.<br/><br/>Note that endpoints are matched specifically on the input, so if you allow /actuator/health, you will *not* allow /actuator/health/<br/>
         </td>
         <td>false</td>
       </tr>
@@ -933,8 +846,7 @@ EnvVar represents an environment variable present in a Container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the environment variable.
-May consist of any printable ASCII characters except '='.<br/>
+          Name of the environment variable.<br/>May consist of any printable ASCII characters except &#39;=&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -942,15 +854,7 @@ May consist of any printable ASCII characters except '='.<br/>
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Variable references $(VAR_NAME) are expanded
-using the previously defined environment variables in the container and
-any service environment variables. If a variable cannot be resolved,
-the reference in the input string will be unchanged. Double $$ are reduced
-to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
-"$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-Escaped references will never be expanded, regardless of whether the variable
-exists or not.
-Defaults to "".<br/>
+          Variable references $(VAR_NAME) are expanded<br/>using the previously defined environment variables in the container and<br/>any service environment variables. If a variable cannot be resolved,<br/>the reference in the input string will be unchanged. Double $$ are reduced<br/>to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.<br/>&#34;$$(VAR_NAME)&#34; will produce the string literal &#34;$(VAR_NAME)&#34;.<br/>Escaped references will never be expanded, regardless of whether the variable<br/>exists or not.<br/>Defaults to &#34;&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -958,7 +862,7 @@ Defaults to "".<br/>
         <td><b><a href="#applicationspecenvindexvaluefrom">valueFrom</a></b></td>
         <td>object</td>
         <td>
-          Source for the environment variable's value. Cannot be used if value is not empty.<br/>
+          Source for the environment variable&#39;s value. Cannot be used if value is not empty.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -993,8 +897,7 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td><b><a href="#applicationspecenvindexvaluefromfieldref">fieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
-spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels[&#39;&lt;KEY&gt;&#39;]`, `metadata.annotations[&#39;&lt;KEY&gt;&#39;]`,<br/>spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1002,8 +905,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b><a href="#applicationspecenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
         <td>object</td>
         <td>
-          FileKeyRef selects a key of the env file.
-Requires the EnvFiles feature gate to be enabled.<br/>
+          FileKeyRef selects a key of the env file.<br/>Requires the EnvFiles feature gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1011,8 +913,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#applicationspecenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a resource of the container: only resources limits and requests
-(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+          Selects a resource of the container: only resources limits and requests<br/>(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1020,7 +921,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#applicationspecenvindexvaluefromsecretkeyref">secretKeyRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a key of a secret in the pod's namespace<br/>
+          Selects a key of a secret in the pod&#39;s namespace<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1055,11 +956,7 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -1105,7 +1002,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b>apiVersion</b></td>
         <td>string</td>
         <td>
-          Version of the schema the FieldPath is written in terms of, defaults to "v1".<br/>
+          Version of the schema the FieldPath is written in terms of, defaults to &#34;v1&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1133,9 +1030,7 @@ Requires the EnvFiles feature gate to be enabled.
         <td><b>key</b></td>
         <td>string</td>
         <td>
-          The key within the env file. An invalid key will prevent the pod from starting.
-The keys defined within a source may consist of any printable ASCII characters except '='.
-During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+          The key within the env file. An invalid key will prevent the pod from starting.<br/>The keys defined within a source may consist of any printable ASCII characters except &#39;=&#39;.<br/>During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1143,8 +1038,7 @@ During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          The path within the volume from which to select the file.
-Must be relative and may not contain the '..' path or start with '..'.<br/>
+          The path within the volume from which to select the file.<br/>Must be relative and may not contain the &#39;..&#39; path or start with &#39;..&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1160,13 +1054,7 @@ Must be relative and may not contain the '..' path or start with '..'.<br/>
         <td><b>optional</b></td>
         <td>boolean</td>
         <td>
-          Specify whether the file or its key must be defined. If the file or key
-does not exist, then the env var is not published.
-If optional is set to true and the specified key does not exist,
-the environment variable will not be set in the Pod's containers.
-
-If optional is set to false and the specified key does not exist,
-an error will be returned during Pod creation.<br/>
+          Specify whether the file or its key must be defined. If the file or key<br/>does not exist, then the env var is not published.<br/>If optional is set to true and the specified key does not exist,<br/>the environment variable will not be set in the Pod&#39;s containers.<br/><br/>If optional is set to false and the specified key does not exist,<br/>an error will be returned during Pod creation.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -1212,7 +1100,7 @@ Selects a resource of the container: only resources limits and requests
         <td><b>divisor</b></td>
         <td>int or string</td>
         <td>
-          Specifies the output format of the exposed resources, defaults to "1"<br/>
+          Specifies the output format of the exposed resources, defaults to &#34;1&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1247,11 +1135,7 @@ Selects a key of a secret in the pod's namespace
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -1343,13 +1227,7 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.
-Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
-YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
-Defaults to 0644.
-Directories within the path are not affected by this setting.
-This might be in conflict with other options that affect the file
-mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1400,12 +1278,7 @@ GCP is used to configure Google Cloud Platform specific settings for the applica
         <td><b><a href="#applicationspecgcpauth">auth</a></b></td>
         <td>object</td>
         <td>
-          Configuration for authenticating a Pod with Google Cloud Platform
-For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-service account and bind this to the Pod's Kubernetes SA.
-Documentation on how this is done can be found here (Closed Wiki):
-https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
+          Configuration for authenticating a Pod with Google Cloud Platform<br/>For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need<br/>to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP<br/>service account and bind this to the Pod&#39;s Kubernetes SA.<br/>Documentation on how this is done can be found here (Closed Wiki):<br/>https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1413,8 +1286,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b><a href="#applicationspecgcpcloudsqlproxy">cloudSqlProxy</a></b></td>
         <td>object</td>
         <td>
-          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
-This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
+          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.<br/>This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1446,8 +1318,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b>serviceAccount</b></td>
         <td>string</td>
         <td>
-          Name of the service account in which you are trying to authenticate your pod with
-Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
+          Name of the service account in which you are trying to authenticate your pod with<br/>Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1475,8 +1346,7 @@ This is useful for connecting to CloudSQL databases that require Cloud SQL Auth 
         <td><b>connectionName</b></td>
         <td>string</td>
         <td>
-          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
-The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".<br/>
+          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.<br/>The format is &#34;projectName:region:instanceName&#34; E.g. &#34;skip-prod-bda1:europe-north1:my-db&#34;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1537,8 +1407,7 @@ Settings for IDPorten integration with Digitaliseringsdirektoratet
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Whether to enable provisioning of an ID-porten client.
-If enabled, an ID-porten client will be provisioned.<br/>
+          Whether to enable provisioning of an ID-porten client.<br/>If enabled, an ID-porten client will be provisioned.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1546,9 +1415,7 @@ If enabled, an ID-porten client will be provisioned.<br/>
         <td><b>accessTokenLifetime</b></td>
         <td>integer</td>
         <td>
-          AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.
-
-If unspecified, defaults to `3600` seconds (1 hour).<br/>
+          AccessTokenLifetime is the lifetime in seconds for any issued access token from ID-porten.<br/><br/>If unspecified, defaults to `3600` seconds (1 hour).<br/>
           <br/>
             <i>Minimum</i>: 1<br/>
             <i>Maximum</i>: 3600<br/>
@@ -1559,8 +1426,7 @@ If unspecified, defaults to `3600` seconds (1 hour).<br/>
         <td><b>clientName</b></td>
         <td>string</td>
         <td>
-          The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-Meant to be a human-readable name for separating clients in the portal.<br/>
+          The name of the Client as shown in Digitaliseringsdirektoratet&#39;s Samarbeidsportal<br/>Meant to be a human-readable name for separating clients in the portal.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1568,7 +1434,7 @@ Meant to be a human-readable name for separating clients in the portal.<br/>
         <td><b>clientURI</b></td>
         <td>string</td>
         <td>
-          ClientURI is the URL shown to the user at ID-porten when displaying a 'back' button or on errors.<br/>
+          ClientURI is the URL shown to the user at ID-porten when displaying a &#39;back&#39; button or on errors.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1576,8 +1442,7 @@ Meant to be a human-readable name for separating clients in the portal.<br/>
         <td><b>frontchannelLogoutPath</b></td>
         <td>string</td>
         <td>
-          FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has
-initiated a logout elsewhere as part of a single logout (front channel logout) process.<br/>
+          FrontchannelLogoutPath is a valid path for your application where ID-porten sends a request to whenever the user has<br/>initiated a logout elsewhere as part of a single logout (front channel logout) process.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1585,11 +1450,7 @@ initiated a logout elsewhere as part of a single logout (front channel logout) p
         <td><b>integrationType</b></td>
         <td>enum</td>
         <td>
-          IntegrationType is used to make sensible choices for your client.
-Which type of integration you choose will provide guidance on which scopes you can use with the client.
-A client can only have one integration type.
-
-NB! It is not possible to change the integration type after creation.<br/>
+          IntegrationType is used to make sensible choices for your client.<br/>Which type of integration you choose will provide guidance on which scopes you can use with the client.<br/>A client can only have one integration type.<br/><br/>NB! It is not possible to change the integration type after creation.<br/>
           <br/>
             <i>Enum</i>: krr, idporten, api_klient<br/>
         </td>
@@ -1599,8 +1460,7 @@ NB! It is not possible to change the integration type after creation.<br/>
         <td><b>postLogoutRedirectPath</b></td>
         <td>string</td>
         <td>
-          PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs
-that will be appended to the ingress<br/>
+          PostLogoutRedirectPath is a simpler verison of PostLogoutRedirectURIs<br/>that will be appended to the ingress<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1608,8 +1468,7 @@ that will be appended to the ingress<br/>
         <td><b>postLogoutRedirectURIs</b></td>
         <td>[]string</td>
         <td>
-          PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout
-has been initiated and performed by the application.<br/>
+          PostLogoutRedirectURIs are valid URIs that ID-porten will allow redirecting the end-user to after a single logout<br/>has been initiated and performed by the application.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1633,13 +1492,7 @@ has been initiated and performed by the application.<br/>
         <td><b>scopes</b></td>
         <td>[]string</td>
         <td>
-          Register different oauth2 Scopes on your client.
-You will not be able to add a scope to your client that conflicts with the client's IntegrationType.
-For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.
-
-Default for IntegrationType `krr` = ("krr:global/kontaktinformasjon.read", "krr:global/digitalpost.read")
-Default for IntegrationType `idporten` = ("openid", "profile")
-IntegrationType `api_klient` have no Default, checkout Digdir documentation.<br/>
+          Register different oauth2 Scopes on your client.<br/>You will not be able to add a scope to your client that conflicts with the client&#39;s IntegrationType.<br/>For example, you can not add a scope that is limited to the IntegrationType `krr` of IntegrationType `idporten`, and vice versa.<br/><br/>Default for IntegrationType `krr` = (&#34;krr:global/kontaktinformasjon.read&#34;, &#34;krr:global/digitalpost.read&#34;)<br/>Default for IntegrationType `idporten` = (&#34;openid&#34;, &#34;profile&#34;)<br/>IntegrationType `api_klient` have no Default, checkout Digdir documentation.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1647,11 +1500,7 @@ IntegrationType `api_klient` have no Default, checkout Digdir documentation.<br/
         <td><b>sessionLifetime</b></td>
         <td>integer</td>
         <td>
-          SessionLifetime is the maximum lifetime in seconds for any given user's session in your application.
-The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.
-
-If unspecified, defaults to `7200` seconds (2 hours).
-Note: Attempting to refresh the user's `access_token` beyond this timeout will yield an error.<br/>
+          SessionLifetime is the maximum lifetime in seconds for any given user&#39;s session in your application.<br/>The timeout starts whenever the user is redirected from the `authorization_endpoint` at ID-porten.<br/><br/>If unspecified, defaults to `7200` seconds (2 hours).<br/>Note: Attempting to refresh the user&#39;s `access_token` beyond this timeout will yield an error.<br/>
           <br/>
             <i>Minimum</i>: 3600<br/>
             <i>Maximum</i>: 7200<br/>
@@ -1681,8 +1530,7 @@ RequestAuthentication specifies how incoming JWTs should be validated.
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Whether to enable JWT validation.
-If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.<br/>
+          Whether to enable JWT validation.<br/>If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -1700,10 +1548,7 @@ If enabled, incoming JWTs will be validated against the issuer specified in the 
         <td><b>ignorePaths</b></td>
         <td>[]string</td>
         <td>
-          IgnorePaths specifies paths that do not require an authenticated JWT.
-
-The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-The paths can also contain the wildcard operator '*', but only at the end.<br/>
+          IgnorePaths specifies paths that do not require an authenticated JWT.<br/><br/>The specified paths must be a valid URI path. It has to start with &#39;/&#39; and cannot end with &#39;/&#39;.<br/>The paths can also contain the wildcard operator &#39;*&#39;, but only at the end.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1711,8 +1556,7 @@ The paths can also contain the wildcard operator '*', but only at the end.<br/>
         <td><b><a href="#applicationspecidportenrequestauthenticationoutputclaimtoheadersindex">outputClaimToHeaders</a></b></td>
         <td>[]object</td>
         <td>
-          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
-The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.<br/>
+          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.<br/>The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1720,10 +1564,7 @@ The header specified in each operation in the list must be unique. Nested claims
         <td><b>paths</b></td>
         <td>[]string</td>
         <td>
-          Paths specifies paths that require an authenticated JWT.
-
-The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-The paths can also contain the wildcard operator '*', but only at the end.<br/>
+          Paths specifies paths that require an authenticated JWT.<br/><br/>The specified paths must be a valid URI path. It has to start with &#39;/&#39; and cannot end with &#39;/&#39;.<br/>The paths can also contain the wildcard operator &#39;*&#39;, but only at the end.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1731,9 +1572,7 @@ The paths can also contain the wildcard operator '*', but only at the end.<br/>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
-          The name of the Kubernetes Secret containing OAuth2 credentials.
-
-If omitted, the associated client registration in the application manifest is used for JWT validation.<br/>
+          The name of the Kubernetes Secret containing OAuth2 credentials.<br/><br/>If omitted, the associated client registration in the application manifest is used for JWT validation.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1741,14 +1580,7 @@ If omitted, the associated client registration in the application manifest is us
         <td><b>tokenLocation</b></td>
         <td>enum</td>
         <td>
-          Where to find the JWT in the incoming request
-
-An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
-An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
-
-If omitted, its default value depends on the provider type:
-  Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
-  Defaults to "header" for providers not supporting user login (e.g. Maskinporten).<br/>
+          Where to find the JWT in the incoming request<br/><br/>An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.<br/>An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.<br/><br/>If omitted, its default value depends on the provider type:<br/>  Defaults to &#34;cookie&#34; for providers supporting user login (e.g. IDPorten).<br/>  Defaults to &#34;header&#34; for providers not supporting user login (e.g. Maskinporten).<br/>
           <br/>
             <i>Enum</i>: header, cookie<br/>
         </td>
@@ -1814,8 +1646,7 @@ By default, tracing is enabled with a random sampling percentage of 10%.
         <td><b><a href="#applicationspecistiosettingsretries">retries</a></b></td>
         <td>object</td>
         <td>
-          Retries is configurable automatic retries for requests towards the application.
-By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.<br/>
+          Retries is configurable automatic retries for requests towards the application.<br/>By default requests falling under: &#34;connect-failure,refused-stream,unavailable,cancelled&#34; will be retried.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1853,8 +1684,7 @@ By default requests falling under: "connect-failure,refused-stream,unavailable,c
         <td><b>attempts</b></td>
         <td>integer</td>
         <td>
-          Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).
-Default is 2<br/>
+          Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).<br/>Default is 2<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 1<br/>
@@ -1865,8 +1695,7 @@ Default is 2<br/>
         <td><b>perTryTimeout</b></td>
         <td>string</td>
         <td>
-          PerTryTimeout is the timeout per attempt for a given request, including the initial call and any retries. Format: 1h/1m/1s/1ms. MUST be >=1ms.
-Default: no timeout<br/>
+          PerTryTimeout is the timeout per attempt for a given request, including the initial call and any retries. Format: 1h/1m/1s/1ms. MUST be &gt;=1ms.<br/>Default: no timeout<br/>
           <br/>
             <i>Format</i>: duration<br/>
         </td>
@@ -1876,9 +1705,7 @@ Default: no timeout<br/>
         <td><b>retryOnHttpResponseCodes</b></td>
         <td>[]int or string</td>
         <td>
-          RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].
-You may also use 5xx and retriable-4xx (only 409).
-mixed types are allowed such as [503, "retriable-4xx"]<br/>
+          RetryOnHttpResponseCodes HTTP response codes that should trigger a retry. A typical value is [503].<br/>You may also use 5xx and retriable-4xx (only 409).<br/>mixed types are allowed such as [503, &#34;retriable-4xx&#34;]<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1934,8 +1761,7 @@ Tracing contains relevant settings for tracing in the telemetry configuration
         <td><b>randomSamplingPercentage</b></td>
         <td>integer</td>
         <td>
-          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
-Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
+          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.<br/>Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
           <br/>
             <i>Default</i>: `10`<br/>
             <i>Minimum</i>: 0<br/>
@@ -1986,8 +1812,7 @@ See Probe for structure definition.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -1998,8 +1823,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -2021,8 +1845,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -2033,8 +1856,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -2072,8 +1894,7 @@ Settings for Maskinporten integration with Digitaliseringsdirektoratet
         <td><b>clientName</b></td>
         <td>string</td>
         <td>
-          The name of the Client as shown in Digitaliseringsdirektoratet's Samarbeidsportal
-Meant to be a human-readable name for separating clients in the portal<br/>
+          The name of the Client as shown in Digitaliseringsdirektoratet&#39;s Samarbeidsportal<br/>Meant to be a human-readable name for separating clients in the portal<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2116,8 +1937,7 @@ RequestAuthentication specifies how incoming JWTs should be validated.
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Whether to enable JWT validation.
-If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.<br/>
+          Whether to enable JWT validation.<br/>If enabled, incoming JWTs will be validated against the issuer specified in the app registration and the generated audience.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2135,10 +1955,7 @@ If enabled, incoming JWTs will be validated against the issuer specified in the 
         <td><b>ignorePaths</b></td>
         <td>[]string</td>
         <td>
-          IgnorePaths specifies paths that do not require an authenticated JWT.
-
-The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-The paths can also contain the wildcard operator '*', but only at the end.<br/>
+          IgnorePaths specifies paths that do not require an authenticated JWT.<br/><br/>The specified paths must be a valid URI path. It has to start with &#39;/&#39; and cannot end with &#39;/&#39;.<br/>The paths can also contain the wildcard operator &#39;*&#39;, but only at the end.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2146,8 +1963,7 @@ The paths can also contain the wildcard operator '*', but only at the end.<br/>
         <td><b><a href="#applicationspecmaskinportenrequestauthenticationoutputclaimtoheadersindex">outputClaimToHeaders</a></b></td>
         <td>[]object</td>
         <td>
-          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.
-The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.<br/>
+          This field specifies a list of operations to copy the claim to HTTP headers on a successfully verified token.<br/>The header specified in each operation in the list must be unique. Nested claims of type string/int/bool is supported as well.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2155,10 +1971,7 @@ The header specified in each operation in the list must be unique. Nested claims
         <td><b>paths</b></td>
         <td>[]string</td>
         <td>
-          Paths specifies paths that require an authenticated JWT.
-
-The specified paths must be a valid URI path. It has to start with '/' and cannot end with '/'.
-The paths can also contain the wildcard operator '*', but only at the end.<br/>
+          Paths specifies paths that require an authenticated JWT.<br/><br/>The specified paths must be a valid URI path. It has to start with &#39;/&#39; and cannot end with &#39;/&#39;.<br/>The paths can also contain the wildcard operator &#39;*&#39;, but only at the end.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2166,9 +1979,7 @@ The paths can also contain the wildcard operator '*', but only at the end.<br/>
         <td><b>secretName</b></td>
         <td>string</td>
         <td>
-          The name of the Kubernetes Secret containing OAuth2 credentials.
-
-If omitted, the associated client registration in the application manifest is used for JWT validation.<br/>
+          The name of the Kubernetes Secret containing OAuth2 credentials.<br/><br/>If omitted, the associated client registration in the application manifest is used for JWT validation.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2176,14 +1987,7 @@ If omitted, the associated client registration in the application manifest is us
         <td><b>tokenLocation</b></td>
         <td>enum</td>
         <td>
-          Where to find the JWT in the incoming request
-
-An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.
-An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.
-
-If omitted, its default value depends on the provider type:
-  Defaults to "cookie" for providers supporting user login (e.g. IDPorten).
-  Defaults to "header" for providers not supporting user login (e.g. Maskinporten).<br/>
+          Where to find the JWT in the incoming request<br/><br/>An enum value of `header` means that the JWT is present in the `Authorization` header as a `Bearer` token.<br/>An enum value of `cookie` means that the JWT is present as a cookie called `BearerToken`.<br/><br/>If omitted, its default value depends on the provider type:<br/>  Defaults to &#34;cookie&#34; for providers supporting user login (e.g. IDPorten).<br/>  Defaults to &#34;header&#34; for providers not supporting user login (e.g. Maskinporten).<br/>
           <br/>
             <i>Enum</i>: header, cookie<br/>
         </td>
@@ -2247,8 +2051,7 @@ Schema to configure Maskinporten clients with consumed scopes and/or exposed sco
         <td><b><a href="#applicationspecmaskinportenscopesconsumesindex">consumes</a></b></td>
         <td>[]object</td>
         <td>
-          This is the Schema for the consumes and exposes API.
-`consumes` is a list of scopes that your client can request access to.<br/>
+          This is the Schema for the consumes and exposes API.<br/>`consumes` is a list of scopes that your client can request access to.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2283,8 +2086,7 @@ Schema to configure Maskinporten clients with consumed scopes and/or exposed sco
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The scope consumed by the application to gain access to an external organization API.
-Ensure that the NAV organization has been granted access to the scope prior to requesting access.<br/>
+          The scope consumed by the application to gain access to an external organization API.<br/>Ensure that the NAV organization has been granted access to the scope prior to requesting access.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2319,8 +2121,7 @@ Ensure that the NAV organization has been granted access to the scope prior to r
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          The actual subscope combined with `Product`.
-Ensure that `<Product><Name>` matches `Pattern`.<br/>
+          The actual subscope combined with `Product`.<br/>Ensure that `&lt;Product&gt;&lt;Name&gt;` matches `Pattern`.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2328,8 +2129,7 @@ Ensure that `<Product><Name>` matches `Pattern`.<br/>
         <td><b>product</b></td>
         <td>string</td>
         <td>
-          The product-area your application belongs to e.g. arbeid, helse ...
-This will be included in the final scope `nav:<Product><Name>`.<br/>
+          The product-area your application belongs to e.g. arbeid, helse ...<br/>This will be included in the final scope `nav:&lt;Product&gt;&lt;Name&gt;`.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2345,8 +2145,7 @@ This will be included in the final scope `nav:<Product><Name>`.<br/>
         <td><b>allowedIntegrations</b></td>
         <td>[]string</td>
         <td>
-          Whitelisting of integration's allowed.
-Default is `maskinporten`<br/>
+          Whitelisting of integration&#39;s allowed.<br/>Default is `maskinporten`<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2354,8 +2153,7 @@ Default is `maskinporten`<br/>
         <td><b>atMaxAge</b></td>
         <td>integer</td>
         <td>
-          Max time in seconds for a issued access_token.
-Default is `30` sec.<br/>
+          Max time in seconds for a issued access_token.<br/>Default is `30` sec.<br/>
           <br/>
             <i>Minimum</i>: 30<br/>
             <i>Maximum</i>: 680<br/>
@@ -2384,10 +2182,7 @@ Default is `30` sec.<br/>
         <td><b>separator</b></td>
         <td>string</td>
         <td>
-          Separator is the character that separates `product` and `name` in the final scope:
-`scope := <prefix>:<product><separator><name>`
-This overrides the default separator.
-The default separator is `:`. If `name` contains `/`, the default separator is instead `/`.<br/>
+          Separator is the character that separates `product` and `name` in the final scope:<br/>`scope := &lt;prefix&gt;:&lt;product&gt;&lt;separator&gt;&lt;name&gt;`<br/>This overrides the default separator.<br/>The default separator is `:`. If `name` contains `/`, the default separator is instead `/`.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2395,10 +2190,7 @@ The default separator is `:`. If `name` contains `/`, the default separator is i
         <td><b>visibility</b></td>
         <td>enum</td>
         <td>
-          Visibility controls the scope's visibility.
-Public scopes are visible for everyone.
-Private scopes are only visible for the organization that owns the scope as well as
-organizations that have been granted consumer access.<br/>
+          Visibility controls the scope&#39;s visibility.<br/>Public scopes are visible for everyone.<br/>Private scopes are only visible for the organization that owns the scope as well as<br/>organizations that have been granted consumer access.<br/>
           <br/>
             <i>Enum</i>: private, public<br/>
         </td>
@@ -2471,8 +2263,7 @@ things like annotations on the Pod to change the behaviour of sidecars, and set 
         <td><b>disablePodSpreadTopologyConstraints</b></td>
         <td>boolean</td>
         <td>
-          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
-a given pod.<br/>
+          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to<br/>a given pod.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -2482,8 +2273,7 @@ a given pod.<br/>
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than
-30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
+          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than<br/>30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Default</i>: `30`<br/>
@@ -2521,8 +2311,7 @@ Optional settings for how Prometheus compatible metrics should be scraped.
         <td><b>allowAllMetrics</b></td>
         <td>boolean</td>
         <td>
-          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
-metrics will be dropped by default. See util/constants.go for the default list.<br/>
+          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined<br/>metrics will be dropped by default. See util/constants.go for the default list.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -2542,9 +2331,7 @@ metrics will be dropped by default. See util/constants.go for the default list.<
         <td><b>scrapeInterval</b></td>
         <td>string</td>
         <td>
-          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
-The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
-If minutes ("Xm") are used, the value must be at least 1m.<br/>
+          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.<br/>The interval must be at least 15 seconds (if using &#34;Xs&#34;) and divisible by 5.<br/>If minutes (&#34;Xm&#34;) are used, the value must be at least 1m.<br/>
           <br/>
             <i>Default</i>: `60s`<br/>
         </td>
@@ -2592,8 +2379,7 @@ Readiness is optional, but when provided, path and port are required
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -2604,8 +2390,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -2627,8 +2412,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -2639,8 +2423,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -2672,10 +2455,7 @@ resources of other apps on the cluster.
         <td><b>limits</b></td>
         <td>map[string]int or string</td>
         <td>
-          Limits set the maximum the app is allowed to use. Exceeding this limit will
-make kubernetes kill the app and restart it.
-
-Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
+          Limits set the maximum the app is allowed to use. Exceeding this limit will<br/>make kubernetes kill the app and restart it.<br/><br/>Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2683,11 +2463,7 @@ Limits can be set on the CPU and memory, but it is not recommended to put a limi
         <td><b>requests</b></td>
         <td>map[string]int or string</td>
         <td>
-          Requests set the initial allocation that is done for the app and will
-thus be available to the app on startup. More is allocated on demand
-until the limit is reached.
-
-Requests can be set on the CPU and memory.<br/>
+          Requests set the initial allocation that is done for the app and will<br/>thus be available to the app on startup. More is allocated on demand<br/>until the limit is reached.<br/><br/>Requests can be set on the CPU and memory.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2735,8 +2511,7 @@ Startup is optional, but when provided, path and port are required
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -2747,8 +2522,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -2770,8 +2544,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -2782,11 +2555,490 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstateful"></a>
+#### Application.spec.stateful
+
+<sup>[Parent](#applicationspec)</sup>
+
+Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.
+Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
+The enabled flag is immutable - delete and recreate the Application to change.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          When true, generates a StatefulSet instead of a Deployment.<br/>This value is immutable - delete and recreate the Application to change<br/>
+          <br/>
+            <i>Default</i>: `false`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>partition</b></td>
+        <td>integer</td>
+        <td>
+          Staged rollouts - only pods with ordinal &gt;= Partition are updated.<br/>Set Partition equal to replicas to pause updates.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>podManagementPolicy</b></td>
+        <td>enum</td>
+        <td>
+          Controls pod creation and update order. OrderedReady creates pods one at a time, Parallel creates them simultaneously.<br/>
+          <br/>
+            <i>Enum</i>: OrderedReady, Parallel<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>pvcRetentionWhenDeleted</b></td>
+        <td>enum</td>
+        <td>
+          PVC fate when the StatefulSet is deleted. Defaults to Retain.<br/>
+          <br/>
+            <i>Enum</i>: Retain, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>pvcRetentionWhenScaled</b></td>
+        <td>enum</td>
+        <td>
+          PVC fate when the StatefulSet is scaled down. Defaults to Retain.<br/>
+          <br/>
+            <i>Enum</i>: Retain, Delete<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindex">volumeClaimTemplates</a></b></td>
+        <td>[]object</td>
+        <td>
+          Per-pod PersistentVolumeClaims provisioned by the StatefulSet controller.<br/>Each replica gets its own PVC named `&lt;template.metadata.name&gt;-&lt;app&gt;-&lt;ordinal&gt;`.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindex"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index]
+
+<sup>[Parent](#applicationspecstateful)</sup>
+
+VolumeClaimTemplate describes a per-pod PersistentVolumeClaim provisioned by the StatefulSet
+controller. Name serves as both the pod volume reference and the PVC prefix
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>mountPath</b></td>
+        <td>string</td>
+        <td>
+          Where the volume is mounted inside the container<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Pod volume name and PVC name prefix. Resulting PVCs are named `&lt;name&gt;-&lt;app&gt;-&lt;ordinal&gt;`<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspec">spec</a></b></td>
+        <td>object</td>
+        <td>
+          PVC spec<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>annotations</b></td>
+        <td>map[string]string</td>
+        <td>
+          Optional annotations applied to PVCs<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>labels</b></td>
+        <td>map[string]string</td>
+        <td>
+          Optional labels applied to PVCs<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          Subpath within the volume to mount instead of its root<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspec"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindex)</sup>
+
+PVC spec
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>accessModes</b></td>
+        <td>[]string</td>
+        <td>
+          accessModes contains the desired access modes the volume should have.<br/>More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#access-modes-1<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspecdatasource">dataSource</a></b></td>
+        <td>object</td>
+        <td>
+          dataSource field can be used to specify either:<br/>* An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)<br/>* An existing PVC (PersistentVolumeClaim)<br/>If the provisioner or an external controller can support the specified data source,<br/>it will create a new volume based on the contents of the specified data source.<br/>When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,<br/>and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.<br/>If the namespace is specified, then dataSourceRef will not be copied to dataSource.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspecdatasourceref">dataSourceRef</a></b></td>
+        <td>object</td>
+        <td>
+          dataSourceRef specifies the object from which to populate the volume with data, if a non-empty<br/>volume is desired. This may be any object from a non-empty API group (non<br/>core object) or a PersistentVolumeClaim object.<br/>When this field is specified, volume binding will only succeed if the type of<br/>the specified object matches some installed volume populator or dynamic<br/>provisioner.<br/>This field will replace the functionality of the dataSource field and as such<br/>if both fields are non-empty, they must have the same value. For backwards<br/>compatibility, when namespace isn&#39;t specified in dataSourceRef,<br/>both fields (dataSource and dataSourceRef) will be set to the same<br/>value automatically if one of them is empty and the other is non-empty.<br/>When namespace is specified in dataSourceRef,<br/>dataSource isn&#39;t set to the same value and must be empty.<br/>There are three important differences between dataSource and dataSourceRef:<br/>* While dataSource only allows two specific types of objects, dataSourceRef<br/>  allows any non-core object, as well as PersistentVolumeClaim objects.<br/>* While dataSource ignores disallowed values (dropping them), dataSourceRef<br/>  preserves all values, and generates an error if a disallowed value is<br/>  specified.<br/>* While dataSource only allows local objects, dataSourceRef allows objects<br/>  in any namespaces.<br/>(Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.<br/>(Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspecresources">resources</a></b></td>
+        <td>object</td>
+        <td>
+          resources represents the minimum resources the volume should have.<br/>Users are allowed to specify resource requirements<br/>that are lower than previous value but must still be higher than capacity recorded in the<br/>status field of the claim.<br/>More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspecselector">selector</a></b></td>
+        <td>object</td>
+        <td>
+          selector is a label query over volumes to consider for binding.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>storageClassName</b></td>
+        <td>string</td>
+        <td>
+          storageClassName is the name of the StorageClass required by the claim.<br/>More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>volumeAttributesClassName</b></td>
+        <td>string</td>
+        <td>
+          volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.<br/>If specified, the CSI driver will create or update the volume with the attributes defined<br/>in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,<br/>it can be changed after the claim is created. An empty string or nil value indicates that no<br/>VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,<br/>this field can be reset to its previous value (including nil) to cancel the modification.<br/>If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be<br/>set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource<br/>exists.<br/>More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>volumeMode</b></td>
+        <td>string</td>
+        <td>
+          volumeMode defines what type of volume is required by the claim.<br/>Value of Filesystem is implied when not included in claim spec.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>volumeName</b></td>
+        <td>string</td>
+        <td>
+          volumeName is the binding reference to the PersistentVolume backing this claim.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspecdatasource"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec.dataSource
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindexspec)</sup>
+
+dataSource field can be used to specify either:
+* An existing VolumeSnapshot object (snapshot.storage.k8s.io/VolumeSnapshot)
+* An existing PVC (PersistentVolumeClaim)
+If the provisioner or an external controller can support the specified data source,
+it will create a new volume based on the contents of the specified data source.
+When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,
+and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.
+If the namespace is specified, then dataSourceRef will not be copied to dataSource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>kind</b></td>
+        <td>string</td>
+        <td>
+          Kind is the type of resource being referenced<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the name of resource being referenced<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>apiGroup</b></td>
+        <td>string</td>
+        <td>
+          APIGroup is the group for the resource being referenced.<br/>If APIGroup is not specified, the specified Kind must be in the core API group.<br/>For any other third-party types, APIGroup is required.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspecdatasourceref"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec.dataSourceRef
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindexspec)</sup>
+
+dataSourceRef specifies the object from which to populate the volume with data, if a non-empty
+volume is desired. This may be any object from a non-empty API group (non
+core object) or a PersistentVolumeClaim object.
+When this field is specified, volume binding will only succeed if the type of
+the specified object matches some installed volume populator or dynamic
+provisioner.
+This field will replace the functionality of the dataSource field and as such
+if both fields are non-empty, they must have the same value. For backwards
+compatibility, when namespace isn't specified in dataSourceRef,
+both fields (dataSource and dataSourceRef) will be set to the same
+value automatically if one of them is empty and the other is non-empty.
+When namespace is specified in dataSourceRef,
+dataSource isn't set to the same value and must be empty.
+There are three important differences between dataSource and dataSourceRef:
+* While dataSource only allows two specific types of objects, dataSourceRef
+  allows any non-core object, as well as PersistentVolumeClaim objects.
+* While dataSource ignores disallowed values (dropping them), dataSourceRef
+  preserves all values, and generates an error if a disallowed value is
+  specified.
+* While dataSource only allows local objects, dataSourceRef allows objects
+  in any namespaces.
+(Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.
+(Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>kind</b></td>
+        <td>string</td>
+        <td>
+          Kind is the type of resource being referenced<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the name of resource being referenced<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>apiGroup</b></td>
+        <td>string</td>
+        <td>
+          APIGroup is the group for the resource being referenced.<br/>If APIGroup is not specified, the specified Kind must be in the core API group.<br/>For any other third-party types, APIGroup is required.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>namespace</b></td>
+        <td>string</td>
+        <td>
+          Namespace is the namespace of resource being referenced<br/>Note that when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant object is required in the referent namespace to allow that namespace&#39;s owner to accept the reference. See the ReferenceGrant documentation for details.<br/>(Alpha) This field requires the CrossNamespaceVolumeDataSource feature gate to be enabled.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspecresources"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec.resources
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindexspec)</sup>
+
+resources represents the minimum resources the volume should have.
+Users are allowed to specify resource requirements
+that are lower than previous value but must still be higher than capacity recorded in the
+status field of the claim.
+More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>limits</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Limits describes the maximum amount of compute resources allowed.<br/>More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>requests</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Requests describes the minimum amount of compute resources required.<br/>If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,<br/>otherwise to an implementation-defined value. Requests cannot exceed Limits.<br/>More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspecselector"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec.selector
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindexspec)</sup>
+
+selector is a label query over volumes to consider for binding.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b><a href="#applicationspecstatefulvolumeclaimtemplatesindexspecselectormatchexpressionsindex">matchExpressions</a></b></td>
+        <td>[]object</td>
+        <td>
+          matchExpressions is a list of label selector requirements. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>matchLabels</b></td>
+        <td>map[string]string</td>
+        <td>
+          matchLabels is a map of &#123;key,value&#125; pairs. A single &#123;key,value&#125; in the matchLabels<br/>map is equivalent to an element of matchExpressions, whose key field is &#34;key&#34;, the<br/>operator is &#34;In&#34;, and the values array contains only &#34;value&#34;. The requirements are ANDed.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="applicationspecstatefulvolumeclaimtemplatesindexspecselectormatchexpressionsindex"></a>
+#### Application.spec.stateful.volumeClaimTemplates[index].spec.selector.matchExpressions[index]
+
+<sup>[Parent](#applicationspecstatefulvolumeclaimtemplatesindexspecselector)</sup>
+
+A label selector requirement is a selector that contains values, a key, and an operator that
+relates the key and values.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          key is the label key that the selector applies to.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>operator</b></td>
+        <td>string</td>
+        <td>
+          operator represents a key&#39;s relationship to a set of values.<br/>Valid operators are In, NotIn, Exists and DoesNotExist.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>values</b></td>
+        <td>[]string</td>
+        <td>
+          values is an array of string values. If the operator is In or NotIn,<br/>the values array must be non-empty. If the operator is Exists or DoesNotExist,<br/>the values array must be empty. This array is replaced during a strategic<br/>merge patch.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2833,9 +3085,7 @@ Valid values are: RollingUpdate, Recreate. Default is RollingUpdate
 
 <sup>[Parent](#application)</sup>
 
-SkiperatorStatus
-
-A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
+ApplicationStatus is a specialized status specific to the Application kind.
 
 <table>
     <thead>
@@ -2879,6 +3129,14 @@ A status field shown on a Skiperator resource which contains information regardi
         </td>
         <td>true</td>
       </tr>
+      <tr>
+        <td><b>applicationKind</b></td>
+        <td>string</td>
+        <td>
+          Kind generated for this Application after a successful reconcile.<br/>Used to prevent switching between Deployment and StatefulSet.<br/>
+        </td>
+        <td>false</td>
+      </tr>
     </tbody>
 </table>
 <a id="applicationstatusconditionsindex"></a>
@@ -2902,8 +3160,7 @@ Condition contains details for one aspect of the current state of this API Resou
         <td><b>lastTransitionTime</b></td>
         <td>string</td>
         <td>
-          lastTransitionTime is the last time the condition transitioned from one status to another.
-This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
+          lastTransitionTime is the last time the condition transitioned from one status to another.<br/>This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -2913,8 +3170,7 @@ This should be when the underlying condition changed.  If that is not known, the
         <td><b>message</b></td>
         <td>string</td>
         <td>
-          message is a human readable message indicating details about the transition.
-This may be an empty string.<br/>
+          message is a human readable message indicating details about the transition.<br/>This may be an empty string.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2922,11 +3178,7 @@ This may be an empty string.<br/>
         <td><b>reason</b></td>
         <td>string</td>
         <td>
-          reason contains a programmatic identifier indicating the reason for the condition's last transition.
-Producers of specific condition types may define expected values and meanings for this field,
-and whether the values are considered a guaranteed API.
-The value should be a CamelCase string.
-This field may not be empty.<br/>
+          reason contains a programmatic identifier indicating the reason for the condition&#39;s last transition.<br/>Producers of specific condition types may define expected values and meanings for this field,<br/>and whether the values are considered a guaranteed API.<br/>The value should be a CamelCase string.<br/>This field may not be empty.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -2952,9 +3204,7 @@ This field may not be empty.<br/>
         <td><b>observedGeneration</b></td>
         <td>integer</td>
         <td>
-          observedGeneration represents the .metadata.generation that the condition was set based upon.
-For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-with respect to the current state of the instance.<br/>
+          observedGeneration represents the .metadata.generation that the condition was set based upon.<br/>For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date<br/>with respect to the current state of the instance.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Minimum</i>: 0<br/>
@@ -3108,9 +3358,7 @@ Status
         <td><b><a href="#routingstatus">status</a></b></td>
         <td>object</td>
         <td>
-          SkiperatorStatus
-
-A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
+          SkiperatorStatus<br/><br/>A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3290,8 +3538,7 @@ Condition contains details for one aspect of the current state of this API Resou
         <td><b>lastTransitionTime</b></td>
         <td>string</td>
         <td>
-          lastTransitionTime is the last time the condition transitioned from one status to another.
-This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
+          lastTransitionTime is the last time the condition transitioned from one status to another.<br/>This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -3301,8 +3548,7 @@ This should be when the underlying condition changed.  If that is not known, the
         <td><b>message</b></td>
         <td>string</td>
         <td>
-          message is a human readable message indicating details about the transition.
-This may be an empty string.<br/>
+          message is a human readable message indicating details about the transition.<br/>This may be an empty string.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3310,11 +3556,7 @@ This may be an empty string.<br/>
         <td><b>reason</b></td>
         <td>string</td>
         <td>
-          reason contains a programmatic identifier indicating the reason for the condition's last transition.
-Producers of specific condition types may define expected values and meanings for this field,
-and whether the values are considered a guaranteed API.
-The value should be a CamelCase string.
-This field may not be empty.<br/>
+          reason contains a programmatic identifier indicating the reason for the condition&#39;s last transition.<br/>Producers of specific condition types may define expected values and meanings for this field,<br/>and whether the values are considered a guaranteed API.<br/>The value should be a CamelCase string.<br/>This field may not be empty.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3340,9 +3582,7 @@ This field may not be empty.<br/>
         <td><b>observedGeneration</b></td>
         <td>integer</td>
         <td>
-          observedGeneration represents the .metadata.generation that the condition was set based upon.
-For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-with respect to the current state of the instance.<br/>
+          observedGeneration represents the .metadata.generation that the condition was set based upon.<br/>For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date<br/>with respect to the current state of the instance.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Minimum</i>: 0<br/>
@@ -3488,10 +3728,7 @@ SKIPJob is the deprecated schema for the SKIPJobs API. Please migrate to v1beta1
         <td><b><a href="#skipjobspec">spec</a></b></td>
         <td>object</td>
         <td>
-          SKIPJobSpec defines the desired state of SKIPJob
-
-A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
-The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.<br/>
+          SKIPJobSpec defines the desired state of SKIPJob<br/><br/>A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.<br/>The Container field of a SKIPJob is only mutable if the Cron field is set. If unset, you must delete your SKIPJob to change container settings.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3499,9 +3736,7 @@ The Container field of a SKIPJob is only mutable if the Cron field is set. If un
         <td><b><a href="#skipjobstatus">status</a></b></td>
         <td>object</td>
         <td>
-          SkiperatorStatus
-
-A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
+          SkiperatorStatus<br/><br/>A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3531,8 +3766,7 @@ The Container field of a SKIPJob is only mutable if the Cron field is set. If un
         <td><b><a href="#skipjobspeccontainer">container</a></b></td>
         <td>object</td>
         <td>
-          Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.
-Once set, you may not change Container without deleting your current SKIPJob<br/>
+          Settings for the Pods running in the job. Fields are mostly the same as an Application, and are (probably) better documented there. Some fields are omitted, but none added.<br/>Once set, you may not change Container without deleting your current SKIPJob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3548,9 +3782,7 @@ Once set, you may not change Container without deleting your current SKIPJob<br/
         <td><b><a href="#skipjobspecistiosettings">istioSettings</a></b></td>
         <td>object</td>
         <td>
-          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
-interval for tracing is the only supported option.
-By default, tracing is enabled with a random sampling percentage of 10%.<br/>
+          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling<br/>interval for tracing is the only supported option.<br/>By default, tracing is enabled with a random sampling percentage of 10%.<br/>
           <br/>
             <i>Default</i>: `map[telemetry:map[tracing:[map[randomSamplingPercentage:10]]]]`<br/>
         </td>
@@ -3568,10 +3800,7 @@ By default, tracing is enabled with a random sampling percentage of 10%.<br/>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Labels can be used if you want every resource created by your SKIPJob to
-have the same labels, including the Job/CronJob itself. This could for example be useful for
-metrics, where a certain label and the corresponding resources liveliness can be combined.
-Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
+          Labels can be used if you want every resource created by your SKIPJob to<br/>have the same labels, including the Job/CronJob itself. This could for example be useful for<br/>metrics, where a certain label and the corresponding resources liveliness can be combined.<br/>Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3579,8 +3808,7 @@ Any amount of labels can be added as wanted, and they will all cascade down to a
         <td><b><a href="#skipjobspecprometheus">prometheus</a></b></td>
         <td>object</td>
         <td>
-          Prometheus settings for pod running in job. Fields are identical to Application and if set,
-a podmonitoring object is created.<br/>
+          Prometheus settings for pod running in job. Fields are identical to Application and if set,<br/>a podmonitoring object is created.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3588,8 +3816,7 @@ a podmonitoring object is created.<br/>
         <td><b>team</b></td>
         <td>string</td>
         <td>
-          Team specifies the team who owns this particular SKIPJob.
-Usually sourced from the namespace label.<br/>
+          Team specifies the team who owns this particular SKIPJob.<br/>Usually sourced from the namespace label.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3625,13 +3852,7 @@ Once set, you may not change Container without deleting your current SKIPJob
         <td><b><a href="#skipjobspeccontaineraccesspolicy">accessPolicy</a></b></td>
         <td>object</td>
         <td>
-          AccessPolicy
-
-Zero trust dictates that only applications with a reason for being able
-to access another resource should be able to reach it. This is set up by
-default by denying all ingress and egress traffic from the Pods in the
-Deployment. The AccessPolicy field is an allowlist of other applications and hostnames
-that are allowed to talk with this Application and which resources this app can talk to<br/>
+          AccessPolicy<br/><br/>Zero trust dictates that only applications with a reason for being able<br/>to access another resource should be able to reach it. This is set up by<br/>default by denying all ingress and egress traffic from the Pods in the<br/>Deployment. The AccessPolicy field is an allowlist of other applications and hostnames<br/>that are allowed to talk with this Application and which resources this app can talk to<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3679,9 +3900,7 @@ that are allowed to talk with this Application and which resources this app can 
         <td><b><a href="#skipjobspeccontainergcp">gcp</a></b></td>
         <td>object</td>
         <td>
-          GCP
-
-Configuration for interacting with Google Cloud Platform<br/>
+          GCP<br/><br/>Configuration for interacting with Google Cloud Platform<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3689,9 +3908,7 @@ Configuration for interacting with Google Cloud Platform<br/>
         <td><b><a href="#skipjobspeccontainerliveness">liveness</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3718,9 +3935,7 @@ Type configuration for all types of Kubernetes probes.<br/>
         <td><b><a href="#skipjobspeccontainerreadiness">readiness</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3728,10 +3943,7 @@ Type configuration for all types of Kubernetes probes.<br/>
         <td><b><a href="#skipjobspeccontainerresources">resources</a></b></td>
         <td>object</td>
         <td>
-          ResourceRequirements
-
-A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.
-For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes<br/>
+          ResourceRequirements<br/><br/>A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.<br/>For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3739,10 +3951,7 @@ For the units used for resources, see https://kubernetes.io/docs/concepts/config
         <td><b>restartPolicy</b></td>
         <td>enum</td>
         <td>
-          RestartPolicy describes how the container should be restarted.
-Only one of the following restart policies may be specified.
-If none of the following policies is specified, the default one
-is RestartPolicyAlways.<br/>
+          RestartPolicy describes how the container should be restarted.<br/>Only one of the following restart policies may be specified.<br/>If none of the following policies is specified, the default one<br/>is RestartPolicyAlways.<br/>
           <br/>
             <i>Enum</i>: OnFailure, Never<br/>
             <i>Default</i>: `Never`<br/>
@@ -3753,9 +3962,7 @@ is RestartPolicyAlways.<br/>
         <td><b><a href="#skipjobspeccontainerstartup">startup</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3796,8 +4003,7 @@ that are allowed to talk with this Application and which resources this app can 
         <td><b><a href="#skipjobspeccontaineraccesspolicyoutbound">outbound</a></b></td>
         <td>object</td>
         <td>
-          Outbound specifies egress rules. Which apps on the cluster and the
-internet is the Application allowed to send requests to?<br/>
+          Outbound specifies egress rules. Which apps on the cluster and the<br/>internet is the Application allowed to send requests to?<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3824,9 +4030,7 @@ Inbound specifies the ingress rules. Which apps on the cluster can talk to this 
         <td><b><a href="#skipjobspeccontaineraccesspolicyinboundrulesindex">rules</a></b></td>
         <td>[]object</td>
         <td>
-          The rules list specifies a list of applications. When no namespace is
-specified it refers to an app in the current namespace. For apps in
-other namespaces namespace is required<br/>
+          The rules list specifies a list of applications. When no namespace is<br/>specified it refers to an app in the current namespace. For apps in<br/>other namespaces namespace is required<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3857,8 +4061,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -3909,10 +4112,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -3922,10 +4122,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3933,8 +4130,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3962,9 +4158,7 @@ internet is the Application allowed to send requests to?
         <td><b><a href="#skipjobspeccontaineraccesspolicyoutboundexternalindex">external</a></b></td>
         <td>[]object</td>
         <td>
-          External specifies which applications on the internet the application
-can reach. Only host is required unless it is on another port than HTTPS port 443.
-If other ports or protocols are required then `ports` must be specified as well<br/>
+          External specifies which applications on the internet the application<br/>can reach. Only host is required unless it is on another port than HTTPS port 443.<br/>If other ports or protocols are required then `ports` must be specified as well<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4009,10 +4203,7 @@ Describes a rule for allowing your Application to route traffic to external appl
         <td><b>ip</b></td>
         <td>string</td>
         <td>
-          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
-Only required for TCP requests.
-
-Note: Hostname must always be defined even if IP is set statically<br/>
+          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname<br/>Only required for TCP requests.<br/><br/>Note: Hostname must always be defined even if IP is set statically<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4020,8 +4211,7 @@ Note: Hostname must always be defined even if IP is set statically<br/>
         <td><b><a href="#skipjobspeccontaineraccesspolicyoutboundexternalindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above hostname. When not specified HTTP and
-HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
+          The ports to allow for the above hostname. When not specified HTTP and<br/>HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4099,8 +4289,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4151,10 +4340,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -4164,10 +4350,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4175,8 +4358,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4250,8 +4432,7 @@ EnvVar represents an environment variable present in a Container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the environment variable.
-May consist of any printable ASCII characters except '='.<br/>
+          Name of the environment variable.<br/>May consist of any printable ASCII characters except &#39;=&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4259,15 +4440,7 @@ May consist of any printable ASCII characters except '='.<br/>
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Variable references $(VAR_NAME) are expanded
-using the previously defined environment variables in the container and
-any service environment variables. If a variable cannot be resolved,
-the reference in the input string will be unchanged. Double $$ are reduced
-to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
-"$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-Escaped references will never be expanded, regardless of whether the variable
-exists or not.
-Defaults to "".<br/>
+          Variable references $(VAR_NAME) are expanded<br/>using the previously defined environment variables in the container and<br/>any service environment variables. If a variable cannot be resolved,<br/>the reference in the input string will be unchanged. Double $$ are reduced<br/>to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.<br/>&#34;$$(VAR_NAME)&#34; will produce the string literal &#34;$(VAR_NAME)&#34;.<br/>Escaped references will never be expanded, regardless of whether the variable<br/>exists or not.<br/>Defaults to &#34;&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4275,7 +4448,7 @@ Defaults to "".<br/>
         <td><b><a href="#skipjobspeccontainerenvindexvaluefrom">valueFrom</a></b></td>
         <td>object</td>
         <td>
-          Source for the environment variable's value. Cannot be used if value is not empty.<br/>
+          Source for the environment variable&#39;s value. Cannot be used if value is not empty.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4310,8 +4483,7 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td><b><a href="#skipjobspeccontainerenvindexvaluefromfieldref">fieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
-spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels[&#39;&lt;KEY&gt;&#39;]`, `metadata.annotations[&#39;&lt;KEY&gt;&#39;]`,<br/>spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4319,8 +4491,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b><a href="#skipjobspeccontainerenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
         <td>object</td>
         <td>
-          FileKeyRef selects a key of the env file.
-Requires the EnvFiles feature gate to be enabled.<br/>
+          FileKeyRef selects a key of the env file.<br/>Requires the EnvFiles feature gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4328,8 +4499,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#skipjobspeccontainerenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a resource of the container: only resources limits and requests
-(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+          Selects a resource of the container: only resources limits and requests<br/>(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4337,7 +4507,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#skipjobspeccontainerenvindexvaluefromsecretkeyref">secretKeyRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a key of a secret in the pod's namespace<br/>
+          Selects a key of a secret in the pod&#39;s namespace<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4372,11 +4542,7 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -4422,7 +4588,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b>apiVersion</b></td>
         <td>string</td>
         <td>
-          Version of the schema the FieldPath is written in terms of, defaults to "v1".<br/>
+          Version of the schema the FieldPath is written in terms of, defaults to &#34;v1&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4450,9 +4616,7 @@ Requires the EnvFiles feature gate to be enabled.
         <td><b>key</b></td>
         <td>string</td>
         <td>
-          The key within the env file. An invalid key will prevent the pod from starting.
-The keys defined within a source may consist of any printable ASCII characters except '='.
-During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+          The key within the env file. An invalid key will prevent the pod from starting.<br/>The keys defined within a source may consist of any printable ASCII characters except &#39;=&#39;.<br/>During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4460,8 +4624,7 @@ During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          The path within the volume from which to select the file.
-Must be relative and may not contain the '..' path or start with '..'.<br/>
+          The path within the volume from which to select the file.<br/>Must be relative and may not contain the &#39;..&#39; path or start with &#39;..&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4477,13 +4640,7 @@ Must be relative and may not contain the '..' path or start with '..'.<br/>
         <td><b>optional</b></td>
         <td>boolean</td>
         <td>
-          Specify whether the file or its key must be defined. If the file or key
-does not exist, then the env var is not published.
-If optional is set to true and the specified key does not exist,
-the environment variable will not be set in the Pod's containers.
-
-If optional is set to false and the specified key does not exist,
-an error will be returned during Pod creation.<br/>
+          Specify whether the file or its key must be defined. If the file or key<br/>does not exist, then the env var is not published.<br/>If optional is set to true and the specified key does not exist,<br/>the environment variable will not be set in the Pod&#39;s containers.<br/><br/>If optional is set to false and the specified key does not exist,<br/>an error will be returned during Pod creation.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -4529,7 +4686,7 @@ Selects a resource of the container: only resources limits and requests
         <td><b>divisor</b></td>
         <td>int or string</td>
         <td>
-          Specifies the output format of the exposed resources, defaults to "1"<br/>
+          Specifies the output format of the exposed resources, defaults to &#34;1&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4564,11 +4721,7 @@ Selects a key of a secret in the pod's namespace
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -4660,13 +4813,7 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.
-Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
-YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
-Defaults to 0644.
-Directories within the path are not affected by this setting.
-This might be in conflict with other options that affect the file
-mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4719,12 +4866,7 @@ Configuration for interacting with Google Cloud Platform
         <td><b><a href="#skipjobspeccontainergcpauth">auth</a></b></td>
         <td>object</td>
         <td>
-          Configuration for authenticating a Pod with Google Cloud Platform
-For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-service account and bind this to the Pod's Kubernetes SA.
-Documentation on how this is done can be found here (Closed Wiki):
-https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
+          Configuration for authenticating a Pod with Google Cloud Platform<br/>For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need<br/>to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP<br/>service account and bind this to the Pod&#39;s Kubernetes SA.<br/>Documentation on how this is done can be found here (Closed Wiki):<br/>https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4732,8 +4874,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b><a href="#skipjobspeccontainergcpcloudsqlproxy">cloudSqlProxy</a></b></td>
         <td>object</td>
         <td>
-          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
-This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
+          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.<br/>This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4765,8 +4906,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b>serviceAccount</b></td>
         <td>string</td>
         <td>
-          Name of the service account in which you are trying to authenticate your pod with
-Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
+          Name of the service account in which you are trying to authenticate your pod with<br/>Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4794,8 +4934,7 @@ This is useful for connecting to CloudSQL databases that require Cloud SQL Auth 
         <td><b>connectionName</b></td>
         <td>string</td>
         <td>
-          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
-The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".<br/>
+          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.<br/>The format is &#34;projectName:region:instanceName&#34; E.g. &#34;skip-prod-bda1:europe-north1:my-db&#34;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -4874,8 +5013,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -4886,8 +5024,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -4909,8 +5046,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -4921,8 +5057,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -4960,8 +5095,7 @@ PodSettings
         <td><b>disablePodSpreadTopologyConstraints</b></td>
         <td>boolean</td>
         <td>
-          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
-a given pod.<br/>
+          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to<br/>a given pod.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -4971,8 +5105,7 @@ a given pod.<br/>
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than
-30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
+          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than<br/>30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Default</i>: `30`<br/>
@@ -5020,8 +5153,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -5032,8 +5164,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -5055,8 +5186,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -5067,8 +5197,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -5101,10 +5230,7 @@ For the units used for resources, see https://kubernetes.io/docs/concepts/config
         <td><b>limits</b></td>
         <td>map[string]int or string</td>
         <td>
-          Limits set the maximum the app is allowed to use. Exceeding this limit will
-make kubernetes kill the app and restart it.
-
-Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
+          Limits set the maximum the app is allowed to use. Exceeding this limit will<br/>make kubernetes kill the app and restart it.<br/><br/>Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5112,11 +5238,7 @@ Limits can be set on the CPU and memory, but it is not recommended to put a limi
         <td><b>requests</b></td>
         <td>map[string]int or string</td>
         <td>
-          Requests set the initial allocation that is done for the app and will
-thus be available to the app on startup. More is allocated on demand
-until the limit is reached.
-
-Requests can be set on the CPU and memory.<br/>
+          Requests set the initial allocation that is done for the app and will<br/>thus be available to the app on startup. More is allocated on demand<br/>until the limit is reached.<br/><br/>Requests can be set on the CPU and memory.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5161,8 +5283,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -5173,8 +5294,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -5196,8 +5316,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -5208,8 +5327,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -5239,8 +5357,7 @@ Settings for the Job if you are running a scheduled job. Optional as Jobs may be
         <td><b>schedule</b></td>
         <td>string</td>
         <td>
-          A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
-Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.<br/>
+          A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.<br/>Kubernetes CronJobs also include the extended &#34;Vixie cron&#34; step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -5248,9 +5365,7 @@ Kubernetes CronJobs also include the extended "Vixie cron" step values: https://
         <td><b>allowConcurrency</b></td>
         <td>enum</td>
         <td>
-          Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
-Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
-Replace will replace the current active Job with the newer scheduled Job.<br/>
+          Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.<br/>Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.<br/>Replace will replace the current active Job with the newer scheduled Job.<br/>
           <br/>
             <i>Enum</i>: Allow, Forbid, Replace<br/>
             <i>Default</i>: `Allow`<br/>
@@ -5261,8 +5376,7 @@ Replace will replace the current active Job with the newer scheduled Job.<br/>
         <td><b>startingDeadlineSeconds</b></td>
         <td>integer</td>
         <td>
-          Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
-If unset, Jobs missing their deadline will be considered failed jobs and will not start.<br/>
+          Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job&#39;s controller was not ready upon the scheduled time.<br/>If unset, Jobs missing their deadline will be considered failed jobs and will not start.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -5272,8 +5386,7 @@ If unset, Jobs missing their deadline will be considered failed jobs and will no
         <td><b>suspend</b></td>
         <td>boolean</td>
         <td>
-          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
-all running Pods will be terminated.<br/>
+          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,<br/>all running Pods will be terminated.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5281,10 +5394,7 @@ all running Pods will be terminated.<br/>
         <td><b>timeZone</b></td>
         <td>string</td>
         <td>
-          The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
-this will default to the time zone of the cluster.
-
-Example: "Europe/Oslo"<br/>
+          The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,<br/>this will default to the time zone of the cluster.<br/><br/>Example: &#34;Europe/Oslo&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5371,8 +5481,7 @@ Tracing contains relevant settings for tracing in the telemetry configuration
         <td><b>randomSamplingPercentage</b></td>
         <td>integer</td>
         <td>
-          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
-Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
+          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.<br/>Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
           <br/>
             <i>Default</i>: `10`<br/>
             <i>Minimum</i>: 0<br/>
@@ -5403,8 +5512,7 @@ Settings for the actual Job. If you use a scheduled job, the settings in here wi
         <td><b>activeDeadlineSeconds</b></td>
         <td>integer</td>
         <td>
-          ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
-the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.<br/>
+          ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job&#39;s workload<br/>the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -5424,8 +5532,7 @@ the job and its Pods are terminated. If the job is suspended using the Suspend f
         <td><b>suspend</b></td>
         <td>boolean</td>
         <td>
-          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
-all running Pods will be terminated.<br/>
+          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,<br/>all running Pods will be terminated.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5433,8 +5540,7 @@ all running Pods will be terminated.<br/>
         <td><b>ttlSecondsAfterFinished</b></td>
         <td>integer</td>
         <td>
-          The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
-It is recommended to set this to avoid clutter in your resource tree.<br/>
+          The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.<br/>It is recommended to set this to avoid clutter in your resource tree.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -5472,8 +5578,7 @@ a podmonitoring object is created.
         <td><b>allowAllMetrics</b></td>
         <td>boolean</td>
         <td>
-          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
-metrics will be dropped by default. See util/constants.go for the default list.<br/>
+          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined<br/>metrics will be dropped by default. See util/constants.go for the default list.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -5493,9 +5598,7 @@ metrics will be dropped by default. See util/constants.go for the default list.<
         <td><b>scrapeInterval</b></td>
         <td>string</td>
         <td>
-          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
-The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
-If minutes ("Xm") are used, the value must be at least 1m.<br/>
+          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.<br/>The interval must be at least 15 seconds (if using &#34;Xs&#34;) and divisible by 5.<br/>If minutes (&#34;Xm&#34;) are used, the value must be at least 1m.<br/>
           <br/>
             <i>Default</i>: `60s`<br/>
         </td>
@@ -5577,8 +5680,7 @@ Condition contains details for one aspect of the current state of this API Resou
         <td><b>lastTransitionTime</b></td>
         <td>string</td>
         <td>
-          lastTransitionTime is the last time the condition transitioned from one status to another.
-This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
+          lastTransitionTime is the last time the condition transitioned from one status to another.<br/>This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -5588,8 +5690,7 @@ This should be when the underlying condition changed.  If that is not known, the
         <td><b>message</b></td>
         <td>string</td>
         <td>
-          message is a human readable message indicating details about the transition.
-This may be an empty string.<br/>
+          message is a human readable message indicating details about the transition.<br/>This may be an empty string.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -5597,11 +5698,7 @@ This may be an empty string.<br/>
         <td><b>reason</b></td>
         <td>string</td>
         <td>
-          reason contains a programmatic identifier indicating the reason for the condition's last transition.
-Producers of specific condition types may define expected values and meanings for this field,
-and whether the values are considered a guaranteed API.
-The value should be a CamelCase string.
-This field may not be empty.<br/>
+          reason contains a programmatic identifier indicating the reason for the condition&#39;s last transition.<br/>Producers of specific condition types may define expected values and meanings for this field,<br/>and whether the values are considered a guaranteed API.<br/>The value should be a CamelCase string.<br/>This field may not be empty.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -5627,9 +5724,7 @@ This field may not be empty.<br/>
         <td><b>observedGeneration</b></td>
         <td>integer</td>
         <td>
-          observedGeneration represents the .metadata.generation that the condition was set based upon.
-For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-with respect to the current state of the instance.<br/>
+          observedGeneration represents the .metadata.generation that the condition was set based upon.<br/>For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date<br/>with respect to the current state of the instance.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Minimum</i>: 0<br/>
@@ -5783,9 +5878,7 @@ SKIPJob is the supported schema for the SKIPJobs API.
         <td><b><a href="#skipjobspec-1">spec</a></b></td>
         <td>object</td>
         <td>
-          SKIPJobSpec defines the desired state of SKIPJob
-
-A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.<br/>
+          SKIPJobSpec defines the desired state of SKIPJob<br/><br/>A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -5793,9 +5886,7 @@ A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field i
         <td><b><a href="#skipjobstatus-1">status</a></b></td>
         <td>object</td>
         <td>
-          SkiperatorStatus
-
-A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
+          SkiperatorStatus<br/><br/>A status field shown on a Skiperator resource which contains information regarding deployment of the resource.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5832,13 +5923,7 @@ A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field i
         <td><b><a href="#skipjobspecaccesspolicy">accessPolicy</a></b></td>
         <td>object</td>
         <td>
-          AccessPolicy
-
-Zero trust dictates that only applications with a reason for being able
-to access another resource should be able to reach it. This is set up by
-default by denying all ingress and egress traffic from the Pods in the
-Deployment. The AccessPolicy field is an allowlist of other applications and hostnames
-that are allowed to talk with this Application and which resources this app can talk to<br/>
+          AccessPolicy<br/><br/>Zero trust dictates that only applications with a reason for being able<br/>to access another resource should be able to reach it. This is set up by<br/>default by denying all ingress and egress traffic from the Pods in the<br/>Deployment. The AccessPolicy field is an allowlist of other applications and hostnames<br/>that are allowed to talk with this Application and which resources this app can talk to<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5894,9 +5979,7 @@ that are allowed to talk with this Application and which resources this app can 
         <td><b><a href="#skipjobspecgcp">gcp</a></b></td>
         <td>object</td>
         <td>
-          GCP
-
-Configuration for interacting with Google Cloud Platform<br/>
+          GCP<br/><br/>Configuration for interacting with Google Cloud Platform<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5904,9 +5987,7 @@ Configuration for interacting with Google Cloud Platform<br/>
         <td><b><a href="#skipjobspecistiosettings-1">istioSettings</a></b></td>
         <td>object</td>
         <td>
-          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling
-interval for tracing is the only supported option.
-By default, tracing is enabled with a random sampling percentage of 10%.<br/>
+          IstioSettings are used to configure istio specific resources such as telemetry. Currently, adjusting sampling<br/>interval for tracing is the only supported option.<br/>By default, tracing is enabled with a random sampling percentage of 10%.<br/>
           <br/>
             <i>Default</i>: `map[telemetry:map[tracing:[map[randomSamplingPercentage:10]]]]`<br/>
         </td>
@@ -5924,10 +6005,7 @@ By default, tracing is enabled with a random sampling percentage of 10%.<br/>
         <td><b>labels</b></td>
         <td>map[string]string</td>
         <td>
-          Labels can be used if you want every resource created by your SKIPJob to
-have the same labels, including the Job/CronJob itself. This could for example be useful for
-metrics, where a certain label and the corresponding resources liveliness can be combined.
-Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
+          Labels can be used if you want every resource created by your SKIPJob to<br/>have the same labels, including the Job/CronJob itself. This could for example be useful for<br/>metrics, where a certain label and the corresponding resources liveliness can be combined.<br/>Any amount of labels can be added as wanted, and they will all cascade down to all resources.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5935,9 +6013,7 @@ Any amount of labels can be added as wanted, and they will all cascade down to a
         <td><b><a href="#skipjobspecliveness">liveness</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5964,8 +6040,7 @@ Type configuration for all types of Kubernetes probes.<br/>
         <td><b><a href="#skipjobspecprometheus-1">prometheus</a></b></td>
         <td>object</td>
         <td>
-          Prometheus settings for pod running in job. Fields are identical to Application and if set,
-a podmonitoring object is created.<br/>
+          Prometheus settings for pod running in job. Fields are identical to Application and if set,<br/>a podmonitoring object is created.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5973,9 +6048,7 @@ a podmonitoring object is created.<br/>
         <td><b><a href="#skipjobspecreadiness">readiness</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5983,10 +6056,7 @@ Type configuration for all types of Kubernetes probes.<br/>
         <td><b><a href="#skipjobspecresources">resources</a></b></td>
         <td>object</td>
         <td>
-          ResourceRequirements
-
-A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.
-For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes<br/>
+          ResourceRequirements<br/><br/>A simplified version of the Kubernetes native ResourceRequirement field, in which only Limits and Requests are present.<br/>For the units used for resources, see https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#resource-units-in-kubernetes<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5994,10 +6064,7 @@ For the units used for resources, see https://kubernetes.io/docs/concepts/config
         <td><b>restartPolicy</b></td>
         <td>enum</td>
         <td>
-          RestartPolicy describes how the container should be restarted.
-Only one of the following restart policies may be specified.
-If none of the following policies is specified, the default one
-is RestartPolicyAlways.<br/>
+          RestartPolicy describes how the container should be restarted.<br/>Only one of the following restart policies may be specified.<br/>If none of the following policies is specified, the default one<br/>is RestartPolicyAlways.<br/>
           <br/>
             <i>Enum</i>: OnFailure, Never<br/>
             <i>Default</i>: `Never`<br/>
@@ -6008,9 +6075,7 @@ is RestartPolicyAlways.<br/>
         <td><b><a href="#skipjobspecstartup">startup</a></b></td>
         <td>object</td>
         <td>
-          Probe
-
-Type configuration for all types of Kubernetes probes.<br/>
+          Probe<br/><br/>Type configuration for all types of Kubernetes probes.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6018,8 +6083,7 @@ Type configuration for all types of Kubernetes probes.<br/>
         <td><b>team</b></td>
         <td>string</td>
         <td>
-          Team specifies the team who owns this particular SKIPJob.
-Usually sourced from the namespace label.<br/>
+          Team specifies the team who owns this particular SKIPJob.<br/>Usually sourced from the namespace label.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6060,8 +6124,7 @@ that are allowed to talk with this Application and which resources this app can 
         <td><b><a href="#skipjobspecaccesspolicyoutbound">outbound</a></b></td>
         <td>object</td>
         <td>
-          Outbound specifies egress rules. Which apps on the cluster and the
-internet is the Application allowed to send requests to?<br/>
+          Outbound specifies egress rules. Which apps on the cluster and the<br/>internet is the Application allowed to send requests to?<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6088,9 +6151,7 @@ Inbound specifies the ingress rules. Which apps on the cluster can talk to this 
         <td><b><a href="#skipjobspecaccesspolicyinboundrulesindex">rules</a></b></td>
         <td>[]object</td>
         <td>
-          The rules list specifies a list of applications. When no namespace is
-specified it refers to an app in the current namespace. For apps in
-other namespaces namespace is required<br/>
+          The rules list specifies a list of applications. When no namespace is<br/>specified it refers to an app in the current namespace. For apps in<br/>other namespaces namespace is required<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6121,8 +6182,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6173,10 +6233,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6186,10 +6243,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6197,8 +6251,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6226,9 +6279,7 @@ internet is the Application allowed to send requests to?
         <td><b><a href="#skipjobspecaccesspolicyoutboundexternalindex">external</a></b></td>
         <td>[]object</td>
         <td>
-          External specifies which applications on the internet the application
-can reach. Only host is required unless it is on another port than HTTPS port 443.
-If other ports or protocols are required then `ports` must be specified as well<br/>
+          External specifies which applications on the internet the application<br/>can reach. Only host is required unless it is on another port than HTTPS port 443.<br/>If other ports or protocols are required then `ports` must be specified as well<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6273,10 +6324,7 @@ Describes a rule for allowing your Application to route traffic to external appl
         <td><b>ip</b></td>
         <td>string</td>
         <td>
-          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname
-Only required for TCP requests.
-
-Note: Hostname must always be defined even if IP is set statically<br/>
+          Non-HTTP requests (i.e. using the TCP protocol) need to use IP in addition to hostname<br/>Only required for TCP requests.<br/><br/>Note: Hostname must always be defined even if IP is set statically<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6284,8 +6332,7 @@ Note: Hostname must always be defined even if IP is set statically<br/>
         <td><b><a href="#skipjobspecaccesspolicyoutboundexternalindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above hostname. When not specified HTTP and
-HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
+          The ports to allow for the above hostname. When not specified HTTP and<br/>HTTPS on port 80 and 443 respectively are put into the allowlist<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6363,8 +6410,7 @@ other namespaces, namespace is required.
         <td><b>application</b></td>
         <td>string</td>
         <td>
-          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should
-be suffixed with -skipjob<br/>
+          The name of the Application you are allowing traffic to/from. If you wish to allow traffic from a SKIPJob, this field should<br/>be suffixed with -skipjob<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6415,10 +6461,7 @@ NetworkPolicyPort describes a port to allow traffic on
         <td><b>endPort</b></td>
         <td>integer</td>
         <td>
-          endPort indicates that the range of ports from port to endPort if set, inclusive,
-should be allowed by the policy. This field cannot be defined if the port field
-is not defined or if the port field is defined as a named (string) port.
-The endPort must be equal or greater than port.<br/>
+          endPort indicates that the range of ports from port to endPort if set, inclusive,<br/>should be allowed by the policy. This field cannot be defined if the port field<br/>is not defined or if the port field is defined as a named (string) port.<br/>The endPort must be equal or greater than port.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -6428,10 +6471,7 @@ The endPort must be equal or greater than port.<br/>
         <td><b>port</b></td>
         <td>int or string</td>
         <td>
-          port represents the port on the given protocol. This can either be a numerical or named
-port on a pod. If this field is not provided, this matches all port names and
-numbers.
-If present, only traffic on the specified protocol AND port will be matched.<br/>
+          port represents the port on the given protocol. This can either be a numerical or named<br/>port on a pod. If this field is not provided, this matches all port names and<br/>numbers.<br/>If present, only traffic on the specified protocol AND port will be matched.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6439,8 +6479,7 @@ If present, only traffic on the specified protocol AND port will be matched.<br/
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.
-If not specified, this field defaults to TCP.<br/>
+          protocol represents the protocol (TCP, UDP, or SCTP) which traffic must match.<br/>If not specified, this field defaults to TCP.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6514,8 +6553,7 @@ Settings for the Job if you are running a scheduled job. Optional as Jobs may be
         <td><b>schedule</b></td>
         <td>string</td>
         <td>
-          A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.
-Kubernetes CronJobs also include the extended "Vixie cron" step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.<br/>
+          A CronJob string for denoting the schedule of this job. See https://crontab.guru/ for help creating CronJob strings.<br/>Kubernetes CronJobs also include the extended &#34;Vixie cron&#34; step values: https://man.freebsd.org/cgi/man.cgi?crontab%285%29.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6523,9 +6561,7 @@ Kubernetes CronJobs also include the extended "Vixie cron" step values: https://
         <td><b>allowConcurrency</b></td>
         <td>enum</td>
         <td>
-          Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.
-Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.
-Replace will replace the current active Job with the newer scheduled Job.<br/>
+          Denotes how Kubernetes should react to multiple instances of the Job being started at the same time.<br/>Allow will allow concurrent jobs. Forbid will not allow this, and instead skip the newer schedule Job.<br/>Replace will replace the current active Job with the newer scheduled Job.<br/>
           <br/>
             <i>Enum</i>: Allow, Forbid, Replace<br/>
             <i>Default</i>: `Allow`<br/>
@@ -6536,8 +6572,7 @@ Replace will replace the current active Job with the newer scheduled Job.<br/>
         <td><b>startingDeadlineSeconds</b></td>
         <td>integer</td>
         <td>
-          Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job's controller was not ready upon the scheduled time.
-If unset, Jobs missing their deadline will be considered failed jobs and will not start.<br/>
+          Denotes the deadline in seconds for starting a job on its schedule, if for some reason the Job&#39;s controller was not ready upon the scheduled time.<br/>If unset, Jobs missing their deadline will be considered failed jobs and will not start.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -6547,8 +6582,7 @@ If unset, Jobs missing their deadline will be considered failed jobs and will no
         <td><b>suspend</b></td>
         <td>boolean</td>
         <td>
-          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,
-all running Pods will be terminated.<br/>
+          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to true,<br/>all running Pods will be terminated.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6556,10 +6590,7 @@ all running Pods will be terminated.<br/>
         <td><b>timeZone</b></td>
         <td>string</td>
         <td>
-          The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,
-this will default to the time zone of the cluster.
-
-Example: "Europe/Oslo"<br/>
+          The time zone name for the given schedule, see https://en.wikipedia.org/wiki/List_of_tz_database_time_zones. If not specified,<br/>this will default to the time zone of the cluster.<br/><br/>Example: &#34;Europe/Oslo&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6586,8 +6617,7 @@ EnvVar represents an environment variable present in a Container.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the environment variable.
-May consist of any printable ASCII characters except '='.<br/>
+          Name of the environment variable.<br/>May consist of any printable ASCII characters except &#39;=&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6595,15 +6625,7 @@ May consist of any printable ASCII characters except '='.<br/>
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          Variable references $(VAR_NAME) are expanded
-using the previously defined environment variables in the container and
-any service environment variables. If a variable cannot be resolved,
-the reference in the input string will be unchanged. Double $$ are reduced
-to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
-"$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
-Escaped references will never be expanded, regardless of whether the variable
-exists or not.
-Defaults to "".<br/>
+          Variable references $(VAR_NAME) are expanded<br/>using the previously defined environment variables in the container and<br/>any service environment variables. If a variable cannot be resolved,<br/>the reference in the input string will be unchanged. Double $$ are reduced<br/>to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.<br/>&#34;$$(VAR_NAME)&#34; will produce the string literal &#34;$(VAR_NAME)&#34;.<br/>Escaped references will never be expanded, regardless of whether the variable<br/>exists or not.<br/>Defaults to &#34;&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6611,7 +6633,7 @@ Defaults to "".<br/>
         <td><b><a href="#skipjobspecenvindexvaluefrom">valueFrom</a></b></td>
         <td>object</td>
         <td>
-          Source for the environment variable's value. Cannot be used if value is not empty.<br/>
+          Source for the environment variable&#39;s value. Cannot be used if value is not empty.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6646,8 +6668,7 @@ Source for the environment variable's value. Cannot be used if value is not empt
         <td><b><a href="#skipjobspecenvindexvaluefromfieldref">fieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
-spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels[&#39;&lt;KEY&gt;&#39;]`, `metadata.annotations[&#39;&lt;KEY&gt;&#39;]`,<br/>spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6655,8 +6676,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b><a href="#skipjobspecenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
         <td>object</td>
         <td>
-          FileKeyRef selects a key of the env file.
-Requires the EnvFiles feature gate to be enabled.<br/>
+          FileKeyRef selects a key of the env file.<br/>Requires the EnvFiles feature gate to be enabled.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6664,8 +6684,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#skipjobspecenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a resource of the container: only resources limits and requests
-(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+          Selects a resource of the container: only resources limits and requests<br/>(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6673,7 +6692,7 @@ Requires the EnvFiles feature gate to be enabled.<br/>
         <td><b><a href="#skipjobspecenvindexvaluefromsecretkeyref">secretKeyRef</a></b></td>
         <td>object</td>
         <td>
-          Selects a key of a secret in the pod's namespace<br/>
+          Selects a key of a secret in the pod&#39;s namespace<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6708,11 +6727,7 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -6758,7 +6773,7 @@ spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podI
         <td><b>apiVersion</b></td>
         <td>string</td>
         <td>
-          Version of the schema the FieldPath is written in terms of, defaults to "v1".<br/>
+          Version of the schema the FieldPath is written in terms of, defaults to &#34;v1&#34;.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6786,9 +6801,7 @@ Requires the EnvFiles feature gate to be enabled.
         <td><b>key</b></td>
         <td>string</td>
         <td>
-          The key within the env file. An invalid key will prevent the pod from starting.
-The keys defined within a source may consist of any printable ASCII characters except '='.
-During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+          The key within the env file. An invalid key will prevent the pod from starting.<br/>The keys defined within a source may consist of any printable ASCII characters except &#39;=&#39;.<br/>During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6796,8 +6809,7 @@ During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          The path within the volume from which to select the file.
-Must be relative and may not contain the '..' path or start with '..'.<br/>
+          The path within the volume from which to select the file.<br/>Must be relative and may not contain the &#39;..&#39; path or start with &#39;..&#39;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -6813,13 +6825,7 @@ Must be relative and may not contain the '..' path or start with '..'.<br/>
         <td><b>optional</b></td>
         <td>boolean</td>
         <td>
-          Specify whether the file or its key must be defined. If the file or key
-does not exist, then the env var is not published.
-If optional is set to true and the specified key does not exist,
-the environment variable will not be set in the Pod's containers.
-
-If optional is set to false and the specified key does not exist,
-an error will be returned during Pod creation.<br/>
+          Specify whether the file or its key must be defined. If the file or key<br/>does not exist, then the env var is not published.<br/>If optional is set to true and the specified key does not exist,<br/>the environment variable will not be set in the Pod&#39;s containers.<br/><br/>If optional is set to false and the specified key does not exist,<br/>an error will be returned during Pod creation.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -6865,7 +6871,7 @@ Selects a resource of the container: only resources limits and requests
         <td><b>divisor</b></td>
         <td>int or string</td>
         <td>
-          Specifies the output format of the exposed resources, defaults to "1"<br/>
+          Specifies the output format of the exposed resources, defaults to &#34;1&#34;<br/>
         </td>
         <td>false</td>
       </tr>
@@ -6900,11 +6906,7 @@ Selects a key of a secret in the pod's namespace
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent.
-This field is effectively required, but due to backwards compatibility is
-allowed to be empty. Instances of this type with an empty value here are
-almost certainly wrong.
-More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
           <br/>
             <i>Default</i>: ``<br/>
         </td>
@@ -6996,13 +6998,7 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.
-Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
-YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
-Defaults to 0644.
-Directories within the path are not affected by this setting.
-This might be in conflict with other options that affect the file
-mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7055,12 +7051,7 @@ Configuration for interacting with Google Cloud Platform
         <td><b><a href="#skipjobspecgcpauth">auth</a></b></td>
         <td>object</td>
         <td>
-          Configuration for authenticating a Pod with Google Cloud Platform
-For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need
-to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP
-service account and bind this to the Pod's Kubernetes SA.
-Documentation on how this is done can be found here (Closed Wiki):
-https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
+          Configuration for authenticating a Pod with Google Cloud Platform<br/>For authentication with GCP, to use services like Secret Manager and/or Pub/Sub we need<br/>to set the GCP Service Account Pods should identify as. To allow this, we need the IAM role iam.workloadIdentityUser set on a GCP<br/>service account and bind this to the Pod&#39;s Kubernetes SA.<br/>Documentation on how this is done can be found here (Closed Wiki):<br/>https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentisering+mot+GCP+som+Kubernetes+SA<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7068,8 +7059,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b><a href="#skipjobspecgcpcloudsqlproxy">cloudSqlProxy</a></b></td>
         <td>object</td>
         <td>
-          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.
-This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
+          CloudSQL is used to deploy a CloudSQL proxy sidecar in the pod.<br/>This is useful for connecting to CloudSQL databases that require Cloud SQL Auth Proxy.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7101,8 +7091,7 @@ https://kartverket.atlassian.net/wiki/spaces/SKIPDOK/pages/422346824/Autentiseri
         <td><b>serviceAccount</b></td>
         <td>string</td>
         <td>
-          Name of the service account in which you are trying to authenticate your pod with
-Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
+          Name of the service account in which you are trying to authenticate your pod with<br/>Generally takes the form of some-name@some-project-id.iam.gserviceaccount.com<br/>
         </td>
         <td>true</td>
       </tr>
@@ -7130,8 +7119,7 @@ This is useful for connecting to CloudSQL databases that require Cloud SQL Auth 
         <td><b>connectionName</b></td>
         <td>string</td>
         <td>
-          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.
-The format is "projectName:region:instanceName" E.g. "skip-prod-bda1:europe-north1:my-db".<br/>
+          Connection name for the CloudSQL instance. Found in the Google Cloud Console under your CloudSQL resource.<br/>The format is &#34;projectName:region:instanceName&#34; E.g. &#34;skip-prod-bda1:europe-north1:my-db&#34;.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -7252,8 +7240,7 @@ Tracing contains relevant settings for tracing in the telemetry configuration
         <td><b>randomSamplingPercentage</b></td>
         <td>integer</td>
         <td>
-          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.
-Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
+          RandomSamplingPercentage is the percentage of requests that should be sampled for tracing, specified by a whole number between 0-100.<br/>Setting RandomSamplingPercentage to 0 will disable tracing.<br/>
           <br/>
             <i>Default</i>: `10`<br/>
             <i>Minimum</i>: 0<br/>
@@ -7284,8 +7271,7 @@ Settings for the actual Job. If you use a scheduled job, the settings in here wi
         <td><b>activeDeadlineSeconds</b></td>
         <td>integer</td>
         <td>
-          ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job's workload
-the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.<br/>
+          ActiveDeadlineSeconds denotes a duration in seconds started from when the job is first active. If the deadline is reached during the job&#39;s workload<br/>the job and its Pods are terminated. If the job is suspended using the Suspend field, this timer is stopped and reset when unsuspended.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -7305,8 +7291,7 @@ the job and its Pods are terminated. If the job is suspended using the Suspend f
         <td><b>suspend</b></td>
         <td>boolean</td>
         <td>
-          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,
-all running Pods will be terminated.<br/>
+          If set to true, this tells Kubernetes to suspend this Job till the field is set to false. If the Job is active while this field is set to false,<br/>all running Pods will be terminated.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7314,8 +7299,7 @@ all running Pods will be terminated.<br/>
         <td><b>ttlSecondsAfterFinished</b></td>
         <td>integer</td>
         <td>
-          The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.
-It is recommended to set this to avoid clutter in your resource tree.<br/>
+          The number of seconds to wait before removing the Job after it has finished. If unset, Job will not be cleaned up.<br/>It is recommended to set this to avoid clutter in your resource tree.<br/>
           <br/>
             <i>Format</i>: int32<br/>
         </td>
@@ -7362,8 +7346,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -7374,8 +7357,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -7397,8 +7379,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7409,8 +7390,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7448,8 +7428,7 @@ PodSettings
         <td><b>disablePodSpreadTopologyConstraints</b></td>
         <td>boolean</td>
         <td>
-          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to
-a given pod.<br/>
+          DisablePodSpreadTopologyConstraints specifies whether to disable the addition of Pod Topology Spread Constraints to<br/>a given pod.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -7459,8 +7438,7 @@ a given pod.<br/>
         <td><b>terminationGracePeriodSeconds</b></td>
         <td>integer</td>
         <td>
-          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than
-30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
+          TerminationGracePeriodSeconds determines how long Kubernetes waits after a SIGTERM signal sent to a Pod before terminating the pod. If your application uses longer than<br/>30 seconds to terminate, you should increase TerminationGracePeriodSeconds.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Default</i>: `30`<br/>
@@ -7499,8 +7477,7 @@ a podmonitoring object is created.
         <td><b>allowAllMetrics</b></td>
         <td>boolean</td>
         <td>
-          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined
-metrics will be dropped by default. See util/constants.go for the default list.<br/>
+          Setting AllowAllMetrics to true will ensure all exposed metrics are scraped. Otherwise, a list of predefined<br/>metrics will be dropped by default. See util/constants.go for the default list.<br/>
           <br/>
             <i>Default</i>: `false`<br/>
         </td>
@@ -7520,9 +7497,7 @@ metrics will be dropped by default. See util/constants.go for the default list.<
         <td><b>scrapeInterval</b></td>
         <td>string</td>
         <td>
-          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.
-The interval must be at least 15 seconds (if using "Xs") and divisible by 5.
-If minutes ("Xm") are used, the value must be at least 1m.<br/>
+          ScrapeInterval specifies the interval at which Prometheus should scrape the metrics.<br/>The interval must be at least 15 seconds (if using &#34;Xs&#34;) and divisible by 5.<br/>If minutes (&#34;Xm&#34;) are used, the value must be at least 1m.<br/>
           <br/>
             <i>Default</i>: `60s`<br/>
         </td>
@@ -7569,8 +7544,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -7581,8 +7555,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -7604,8 +7577,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7616,8 +7588,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7650,10 +7621,7 @@ For the units used for resources, see https://kubernetes.io/docs/concepts/config
         <td><b>limits</b></td>
         <td>map[string]int or string</td>
         <td>
-          Limits set the maximum the app is allowed to use. Exceeding this limit will
-make kubernetes kill the app and restart it.
-
-Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
+          Limits set the maximum the app is allowed to use. Exceeding this limit will<br/>make kubernetes kill the app and restart it.<br/><br/>Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7661,11 +7629,7 @@ Limits can be set on the CPU and memory, but it is not recommended to put a limi
         <td><b>requests</b></td>
         <td>map[string]int or string</td>
         <td>
-          Requests set the initial allocation that is done for the app and will
-thus be available to the app on startup. More is allocated on demand
-until the limit is reached.
-
-Requests can be set on the CPU and memory.<br/>
+          Requests set the initial allocation that is done for the app and will<br/>thus be available to the app on startup. More is allocated on demand<br/>until the limit is reached.<br/><br/>Requests can be set on the CPU and memory.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7710,8 +7674,7 @@ Type configuration for all types of Kubernetes probes.
         <td><b>failureThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive failures for the probe to be considered failed after
-having succeeded. Defaults to 3. Minimum value is 1<br/>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `3`<br/>
@@ -7722,8 +7685,7 @@ having succeeded. Defaults to 3. Minimum value is 1<br/>
         <td><b>initialDelay</b></td>
         <td>integer</td>
         <td>
-          Delay sending the first probe by X seconds. Can be useful for applications that
-are slow to start.<br/>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `0`<br/>
@@ -7745,8 +7707,7 @@ are slow to start.<br/>
         <td><b>successThreshold</b></td>
         <td>integer</td>
         <td>
-          Minimum consecutive successes for the probe to be considered successful after having failed.
-Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7757,8 +7718,7 @@ Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br
         <td><b>timeout</b></td>
         <td>integer</td>
         <td>
-          Number of seconds after which the probe times out. Defaults to 1 second.
-Minimum value is 1<br/>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Default</i>: `1`<br/>
@@ -7841,8 +7801,7 @@ Condition contains details for one aspect of the current state of this API Resou
         <td><b>lastTransitionTime</b></td>
         <td>string</td>
         <td>
-          lastTransitionTime is the last time the condition transitioned from one status to another.
-This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
+          lastTransitionTime is the last time the condition transitioned from one status to another.<br/>This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.<br/>
           <br/>
             <i>Format</i>: date-time<br/>
         </td>
@@ -7852,8 +7811,7 @@ This should be when the underlying condition changed.  If that is not known, the
         <td><b>message</b></td>
         <td>string</td>
         <td>
-          message is a human readable message indicating details about the transition.
-This may be an empty string.<br/>
+          message is a human readable message indicating details about the transition.<br/>This may be an empty string.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -7861,11 +7819,7 @@ This may be an empty string.<br/>
         <td><b>reason</b></td>
         <td>string</td>
         <td>
-          reason contains a programmatic identifier indicating the reason for the condition's last transition.
-Producers of specific condition types may define expected values and meanings for this field,
-and whether the values are considered a guaranteed API.
-The value should be a CamelCase string.
-This field may not be empty.<br/>
+          reason contains a programmatic identifier indicating the reason for the condition&#39;s last transition.<br/>Producers of specific condition types may define expected values and meanings for this field,<br/>and whether the values are considered a guaranteed API.<br/>The value should be a CamelCase string.<br/>This field may not be empty.<br/>
         </td>
         <td>true</td>
       </tr>
@@ -7891,9 +7845,7 @@ This field may not be empty.<br/>
         <td><b>observedGeneration</b></td>
         <td>integer</td>
         <td>
-          observedGeneration represents the .metadata.generation that the condition was set based upon.
-For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-with respect to the current state of the instance.<br/>
+          observedGeneration represents the .metadata.generation that the condition was set based upon.<br/>For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date<br/>with respect to the current state of the instance.<br/>
           <br/>
             <i>Format</i>: int64<br/>
             <i>Minimum</i>: 0<br/>
