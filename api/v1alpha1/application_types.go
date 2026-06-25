@@ -47,7 +47,7 @@ type ApplicationList struct {
 //
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName="app"
+// +kubebuilder:resource:shortName="apps"
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
 // +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
