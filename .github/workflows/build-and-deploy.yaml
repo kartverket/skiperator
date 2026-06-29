@@ -30,7 +30,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Log into registry ${{ env.REGISTRY }}
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
@@ -87,7 +87,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Golang environment
         uses: actions/setup-go@v6
@@ -123,7 +123,7 @@ jobs:
           identity: skiperator
 
       - name: Checkout apps repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: kartverket/skip-apps
           token: ${{ steps.octo-sts.outputs.token }}
