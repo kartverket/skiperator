@@ -3,7 +3,7 @@ module github.com/kartverket/skiperator
 go 1.26.4
 
 require (
-	github.com/cert-manager/cert-manager v1.20.2
+	github.com/cert-manager/cert-manager v1.20.3
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-containerregistry v0.21.7
@@ -18,8 +18,8 @@ require (
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	istio.io/api v1.30.1
-	istio.io/client-go v1.30.1
+	istio.io/api v1.30.2
+	istio.io/client-go v1.30.2
 	k8s.io/api v0.36.2
 	k8s.io/apiextensions-apiserver v0.36.2
 	k8s.io/apimachinery v0.36.2
