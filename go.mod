@@ -3,7 +3,7 @@ module github.com/kartverket/skiperator
 go 1.26.4
 
 require (
-	github.com/cert-manager/cert-manager v1.20.2
+	github.com/cert-manager/cert-manager v1.20.3
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-containerregistry v0.21.7
