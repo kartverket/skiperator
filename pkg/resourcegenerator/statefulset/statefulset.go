@@ -142,6 +142,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		containers = append(containers, pod.CreateCloudSqlProxyContainer(application.Spec.GCP.CloudSQLProxy))
 	}
 
+	extraSidecars, extraInitContainers, extraVolumes := pod.CreateExtraContainers(application.Spec.ExtraContainers, podOpts)
+	containers = append(containers, extraSidecars...)
+	podVolumes = pod.AppendUniqueVolumes(podVolumes, extraVolumes...)
+
 	podTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -161,6 +165,8 @@ func Generate(r reconciliation.Reconciliation) error {
 			application.Name,
 		),
 	}
+
+	podTemplate.Spec.InitContainers = extraInitContainers
 
 	resourceutils.SetApplicationLabels(&podTemplate, application)
 	resourceutils.SetCommonAnnotations(&podTemplate)

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: extra-containers-proxy
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8443
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: extra-containers-proxy
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: auth-proxy
+          image: auth-proxy:1.0
+          restartPolicy: Always
+          ports:
+            - name: proxy
+              containerPort: 8443
+              protocol: TCP

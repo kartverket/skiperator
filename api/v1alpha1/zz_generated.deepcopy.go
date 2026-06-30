@@ -116,6 +116,13 @@ func (in *ApplicationSpec) DeepCopyInto(out *ApplicationSpec) {
 		*out = make([]InternalPort, len(*in))
 		copy(*out, *in)
 	}
+	if in.ExtraContainers != nil {
+		in, out := &in.ExtraContainers, &out.ExtraContainers
+		*out = make([]ContainerSpec, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Liveness != nil {
 		in, out := &in.Liveness, &out.Liveness
 		*out = new(Probe)

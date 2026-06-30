@@ -1,0 +1,30 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: extra-containers
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - create:
+            file: application-auth-proxy.yaml
+        - assert:
+            file: application-auth-proxy-assert.yaml
+    - try:
+        # A reserved container-port name ("main") in additionalPorts must be
+        # rejected by CRD validation.
+        - apply:
+            file: application-reserved-port.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  ($error != null): true

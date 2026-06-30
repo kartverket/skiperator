@@ -61,6 +61,9 @@ type Application struct {
 
 // +kubebuilder:object:generate=true
 // +kubebuilder:validation:XValidation:rule="(has(oldSelf.stateful) ? oldSelf.stateful.enabled : false) == (has(self.stateful) ? self.stateful.enabled : false)", message="spec.stateful.enabled is immutable. Delete and recreate the Application to change workload kind."
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, self.extraContainers.filter(x, x.name == c.name).size() == 1)",message="extraContainers names must be unique"
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.filter(c, has(c.ingressPort)).size() <= 1",message="at most one extra container may set ingressPort"
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, !has(c.ingressPort) || c.ingressPort != self.port)",message="extraContainers ingressPort must differ from spec.port"
 type ApplicationSpec struct {
 	// The image the application will run. This image will be added to a Deployment resource
 	//
@@ -175,6 +178,18 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+
+	// Extra containers to run in the pod alongside the main application
+	// container. Each entry is either a regular container (type: standard, the
+	// default) running next to the main container, or an init container
+	// (type: init) that starts first and stays running for the pod lifetime
+	// (a native sidecar). The operator enforces a least-privilege security
+	// context on these containers; it cannot be overridden.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:MaxItems=10
+	ExtraContainers []ContainerSpec `json:"extraContainers,omitempty"`
+
 	// Liveness probes define a resource that returns 200 OK when the app is running
 	// as intended. Returning a non-200 code will make kubernetes restart the app.
 	// Liveness is optional, but when provided, path and port are required
@@ -430,6 +445,21 @@ func (a *Application) FillDefaultsSpec() {
 
 func (a *Application) IsStateful() bool {
 	return a.Spec.Stateful != nil && a.Spec.Stateful.Enabled
+}
+
+// IngressTargetPort returns the pod port that receives the application's
+// ingress traffic. This is normally spec.Port, but when an extra container
+// declares an IngressPort (a fronting proxy), traffic is routed to that port
+// instead. Everything that faces incoming traffic — the Service target port
+// and the NetworkPolicy ingress rules — must agree on this port. Validation
+// guarantees at most one extra container sets IngressPort.
+func (a *Application) IngressTargetPort() int {
+	for _, c := range a.Spec.ExtraContainers {
+		if c.IngressPort != nil {
+			return int(*c.IngressPort)
+		}
+	}
+	return a.Spec.Port
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.
