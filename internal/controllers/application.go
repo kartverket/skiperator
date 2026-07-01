@@ -551,7 +551,7 @@ func validateExtraContainers(application *skiperatorv1alpha1.Application) error 
 		return nil
 	}
 
-	basePath := field.NewPath("application").Child("spec").Child("extraContainers")
+	basePath := field.NewPath("spec").Child("extraContainers")
 	var errs field.ErrorList
 
 	for i, c := range containers {

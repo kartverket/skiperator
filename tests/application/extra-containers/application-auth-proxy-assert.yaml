@@ -24,3 +24,13 @@ spec:
             - name: proxy
               containerPort: 8443
               protocol: TCP
+          # Enforce the least-privilege hardening contract on extra containers.
+          # Port 8443 is a high port, so NET_BIND_SERVICE must NOT be granted.
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL

@@ -81,13 +81,32 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 
 // defaultSecurityContext returns the hardened, least-privilege security context
 // Skiperator applies to every container it manages (the main application
-// container, the CloudSQL proxy and user-provided extra containers). A fresh pointer
-// is returned on each call so callers may safely mutate individual fields (e.g. the CloudSQL proxy
-// runs as a different UID).
-func defaultSecurityContext() *corev1.SecurityContext {
+// container, the CloudSQL proxy and user-provided extra containers). A fresh
+// pointer is returned on each call so callers may safely mutate individual
+// fields (e.g. the CloudSQL proxy runs as a different UID).
+//
+// NET_BIND_SERVICE is granted only when allowPrivilegedPorts is true, i.e. the
+// container binds a port below 1024. High-port-only containers (e.g. the
+// CloudSQL proxy) are left without the capability.
+func defaultSecurityContext(allowPrivilegedPorts bool) *corev1.SecurityContext {
 	sc := util.LeastPrivilegeContainerSecurityContext.DeepCopy()
-	sc.Capabilities.Add = []corev1.Capability{"NET_BIND_SERVICE"}
+	if allowPrivilegedPorts {
+		sc.Capabilities.Add = []corev1.Capability{"NET_BIND_SERVICE"}
+	}
 	return sc
+}
+
+// bindsPrivilegedPort reports whether any of the container's declared ports is
+// below 1024 and therefore requires NET_BIND_SERVICE. IngressPort is always one
+// of AdditionalPorts (enforced by validation), so checking AdditionalPorts is
+// sufficient.
+func bindsPrivilegedPort(spec podtypes.ContainerSpec) bool {
+	for _, p := range spec.AdditionalPorts {
+		if p.Port < 1024 {
+			return true
+		}
+	}
+	return false
 }
 
 func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
@@ -96,7 +115,7 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 		Image:                    application.Spec.Image,
 		ImagePullPolicy:          opts.ImagePullPolicy(),
 		Command:                  application.Spec.Command,
-		SecurityContext:          defaultSecurityContext(),
+		SecurityContext:          defaultSecurityContext(true),
 		Ports:                    getContainerPorts(application, opts),
 		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
 		Resources:                getResourceRequirements(application.Spec.Resources),
@@ -127,7 +146,7 @@ func CreateExtraContainers(specs []podtypes.ContainerSpec, opts PodOpts) (sideca
 			ImagePullPolicy:          opts.ImagePullPolicy(),
 			Command:                  spec.Command,
 			Args:                     spec.Args,
-			SecurityContext:          defaultSecurityContext(),
+			SecurityContext:          defaultSecurityContext(bindsPrivilegedPort(spec)),
 			Ports:                    getInternalContainerPorts(spec.AdditionalPorts),
 			EnvFrom:                  getEnvFrom(spec.EnvFrom),
 			Env:                      getEnv(spec.Env),
@@ -201,8 +220,9 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 		cs.Version = DefaultCloudSQLProxyVersion
 	}
 
-	// The CloudSQL proxy image runs as its own dedicated UID/GID
-	googleSC := defaultSecurityContext()
+	// The CloudSQL proxy binds only high ports (5432, 9090, 9091), so it does
+	// not need NET_BIND_SERVICE. It also runs as its own dedicated UID/GID.
+	googleSC := defaultSecurityContext(false)
 	googleSC.RunAsUser = new(int64(200))
 	googleSC.RunAsGroup = new(int64(200))
 

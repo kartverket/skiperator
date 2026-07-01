@@ -41,6 +41,25 @@ func TestCreateExtraContainers_EnforcesSecurityContext(t *testing.T) {
 	}
 }
 
+func TestCreateExtraContainers_NetBindServiceOnlyForPrivilegedPorts(t *testing.T) {
+	specs := []podtypes.ContainerSpec{
+		{Name: "high-port", Image: "x:1.0", AdditionalPorts: []podtypes.InternalPort{{Name: "p", Port: 8443}}},
+		{Name: "no-port", Image: "x:1.0"},
+		{Name: "low-port", Image: "x:1.0", AdditionalPorts: []podtypes.InternalPort{{Name: "p", Port: 443}}},
+	}
+
+	sidecars, _, _ := CreateExtraContainers(specs, PodOpts{})
+
+	byName := map[string]corev1.Container{}
+	for _, c := range sidecars {
+		byName[c.Name] = c
+	}
+
+	assert.NotContains(t, byName["high-port"].SecurityContext.Capabilities.Add, corev1.Capability("NET_BIND_SERVICE"))
+	assert.NotContains(t, byName["no-port"].SecurityContext.Capabilities.Add, corev1.Capability("NET_BIND_SERVICE"))
+	assert.Contains(t, byName["low-port"].SecurityContext.Capabilities.Add, corev1.Capability("NET_BIND_SERVICE"))
+}
+
 func TestCreateExtraContainers_VolumesDedupedByAppendUniqueVolumes(t *testing.T) {
 	specs := []podtypes.ContainerSpec{
 		{Name: "a", Image: "a:1.0", FilesFrom: []podtypes.FilesFrom{{MountPath: "/etc/cfg", ConfigMap: "shared"}}},

@@ -19,7 +19,7 @@ spec:
             file: application-auth-proxy-assert.yaml
     - try:
         # A reserved container-port name ("main") in additionalPorts must be
-        # rejected by CRD validation.
+        # rejected specifically by the reserved-port CEL rule.
         - apply:
             file: application-reserved-port.yaml
             expect:
@@ -27,4 +27,15 @@ spec:
                   apiVersion: skiperator.kartverket.no/v1alpha1
                   kind: Application
                 check:
-                  ($error != null): true
+                  (contains($error, 'port names \'main\' and \'istio-metrics\' are reserved')): true
+    - try:
+        # An ingressPort not declared in the container's additionalPorts must be
+        # rejected specifically by the ingressPort CEL rule.
+        - apply:
+            file: application-invalid-ingressport.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  (contains($error, 'ingressPort must be declared in the container\'s additionalPorts')): true
