@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: skiperator
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
