@@ -22,6 +22,9 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	virtualService := networkingv1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{

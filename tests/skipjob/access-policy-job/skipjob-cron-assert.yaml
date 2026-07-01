@@ -26,6 +26,9 @@ spec:
 status:
   accessPolicies: Ready
   conditions:
+    - type: Ready
+      status: "Unknown"
+      reason: JobRunning
     - type: Failed
       status: "False"
     - type: Running

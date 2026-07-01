@@ -27,6 +27,7 @@ import (
 	goclientscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 func AddSchemas(scheme *runtime.Scheme) {
@@ -43,6 +44,7 @@ func AddSchemas(scheme *runtime.Scheme) {
 	utilruntime.Must(nais_io_v1.AddToScheme(scheme))
 	utilruntime.Must(appsv1.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(gatewayapiv1.Install(scheme))
 }
 
 func addGVKToList(lists []client.ObjectList, scheme *runtime.Scheme) []unstructured.UnstructuredList {
@@ -81,6 +83,8 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&pov1.ServiceMonitorList{},
 		&pov1.PodMonitorList{},
 		&certmanagerv1.CertificateList{},
+		&gatewayapiv1.ListenerSetList{},
+		&gatewayapiv1.HTTPRouteList{},
 	}, scheme)
 }
 
@@ -103,6 +107,8 @@ func GetRoutingSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
 		&istionetworkingv1.GatewayList{},
 		&networkingv1.NetworkPolicyList{},
 		&istionetworkingv1.VirtualServiceList{},
+		&gatewayapiv1.ListenerSetList{},
+		&gatewayapiv1.HTTPRouteList{},
 	}, scheme)
 }
 

@@ -1,0 +1,44 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration
+spec:
+  servers:
+    - hosts:
+        - migration-routing.example.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - migration-routing.example.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: migration-routing-tls
+        mode: SIMPLE
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-routing-routing-ingress
+  namespace: gateway-api-routing-migration
+spec:
+  hosts:
+    - migration-routing.example.com
+  gateways:
+    - migration-routing-routing-ingress
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: migration-routing
+  namespace: gateway-api-routing-migration
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled

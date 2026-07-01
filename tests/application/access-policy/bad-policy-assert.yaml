@@ -12,6 +12,9 @@ spec:
 status:
   accessPolicies: InvalidConfig
   conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
     - type: InternalRulesValid
       status: "False"
 ---
@@ -39,6 +42,9 @@ spec:
           namespace: non-existing
 status:
   conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
     - type: InternalRulesValid
       status: "False"
 ---
@@ -67,6 +73,9 @@ spec:
           application: access-policy-other
 status:
   conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
     - type: InternalRulesValid
       status: "False"
 ---

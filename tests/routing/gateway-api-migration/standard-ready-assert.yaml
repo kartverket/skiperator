@@ -1,0 +1,23 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: migration-routing
+  namespace: gateway-api-routing-migration
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+    - type: LegacyRoutingActive
+      status: "False"
+      reason: LegacyRoutingInactive
+    - type: StandardRoutingReady
+      status: "True"
+      reason: StandardRoutingReady
+  subresources:
+    HTTPRoute[migration-routing-routing-redirect]:
+      status: Synced
+    HTTPRoute[migration-routing-routing]:
+      status: Synced
+    ListenerSet[migration-routing-routing-listener-6ec458aa1f12ad13]:
+      status: Synced

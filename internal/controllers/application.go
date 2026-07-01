@@ -7,6 +7,7 @@ import (
 	"maps"
 	"regexp"
 	"strings"
+	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/kartverket/skiperator/api/common/digdirator"
@@ -14,10 +15,13 @@ import (
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	jwtAuth "github.com/kartverket/skiperator/pkg/auth"
+	"github.com/kartverket/skiperator/pkg/gwapi"
+	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
+	gatewayapigenerator "github.com/kartverket/skiperator/pkg/resourcegenerator/gatewayapi"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/hpa"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/idporten"
@@ -64,6 +68,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch;update
@@ -71,6 +76,7 @@ import (
 // +kubebuilder:rbac:groups=apps,resources=statefulsets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
@@ -79,6 +85,8 @@ import (
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=listenersets;httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=monitoring.coreos.com,resources=podmonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=nais.io,resources=maskinportenclients;idportenclients,verbs=get;list;watch;create;update;patch;delete
@@ -115,6 +123,8 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Owns(&nais_io_v1.MaskinportenClient{}).
 		Owns(&nais_io_v1.IDPortenClient{}).
 		Owns(&pov1.ServiceMonitor{}).
+		Owns(&gatewayapiv1.ListenerSet{}).
+		Owns(&gatewayapiv1.HTTPRoute{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
 		WithEventFilter(
@@ -204,6 +214,23 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	// Resolve Istio enablement once and reuse it for both the Gateway API
+	// prerequisite check and the reconciliation, instead of looking the
+	// namespace up twice. A lookup error requeues rather than being read as
+	// "Istio disabled".
+	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	if err != nil {
+		rLog.Error(err, "failed to check Istio revision label for namespace")
+		r.SetErrorState(ctx, application, err, "failed to check Istio revision label for namespace", "NamespaceLookupFailure")
+		return common.RequeueWithError(err)
+	}
+
+	// Gateway API uses shared cluster resources, so fail before generating
+	// resources if namespace setup or ownership checks are invalid.
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, istioEnabled, rLog) {
+		return common.DoNotRequeue()
+	}
+
 	if err := common.ValidateContainerImageString(application); err != nil {
 		rLog.Error(err, "invalid container image in application manifest")
 		r.SetErrorState(ctx, application, err, "invalid container image in application manifest", "InvalidApplication")
@@ -230,14 +257,29 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	rLog.Debug("Starting reconciliation loop", "application", application.Name)
 	r.SetProgressingState(ctx, application, fmt.Sprintf("Application %v has started reconciliation loop", application.Name))
 
-	istioEnabled := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
-
 	authConfigs, err := r.getAuthConfigsForApplication(ctx, application)
 	if err != nil {
 		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
 	}
 
 	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), application, application.GetStatus())
+	if err != nil {
+		// A failed routing-state lookup must not be read as "legacy absent":
+		// requeue without generating resources so legacy routing is preserved.
+		rLog.Error(err, "failed to evaluate Gateway API routing state")
+		r.SetErrorState(ctx, application, err, "failed to evaluate Gateway API routing state", "RoutingStateFailure")
+		return common.RequeueWithError(err)
+	}
+	reconciliationApp.SetGenerateLegacyRouting(routingState.GenerateLegacyRouting)
+
+	// Prime migration status (start time + stall detection) from current
+	// readiness before generating resources, so the migration clock advances and
+	// stalls are surfaced even if resource generation keeps failing. The status
+	// is persisted by the subsequent success or error path.
+	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
+		emitMigrationEvents(&r.ReconcilerBase, application, gwapi.UpdateRoutingStatus(application.GetStatus(), application.GetGeneration(), routingState))
+	}
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -247,6 +289,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		serviceentry.Generate,
 		gateway.Generate,
 		virtualservice.Generate,
+		gatewayapigenerator.Generate,
 		telemetry.Generate,
 		hpa.Generate,
 		peerauthentication.Generate,
@@ -304,20 +347,33 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.RequeueWithError(err)
 	}
 
-	r.setSyncedApplicationState(ctx, application, "Application has been reconciled")
+	r.setSyncedApplicationState(ctx, application, "Application has been reconciled", routingState)
+	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	return common.DoNotRequeue()
 }
 
-func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string) {
-	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
-	app.GetStatus().SetSummarySynced()
-	r.updateStatus(app)
+func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, app *skiperatorv1alpha1.Application, message string, routingState gwapi.RoutingStateResult) {
+	if r.updateStatus(app) == skiperatorv1alpha1.INVALIDCONFIG {
+		// Access policy is invalid: keep the InvalidConfig Ready condition, drop
+		// any stale routing conditions, and do not overwrite Ready with routing
+		// status.
+		common.ClearGatewayAPIConditions(app)
+		app.GetStatus().SetSummaryError("Access policy configuration is invalid")
+		r.updateApplicationStatus(ctx, app)
+		return
+	}
+	// Ready/summary come from the shared routing-status assembler, the same path
+	// Routing uses, so the two controllers cannot drift.
+	finalizeRoutingStatus(&r.ReconcilerBase, app, routingState, message)
 	r.updateApplicationStatus(ctx, app)
 }
 
 func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app *skiperatorv1alpha1.Application) {
 	key := client.ObjectKeyFromObject(app)
+	app.GetStatus().SortConditions()
 	desiredStatus := app.Status.DeepCopy()
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -334,26 +390,33 @@ func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app
 	}
 }
 
-func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {
-	app.Status.Conditions, app.Status.AccessPolicies = getConditions(app)
+func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) skiperatorv1alpha1.StatusNames {
+	name := applyApplicationConditions(app)
+	app.Status.AccessPolicies = name
 	app.Status.ApplicationKind = app.ExpectedApplicationKind()
+	return name
 }
 
-func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, skiperatorv1alpha1.StatusNames) {
-	var conditions []metav1.Condition
+// applyApplicationConditions merges the access-policy conditions in place
+// (preserving LastTransitionTime). For valid config the Ready condition is left
+// to the routing-status assembler; only invalid config sets Ready here so it is
+// not overwritten by routing status.
+func applyApplicationConditions(app *skiperatorv1alpha1.Application) skiperatorv1alpha1.StatusNames {
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "Internal rules are invalid")
+		common.SetInternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
 	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "External rules are invalid")
+		common.SetExternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
-	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
-	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-	return conditions, skiperatorv1alpha1.READY
+	common.SetInternalRulesCondition(app, metav1.ConditionTrue)
+	common.SetExternalRulesCondition(app, metav1.ConditionTrue)
+	return skiperatorv1alpha1.READY
 }
 
 func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {
@@ -435,7 +498,7 @@ func (r *ApplicationReconciler) setApplicationDefaults(application *skiperatorv1
 }
 
 func (r *ApplicationReconciler) isClusterReady(ctx context.Context) bool {
-	return r.isCrdPresent(ctx, "servicemonitors.monitoring.coreos.com")
+	return k8sfeatures.IsCRDPresent(ctx, r.GetApiExtensionsClient(), "servicemonitors.monitoring.coreos.com")
 }
 
 func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *skiperatorv1alpha1.Application) (string, error) {
@@ -449,20 +512,6 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 		return teamValue, nil
 	}
 	return "", fmt.Errorf("missing value for team label")
-}
-
-// Name in the form of "servicemonitors.monitoring.coreos.com".
-func (r *ApplicationReconciler) isCrdPresent(ctx context.Context, name string) bool {
-	extensionClient := r.GetApiExtensionsClient()
-	if extensionClient == nil {
-		return false
-	}
-	result, err := extensionClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
-	if err != nil || result == nil {
-		return false
-	}
-
-	return true
 }
 
 func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {

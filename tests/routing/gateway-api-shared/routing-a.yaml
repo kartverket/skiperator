@@ -1,0 +1,14 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: contributor-a
+  namespace: gateway-api-shared-a
+spec:
+  hostname: shared-multi.kartverket.no
+  routingProvider: Standard
+  ownership: Shared
+  redirectToHTTPS: false
+  routes:
+    - pathPrefix: /team-a
+      targetApp: app-a
+      port: 8080

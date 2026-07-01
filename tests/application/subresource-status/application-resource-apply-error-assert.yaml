@@ -17,7 +17,10 @@ spec:
   strategy:
     type: RollingUpdate
 status:
-  conditions: []
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: ProcessorFailure
   subresources:
     AuthorizationPolicy[badport-default-deny]:
       message: AuthorizationPolicy has finished synchronizing

@@ -13,6 +13,7 @@ import (
 type Logger interface {
 	Error(err error, msg string, keysAndValues ...interface{})
 	Info(msg string, keysAndValues ...interface{})
+	Warn(msg string, keysAndValues ...interface{})
 	Debug(msg string, keysAndValues ...interface{})
 	WithName(name string) Logger
 	GetLogger() logr.Logger
@@ -22,13 +23,16 @@ type logger struct {
 	logr.Logger
 }
 
-// TODO add warn
 func (l *logger) Error(err error, msg string, keysAndValues ...interface{}) {
 	l.Logger.Error(err, msg, keysAndValues...)
 }
 
 func (l *logger) Info(msg string, keysAndValues ...interface{}) {
 	l.Logger.Info(msg, keysAndValues...)
+}
+
+func (l *logger) Warn(msg string, keysAndValues ...interface{}) {
+	l.Logger.Info(msg, append(keysAndValues, "level", "warning")...)
 }
 
 func (l *logger) Debug(msg string, keysAndValues ...interface{}) {

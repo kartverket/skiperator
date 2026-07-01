@@ -1,0 +1,96 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-routing
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: gateway-api-routing
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - apply:
+            file: application.yaml
+        - apply:
+            file: routing.yaml
+        - script:
+            content: |
+              kubectl -n gateway-api-routing wait certificate gateway-api-routing-api-routing-ingress-af0fa765 --for=condition=Ready --timeout=120s
+              kubectl -n gateway-api-routing wait listenerset api-routing-listener-f28e273ed55ce9a6 --for=condition=Accepted --timeout=120s
+              kubectl -n gateway-api-routing wait listenerset api-routing-listener-f28e273ed55ce9a6 --for=condition=Programmed --timeout=120s
+
+              for i in $(seq 1 120); do
+                resolved=$(kubectl -n gateway-api-routing get listenerset api-routing-listener-f28e273ed55ce9a6 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                conflicted=$(kubectl -n gateway-api-routing get listenerset api-routing-listener-f28e273ed55ce9a6 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="Conflicted")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                if [ "$resolved" -ge 2 ] && [ "$conflicted" -eq 0 ]; then
+                  break
+                fi
+                if [ "$i" -eq 120 ]; then
+                  kubectl -n gateway-api-routing get listenerset api-routing-listener-f28e273ed55ce9a6 -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+
+              wait_route_ready() {
+                name="$1"
+                for i in $(seq 1 120); do
+                  accepted=$(kubectl -n gateway-api-routing get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  resolved=$(kubectl -n gateway-api-routing get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  if [ "$accepted" -ge 1 ] && [ "$resolved" -ge 1 ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                kubectl -n gateway-api-routing get httproute "$name" -o yaml
+                return 1
+              }
+
+              wait_route_ready api-routing
+              wait_route_ready api-routing-redirect
+        - script:
+            content: |
+              kubectl -n gateway-api-routing label routings.skiperator.kartverket.no api gateway-api-ready=true --overwrite
+        - assert:
+            file: routing-assert.yaml
+    - try:
+        - apply:
+            file: shared-hostname-routing.yaml
+        - script:
+            content: |
+              kubectl -n gateway-api-routing wait certificate gateway-api-routing-shared-api-routing-ingress-ecd89812 --for=condition=Ready --timeout=120s
+              kubectl -n gateway-api-routing wait listenerset shared-api-routing-listener-37798cf1f25da647 --for=condition=Accepted --timeout=120s
+              kubectl -n gateway-api-routing wait listenerset shared-api-routing-listener-37798cf1f25da647 --for=condition=Programmed --timeout=120s
+
+              for i in $(seq 1 120); do
+                resolved=$(kubectl -n gateway-api-routing get listenerset shared-api-routing-listener-37798cf1f25da647 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                conflicted=$(kubectl -n gateway-api-routing get listenerset shared-api-routing-listener-37798cf1f25da647 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="Conflicted")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                if [ "$resolved" -ge 2 ] && [ "$conflicted" -eq 0 ]; then
+                  break
+                fi
+                if [ "$i" -eq 120 ]; then
+                  kubectl -n gateway-api-routing get listenerset shared-api-routing-listener-37798cf1f25da647 -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+
+              for i in $(seq 1 120); do
+                accepted=$(kubectl -n gateway-api-routing get httproute shared-api-routing -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                resolved=$(kubectl -n gateway-api-routing get httproute shared-api-routing -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                if [ "$accepted" -ge 1 ] && [ "$resolved" -ge 1 ]; then
+                  break
+                fi
+                if [ "$i" -eq 120 ]; then
+                  kubectl -n gateway-api-routing get httproute shared-api-routing -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+        - script:
+            content: |
+              kubectl -n gateway-api-routing label routings.skiperator.kartverket.no shared-api gateway-api-ready=true --overwrite
+        - assert:
+            file: shared-hostname-routing-assert.yaml

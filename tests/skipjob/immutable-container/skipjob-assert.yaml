@@ -21,6 +21,10 @@ status:
       message: ServiceAccount has finished synchronizing
       status: Synced
   conditions:
+    - message: Job has completed
+      reason: JobFinished
+      status: 'True'
+      type: Ready
     - message: Job failed previous run
       reason: JobFailed
       status: 'False'

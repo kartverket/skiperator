@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gw-options
+  namespace: istio-gateways
+data:
+  service: |
+    spec:
+      type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-external
+  namespace: istio-gateways
+spec:
+  gatewayClassName: istio
+  infrastructure:
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: gw-options
+  allowedListeners:
+    namespaces:
+      from: All
+  listeners:
+    - name: placeholder-http
+      hostname: placeholder.external.invalid
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: placeholder-https
+      hostname: placeholder.external.invalid
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: placeholder-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: istio-internal
+  namespace: istio-gateways
+spec:
+  gatewayClassName: istio
+  infrastructure:
+    parametersRef:
+      group: ""
+      kind: ConfigMap
+      name: gw-options
+  allowedListeners:
+    namespaces:
+      from: All
+  listeners:
+    - name: placeholder-http
+      hostname: placeholder.internal.invalid
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: placeholder-https
+      hostname: placeholder.internal.invalid
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: placeholder-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+kind: Certificate
+apiVersion: cert-manager.io/v1
+metadata:
+  name: placeholder-tls
+  namespace: istio-gateways
+spec:
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: placeholder-tls
+  dnsNames:
+    - placeholder.internal.invalid

@@ -24,6 +24,9 @@ status:
   accessPolicies: InvalidConfig
   conditions:
     - status: "False"
+      reason: InvalidConfig
+      type: Ready
+    - status: "False"
       message: "External rules are invalid – hostname may be empty or duplicate, or the hostname may not be a valid DNS name"
       type: ExternalRulesValid
 ---
@@ -49,6 +52,9 @@ spec:
 status:
   accessPolicies: Ready
   conditions:
+    - status: "True"
+      reason: Reconciled
+      type: Ready
     - status: "True"
       type: InternalRulesValid
     - status: "True"

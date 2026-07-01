@@ -22,6 +22,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Routing")
 	}
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
 
 	uniqueTargetApps := make(map[string]skiperatorv1alpha1.Route)
 	for _, route := range routing.Spec.Routes {
@@ -50,7 +54,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: util.GetIstioGatewaySelector(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewayLabelSelector(routing.Spec.Hostname),
+								MatchLabels: util.GetIstioGatewayLabelSelector(host.Hostname),
 							},
 						},
 					},
