@@ -210,6 +210,12 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	if err := validateExtraContainers(application); err != nil {
+		rLog.Error(err, "invalid extra container in application manifest")
+		r.SetErrorState(ctx, application, err, "invalid extra container in application manifest", "InvalidApplication")
+		return common.DoNotRequeue()
+	}
+
 	if err := validateStatefulUnchanged(application); err != nil {
 		rLog.Error(err, "spec.stateful changed")
 		r.SetErrorState(ctx, application, err, "spec.stateful cannot be changed", "InvalidApplication")
@@ -531,6 +537,37 @@ func validateIngresses(application *skiperatorv1alpha1.Application) error {
 				field.Invalid(field.NewPath("application").Child("spec").Child("ingresses"), application.Spec.Ingresses, errMessage),
 			})
 		}
+	}
+	return nil
+}
+
+// validateExtraContainers covers the extra-container rules that CRD CEL
+// validation cannot express: image references are parsed with the OCI registry
+// library, and the container name is compared against the application name
+// (which lives in metadata, not the spec).
+func validateExtraContainers(application *skiperatorv1alpha1.Application) error {
+	containers := application.Spec.ExtraContainers
+	if len(containers) == 0 {
+		return nil
+	}
+
+	basePath := field.NewPath("spec").Child("extraContainers")
+	var errs field.ErrorList
+
+	for i, c := range containers {
+		path := basePath.Index(i)
+
+		if c.Name == application.Name {
+			errs = append(errs, field.Invalid(path.Child("name"), c.Name, "container name must not equal the application name"))
+		}
+
+		if err := common.ValidateImageString(c.Image); err != nil {
+			errs = append(errs, field.Invalid(path.Child("image"), c.Image, err.Error()))
+		}
+	}
+
+	if len(errs) > 0 {
+		return errors.NewInvalid(application.GroupVersionKind().GroupKind(), application.Name, errs)
 	}
 	return nil
 }

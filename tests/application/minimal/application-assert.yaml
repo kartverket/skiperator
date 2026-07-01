@@ -51,6 +51,10 @@ spec:
       labels:
         app: minimal
     spec:
+      # Guard against unintended container injection (e.g. extraContainers):
+      # a minimal Application must have exactly one container and no init containers.
+      (length(containers)): 1
+      (length(initContainers || `[]`)): 0
       containers:
         - name: minimal
           image: image

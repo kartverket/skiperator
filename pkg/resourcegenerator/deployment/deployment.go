@@ -141,6 +141,10 @@ func Generate(r reconciliation.Reconciliation) error {
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 
+	extraSidecars, extraInitContainers, extraVolumes := pod.CreateExtraContainers(application.Spec.ExtraContainers, podOpts)
+	containers = append(containers, extraSidecars...)
+	podVolumes = pod.AppendUniqueVolumes(podVolumes, extraVolumes...)
+
 	podForDeploymentTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -160,6 +164,8 @@ func Generate(r reconciliation.Reconciliation) error {
 			application.Name,
 		),
 	}
+
+	podForDeploymentTemplate.Spec.InitContainers = extraInitContainers
 
 	//we need to set the pod labels like this as its a template, not a resource.
 	//TODO: figure out a smoother solution?

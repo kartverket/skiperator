@@ -41,7 +41,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	service.Labels = util.GetPodAppSelector(application.Name)
 	service.Labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(&ctxLog, application.Spec.Image)
 
-	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
+	// If an extra container fronts the application's ingress traffic (e.g. an
+	// auth proxy), route the Service's target port to that container's port
+	// while keeping the external port at spec.port.
+	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.IngressTargetPort(), application.Spec.AppProtocol))
 	if r.IsIstioEnabled() {
 		ports = append(ports, defaultPrometheusPort)
 	}
@@ -93,7 +96,7 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 	return ports
 }
 
-func getServicePort(port int, appProtocol string) corev1.ServicePort {
+func getServicePort(port int, targetPort int, appProtocol string) corev1.ServicePort {
 	var resolvedProtocol = corev1.ProtocolTCP
 	if strings.ToLower(appProtocol) == "udp" {
 		resolvedProtocol = corev1.ProtocolUDP
@@ -112,6 +115,6 @@ func getServicePort(port int, appProtocol string) corev1.ServicePort {
 		Protocol:    resolvedProtocol,
 		AppProtocol: &resolvedAppProtocol,
 		Port:        int32(port),
-		TargetPort:  intstr.FromInt(port),
+		TargetPort:  intstr.FromInt(targetPort),
 	}
 }

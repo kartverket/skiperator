@@ -285,6 +285,9 @@ spec:
                   - port
                   - protocol
                   type: object
+                  x-kubernetes-validations:
+                  - message: port names 'main' and 'istio-metrics' are reserved
+                    rule: self.name != 'main' && self.name != 'istio-metrics'
                 type: array
               appProtocol:
                 default: http
@@ -503,6 +506,508 @@ spec:
                         namespace as the Application
                       type: string
                   type: object
+                type: array
+              extraContainers:
+                description: |-
+                  Extra containers to run in the pod alongside the main application
+                  container. Each entry is either a regular container (type: standard, the
+                  default) running next to the main container, or an init container
+                  (type: init) that starts first and stays running for the pod lifetime
+                  (a native sidecar). The operator enforces a least-privilege security
+                  context on these containers; it cannot be overridden.
+                items:
+                  description: |-
+                    ContainerSpec describes an extra container to run in the workload's pod
+                    alongside the main application container.
+                  properties:
+                    additionalPorts:
+                      description: Additional ports exposed by the container.
+                      items:
+                        properties:
+                          name:
+                            type: string
+                          port:
+                            format: int32
+                            type: integer
+                          protocol:
+                            description: Protocol defines network protocols supported
+                              for things like container ports.
+                            enum:
+                            - TCP
+                            - UDP
+                            - SCTP
+                            type: string
+                        required:
+                        - name
+                        - port
+                        - protocol
+                        type: object
+                        x-kubernetes-validations:
+                        - message: port names 'main' and 'istio-metrics' are reserved
+                          rule: self.name != 'main' && self.name != 'istio-metrics'
+                      maxItems: 20
+                      type: array
+                    args:
+                      description: Arguments to the container entrypoint.
+                      items:
+                        type: string
+                      type: array
+                    command:
+                      description: Override the command set in the image.
+                      items:
+                        type: string
+                      type: array
+                    env:
+                      description: Environment variables set inside the container.
+                      items:
+                        description: EnvVar represents an environment variable present
+                          in a Container.
+                        properties:
+                          name:
+                            description: |-
+                              Name of the environment variable.
+                              May consist of any printable ASCII characters except '='.
+                            type: string
+                          value:
+                            description: |-
+                              Variable references $(VAR_NAME) are expanded
+                              using the previously defined environment variables in the container and
+                              any service environment variables. If a variable cannot be resolved,
+                              the reference in the input string will be unchanged. Double $$ are reduced
+                              to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                              "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                              Escaped references will never be expanded, regardless of whether the variable
+                              exists or not.
+                              Defaults to "".
+                            type: string
+                          valueFrom:
+                            description: Source for the environment variable's value.
+                              Cannot be used if value is not empty.
+                            properties:
+                              configMapKeyRef:
+                                description: Selects a key of a ConfigMap.
+                                properties:
+                                  key:
+                                    description: The key to select.
+                                    type: string
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the ConfigMap or
+                                      its key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fieldRef:
+                                description: |-
+                                  Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                                  spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                                properties:
+                                  apiVersion:
+                                    description: Version of the schema the FieldPath
+                                      is written in terms of, defaults to "v1".
+                                    type: string
+                                  fieldPath:
+                                    description: Path of the field to select in the
+                                      specified API version.
+                                    type: string
+                                required:
+                                - fieldPath
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              fileKeyRef:
+                                description: |-
+                                  FileKeyRef selects a key of the env file.
+                                  Requires the EnvFiles feature gate to be enabled.
+                                properties:
+                                  key:
+                                    description: |-
+                                      The key within the env file. An invalid key will prevent the pod from starting.
+                                      The keys defined within a source may consist of any printable ASCII characters except '='.
+                                      During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.
+                                    type: string
+                                  optional:
+                                    default: false
+                                    description: |-
+                                      Specify whether the file or its key must be defined. If the file or key
+                                      does not exist, then the env var is not published.
+                                      If optional is set to true and the specified key does not exist,
+                                      the environment variable will not be set in the Pod's containers.
+
+                                      If optional is set to false and the specified key does not exist,
+                                      an error will be returned during Pod creation.
+                                    type: boolean
+                                  path:
+                                    description: |-
+                                      The path within the volume from which to select the file.
+                                      Must be relative and may not contain the '..' path or start with '..'.
+                                    type: string
+                                  volumeName:
+                                    description: The name of the volume mount containing
+                                      the env file.
+                                    type: string
+                                required:
+                                - key
+                                - path
+                                - volumeName
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              resourceFieldRef:
+                                description: |-
+                                  Selects a resource of the container: only resources limits and requests
+                                  (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                                properties:
+                                  containerName:
+                                    description: 'Container name: required for volumes,
+                                      optional for env vars'
+                                    type: string
+                                  divisor:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: Specifies the output format of the
+                                      exposed resources, defaults to "1"
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  resource:
+                                    description: 'Required: resource to select'
+                                    type: string
+                                required:
+                                - resource
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: Selects a key of a secret in the pod's
+                                  namespace
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.  Must
+                                      be a valid secret key.
+                                    type: string
+                                  name:
+                                    default: ""
+                                    description: |-
+                                      Name of the referent.
+                                      This field is effectively required, but due to backwards compatibility is
+                                      allowed to be empty. Instances of this type with an empty value here are
+                                      almost certainly wrong.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                  optional:
+                                    description: Specify whether the Secret or its
+                                      key must be defined
+                                    type: boolean
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                        required:
+                        - name
+                        type: object
+                      type: array
+                    envFrom:
+                      description: |-
+                        Environment variables mounted from ConfigMaps or Secrets. When specified
+                        all keys of the resource are assigned as environment variables.
+                      items:
+                        properties:
+                          configMap:
+                            description: Name of Kubernetes ConfigMap in which the
+                              deployment should mount environment variables from.
+                              Must be in the same namespace as the Application
+                            type: string
+                          secret:
+                            description: Name of Kubernetes Secret in which the deployment
+                              should mount environment variables from. Must be in
+                              the same namespace as the Application
+                            type: string
+                        type: object
+                      type: array
+                    filesFrom:
+                      description: |-
+                        Files mounted into the container from ConfigMaps, Secrets, PVCs or
+                        emptyDirs. The referenced resources are assumed to already exist.
+                      items:
+                        description: |-
+                          FilesFrom
+
+                          Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
+                          One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
+                          NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+                        properties:
+                          configMap:
+                            type: string
+                          defaultMode:
+                            description: |-
+                              defaultMode is optional: mode bits used to set permissions on created files by default.
+                              Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
+                              YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+                              Defaults to 0644.
+                              Directories within the path are not affected by this setting.
+                              This might be in conflict with other options that affect the file
+                              mode, like fsGroup, and the result can be other mode bits set.
+                            type: integer
+                          emptyDir:
+                            type: string
+                          mountPath:
+                            description: The path to mount the file in the Pods directory.
+                              Required.
+                            type: string
+                          persistentVolumeClaim:
+                            type: string
+                          secret:
+                            type: string
+                        required:
+                        - mountPath
+                        type: object
+                      type: array
+                    image:
+                      description: The container image to run.
+                      type: string
+                    ingressPort:
+                      description: |-
+                        When set, the application's ingress traffic enters the pod through this
+                        container instead of the main container: the generated Service keeps its
+                        external port (spec.port) but routes its target port to this container's
+                        IngressPort. This suits any container that should sit in front of the
+                        application and receive incoming traffic first - an auth proxy, an API
+                        gateway, a TLS-terminating or rate-limiting proxy, etc. — which then
+                        forwards to the application (e.g. it listens on ingressPort and forwards
+                        to the app on spec.port via localhost).
+
+                        The IngressPort value must be declared in this container's additionalPorts.
+                        At most one extra container may set this, and the value must differ from
+                        spec.port.
+                      format: int32
+                      maximum: 65535
+                      minimum: 1
+                      type: integer
+                    liveness:
+                      description: Liveness probe. When provided, path and port are
+                        required.
+                      properties:
+                        failureThreshold:
+                          default: 3
+                          description: |-
+                            Minimum consecutive failures for the probe to be considered failed after
+                            having succeeded. Defaults to 3. Minimum value is 1
+                          format: int32
+                          type: integer
+                        initialDelay:
+                          default: 0
+                          description: |-
+                            Delay sending the first probe by X seconds. Can be useful for applications that
+                            are slow to start.
+                          format: int32
+                          type: integer
+                        path:
+                          description: The path to access on the HTTP server
+                          type: string
+                        period:
+                          default: 10
+                          description: Number of seconds Kubernetes waits between
+                            each probe. Defaults to 10 seconds.
+                          format: int32
+                          type: integer
+                        port:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Number of the port to access on the container
+                          x-kubernetes-int-or-string: true
+                        successThreshold:
+                          default: 1
+                          description: |-
+                            Minimum consecutive successes for the probe to be considered successful after having failed.
+                            Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                          format: int32
+                          type: integer
+                        timeout:
+                          default: 1
+                          description: |-
+                            Number of seconds after which the probe times out. Defaults to 1 second.
+                            Minimum value is 1
+                          format: int32
+                          type: integer
+                      required:
+                      - path
+                      - port
+                      type: object
+                    name:
+                      description: |-
+                        Name of the container. Must be unique within the pod and must not collide
+                        with the application name or a reserved name (e.g. cloudsql-proxy,
+                        istio-proxy, istio-validation, istio-init).
+                      maxLength: 63
+                      minLength: 3
+                      type: string
+                    readiness:
+                      description: Readiness probe. When provided, path and port are
+                        required.
+                      properties:
+                        failureThreshold:
+                          default: 3
+                          description: |-
+                            Minimum consecutive failures for the probe to be considered failed after
+                            having succeeded. Defaults to 3. Minimum value is 1
+                          format: int32
+                          type: integer
+                        initialDelay:
+                          default: 0
+                          description: |-
+                            Delay sending the first probe by X seconds. Can be useful for applications that
+                            are slow to start.
+                          format: int32
+                          type: integer
+                        path:
+                          description: The path to access on the HTTP server
+                          type: string
+                        period:
+                          default: 10
+                          description: Number of seconds Kubernetes waits between
+                            each probe. Defaults to 10 seconds.
+                          format: int32
+                          type: integer
+                        port:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Number of the port to access on the container
+                          x-kubernetes-int-or-string: true
+                        successThreshold:
+                          default: 1
+                          description: |-
+                            Minimum consecutive successes for the probe to be considered successful after having failed.
+                            Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                          format: int32
+                          type: integer
+                        timeout:
+                          default: 1
+                          description: |-
+                            Number of seconds after which the probe times out. Defaults to 1 second.
+                            Minimum value is 1
+                          format: int32
+                          type: integer
+                      required:
+                      - path
+                      - port
+                      type: object
+                    resources:
+                      description: ResourceRequirements to apply to the container.
+                      properties:
+                        limits:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Limits set the maximum the app is allowed to use. Exceeding this limit will
+                            make kubernetes kill the app and restart it.
+
+                            Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits
+                          type: object
+                        requests:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Requests set the initial allocation that is done for the app and will
+                            thus be available to the app on startup. More is allocated on demand
+                            until the limit is reached.
+
+                            Requests can be set on the CPU and memory.
+                          type: object
+                      type: object
+                    startup:
+                      description: Startup probe. When provided, path and port are
+                        required.
+                      properties:
+                        failureThreshold:
+                          default: 3
+                          description: |-
+                            Minimum consecutive failures for the probe to be considered failed after
+                            having succeeded. Defaults to 3. Minimum value is 1
+                          format: int32
+                          type: integer
+                        initialDelay:
+                          default: 0
+                          description: |-
+                            Delay sending the first probe by X seconds. Can be useful for applications that
+                            are slow to start.
+                          format: int32
+                          type: integer
+                        path:
+                          description: The path to access on the HTTP server
+                          type: string
+                        period:
+                          default: 10
+                          description: Number of seconds Kubernetes waits between
+                            each probe. Defaults to 10 seconds.
+                          format: int32
+                          type: integer
+                        port:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Number of the port to access on the container
+                          x-kubernetes-int-or-string: true
+                        successThreshold:
+                          default: 1
+                          description: |-
+                            Minimum consecutive successes for the probe to be considered successful after having failed.
+                            Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.
+                          format: int32
+                          type: integer
+                        timeout:
+                          default: 1
+                          description: |-
+                            Number of seconds after which the probe times out. Defaults to 1 second.
+                            Minimum value is 1
+                          format: int32
+                          type: integer
+                      required:
+                      - path
+                      - port
+                      type: object
+                    type:
+                      default: standard
+                      description: |-
+                        Type selects how the container runs:
+                          - "standard" (default): a regular container running alongside the main
+                            container for the lifetime of the pod.
+                          - "init": an init container that starts before the main container and
+                            keeps running for the lifetime of the pod.
+                      enum:
+                      - standard
+                      - init
+                      type: string
+                  required:
+                  - image
+                  - name
+                  type: object
+                  x-kubernetes-validations:
+                  - message: container name is reserved
+                    rule: '!(self.name in [''cloudsql-proxy'', ''istio-proxy'', ''istio-validation'',
+                      ''istio-init''])'
+                  - message: ingressPort must be declared in the container's additionalPorts
+                    rule: '!has(self.ingressPort) || (has(self.additionalPorts) &&
+                      self.additionalPorts.exists(p, p.port == self.ingressPort))'
+                maxItems: 10
                 type: array
               filesFrom:
                 description: |-
@@ -1723,6 +2228,15 @@ spec:
                 Application to change workload kind.
               rule: '(has(oldSelf.stateful) ? oldSelf.stateful.enabled : false) ==
                 (has(self.stateful) ? self.stateful.enabled : false)'
+            - message: extraContainers names must be unique
+              rule: '!has(self.extraContainers) || self.extraContainers.all(c, self.extraContainers.filter(x,
+                x.name == c.name).size() == 1)'
+            - message: at most one extra container may set ingressPort
+              rule: '!has(self.extraContainers) || self.extraContainers.filter(c,
+                has(c.ingressPort)).size() <= 1'
+            - message: extraContainers ingressPort must differ from spec.port
+              rule: '!has(self.extraContainers) || self.extraContainers.all(c, !has(c.ingressPort)
+                || c.ingressPort != self.port)'
           status:
             description: ApplicationStatus is a specialized status specific to the
               Application kind.
