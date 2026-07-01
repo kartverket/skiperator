@@ -36,9 +36,15 @@ spec:
           imagePullPolicy: Always
           restartPolicy: Always
           securityContext:
+            # config-loader declares no ports, so NET_BIND_SERVICE must NOT be granted.
             allowPrivilegeEscalation: false
             privileged: false
             readOnlyRootFilesystem: true
             runAsGroup: 150
             runAsUser: 150
             runAsNonRoot: true
+            seccompProfile:
+              type: "RuntimeDefault"
+            capabilities:
+              drop:
+                - ALL

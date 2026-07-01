@@ -16,6 +16,10 @@ metadata:
 spec:
   template:
     spec:
+      # The primary application container must remain present behind the proxy.
+      containers:
+        - name: extra-containers-proxy
+          image: image
       initContainers:
         - name: auth-proxy
           image: auth-proxy:1.0
