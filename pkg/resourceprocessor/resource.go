@@ -22,6 +22,8 @@ func requirePatch(obj client.Object) bool {
 	switch obj.(type) {
 	case *v1.Deployment:
 		return true
+	case *v1.StatefulSet:
+		return true
 	case *batchv1.Job:
 		return true
 	}
@@ -48,6 +50,19 @@ func preparePatch(new client.Object, old client.Object) {
 		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
 		// fix is to just remove it from the map before hashing and checking the diff.
 		delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
+	case *v1.StatefulSet:
+		sts := old.(*v1.StatefulSet)
+		definition := new.(*v1.StatefulSet)
+
+		// Selector, serviceName, podManagementPolicy, and volumeClaimTemplates are immutable post-create
+		// Carry the live values through so a no-op diff is a no-op patch and toggling is left to the webhook
+		definition.Spec.Selector = sts.Spec.Selector
+		definition.Spec.ServiceName = sts.Spec.ServiceName
+		definition.Spec.PodManagementPolicy = sts.Spec.PodManagementPolicy
+		definition.Spec.VolumeClaimTemplates = sts.Spec.VolumeClaimTemplates
+
+		// same kubectl rollout restart annotation handling as for Deployment
+		delete(sts.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
 	case *batchv1.Job:
 		job := old.(*batchv1.Job)
 		definition := new.(*batchv1.Job)

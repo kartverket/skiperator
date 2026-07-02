@@ -33,8 +33,9 @@ type SKIPJobStatus struct {
 // +kubebuilder:object:generate=true
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
 // +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:deprecatedversion:warning="SKIPJob v1alpha1 is deprecated in favor of v1beta1"
 //
-// SKIPJob is the Schema for the skipjobs API
+// SKIPJob is the deprecated schema for the SKIPJobs API. Please migrate to v1beta1.
 type SKIPJob struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: extra-containers-proxy
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8443
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: extra-containers-proxy
+spec:
+  template:
+    spec:
+      # The primary application container must remain present behind the proxy.
+      containers:
+        - name: extra-containers-proxy
+          image: image
+      initContainers:
+        - name: auth-proxy
+          image: auth-proxy:1.0
+          restartPolicy: Always
+          ports:
+            - name: proxy
+              containerPort: 8443
+              protocol: TCP
+          # Enforce the least-privilege hardening contract on extra containers.
+          # Port 8443 is a high port, so NET_BIND_SERVICE must NOT be granted.
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            privileged: false
+            capabilities:
+              drop:
+                - ALL

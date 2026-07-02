@@ -1,5 +1,9 @@
 # API Reference
 
+{{- define "mdxText" -}}
+{{- . | html | replace "{" "&#123;" | replace "}" "&#125;" | replace "\n" "<br/>" -}}
+{{- end }}
+
 ## Packages
 
 | Package | Resource types |
@@ -78,7 +82,7 @@ Resource types in this package:
         <td><b>{{ if .TypeKey }}<a href="#{{ .TypeKey }}">{{ .Name }}</a>{{ else }}{{ .Name }}{{ end }}</b></td>
         <td>{{ .Type }}</td>
         <td>
-          {{ .Description }}<br/>
+          {{ template "mdxText" .Description }}<br/>
           {{- if or .Schema.Format .Schema.Enum .Schema.Default .Schema.Minimum .Schema.Maximum }}
           <br/>
           {{- end }}

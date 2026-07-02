@@ -141,7 +141,11 @@ func filterOutStatusTimestamps(changelog diff.Changelog) diff.Changelog {
 }
 
 func ValidateContainerImageString(obj common.SKIPObject) error {
-	_, err := name.ParseReference(obj.GetCommonSpec().Image)
+	return ValidateImageString(obj.GetCommonSpec().Image)
+}
+
+func ValidateImageString(image string) error {
+	_, err := name.ParseReference(image)
 	if err != nil {
 		return err
 	}

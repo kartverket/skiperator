@@ -1,0 +1,15 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: extra-containers-invalid-ingressport
+spec:
+  image: image
+  port: 8080
+  extraContainers:
+    - name: auth-proxy
+      image: auth-proxy:1.0
+      ingressPort: 9999
+      additionalPorts:
+        - name: proxy
+          port: 8443
+          protocol: TCP

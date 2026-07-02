@@ -1,53 +1,67 @@
-name: write api-docs to skip.kartverket.no
+name: update api-docs
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  pull_request:
+    branches: [main]
     paths:
       - 'config/crd/**'
 
+concurrency:
+  group: api-docs-update
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   run-crdoc:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: skiperator
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run crdoc Docker container
         run: |
-         mkdir -p crdoc-resources
-         cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
-         sudo docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc:latest --resources /workdir/crdoc-resources --output /workdir/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
-         rm -rf crdoc-resources
+          mkdir -p crdoc-resources
+          cp skiperator/config/crd/skiperator.kartverket.no_*.yaml crdoc-resources/
+          docker run -u $(id -u):$(id -g) --rm -v $PWD:/workdir ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3 --resources /workdir/crdoc-resources --output /workdir/skiperator/api-docs.md --template /workdir/skiperator/.github/crdoc.tmpl
+          rm -rf crdoc-resources
 
-      - name: Checkout target repository
-        uses: actions/checkout@v6
-        with:
-          path: docs
-          repository: kartverket/skip.kartverket.no
-          ssh-key: ${{ secrets.SKIPDOCS_DEPLOY_KEY }}
-
-      - name: Copy generated output to target repo
+      - name: Commit directly to PR
+        if: github.event_name == 'pull_request'
         run: |
-          cp api-docs.md docs/docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md
-
-      - name: Commit and push changes
-        run: |
-          cd docs
-          git config --global user.email "skiperator@kartverket.no"
-          git config --global user.name "GithubActions"
-          git add .
-          # Only commit if there are changes
-          if git diff --cached --exit-code &>/dev/null; then
+          cd skiperator
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add api-docs.md
+          if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "Update Skiperator api-docs"
-            git push origin main
+            git commit -m "Update API docs [automated]"
+            git push
           fi
+
+      - name: Create Pull Request
+        if: github.event_name == 'workflow_dispatch'
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1
+        with:
+          path: skiperator
+          commit-message: "Update API docs"
+          title: "Update generated API docs"
+          body: |
+            This PR updates the generated API documentation based on CRD changes.
+            
+            Triggered by: ${{ github.event_name }}
+            Commit: ${{ github.sha }}
+          branch: update/api-docs
+          labels: |
+            documentation
+            automated
+          delete-branch: true

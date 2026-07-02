@@ -1,7 +1,6 @@
 package deployment
 
 import (
-	goerrors "errors"
 	"fmt"
 	"strings"
 
@@ -14,7 +13,6 @@ import (
 
 	"maps"
 
-	"github.com/go-logr/logr"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp"
 	"github.com/kartverket/skiperator/pkg/util"
@@ -22,12 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-)
-
-const (
-	AnnotationKeyLinkPrefix                = "link.argocd.argoproj.io/external-link"
-	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
-	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 )
 
 // TODO should clean up
@@ -80,12 +72,12 @@ func Generate(r reconciliation.Reconciliation) error {
 			err := &reconciliation.SubResourceError{Message: "Failed to get idporten secret name", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 			return err
 		}
-		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+		podVolumes, containerVolumeMounts = volume.AppendDigdiratorSecret(
 			&skiperatorContainer,
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorIDportenMountPath,
+			volume.DefaultDigdiratorIDportenMountPath,
 		)
 	}
 
@@ -95,12 +87,12 @@ func Generate(r reconciliation.Reconciliation) error {
 			err := &reconciliation.SubResourceError{Message: "Failed to get maskinporten secret name", WrapErr: err, Reason: reconciliation.ResourceDependencyNotFound}
 			return err
 		}
-		podVolumes, containerVolumeMounts = appendDigdiratorSecretVolumeMount(
+		podVolumes, containerVolumeMounts = volume.AppendDigdiratorSecret(
 			&skiperatorContainer,
 			containerVolumeMounts,
 			podVolumes,
 			secretName,
-			DefaultDigdiratorMaskinportenMountPath,
+			volume.DefaultDigdiratorMaskinportenMountPath,
 		)
 	}
 
@@ -131,7 +123,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	if r.IsIstioEnabled() {
 		if application.Spec.Prometheus != nil {
 			// If the application has exposed metrics
-			generatedSpecAnnotations["prometheus.io/port"] = resolveToPortNumber(application.Spec.Prometheus.Port, application, ctxLog.GetLogger())
+			generatedSpecAnnotations["prometheus.io/port"] = application.ResolvePortNumber(application.Spec.Prometheus.Port, ctxLog.GetLogger())
 			generatedSpecAnnotations["prometheus.io/path"] = application.Spec.Prometheus.Path
 		} else {
 			// The application doesn't have any custom metrics exposed so we'll disable metrics merging
@@ -145,13 +137,16 @@ func Generate(r reconciliation.Reconciliation) error {
 		maps.Copy(generatedSpecAnnotations, application.Spec.PodSettings.Annotations)
 	}
 
-	var containers []corev1.Container
-	containers = append(containers, skiperatorContainer)
+	containers := []corev1.Container{skiperatorContainer}
 
 	if util.IsCloudSqlProxyEnabled(application.Spec.GCP) {
 		cloudSqlProxyContainer := pod.CreateCloudSqlProxyContainer(application.Spec.GCP.CloudSQLProxy)
 		containers = append(containers, cloudSqlProxyContainer)
 	}
+
+	extraSidecars, extraInitContainers, extraVolumes := pod.CreateExtraContainers(application.Spec.ExtraContainers, podOpts)
+	containers = append(containers, extraSidecars...)
+	podVolumes = pod.AppendUniqueVolumes(podVolumes, extraVolumes...)
 
 	podForDeploymentTemplate := corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -167,11 +162,13 @@ func Generate(r reconciliation.Reconciliation) error {
 			podVolumes,
 			application.Name,
 			application.Spec.Priority,
-			util.PointTo(corev1.RestartPolicyAlways),
+			new(corev1.RestartPolicyAlways),
 			application.Spec.PodSettings,
 			application.Name,
 		),
 	}
+
+	podForDeploymentTemplate.Spec.InitContainers = extraInitContainers
 
 	//we need to set the pod labels like this as its a template, not a resource.
 	//TODO: figure out a smoother solution?
@@ -188,20 +185,20 @@ func Generate(r reconciliation.Reconciliation) error {
 			ObjectMeta: podForDeploymentTemplate.ObjectMeta,
 			Spec:       podForDeploymentTemplate.Spec,
 		},
-		RevisionHistoryLimit:    util.PointTo(int32(2)),
-		ProgressDeadlineSeconds: util.PointTo(int32(600)),
+		RevisionHistoryLimit:    new(int32(2)),
+		ProgressDeadlineSeconds: new(int32(600)),
 	}
 
 	// Setting replicas to 0 if manifest has replicas set to 0 or replicas.min/max set to 0
 	if resourceutils.ShouldScaleToZero(application.Spec.Replicas) {
-		deployment.Spec.Replicas = util.PointTo(int32(0))
+		deployment.Spec.Replicas = new(int32(0))
 	}
 
 	if !skiperatorv1alpha1.IsHPAEnabled(application.Spec.Replicas) {
 		if replicas, err := skiperatorv1alpha1.GetStaticReplicas(application.Spec.Replicas); err == nil {
-			deployment.Spec.Replicas = util.PointTo(int32(replicas))
+			deployment.Spec.Replicas = new(int32(replicas))
 		} else if replicas, err := skiperatorv1alpha1.GetScalingReplicas(application.Spec.Replicas); err == nil {
-			deployment.Spec.Replicas = util.PointTo(int32(replicas.Min))
+			deployment.Spec.Replicas = new(int32(replicas.Min))
 		} else {
 			err := &reconciliation.SubResourceError{Message: "Failed to get replicas from application spec", WrapErr: err, Reason: reconciliation.InternalError}
 			return err
@@ -215,11 +212,11 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	if len(ingresses) > 0 {
-		deployment.Annotations[AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
+		deployment.Annotations[resourceutils.AnnotationKeyLinkPrefix] = fmt.Sprintf("https://%s", ingresses[0])
 	}
 
 	if !podOpts.LocalBuiltImages {
-		err = util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
+		err := util.ResolveImageTags(r.GetCtx(), ctxLog.GetLogger(), r.GetRestConfig(), &deployment)
 		if err != nil {
 			//TODO fix this
 			// Exclude dummy image used in tests for decreased verbosity
@@ -236,33 +233,6 @@ func Generate(r reconciliation.Reconciliation) error {
 	return nil
 }
 
-func appendDigdiratorSecretVolumeMount(skiperatorContainer *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName string, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {
-	skiperatorContainer.EnvFrom = append(skiperatorContainer.EnvFrom, corev1.EnvFromSource{
-		SecretRef: &corev1.SecretEnvSource{
-			LocalObjectReference: corev1.LocalObjectReference{
-				Name: secretName,
-			},
-		},
-	})
-	volumeMounts = append(volumeMounts, corev1.VolumeMount{
-		Name:      secretName,
-		MountPath: mountPath,
-		ReadOnly:  true,
-	})
-	volumes = append(volumes, corev1.Volume{
-		Name: secretName,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName:  secretName,
-				Items:       nil,
-				DefaultMode: util.PointTo(int32(420)),
-			},
-		},
-	})
-
-	return volumes, volumeMounts
-}
-
 func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeployment {
 	if updateStrategy == "Recreate" {
 		return nil
@@ -273,25 +243,4 @@ func getRollingUpdateStrategy(updateStrategy string) *appsv1.RollingUpdateDeploy
 		MaxUnavailable: &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 		MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 	}
-}
-
-func resolveToPortNumber(port intstr.IntOrString, application *skiperatorv1alpha1.Application, ctxLog logr.Logger) string {
-	if numericPort := port.IntValue(); numericPort > 0 {
-		return fmt.Sprintf("%d", numericPort)
-	}
-
-	desiredPortName := port.String()
-
-	if desiredPortName == "main" {
-		return fmt.Sprintf("%d", application.Spec.Port)
-	}
-
-	for _, p := range application.Spec.AdditionalPorts {
-		if p.Name == desiredPortName {
-			return fmt.Sprintf("%d", p.Port)
-		}
-	}
-
-	ctxLog.Error(goerrors.New("port not found"), "could not resolve port name to a port number", "desiredPortName", desiredPortName)
-	return desiredPortName
 }

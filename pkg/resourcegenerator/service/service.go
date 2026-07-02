@@ -8,6 +8,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/statefulset"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +41,10 @@ func Generate(r reconciliation.Reconciliation) error {
 	service.Labels = util.GetPodAppSelector(application.Name)
 	service.Labels["app.kubernetes.io/version"] = resourceutils.HumanReadableVersion(&ctxLog, application.Spec.Image)
 
-	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.Spec.AppProtocol))
+	// If an extra container fronts the application's ingress traffic (e.g. an
+	// auth proxy), route the Service's target port to that container's port
+	// while keeping the external port at spec.port.
+	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.IngressTargetPort(), application.Spec.AppProtocol))
 	if r.IsIstioEnabled() {
 		ports = append(ports, defaultPrometheusPort)
 	}
@@ -54,6 +58,25 @@ func Generate(r reconciliation.Reconciliation) error {
 	ctxLog.Debug("created service manifest for application", "application", application.Name)
 
 	r.AddResource(&service)
+
+	if application.IsStateful() {
+		// statefulset needs headless service
+		// https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#limitations
+		headless := corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: application.Namespace,
+				Name:      statefulset.HeadlessServiceName(application.Name),
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP:                corev1.ClusterIPNone,
+				Selector:                 util.GetPodAppSelector(application.Name),
+				Ports:                    ports,
+				PublishNotReadyAddresses: true,
+			},
+		}
+		r.AddResource(&headless)
+		ctxLog.Debug("created headless service manifest for stateful application", "application", application.Name)
+	}
 
 	return nil
 }
@@ -73,7 +96,7 @@ func getAdditionalPorts(additionalPorts []podtypes.InternalPort) []corev1.Servic
 	return ports
 }
 
-func getServicePort(port int, appProtocol string) corev1.ServicePort {
+func getServicePort(port int, targetPort int, appProtocol string) corev1.ServicePort {
 	var resolvedProtocol = corev1.ProtocolTCP
 	if strings.ToLower(appProtocol) == "udp" {
 		resolvedProtocol = corev1.ProtocolUDP
@@ -92,6 +115,6 @@ func getServicePort(port int, appProtocol string) corev1.ServicePort {
 		Protocol:    resolvedProtocol,
 		AppProtocol: &resolvedAppProtocol,
 		Port:        int32(port),
-		TargetPort:  intstr.FromInt(port),
+		TargetPort:  intstr.FromInt(targetPort),
 	}
 }

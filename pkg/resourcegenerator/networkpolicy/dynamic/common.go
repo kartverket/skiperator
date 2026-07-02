@@ -43,8 +43,12 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	var ingresses []string
 	var inboundPort int32
 	if r.GetType() == reconciliation.ApplicationType {
-		ingresses = object.(*skiperatorv1alpha1.Application).Spec.Ingresses
-		inboundPort = int32(object.(*skiperatorv1alpha1.Application).Spec.Port)
+		application := object.(*skiperatorv1alpha1.Application)
+		ingresses = application.Spec.Ingresses
+		// Use the ingress-facing port so gateway and inbound rules match the
+		// port that actually receives traffic — an extra container's
+		// IngressPort when one fronts the app, otherwise spec.Port.
+		inboundPort = int32(application.IngressTargetPort())
 	}
 
 	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)

@@ -7,6 +7,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
 	corev1 "k8s.io/api/core/v1"
@@ -43,7 +44,7 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		Volumes:                       volumes,
 		Containers:                    containers,
 		RestartPolicy:                 *policy,
-		TerminationGracePeriodSeconds: util.PointTo(podSettings.TerminationGracePeriodSeconds),
+		TerminationGracePeriodSeconds: new(podSettings.TerminationGracePeriodSeconds),
 		DNSPolicy:                     corev1.DNSClusterFirst,
 		ServiceAccountName:            serviceAccountName,
 		DeprecatedServiceAccount:      serviceAccountName,
@@ -53,7 +54,7 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 		HostIPC:                       false,
 		SecurityContext: &corev1.PodSecurityContext{
 			SupplementalGroups: []int64{util.SkiperatorUser},
-			FSGroup:            util.PointTo(util.SkiperatorUser),
+			FSGroup:            new(util.SkiperatorUser),
 			SeccompProfile: &corev1.SeccompProfile{
 				Type: corev1.SeccompProfileTypeRuntimeDefault,
 			},
@@ -78,27 +79,43 @@ func CreatePodSpec(containers []corev1.Container, volumes []corev1.Volume, servi
 	return p
 }
 
-func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
+// defaultSecurityContext returns the hardened, least-privilege security context
+// Skiperator applies to every container it manages (the main application
+// container, the CloudSQL proxy and user-provided extra containers). A fresh
+// pointer is returned on each call so callers may safely mutate individual
+// fields (e.g. the CloudSQL proxy runs as a different UID).
+//
+// NET_BIND_SERVICE is granted only when allowPrivilegedPorts is true, i.e. the
+// container binds a port below 1024. High-port-only containers (e.g. the
+// CloudSQL proxy) are left without the capability.
+func defaultSecurityContext(allowPrivilegedPorts bool) *corev1.SecurityContext {
+	sc := util.LeastPrivilegeContainerSecurityContext.DeepCopy()
+	if allowPrivilegedPorts {
+		sc.Capabilities.Add = []corev1.Capability{"NET_BIND_SERVICE"}
+	}
+	return sc
+}
 
+// bindsPrivilegedPort reports whether any of the container's declared ports is
+// below 1024 and therefore requires NET_BIND_SERVICE. IngressPort is always one
+// of AdditionalPorts (enforced by validation), so checking AdditionalPorts is
+// sufficient.
+func bindsPrivilegedPort(spec podtypes.ContainerSpec) bool {
+	for _, p := range spec.AdditionalPorts {
+		if p.Port < 1024 {
+			return true
+		}
+	}
+	return false
+}
+
+func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opts PodOpts) corev1.Container {
 	return corev1.Container{
-		Name:            application.Name,
-		Image:           application.Spec.Image,
-		ImagePullPolicy: opts.ImagePullPolicy(),
-		Command:         application.Spec.Command,
-		SecurityContext: &corev1.SecurityContext{
-			Privileged:               util.PointTo(false),
-			AllowPrivilegeEscalation: util.PointTo(false),
-			ReadOnlyRootFilesystem:   util.PointTo(true),
-			RunAsUser:                util.PointTo(util.SkiperatorUser),
-			RunAsGroup:               util.PointTo(util.SkiperatorUser),
-			RunAsNonRoot:             util.PointTo(true),
-			Capabilities: &corev1.Capabilities{
-				Add: []corev1.Capability{
-					"NET_BIND_SERVICE",
-				},
-				Drop: []corev1.Capability{"ALL"},
-			},
-		},
+		Name:                     application.Name,
+		Image:                    application.Spec.Image,
+		ImagePullPolicy:          opts.ImagePullPolicy(),
+		Command:                  application.Spec.Command,
+		SecurityContext:          defaultSecurityContext(true),
 		Ports:                    getContainerPorts(application, opts),
 		EnvFrom:                  getEnvFrom(application.Spec.EnvFrom),
 		Resources:                getResourceRequirements(application.Spec.Resources),
@@ -109,6 +126,80 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 		TerminationMessagePath:   corev1.TerminationMessagePathDefault,
 		TerminationMessagePolicy: corev1.TerminationMessageReadFile,
 	}
+}
+
+// CreateExtraContainers turns the user-provided ExtraContainers specs into pod
+// containers. Standard entries are returned as sidecars (appended to
+// PodSpec.Containers), while init entries become native sidecars (init
+// containers with restartPolicy: Always) returned separately. Volumes derived
+// from each container's FilesFrom are returned as-is; callers merge them with
+// the pod's existing volumes via AppendUniqueVolumes, which deduplicates by
+// name across the whole pod.
+func CreateExtraContainers(specs []podtypes.ContainerSpec, opts PodOpts) (sidecars []corev1.Container, initContainers []corev1.Container, volumes []corev1.Volume) {
+	for _, spec := range specs {
+		containerVolumes, volumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(spec.FilesFrom)
+		volumes = append(volumes, containerVolumes...)
+
+		container := corev1.Container{
+			Name:                     spec.Name,
+			Image:                    spec.Image,
+			ImagePullPolicy:          opts.ImagePullPolicy(),
+			Command:                  spec.Command,
+			Args:                     spec.Args,
+			SecurityContext:          defaultSecurityContext(bindsPrivilegedPort(spec)),
+			Ports:                    getInternalContainerPorts(spec.AdditionalPorts),
+			EnvFrom:                  getEnvFrom(spec.EnvFrom),
+			Env:                      getEnv(spec.Env),
+			Resources:                getResourceRequirements(spec.Resources),
+			ReadinessProbe:           getProbe(spec.Readiness),
+			LivenessProbe:            getProbe(spec.Liveness),
+			StartupProbe:             getProbe(spec.Startup),
+			VolumeMounts:             volumeMounts,
+			TerminationMessagePath:   corev1.TerminationMessagePathDefault,
+			TerminationMessagePolicy: corev1.TerminationMessageReadFile,
+		}
+
+		if spec.Type == podtypes.ContainerTypeInit {
+			// Native sidecar: an init container that keeps running for the
+			// lifetime of the pod.
+			container.RestartPolicy = new(corev1.ContainerRestartPolicyAlways)
+			initContainers = append(initContainers, container)
+		} else {
+			sidecars = append(sidecars, container)
+		}
+	}
+
+	return sidecars, initContainers, volumes
+}
+
+// AppendUniqueVolumes appends the given volumes to existing, skipping any whose
+// name is already present. Used to merge extra-container volumes into the pod's
+// volumes without creating duplicate volume names.
+func AppendUniqueVolumes(existing []corev1.Volume, toAdd ...corev1.Volume) []corev1.Volume {
+	seen := make(map[string]struct{}, len(existing))
+	for _, v := range existing {
+		seen[v.Name] = struct{}{}
+	}
+	for _, v := range toAdd {
+		if _, ok := seen[v.Name]; ok {
+			continue
+		}
+		seen[v.Name] = struct{}{}
+		existing = append(existing, v)
+	}
+	return existing
+}
+
+func getInternalContainerPorts(ports []podtypes.InternalPort) []corev1.ContainerPort {
+	var containerPorts []corev1.ContainerPort
+	for _, p := range ports {
+		containerPorts = append(containerPorts, corev1.ContainerPort{
+			Name:          p.Name,
+			ContainerPort: p.Port,
+			Protocol:      p.Protocol,
+		})
+	}
+	return containerPorts
 }
 
 func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Container {
@@ -129,28 +220,18 @@ func CreateCloudSqlProxyContainer(cs *podtypes.CloudSQLProxySettings) corev1.Con
 		cs.Version = DefaultCloudSQLProxyVersion
 	}
 
+	// The CloudSQL proxy binds only high ports (5432, 9090, 9091), so it does
+	// not need NET_BIND_SERVICE. It also runs as its own dedicated UID/GID.
+	googleSC := defaultSecurityContext(false)
+	googleSC.RunAsUser = new(int64(200))
+	googleSC.RunAsGroup = new(int64(200))
+
 	return corev1.Container{
 		Name:            "cloudsql-proxy",
 		Image:           "gcr.io/cloud-sql-connectors/cloud-sql-proxy:" + cs.Version,
 		ImagePullPolicy: corev1.PullAlways,
 		Args:            args,
-		SecurityContext: &corev1.SecurityContext{
-			RunAsNonRoot:             util.PointTo(true),
-			Privileged:               util.PointTo(false),
-			RunAsUser:                util.PointToInt64(200),
-			RunAsGroup:               util.PointToInt64(200),
-			ReadOnlyRootFilesystem:   util.PointTo(true),
-			AllowPrivilegeEscalation: util.PointTo(false),
-			SeccompProfile: &corev1.SeccompProfile{
-				Type: "RuntimeDefault",
-			},
-			Capabilities: &corev1.Capabilities{
-				Add: []corev1.Capability{
-					"NET_BIND_SERVICE",
-				},
-				Drop: []corev1.Capability{"ALL"},
-			},
-		},
+		SecurityContext: googleSC,
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
 				corev1.ResourceMemory: resource.MustParse("64Mi"),
@@ -266,13 +347,7 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 		},
 	}
 
-	for _, port := range application.Spec.AdditionalPorts {
-		containerPorts = append(containerPorts, corev1.ContainerPort{
-			ContainerPort: port.Port,
-			Name:          port.Name,
-			Protocol:      port.Protocol,
-		})
-	}
+	containerPorts = append(containerPorts, getInternalContainerPorts(application.Spec.AdditionalPorts)...)
 
 	// Expose Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
 	if opts.IstioEnabled {

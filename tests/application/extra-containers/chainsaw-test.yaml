@@ -1,0 +1,41 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: extra-containers
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - create:
+            file: application-auth-proxy.yaml
+        - assert:
+            file: application-auth-proxy-assert.yaml
+    - try:
+        # A reserved container-port name ("main") in additionalPorts must be
+        # rejected specifically by the reserved-port CEL rule.
+        - apply:
+            file: application-reserved-port.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  (contains($error, 'port names \'main\' and \'istio-metrics\' are reserved')): true
+    - try:
+        # An ingressPort not declared in the container's additionalPorts must be
+        # rejected specifically by the ingressPort CEL rule.
+        - apply:
+            file: application-invalid-ingressport.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                check:
+                  (contains($error, 'ingressPort must be declared in the container\'s additionalPorts')): true

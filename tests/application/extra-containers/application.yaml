@@ -1,0 +1,16 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: extra-containers
+spec:
+  image: image
+  port: 8080
+  extraContainers:
+    - name: logging-agent
+      image: logging-agent:1.0
+      env:
+        - name: LOG_LEVEL
+          value: info
+    - name: config-loader
+      image: config-loader:1.0
+      type: init

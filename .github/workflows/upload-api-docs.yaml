@@ -1,0 +1,28 @@
+name: write api-docs to skip.kartverket.no
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'api-docs.md'
+
+concurrency:
+  group: api-docs-upload
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  update-docs:
+    name: Update skiperator documentation in skip.kartverket.no
+    uses: kartverket/github-workflows/.github/workflows/update-skip-docs.yaml@e97ecf0919814136af78b8870c72d57f9abb419b
+    with:
+      source_path: "api-docs.md"
+      target_path: "docs/03-applikasjon-utrulling/03-skiperator/04-api-docs.md"
+      branch_name: "update-skiperator-docs-branch"
+      author_name: "GithubActions <skiperator@kartverket.no>"
+      identity: "skiperator"
