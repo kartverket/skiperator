@@ -985,10 +985,9 @@ spec:
                       - port
                       type: object
                     type:
-                      default: standard
                       description: |-
                         Type selects how the container runs:
-                          - "standard" (default): a regular container running alongside the main
+                          - "standard" or omitted: a regular container running alongside the main
                             container for the lifetime of the pod.
                           - "init": an init container that starts before the main container and
                             keeps running for the lifetime of the pod.

@@ -24,14 +24,13 @@ type ContainerSpec struct {
 	Image string `json:"image"`
 
 	// Type selects how the container runs:
-	//   - "standard" (default): a regular container running alongside the main
+	//   - "standard" or omitted: a regular container running alongside the main
 	//     container for the lifetime of the pod.
 	//   - "init": an init container that starts before the main container and
 	//     keeps running for the lifetime of the pod.
 	//
 	//+kubebuilder:validation:Enum=standard;init
 	//+kubebuilder:validation:Optional
-	//+kubebuilder:default=standard
 	Type string `json:"type,omitempty"`
 
 	// Override the command set in the image.

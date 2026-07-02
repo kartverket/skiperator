@@ -1324,10 +1324,9 @@ alongside the main application container.
         <td><b>type</b></td>
         <td>enum</td>
         <td>
-          Type selects how the container runs:<br/>  - &#34;standard&#34; (default): a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/>
+          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/>
           <br/>
             <i>Enum</i>: standard, init<br/>
-            <i>Default</i>: `standard`<br/>
         </td>
         <td>false</td>
       </tr>
