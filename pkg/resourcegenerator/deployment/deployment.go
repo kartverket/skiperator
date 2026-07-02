@@ -51,7 +51,8 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
 
-	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(application.Spec.FilesFrom)
+	podVolumes := volume.GetPodVolumes(application.Spec.FilesFrom)
+	containerVolumeMounts := volume.GetContainerVolumeMounts(application.Spec.FilesFrom)
 
 	if util.IsGCPAuthEnabled(application.Spec.GCP) {
 		gcpPodVolume := gcp.GetGCPContainerVolume(r.GetSkiperatorConfig().GCPWorkloadIdentityPool, application.Name)

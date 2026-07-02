@@ -210,6 +210,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
+	if err := common.ValidateFilesFrom(application.Spec.FilesFrom); err != nil {
+		rLog.Error(err, "invalid filesFrom in application manifest")
+		r.SetErrorState(ctx, application, err, "invalid filesFrom in application manifest", "InvalidApplication")
+  }
+  
 	if err := validateExtraContainers(application); err != nil {
 		rLog.Error(err, "invalid extra container in application manifest")
 		r.SetErrorState(ctx, application, err, "invalid extra container in application manifest", "InvalidApplication")

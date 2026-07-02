@@ -14,11 +14,146 @@ spec:
             file: application-assert.yaml
         - error:
             file: application-no-default-mode-error.yaml
+        
+        # Test CEL validation for FilesFrom
+        - script:
+            # Invalid defaultMode value, decimal
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-invalid-default-mode
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - defaultMode: 532
+                          mountPath: /config-map
+                          configMap: config-map
+              EOF
+            check:
+              ($error != null): true
+              "(contains($stderr, 'Invalid value: 532:'))": true
+        - script:
+            # Invalid defaultMode value, octal and negative
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-negative-default-mode
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - defaultMode: -0677
+                          mountPath: /config-map
+                          configMap: config-map
+              EOF
+            check:
+              ($error != null): true
+              "(contains($stderr, 'Invalid value: -447:'))": true
+        - script:
+            # Valid defaultMode value, octal
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-valid-default-mode
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - defaultMode: 0777
+                          mountPath: /config-map
+                          configMap: config-map
+              EOF
+            check:
+              ($error == null): true
+        - script:
+            # Checks that filesFrom entries can only have one volume source type
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-volume-source
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - mountPath: /config-map
+                          configMap: config-map
+                          secret: secret
+              EOF
+            check:
+              ($error != null): true
+              "(contains($stderr, 'Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set'))": true
+        - script:
+            # Checks that filesFrom entries must have at least one volume source type
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-volume-source2
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - mountPath: /config-map
+              EOF
+            check:
+              ($error != null): true
+              "(contains($stderr, 'Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set'))": true
+        - script:
+            # Checks that filesFrom entries with the same volume source and name are rejected to prevent duplicate volume names
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              kubectl apply -f - <<EOF
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                      name: files-from-volume-name
+                      namespace: $TEST_NS
+                  spec:
+                      image: image
+                      port: 8080
+                      filesFrom:
+                        - mountPath: /config-map1
+                          configMap: ""
+              EOF
+            check:
+              ($error != null): true
+              "(contains($stderr, 'should be at least 1 chars long'))": true
+
     - try:
         - delete:
             ref:
               apiVersion: skiperator.kartverket.no/v1alpha1
               kind: Application
               name: files-from
-
-
