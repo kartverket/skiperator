@@ -51,8 +51,6 @@ func Generate(r reconciliation.Reconciliation) error {
 
 	skiperatorContainer := pod.CreateApplicationContainer(application, podOpts)
 
-	var err error
-
 	podVolumes := volume.GetPodVolumes(application.Spec.FilesFrom)
 	containerVolumeMounts := volume.GetContainerVolumeMounts(application.Spec.FilesFrom)
 

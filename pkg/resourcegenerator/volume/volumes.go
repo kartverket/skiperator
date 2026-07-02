@@ -6,6 +6,37 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+const (
+	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
+	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
+)
+
+// AppendDigdiratorSecret wires a digdirator-issued secret into the container via envFrom
+// and mounts it as a file volume. Returns the updated pod volumes and container volume mounts
+func AppendDigdiratorSecret(container *corev1.Container, volumeMounts []corev1.VolumeMount, volumes []corev1.Volume, secretName, mountPath string) ([]corev1.Volume, []corev1.VolumeMount) {
+	container.EnvFrom = append(container.EnvFrom, corev1.EnvFromSource{
+		SecretRef: &corev1.SecretEnvSource{
+			LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
+		},
+	})
+	volumeMounts = append(volumeMounts, corev1.VolumeMount{
+		Name:      secretName,
+		MountPath: mountPath,
+		ReadOnly:  true,
+	})
+	volumes = append(volumes, corev1.Volume{
+		Name: secretName,
+		VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName:  secretName,
+				Items:       nil,
+				DefaultMode: new(int32(420)),
+			},
+		},
+	})
+	return volumes, volumeMounts
+}
+
 func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMount {
 	containerVolumeMounts := []corev1.VolumeMount{
 		{
