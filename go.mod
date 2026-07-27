@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/cert-manager/cert-manager v1.20.3
 	github.com/chmike/domain v1.1.0
-	github.com/go-logr/logr v1.4.3
+	github.com/go-logr/logr v1.4.4
 	github.com/google/go-containerregistry v0.21.7
 	github.com/google/k8s-digester v0.1.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
