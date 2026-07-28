@@ -45,7 +45,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
 
 	certificate.Spec = certmanagerv1.CertificateSpec{
-		IssuerRef: certmanagermetav1.ObjectReference{
+		IssuerRef: certmanagermetav1.IssuerReference{
 			Kind: "ClusterIssuer",
 			Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 		},
