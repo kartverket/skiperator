@@ -3,7 +3,7 @@ module github.com/kartverket/skiperator
 go 1.26.4
 
 require (
-	github.com/cert-manager/cert-manager v1.21.0
+	github.com/cert-manager/cert-manager v1.20.3
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-containerregistry v0.21.7
@@ -240,7 +240,7 @@ require (
 	k8s.io/utils v0.0.0-20260626114624-be93311217bd // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.34.0 // indirect
 	sigs.k8s.io/controller-tools v0.21.0 // indirect
-	sigs.k8s.io/gateway-api v1.6.0 // indirect
+	sigs.k8s.io/gateway-api v1.5.0 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kubectl-validate v0.0.5-0.20260105161640-a97ccfaca20b // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
