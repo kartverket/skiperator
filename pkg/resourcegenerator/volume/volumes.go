@@ -10,6 +10,8 @@ const (
 	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
 	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 
+	TmpDirectory = "tmp"
+
 	// For linking volumes and volume mounts in pods and allowing different volume types to have the same name.
 	ConfigMapPrefix             = "cm-"
 	SecretPrefix                = "sec-"
@@ -46,7 +48,7 @@ func AppendDigdiratorSecret(container *corev1.Container, volumeMounts []corev1.V
 func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMount {
 	containerVolumeMounts := []corev1.VolumeMount{
 		{
-			Name:      "tmp",
+			Name:      TmpDirectory,
 			MountPath: "/tmp",
 		},
 	}
@@ -59,7 +61,7 @@ func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMou
 		} else if len(file.Secret) > 0 {
 			volumeName = SecretPrefix + file.Secret
 		} else if len(file.EmptyDir) > 0 {
-			if file.EmptyDir == "tmp" {
+			if file.EmptyDir == TmpDirectory {
 				volumeName = file.EmptyDir
 			} else {
 				volumeName = EmptyDirPrefix + file.EmptyDir
@@ -92,8 +94,8 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 
 	// Use a map to avoid duplicates
 	podVolumesMap := map[string]corev1.Volume{
-		"tmp": {
-			Name: "tmp",
+		TmpDirectory: {
+			Name: TmpDirectory,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
@@ -102,7 +104,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 
 	// Track insertion order to ensure consistent output for testing
 	insertionOrder := make([]string, 0)
-	insertionOrder = append(insertionOrder, "tmp")
+	insertionOrder = append(insertionOrder, TmpDirectory)
 
 	for _, file := range filesFrom {
 		volume := corev1.Volume{}
@@ -132,7 +134,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				},
 			}
 		} else if len(file.EmptyDir) > 0 {
-			if file.EmptyDir == "tmp" {
+			if file.EmptyDir == TmpDirectory {
 				continue
 			} else {
 				volume = corev1.Volume{

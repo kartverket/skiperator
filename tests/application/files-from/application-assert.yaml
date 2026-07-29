@@ -126,3 +126,33 @@ spec:
         - name: pvc-persistent-volume-claim
           persistentVolumeClaim:
             claimName: persistent-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-same-name-volumes
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: cm-volume
+              mountPath: /config-map
+            - name: sec-volume
+              mountPath: /secret
+            - name: ed-volume
+              mountPath: /empty-dir
+            - name: pvc-volume
+              mountPath: /persistent-volume-claim
+      volumes:
+        - name: cm-volume
+          configMap:
+            name: volume
+        - name: sec-volume
+          secret:
+            secretName: volume
+        - name: ed-volume
+          emptyDir: {}
+        - name: pvc-volume
+          persistentVolumeClaim:
+            claimName: volume

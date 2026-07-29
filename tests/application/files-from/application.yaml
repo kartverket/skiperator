@@ -85,3 +85,26 @@ spec:
 
     - mountPath: /persistent-volume-claim/hippety-hoppety
       persistentVolumeClaim: persistent-volume-claim
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: files-from-same-name-volumes
+spec:
+  image: image
+  port: 8080
+  filesFrom:
+    - mountPath: /config-map
+      configMap: volume
+
+    - mountPath: /secret
+      secret: volume
+
+    - mountPath: /empty-dir
+      emptyDir: volume
+
+    - mountPath: /persistent-volume-claim
+      persistentVolumeClaim: volume
+
+
+
