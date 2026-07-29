@@ -42,7 +42,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: "istio-gateways", Name: certificateName}}
 
 		certificate.Spec = certmanagerv1.CertificateSpec{
-			IssuerRef: v1.ObjectReference{
+			IssuerRef: v1.IssuerReference{
 				Kind: "ClusterIssuer",
 				Name: "cluster-issuer", // Name defined in https://github.com/kartverket/certificate-management/blob/main/clusterissuer.tf
 			},
