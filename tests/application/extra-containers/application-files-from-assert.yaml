@@ -10,9 +10,9 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: config-map
+            - name: main-config-map
               mountPath: /etc/config
-            - name: secret
+            - name: main-secret
               mountPath: /etc/secret
         - name: extra-container
           volumeMounts:
@@ -20,18 +20,18 @@ spec:
               mountPath: /tmp
             - name: extra-container-config-map
               mountPath: /etc/config
-            - name: secret
+            - name: main-secret
               mountPath: /etc/secret/subpath
               subPath: subpath
       volumes:
         - name: tmp
           emptyDir: {}
-        - name: config-map
+        - name: main-config-map
           configMap:
-            name: config-map
-        - name: secret
+            name: main-config-map
+        - name: main-secret
           secret:
-            secretName: secret
-        - name: extra-container-configmap
+            secretName: main-secret
+        - name: extra-container-config-map
           configMap:
-            name: extra-container-configmap
+            name: extra-container-config-map

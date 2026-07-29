@@ -6,7 +6,7 @@ spec:
   image: image
   port: 8080
   filesFrom:
-    - configMap: main-configmap
+    - configMap: main-config-map
       mountPath: /etc/config
     - secret: main-secret
       mountPath: /etc/secret
@@ -14,7 +14,7 @@ spec:
     - name: extra-container
       image: extra-container
       filesFrom:
-        - configMap: extra-container-configmap
+        - configMap: extra-container-config-map
           mountPath: /etc/config
         - secret: main-secret
           mountPath: /etc/secret/subpath
