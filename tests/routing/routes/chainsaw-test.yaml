@@ -17,6 +17,13 @@ spec:
             file: routing-assert.yaml
     - try:
         - apply:
+            file: application-extra-container.yaml
+        - apply:
+            file: routing-extra-container.yaml
+        - assert:
+            file: routing-extra-container-assert.yaml
+    - try:
+        - apply:
             file: patch-application-change-port.yaml
         - assert:
             file: patch-application-change-port-assert.yaml
