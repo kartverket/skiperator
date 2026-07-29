@@ -11,29 +11,29 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: config-map
+            - name: cm-config-map
               mountPath: /config-map
-            - name: secret
+            - name: sec-secret
               mountPath: /secret/secret1
               subPath: secret1
-            - name: secret
+            - name: sec-secret
               mountPath: /secret/secret2-electric-boogaloo
               subPath: secret2-electric-boogaloo
-            - name: empty-dir
+            - name: ed-empty-dir
               mountPath: /empty-dir
-            - name: persistent-volume-claim
+            - name: pvc-persistent-volume-claim
               mountPath: /persistent-volume-claim
       volumes:
         - name: tmp
           emptyDir: {}
-        - name: config-map
+        - name: cm-config-map
           configMap:
             defaultMode: 384
             name: config-map
-        - name: secret
+        - name: sec-secret
           secret:
             defaultMode: 420
             secretName: secret
-        - name: empty-dir
+        - name: ed-empty-dir
           emptyDir: {}
-        - name: persistent-volume-claim
+        - name: pvc-persistent-volume-claim

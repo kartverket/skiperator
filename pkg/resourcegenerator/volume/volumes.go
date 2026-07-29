@@ -9,6 +9,12 @@ import (
 const (
 	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
 	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
+
+	// For linking volumes and volume mounts in pods and allowing different volume types to have the same name.
+	ConfigMapPrefix             = "cm-"
+	SecretPrefix                = "sec-"
+	EmptyDirPrefix              = "ed-"
+	PersistentVolumeClaimPrefix = "pvc-"
 )
 
 // AppendDigdiratorSecret wires a digdirator-issued secret into the container via envFrom
@@ -49,13 +55,17 @@ func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMou
 
 		volumeName := ""
 		if len(file.ConfigMap) > 0 {
-			volumeName = file.ConfigMap
+			volumeName = ConfigMapPrefix + file.ConfigMap
 		} else if len(file.Secret) > 0 {
-			volumeName = file.Secret
+			volumeName = SecretPrefix + file.Secret
 		} else if len(file.EmptyDir) > 0 {
-			volumeName = file.EmptyDir
+			if file.EmptyDir == "tmp" {
+				volumeName = file.EmptyDir
+			} else {
+				volumeName = EmptyDirPrefix + file.EmptyDir
+			}
 		} else if len(file.PersistentVolumeClaim) > 0 {
-			volumeName = file.PersistentVolumeClaim
+			volumeName = PersistentVolumeClaimPrefix + file.PersistentVolumeClaim
 		}
 		if volumeName == "" {
 			// Skip if no valid volume source is found, should not happen due to kubeAPI CEL validation
@@ -101,7 +111,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 		}
 		if len(file.ConfigMap) > 0 {
 			volume = corev1.Volume{
-				Name: file.ConfigMap,
+				Name: ConfigMapPrefix + file.ConfigMap,
 				VolumeSource: corev1.VolumeSource{
 					ConfigMap: &corev1.ConfigMapVolumeSource{
 						LocalObjectReference: corev1.LocalObjectReference{
@@ -113,7 +123,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 			}
 		} else if len(file.Secret) > 0 {
 			volume = corev1.Volume{
-				Name: file.Secret,
+				Name: SecretPrefix + file.Secret,
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName:  file.Secret,
@@ -122,15 +132,19 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				},
 			}
 		} else if len(file.EmptyDir) > 0 {
-			volume = corev1.Volume{
-				Name: file.EmptyDir,
-				VolumeSource: corev1.VolumeSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
+			if file.EmptyDir == "tmp" {
+				continue
+			} else {
+				volume = corev1.Volume{
+					Name: EmptyDirPrefix + file.EmptyDir,
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				}
 			}
 		} else if len(file.PersistentVolumeClaim) > 0 {
 			volume = corev1.Volume{
-				Name: file.PersistentVolumeClaim,
+				Name: PersistentVolumeClaimPrefix + file.PersistentVolumeClaim,
 				VolumeSource: corev1.VolumeSource{
 					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 						ClaimName: file.PersistentVolumeClaim,

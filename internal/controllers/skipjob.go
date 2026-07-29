@@ -164,12 +164,6 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.DoNotRequeue()
 	}
 
-	if err := common.ValidateFilesFrom(skipJob.Spec.FilesFrom); err != nil {
-		rLog.Error(err, "invalid filesFrom in SKIPJob manifest")
-		r.SetErrorState(ctx, skipJob, err, "invalid filesFrom in SKIPJob manifest", "InvalidSKIPJob")
-		return common.DoNotRequeue()
-	}
-
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, skipJob)
