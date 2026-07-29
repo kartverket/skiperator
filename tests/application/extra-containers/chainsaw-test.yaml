@@ -18,6 +18,11 @@ spec:
         - assert:
             file: application-auth-proxy-assert.yaml
     - try:
+        - create:
+            file: application-files-from.yaml
+        - assert:
+            file: application-files-from-assert.yaml
+    - try:
         # A reserved container-port name ("main") in additionalPorts must be
         # rejected specifically by the reserved-port CEL rule.
         - apply:

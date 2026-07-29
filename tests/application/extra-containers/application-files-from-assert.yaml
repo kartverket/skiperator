@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: extra-containers-files-from
+spec:
+  template:
+    spec:
+      containers:
+        - name: main
+          volumeMounts:
+            - name: config-map
+              mountPath: /etc/config
+            - name: secret
+              mountPath: /etc/secret
+        - name: extra-container
+          volumeMounts:
+            - name: extra-container-config-map
+              mountPath: /etc/config
+            - name: secret
+              mountPath: /etc/secret/subpath
+              subPath: subpath
+      volumes:
+        - name: config-map
+          configMap:
+            name: main-config-map
+        - name: secret
+          secret:
+            secretName: main-secret
+        - name: extra-container-config-map
+          configMap:
+            name: extra-container-config-map
