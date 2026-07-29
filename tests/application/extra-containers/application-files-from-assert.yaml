@@ -20,6 +20,8 @@ spec:
               mountPath: /etc/secret/subpath
               subPath: subpath
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: config-map
           configMap:
             name: main-config-map

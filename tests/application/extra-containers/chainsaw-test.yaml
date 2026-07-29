@@ -19,6 +19,11 @@ spec:
             file: application-auth-proxy-assert.yaml
     - try:
         - create:
+            file: application-outbound-to-auth-proxy.yaml
+        - assert:
+            file: application-outbound-to-auth-proxy-assert.yaml
+    - try:
+        - create:
             file: application-files-from.yaml
         - assert:
             file: application-files-from-assert.yaml
