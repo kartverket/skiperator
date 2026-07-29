@@ -10,7 +10,7 @@ const (
 	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
 	DefaultDigdiratorIDportenMountPath     = "/var/run/secrets/skip/idporten"
 
-	TmpDirectory = "tmp"
+	TmpVolumeName = "tmp"
 
 	// For linking volumes and volume mounts in pods and allowing different volume types to have the same name.
 	ConfigMapPrefix             = "cm-"
@@ -48,7 +48,7 @@ func AppendDigdiratorSecret(container *corev1.Container, volumeMounts []corev1.V
 func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMount {
 	containerVolumeMounts := []corev1.VolumeMount{
 		{
-			Name:      TmpDirectory,
+			Name:      TmpVolumeName,
 			MountPath: "/tmp",
 		},
 	}
@@ -61,7 +61,7 @@ func GetContainerVolumeMounts(filesFrom []podtypes.FilesFrom) []corev1.VolumeMou
 		} else if len(file.Secret) > 0 {
 			volumeName = SecretPrefix + file.Secret
 		} else if len(file.EmptyDir) > 0 {
-			if file.EmptyDir == TmpDirectory {
+			if file.EmptyDir == TmpVolumeName {
 				volumeName = file.EmptyDir
 			} else {
 				volumeName = EmptyDirPrefix + file.EmptyDir
@@ -94,8 +94,8 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 
 	// Use a map to avoid duplicates
 	podVolumesMap := map[string]corev1.Volume{
-		TmpDirectory: {
-			Name: TmpDirectory,
+		TmpVolumeName: {
+			Name: TmpVolumeName,
 			VolumeSource: corev1.VolumeSource{
 				EmptyDir: &corev1.EmptyDirVolumeSource{},
 			},
@@ -104,7 +104,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 
 	// Track insertion order to ensure consistent output for testing
 	insertionOrder := make([]string, 0)
-	insertionOrder = append(insertionOrder, TmpDirectory)
+	insertionOrder = append(insertionOrder, TmpVolumeName)
 
 	for _, file := range filesFrom {
 		volume := corev1.Volume{}
@@ -134,7 +134,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				},
 			}
 		} else if len(file.EmptyDir) > 0 {
-			if file.EmptyDir == TmpDirectory {
+			if file.EmptyDir == TmpVolumeName {
 				continue
 			} else {
 				volume = corev1.Volume{

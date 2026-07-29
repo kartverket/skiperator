@@ -136,6 +136,8 @@ spec:
     spec:
       containers:
         - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: cm-volume
               mountPath: /config-map
             - name: sec-volume
@@ -145,6 +147,8 @@ spec:
             - name: pvc-volume
               mountPath: /persistent-volume-claim
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: cm-volume
           configMap:
             name: volume
