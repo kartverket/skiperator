@@ -1,0 +1,20 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: extra-containers-client
+spec:
+  podSelector:
+    matchLabels:
+      app: extra-containers-client
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ($namespace)
+          podSelector:
+            matchLabels:
+              app: extra-containers-proxy
+      ports:
+        - port: 8443

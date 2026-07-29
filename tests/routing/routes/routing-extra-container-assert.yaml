@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-proxy-paths-app-proxy-istio-ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 8443
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: app-proxy
+  policyTypes:
+    - Ingress
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: app-proxy-paths-routing-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - app-proxy-paths-routing-ingress
+  hosts:
+    - proxy.example.com
+  http:
+    - match:
+        - port: 80
+      name: redirect-to-https
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - match:
+        - port: 443
+          uri:
+            prefix: /proxy
+      name: app-proxy
+      route:
+        - destination:
+            host: app-proxy
+            port:
+              number: 8080
