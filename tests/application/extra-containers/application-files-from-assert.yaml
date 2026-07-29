@@ -6,14 +6,18 @@ spec:
   template:
     spec:
       containers:
-        - name: main
+        - name: extra-containers-files-from
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: config-map
               mountPath: /etc/config
             - name: secret
               mountPath: /etc/secret
         - name: extra-container
           volumeMounts:
+            - name: tmp
+              mountPath: /tmp
             - name: extra-container-config-map
               mountPath: /etc/config
             - name: secret
@@ -24,10 +28,10 @@ spec:
           emptyDir: {}
         - name: config-map
           configMap:
-            name: main-config-map
+            name: config-map
         - name: secret
           secret:
-            secretName: main-secret
-        - name: extra-container-config-map
+            secretName: secret
+        - name: extra-container-configmap
           configMap:
-            name: extra-container-config-map
+            name: extra-container-configmap
