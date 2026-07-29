@@ -10,10 +10,11 @@ import (
 
 type RoutingReconciliation struct {
 	baseReconciliation
+	targetAppPorts map[string]int32
 }
 
 func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing,
-	logger log.Logger, istioEnabled bool, restConfig *rest.Config) *RoutingReconciliation {
+	logger log.Logger, istioEnabled bool, restConfig *rest.Config, targetAppPorts map[string]int32) *RoutingReconciliation {
 	return &RoutingReconciliation{
 		baseReconciliation: baseReconciliation{
 			ctx:          ctx,
@@ -22,9 +23,20 @@ func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.R
 			restConfig:   restConfig,
 			skipObject:   routing,
 		},
+		targetAppPorts: targetAppPorts,
 	}
 }
 
 func (r *RoutingReconciliation) GetType() ObjectType {
 	return RoutingType
+}
+
+func (r *RoutingReconciliation) GetTargetAppPort(targetApp string, fallbackPort int32) int32 {
+	if r.targetAppPorts == nil {
+		return fallbackPort
+	}
+	if port, ok := r.targetAppPorts[targetApp]; ok {
+		return port
+	}
+	return fallbackPort
 }

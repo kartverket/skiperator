@@ -86,7 +86,8 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return reconcile.Result{Requeue: true}, err
 	}
 
-	if err := r.setDefaultSpec(ctx, routing); err != nil {
+	targetAppPorts, err := r.setDefaultSpec(ctx, routing)
+	if err != nil {
 		rLog.Error(err, "error when trying to set default spec")
 		r.SetErrorState(ctx, routing, err, "error when trying to set default spec", "DefaultSpecFailure")
 		return common.RequeueWithError(err)
@@ -98,7 +99,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 
-	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig())
+	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), targetAppPorts)
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -162,25 +163,32 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	route.SetName(name.Name)
 	route.SetNamespace(name.Namespace)
 
-	reconciliation := reconciliation.NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil)
+	reconciliation := reconciliation.NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
 	return processor.Process(reconciliation)
 }
 
 // TODO Do this with application too for dynamic port allocation?
-func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) error {
+func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) (map[string]int32, error) {
+	targetAppPorts := make(map[string]int32)
 	for i := range routing.Spec.Routes {
 		route := &routing.Spec.Routes[i] // Get a pointer to the route in the slice
+		app, err := r.getTargetApplication(ctx, route.TargetApp, routing.Namespace)
+		if err != nil {
+			return nil, err
+		}
 		if route.Port == 0 {
-			app, err := r.getTargetApplication(ctx, route.TargetApp, routing.Namespace)
-			if err != nil {
-				return err
-			}
+			// Istio routes to the Service port.
 			route.Port = int32(app.Spec.Port)
 		}
+		targetAppPorts[route.TargetApp] = route.Port
+		if route.Port == int32(app.Spec.Port) {
+			// NetworkPolicy matches the pod-facing port after Service translation.
+			targetAppPorts[route.TargetApp] = int32(app.IngressTargetPort())
+		}
 	}
-	return nil
+	return targetAppPorts, nil
 }
 
 func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {

@@ -16,7 +16,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
@@ -192,7 +191,7 @@ func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName 
 
 	for _, port := range service.Spec.Ports {
 		servicePorts = append(servicePorts, networkingv1.NetworkPolicyPort{
-			Port: util.PointTo(intstr.FromInt32(port.Port)),
+			Port: new(port.TargetPort),
 		})
 	}
 	return servicePorts, nil

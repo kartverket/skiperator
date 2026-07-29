@@ -29,6 +29,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	for netpolName, route := range uniqueTargetApps {
+		targetPort := route.Port
+		if routingReconciliation, ok := r.(*reconciliation.RoutingReconciliation); ok {
+			targetPort = routingReconciliation.GetTargetAppPort(route.TargetApp, route.Port)
+		}
 		networkPolicy := networkingv1.NetworkPolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: routing.Namespace,
@@ -56,7 +60,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 					},
 					Ports: []networkingv1.NetworkPolicyPort{
 						{
-							Port: util.PointTo(intstr.FromInt32(route.Port)),
+							Port: util.PointTo(intstr.FromInt32(targetPort)),
 						},
 					},
 				},
