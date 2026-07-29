@@ -1,0 +1,11 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: extra-containers-client
+spec:
+  image: image
+  port: 8080
+  accessPolicy:
+    outbound:
+      rules:
+        - application: extra-containers-proxy
