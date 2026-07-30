@@ -87,7 +87,8 @@ func getCronJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, sele
 
 func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector *metav1.LabelSelector, podLabels map[string]string, skiperatorConfig config.SkiperatorConfig) batchv1.JobSpec {
 	envVars := skipJob.Spec.Env
-	podVolumes, containerVolumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(skipJob.Spec.FilesFrom)
+	podVolumes := volume.GetPodVolumes(skipJob.Spec.FilesFrom)
+	containerVolumeMounts := volume.GetContainerVolumeMounts(skipJob.Spec.FilesFrom)
 	gcpPodVolume := gcp.GetGCPContainerVolume(skiperatorConfig.GCPWorkloadIdentityPool, skipJob.Name)
 	if skipJob.Spec.GCP != nil {
 		gcpContainerVolumeMount := gcp.GetGCPContainerVolumeMount()

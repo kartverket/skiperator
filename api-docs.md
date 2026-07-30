@@ -1781,7 +1781,10 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.<br/>YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 511<br/>
         </td>
         <td>false</td>
       </tr>
@@ -1806,6 +1809,14 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2157,7 +2168,10 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.<br/>YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 511<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2182,6 +2196,14 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5743,7 +5765,10 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.<br/>YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 511<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5768,6 +5793,14 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7928,7 +7961,10 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td><b>defaultMode</b></td>
         <td>integer</td>
         <td>
-          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.<br/>YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.<br/>YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 511<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7953,6 +7989,14 @@ NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.<br/>
         </td>
         <td>false</td>
       </tr>

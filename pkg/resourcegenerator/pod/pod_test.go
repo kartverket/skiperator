@@ -79,7 +79,7 @@ func TestCreateExtraContainers_VolumesDedupedByAppendUniqueVolumes(t *testing.T)
 	for name, count := range names {
 		assert.Equalf(t, 1, count, "volume %q duplicated", name)
 	}
-	assert.Equal(t, 1, names["shared"])
+	assert.Equal(t, 1, names["cm-shared"])
 }
 
 func TestCreateExtraContainers_Empty(t *testing.T) {

@@ -137,7 +137,8 @@ func CreateApplicationContainer(application *skiperatorv1alpha1.Application, opt
 // name across the whole pod.
 func CreateExtraContainers(specs []podtypes.ContainerSpec, opts PodOpts) (sidecars []corev1.Container, initContainers []corev1.Container, volumes []corev1.Volume) {
 	for _, spec := range specs {
-		containerVolumes, volumeMounts := volume.GetContainerVolumeMountsAndPodVolumes(spec.FilesFrom)
+		containerVolumes := volume.GetPodVolumes(spec.FilesFrom)
+		volumeMounts := volume.GetContainerVolumeMounts(spec.FilesFrom)
 		volumes = append(volumes, containerVolumes...)
 
 		container := corev1.Container{

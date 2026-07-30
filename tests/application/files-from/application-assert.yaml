@@ -9,39 +9,154 @@ spec:
         - volumeMounts:
             - name: tmp
               mountPath: /tmp
-            - name: config-map
+            - name: cm-config-map
               mountPath: /config-map
-            - name: secret
+            - name: sec-secret
               mountPath: /secret
-            - name: empty-dir
+            - name: ed-empty-dir
               mountPath: /empty-dir
-            - name: persistent-volume-claim
+            - name: pvc-persistent-volume-claim
               mountPath: /persistent-volume-claim
-            - name: config-map2
+            - name: cm-config-map2
               mountPath: /config-map2
-            - name: secret2
+            - name: sec-secret2
               mountPath: /secret2
       volumes:
         - name: tmp
           emptyDir: {}
-        - name: config-map
+        - name: cm-config-map
           configMap:
             name: config-map
             defaultMode: 420
-        - name: secret
+        - name: sec-secret
           secret:
             secretName: secret
             defaultMode: 420
-        - name: empty-dir
+        - name: ed-empty-dir
           emptyDir: {}
-        - name: persistent-volume-claim
+        - name: pvc-persistent-volume-claim
           persistentVolumeClaim:
             claimName: persistent-volume-claim
-        - name: config-map2
+        - name: cm-config-map2
           configMap:
             name: config-map2
             defaultMode: 384
-        - name: secret2
+        - name: sec-secret2
           secret:
             secretName: secret2
             defaultMode: 384
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-subpath
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: ed-normal
+              mountPath: /temp/nothing-to-se-here
+            - name: cm-config-map
+              mountPath: /config-map/sub-path.sub
+              subPath: sub-path.sub
+            - name: sec-secret
+              mountPath: /secret/sub-path
+              subPath: sub-path
+            - name: ed-empty-dir
+              mountPath: /empty-dir/sub-path
+              subPath: sub-path
+            - name: pvc-persistent-volume-claim
+              mountPath: /persistent-volume-claim/sub-path
+              subPath: sub-path
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: ed-normal
+          emptyDir: {}
+        - name: cm-config-map
+          configMap:
+            name: config-map
+        - name: sec-secret
+          secret:
+            secretName: secret
+        - name: ed-empty-dir
+          emptyDir: {}
+        - name: pvc-persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: persistent-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-same-volumes
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cm-config-map
+              mountPath: /config-map
+            - name: cm-config-map
+              mountPath: /config-map/han-konfigur
+            - name: sec-secret
+              mountPath: /secret
+            - name: sec-secret
+              mountPath: /secret/secret-within-a-secret
+              subPath: secret-within-a-secret
+            - name: tmp
+              mountPath: /tmp/another-empty-dir
+            - name: pvc-persistent-volume-claim
+              mountPath: /persistent-volume-claim
+            - name: pvc-persistent-volume-claim
+              mountPath: /persistent-volume-claim/hippety-hoppety
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cm-config-map
+          configMap:
+            name: config-map
+        - name: sec-secret
+          secret:
+            secretName: secret
+        - name: pvc-persistent-volume-claim
+          persistentVolumeClaim:
+            claimName: persistent-volume-claim
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: files-from-same-name-volumes
+spec:
+  template:
+    spec:
+      containers:
+        - volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cm-volume
+              mountPath: /config-map
+            - name: sec-volume
+              mountPath: /secret
+            - name: ed-volume
+              mountPath: /empty-dir
+            - name: pvc-volume
+              mountPath: /persistent-volume-claim
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cm-volume
+          configMap:
+            name: volume
+        - name: sec-volume
+          secret:
+            secretName: volume
+        - name: ed-volume
+          emptyDir: {}
+        - name: pvc-volume
+          persistentVolumeClaim:
+            claimName: volume

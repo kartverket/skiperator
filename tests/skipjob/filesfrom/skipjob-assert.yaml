@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: skipjob-filesfrom
+spec:
+  template:
+    spec:
+      containers:
+        - name: skipjob-filesfrom-skipjob
+          image: image
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cm-config-map
+              mountPath: /config-map
+            - name: sec-secret
+              mountPath: /secret/secret1
+              subPath: secret1
+            - name: sec-secret
+              mountPath: /secret/secret2-electric-boogaloo
+              subPath: secret2-electric-boogaloo
+            - name: ed-empty-dir
+              mountPath: /empty-dir
+            - name: pvc-persistent-volume-claim
+              mountPath: /persistent-volume-claim
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cm-config-map
+          configMap:
+            defaultMode: 384
+            name: config-map
+        - name: sec-secret
+          secret:
+            defaultMode: 420
+            secretName: secret
+        - name: ed-empty-dir
+          emptyDir: {}
+        - name: pvc-persistent-volume-claim

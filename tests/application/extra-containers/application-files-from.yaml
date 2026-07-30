@@ -1,0 +1,21 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: extra-containers-files-from
+spec:
+  image: image
+  port: 8080
+  filesFrom:
+    - configMap: main-config-map
+      mountPath: /etc/config
+    - secret: main-secret
+      mountPath: /etc/secret
+  extraContainers:
+    - name: extra-container
+      image: extra-container
+      filesFrom:
+        - configMap: extra-container-config-map
+          mountPath: /etc/config
+        - secret: main-secret
+          mountPath: /etc/secret/subpath
+          subPath: subpath

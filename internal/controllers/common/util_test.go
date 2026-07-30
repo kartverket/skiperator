@@ -179,14 +179,14 @@ func externalPolicyTo(rules ...podtypes.ExternalRule) *podtypes.AccessPolicy {
 }
 
 func TestValidateContainerImageString(t *testing.T) {
+	// IstioSettings to avoid nil pointer dereference in validation
 	var dummyIstioSettings = &istiov1alpha1.IstioSettingsApplication{
 		IstioSettingsBase: istiov1alpha1.IstioSettingsBase{},
 	}
 	t.Run("valid_image", func(t *testing.T) {
 		assert.NoError(t, ValidateContainerImageString(&v1alpha1.Application{
 			Spec: v1alpha1.ApplicationSpec{
-				Image: "valid-image/string:latest",
-				// Needed to set IstioSettings to avoid nil pointer dereference in validation
+				Image:         "valid-image/string:latest",
 				IstioSettings: dummyIstioSettings,
 			},
 		}))
@@ -219,5 +219,4 @@ func TestValidateContainerImageString(t *testing.T) {
 			},
 		}))
 	})
-
 }

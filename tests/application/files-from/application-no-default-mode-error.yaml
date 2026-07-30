@@ -1,3 +1,4 @@
+# Cast error when defaultMode has been given a default value by kubeAPI, due to a prior bug where this caused eternal diff: https://github.com/kartverket/skiperator/pull/643
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:

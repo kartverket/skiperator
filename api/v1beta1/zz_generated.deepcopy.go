@@ -124,7 +124,9 @@ func (in *SKIPJobSpec) DeepCopyInto(out *SKIPJobSpec) {
 	if in.FilesFrom != nil {
 		in, out := &in.FilesFrom, &out.FilesFrom
 		*out = make([]FilesFrom, len(*in))
-		copy(*out, *in)
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.AdditionalPorts != nil {
 		in, out := &in.AdditionalPorts, &out.AdditionalPorts
