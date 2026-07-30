@@ -1,6 +1,7 @@
 package volume
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
@@ -8,6 +9,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
+
+var invalidDNS1123LabelChars = regexp.MustCompile(`[^a-z0-9-]+`)
 
 const (
 	DefaultDigdiratorMaskinportenMountPath = "/var/run/secrets/skip/maskinporten"
@@ -214,10 +217,5 @@ func volumeName(prefix, sourceName string) string {
 }
 
 func sanitizeDNS1123Label(name string) string {
-	return strings.Trim(strings.Map(func(r rune) rune {
-		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-' {
-			return r
-		}
-		return '-'
-	}, name), "-")
+	return strings.Trim(invalidDNS1123LabelChars.ReplaceAllString(name, "-"), "-")
 }
