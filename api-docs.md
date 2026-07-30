@@ -326,6 +326,17 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td>false</td>
       </tr>
       <tr>
+        <td><b>routingProvider</b></td>
+        <td>enum</td>
+        <td>
+          RoutingProvider controls which routing API Skiperator uses for ingresses.<br/>Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.<br/>
+          <br/>
+            <i>Enum</i>: Legacy, Standard<br/>
+            <i>Default</i>: `Legacy`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b><a href="#applicationspecstartup">startup</a></b></td>
         <td>object</td>
         <td>
@@ -4089,6 +4100,16 @@ ApplicationStatus is a specialized status specific to the Application kind.
         </td>
         <td>false</td>
       </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
+      </tr>
     </tbody>
 </table>
 <a id="applicationstatusconditionsindex"></a>
@@ -4350,12 +4371,34 @@ Status
         <td>true</td>
       </tr>
       <tr>
+        <td><b>ownership</b></td>
+        <td>enum</td>
+        <td>
+          Ownership controls whether this Routing owns the hostname exclusively or<br/>contributes paths to a shared hostname.<br/>
+          <br/>
+            <i>Enum</i>: Standalone, Shared<br/>
+            <i>Default</i>: `Standalone`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b>redirectToHTTPS</b></td>
         <td>boolean</td>
         <td>
           <br/>
           <br/>
             <i>Default</i>: `true`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>routingProvider</b></td>
+        <td>enum</td>
+        <td>
+          RoutingProvider controls which routing API Skiperator uses.<br/>Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.<br/>
+          <br/>
+            <i>Enum</i>: Legacy, Standard<br/>
+            <i>Default</i>: `Legacy`<br/>
         </td>
         <td>false</td>
       </tr>
@@ -4466,6 +4509,16 @@ A status field shown on a Skiperator resource which contains information regardi
           Status<br/>
         </td>
         <td>true</td>
+      </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
       </tr>
     </tbody>
 </table>
@@ -6620,6 +6673,16 @@ A status field shown on a Skiperator resource which contains information regardi
         </td>
         <td>true</td>
       </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
+      </tr>
     </tbody>
 </table>
 <a id="skipjobstatusconditionsindex"></a>
@@ -8751,6 +8814,16 @@ A status field shown on a Skiperator resource which contains information regardi
           Status<br/>
         </td>
         <td>true</td>
+      </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
       </tr>
     </tbody>
 </table>
