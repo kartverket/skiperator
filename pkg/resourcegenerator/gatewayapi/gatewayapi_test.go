@@ -57,6 +57,31 @@ func TestApplicationStandardRouting(t *testing.T) {
 	assert.Equal(t, gatewayapiv1.ObjectName("app"), route.Spec.Rules[0].BackendRefs[0].Name)
 }
 
+func TestApplicationStandardRoutingWithExtraContainerUsesServicePort(t *testing.T) {
+	proxyPort := int32(8443)
+	app := &skiperatorv1alpha1.Application{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.ApplicationSpec{
+			Image:           "image",
+			Port:            8080,
+			Ingresses:       []string{"app.example.com"},
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			ExtraContainers: []skiperatorv1alpha1.ContainerSpec{
+				{Name: "auth-proxy", Image: "proxy:1.0", IngressPort: &proxyPort},
+			},
+		},
+	}
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+
+	err := Generate(r)
+
+	require.NoError(t, err)
+	require.Len(t, r.GetResources(), 2)
+	route := r.GetResources()[1].(*gatewayapiv1.HTTPRoute)
+	assert.Equal(t, gatewayapiv1.ObjectName("app"), route.Spec.Rules[0].BackendRefs[0].Name)
+	assert.Equal(t, gatewayapiv1.PortNumber(8080), *route.Spec.Rules[0].BackendRefs[0].Port)
+}
+
 func TestApplicationLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 	app := &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
@@ -86,7 +111,7 @@ func TestRoutingStandardPathRewrite(t *testing.T) {
 			},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
 
 	err := Generate(r)
 
@@ -122,7 +147,7 @@ func TestRoutingLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 			},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
 
 	err := Generate(r)
 
@@ -169,7 +194,7 @@ func TestRoutingSharedOwnershipUsesSharedListenerSet(t *testing.T) {
 			},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
 
 	err := Generate(r)
 

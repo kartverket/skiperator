@@ -83,7 +83,7 @@ func TestRoutingLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
 
 	err := Generate(r)
 
@@ -102,7 +102,7 @@ func TestRoutingSharedOwnershipGeneratesStandardCertInIstioGateways(t *testing.T
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
 	r.SetGenerateLegacyRouting(false)
 
 	err := Generate(r)
