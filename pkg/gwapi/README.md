@@ -1,8 +1,9 @@
 # Gateway API migration flow
 
 `gwapi` owns the routing migration state machine. Reconcilers call
-`EvaluateRoutingState` before resource generation, then `UpdateRoutingStatus`
-after generated resources have been processed.
+`EvaluateRoutingState` before resource generation. The result decides whether
+legacy Istio resources stay in the desired resource set while Gateway API
+resources are generated.
 
 ```mermaid
 stateDiagram-v2
@@ -50,3 +51,54 @@ Legend:
 - `legacy resources exist` means previous Istio Gateway or VirtualService
   resources are still present.
 - Greenfield standard routing never creates legacy fallback.
+
+How to read the diagram:
+
+- `LegacyOnly` is used when `routingProvider` is not `Standard`. Skiperator
+  generates only the old Istio Gateway and VirtualService resources and reports
+  the object ready once reconciliation succeeds.
+- `GreenfieldPending` is a new object that opted into Gateway API but has no
+  legacy resources to fall back to. Skiperator generates only Gateway API
+  resources and reports not ready until those resources are accepted and
+  programmed.
+- `MigratingWithFallback` is an existing object that opted into Gateway API while
+  legacy resources still exist. Skiperator keeps generating legacy resources as
+  fallback while Gateway API becomes ready, and records `MigrationStartedAt`.
+- `MigrationStalled` is the same fallback mode after the migration has been
+  pending for more than 10 minutes. Legacy routing stays active, but Skiperator
+  emits a warning event.
+- `CutoverReadyPruneLegacy` means Gateway API is ready while legacy resources
+  still exist. Skiperator stops generating legacy resources, so resource
+  processing can delete them.
+- `StandardOnly` means Gateway API is ready and legacy resources are gone.
+  Skiperator generates only Gateway API resources and reports the object ready.
+
+## Shared routing membership
+
+Shared `Routing` objects can come from many namespaces, but the shared Gateway
+API resources for their hostname are single objects in `istio-gateways`.
+Kubernetes owner references only work cleanly when one owner controls one set of
+resources; they cannot model "delete this shared resource only after the last
+Routing in any namespace is gone". Skiperator therefore tracks contributors in
+one membership `ConfigMap` per hostname.
+
+```mermaid
+sequenceDiagram
+    participant R as Routing reconciler
+    participant CM as Membership ConfigMap
+    participant GW as Shared Gateway API resources
+
+    R->>R: Add shared-routing finalizer
+    R->>CM: Register namespace.routing-name
+    R->>GW: Apply ListenerSet / HTTPRoute / Certificate
+
+    Note over CM,GW: Shared resources must not exist before membership is registered
+
+    R->>CM: Deregister on Routing deletion
+    alt Other contributors remain
+        R->>GW: Keep shared resources
+    else Last contributor removed
+        R->>GW: Delete shared resources
+        R->>CM: Delete membership ConfigMap
+    end
+```
