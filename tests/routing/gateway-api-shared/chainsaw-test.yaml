@@ -14,11 +14,14 @@ spec:
         - apply:
             file: namespaces.yaml
         - apply:
+            file: applications.yaml
+        - apply:
             file: routing-a.yaml
         - apply:
             file: routing-b.yaml
         - script:
             content: |
+              set -e
               SEL="skiperator.kartverket.no/controller=routing-shared,skiperator.kartverket.no/hostname=1c53b7a99ed1939a"
 
               wait_shared_count() {

@@ -165,6 +165,23 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
 		emitMigrationEvents(&r.ReconcilerBase, routing, gwapi.UpdateRoutingStatus(routing.GetStatus(), routing.GetGeneration(), routingState))
 	}
+
+	// Register before generating/applying shared resources. The finalizer is
+	// added in an earlier reconcile pass, and tests/users may observe shared
+	// resources before every contributor has completed status updates. A visible
+	// shared resource must therefore never precede its membership entry.
+	if routing.UsesSharedOwnership() {
+		host, err := routing.Spec.GetHost()
+		if err != nil {
+			r.SetErrorState(ctx, routing, err, "failed to resolve shared routing host", "SharedRoutingHostFailure")
+			return common.RequeueWithError(err)
+		}
+		if err := gwapi.RegisterSharedContributor(ctx, r.GetClient(), host.Hostname, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name}); err != nil {
+			r.SetErrorState(ctx, routing, err, "failed to register shared routing contributor", "SharedRoutingMembershipFailure")
+			return common.RequeueWithError(err)
+		}
+	}
+
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -205,21 +222,6 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		}
 		r.SetErrorState(ctx, routing, fmt.Errorf("found %d errors", len(errs)), "failed to process routing resources, see subresource status", "ProcessorFailure")
 		return common.RequeueWithError(err)
-	}
-
-	// Register as a contributor to the shared hostname so shared istio-gateways
-	// resources are ref-counted for garbage collection. The matching deregister
-	// runs in the finalizer.
-	if routing.UsesSharedOwnership() {
-		host, err := routing.Spec.GetHost()
-		if err != nil {
-			r.SetErrorState(ctx, routing, err, "failed to resolve shared routing host", "SharedRoutingHostFailure")
-			return common.RequeueWithError(err)
-		}
-		if err := gwapi.RegisterSharedContributor(ctx, r.GetClient(), host.Hostname, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name}); err != nil {
-			r.SetErrorState(ctx, routing, err, "failed to register shared routing contributor", "SharedRoutingMembershipFailure")
-			return common.RequeueWithError(err)
-		}
 	}
 
 	// Ready/summary come from the shared routing-status assembler, the same path

@@ -7,7 +7,6 @@ spec:
   hostname: shared-multi.kartverket.no
   routingProvider: Standard
   ownership: Shared
-  redirectToHTTPS: false
   routes:
     - pathPrefix: /team-a
       targetApp: app-a
