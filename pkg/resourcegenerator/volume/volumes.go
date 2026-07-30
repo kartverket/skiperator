@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
-	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/nais/liberator/pkg/namegen"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -98,8 +97,9 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 
 	for _, file := range filesFrom {
 		volume := corev1.Volume{}
-		if file.DefaultMode == 0 {
-			file.DefaultMode = 420
+		defaultMode := int32(420)
+		if file.DefaultMode != nil {
+			defaultMode = int32(*file.DefaultMode)
 		}
 		if len(file.ConfigMap) > 0 {
 			volume = corev1.Volume{
@@ -109,7 +109,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: file.ConfigMap,
 						},
-						DefaultMode: util.PointTo(int32(file.DefaultMode)),
+						DefaultMode: new(defaultMode),
 					},
 				},
 			}
@@ -119,7 +119,7 @@ func GetPodVolumes(filesFrom []podtypes.FilesFrom) []corev1.Volume {
 				VolumeSource: corev1.VolumeSource{
 					Secret: &corev1.SecretVolumeSource{
 						SecretName:  file.Secret,
-						DefaultMode: util.PointTo(int32(file.DefaultMode)),
+						DefaultMode: new(defaultMode),
 					},
 				},
 			}

@@ -17,6 +17,7 @@ type EnvFrom struct {
 // Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
 // One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
 // NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+// +kubebuilder:object:generate=true
 // +kubebuilder:validation:XValidation:rule="(has(self.configMap) ? 1 : 0) + (has(self.secret) ? 1 : 0) + (has(self.emptyDir) ? 1 : 0) + (has(self.persistentVolumeClaim) ? 1 : 0) == 1",message="Exactly one of configMap, secret, emptyDir or persistentVolumeClaim must be set"
 type FilesFrom struct {
 	// The path to mount the file in the Pods directory. Required.
@@ -42,8 +43,8 @@ type FilesFrom struct {
 	// +kubebuilder:validation:MinLength=1
 	PersistentVolumeClaim string `json:"persistentVolumeClaim,omitempty"`
 	// defaultMode is optional: mode bits used to set permissions on created files by default.
-	// Must be an octal value between 0000 and 0777 or a decimal value between 0 and 511.
-	// YAML accepts both octal and decimal values, JSON requires decimal values for mode bits.
+	// Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.
+	// YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.
 	// Defaults to 0644.
 	// Directories within the path are not affected by this setting.
 	// This might be in conflict with other options that affect the file
@@ -51,5 +52,5 @@ type FilesFrom struct {
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=511
 	// +kubebuilder:validation:Optional
-	DefaultMode int `json:"defaultMode,omitempty"`
+	DefaultMode *int `json:"defaultMode,omitempty"`
 }

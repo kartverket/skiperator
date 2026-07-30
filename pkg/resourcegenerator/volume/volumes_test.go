@@ -6,6 +6,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -91,4 +92,32 @@ func TestVolumeNamesMatchVolumeMountNames(t *testing.T) {
 		_, exists := volumeNames[mount.Name]
 		assert.Truef(t, exists, "volume mount %q has no matching volume", mount.Name)
 	}
+}
+
+func TestGetPodVolumesDefaultMode(t *testing.T) {
+	zero := 0
+	mode0600 := 384
+
+	volumes := GetPodVolumes([]podtypes.FilesFrom{
+		{MountPath: "/config-default", ConfigMap: "config-default"},
+		{MountPath: "/config-zero", ConfigMap: "config-zero", DefaultMode: &zero},
+		{MountPath: "/secret-mode", Secret: "secret-mode", DefaultMode: &mode0600},
+	})
+
+	assert.Equal(t, int32(420), *findVolume(t, volumes, "cm-config-default").ConfigMap.DefaultMode)
+	assert.Equal(t, int32(0), *findVolume(t, volumes, "cm-config-zero").ConfigMap.DefaultMode)
+	assert.Equal(t, int32(384), *findVolume(t, volumes, "sec-secret-mode").Secret.DefaultMode)
+}
+
+func findVolume(t *testing.T, volumes []corev1.Volume, name string) corev1.VolumeSource {
+	t.Helper()
+
+	for _, volume := range volumes {
+		if volume.Name == name {
+			return volume.VolumeSource
+		}
+	}
+
+	t.Fatalf("volume %q not found", name)
+	return corev1.VolumeSource{}
 }
