@@ -29,6 +29,9 @@ status:
     ServiceEntry[skipjob-status-ready-no-job-egress-3da5ecd99bd5b65]:
       message: ServiceEntry has finished synchronizing
       status: Synced
+    Sidecar[status-ready-no-job-skipjob]:
+      message: Sidecar has finished synchronizing
+      status: Synced
   summary:
     message: All subresources synced
     status: Synced
