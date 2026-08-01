@@ -17,6 +17,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/gcp/auth"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/job"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
@@ -50,6 +51,7 @@ const (
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=skipjobs;skipjobs/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=batch,resources=jobs;cronjobs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.istio.io,resources=telemetries,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.istio.io,resources=sidecars,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=pods;pods/ephemeralcontainers,verbs=get;list;watch;create;update;patch;delete
 
 // leave an empty line over this comment
@@ -88,6 +90,7 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		})).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1.ServiceEntry{}).
+		Owns(&istionetworkingv1.Sidecar{}).
 		Owns(&telemetryv1.Telemetry{}).
 		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
 		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs
@@ -166,7 +169,7 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
-	r.UpdateAccessPolicy(ctx, skipJob)
+	resolvedOutboundRules := r.UpdateAccessPolicy(ctx, skipJob)
 
 	//Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop")
@@ -175,11 +178,13 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
 
 	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
+	reconciliationJob.SetResolvedOutboundRules(resolvedOutboundRules)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,
 		networkpolicy.Generate,
 		serviceentry.Generate,
+		sidecar.Generate,
 		auth.Generate,
 		job.Generate,
 		prometheus.Generate,

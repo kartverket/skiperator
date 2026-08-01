@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -197,27 +198,29 @@ func (r *ReconcilerBase) getTargetApplicationPorts(ctx context.Context, appName 
 	return servicePorts, nil
 }
 
-func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj common.SKIPObject) {
+func (r *ReconcilerBase) UpdateAccessPolicy(ctx context.Context, obj common.SKIPObject) []reconciliation.ResolvedOutboundRule {
 	if obj.GetCommonSpec().AccessPolicy == nil {
-		return
+		return nil
 	}
 
 	if obj.GetCommonSpec().AccessPolicy.Outbound != nil {
-		if errs := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace()); len(errs) != 0 {
+		resolvedRules, errs := r.setPortsForRules(ctx, obj.GetCommonSpec().AccessPolicy.Outbound.Rules, obj.GetNamespace())
+		if len(errs) != 0 {
 			for _, err := range errs {
 				r.EmitWarningEvent(obj, "InvalidAccessPolicy", fmt.Sprintf("failed to set ports for outbound rules: %s", err.Error()))
 			}
 		}
+		return resolvedRules
 	}
+
+	return nil
 }
 
-func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) []error {
+func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.InternalRule, skipObjNamespace string) ([]reconciliation.ResolvedOutboundRule, []error) {
 	var ruleErrors []error
+	resolvedRules := make([]reconciliation.ResolvedOutboundRule, 0, len(rules))
 	for i := range rules {
 		rule := &rules[i]
-		if len(rule.Ports) != 0 {
-			continue
-		}
 		var namespaceList []string
 		switch {
 		case rule.Namespace != "":
@@ -237,6 +240,14 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 		if len(namespaceList) == 0 {
 			ruleErrors = append(ruleErrors, fmt.Errorf("expected namespace, but found none for application %s", rule.Application))
 		}
+		resolvedRules = append(resolvedRules, reconciliation.ResolvedOutboundRule{
+			Application: rule.Application,
+			Namespaces:  namespaceList,
+		})
+
+		if len(rule.Ports) != 0 {
+			continue
+		}
 
 		for _, ns := range namespaceList {
 			targetAppPorts, err := r.getTargetApplicationPorts(ctx, rule.Application, ns)
@@ -250,7 +261,7 @@ func (r *ReconcilerBase) setPortsForRules(ctx context.Context, rules []podtypes.
 			rule.Ports = append(rule.Ports, targetAppPorts...)
 		}
 	}
-	return ruleErrors
+	return resolvedRules, ruleErrors
 }
 
 func (r *ReconcilerBase) GetNamespacesByLabel(ctx context.Context, rule *podtypes.InternalRule) (*corev1.NamespaceList, error) {
