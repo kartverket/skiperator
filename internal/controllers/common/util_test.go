@@ -108,6 +108,18 @@ func TestShouldNormalizeHosts(t *testing.T) {
 		assert.True(t, IsExternalRulesValid(cloudsqlHost))
 	})
 
+	t.Run("wildcard_domain", func(t *testing.T) {
+		wildcardDomain := externalPolicyTo(
+			podtypes.ExternalRule{
+				Host: "*.foo.com",
+				Ports: []podtypes.ExternalPort{
+					{Port: 443, Name: "https", Protocol: "HTTPS"},
+				},
+			},
+		)
+		assert.True(t, IsExternalRulesValid(wildcardDomain))
+	})
+
 	// Invalid cases
 	t.Run("duplicate_domain", func(t *testing.T) {
 		duplicateDomain := externalPolicyTo(
@@ -155,6 +167,18 @@ func TestShouldNormalizeHosts(t *testing.T) {
 			},
 		)
 		assert.False(t, IsExternalRulesValid(badHostname))
+	})
+
+	t.Run("bad_wildcard_hostname", func(t *testing.T) {
+		badWildcardHostname := externalPolicyTo(
+			podtypes.ExternalRule{
+				Host: "*foo.com",
+				Ports: []podtypes.ExternalPort{
+					{Port: 443, Name: "https", Protocol: "HTTPS"},
+				},
+			},
+		)
+		assert.False(t, IsExternalRulesValid(badWildcardHostname))
 	})
 
 	t.Run("protocol_in_host", func(t *testing.T) {
