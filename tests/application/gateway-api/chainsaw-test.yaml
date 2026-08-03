@@ -1,0 +1,72 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-application
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: gateway-api-application
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - create:
+            file: application.yaml
+        - script:
+            content: |
+              # The generated Gateway API resource names include the FNV-1 hash
+              # of standard.example.com. That hostname hashes to
+              # 9982ca9ea010779f, so these names belong to the standard app.
+              #
+              # Wait for external controllers first. Skiperator's Ready status
+              # depends on cert-manager and Istio status, and the parent
+              # Application is reconciled once more after these waits.
+              kubectl -n gateway-api-application wait certificate gateway-api-application-standard-ingress-9982ca9ea010779f --for=condition=Ready --timeout=120s
+              kubectl -n gateway-api-application wait listenerset standard-listener-9982ca9ea010779f --for=condition=Accepted --timeout=120s
+              kubectl -n gateway-api-application wait listenerset standard-listener-9982ca9ea010779f --for=condition=Programmed --timeout=120s
+
+              # ListenerSet conditions cover the parent resource. The per
+              # listener ResolvedRefs and Conflicted states live under
+              # .status.listeners, so kubectl wait cannot address them directly.
+              for i in $(seq 1 120); do
+                resolved=$(kubectl -n gateway-api-application get listenerset standard-listener-9982ca9ea010779f -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                conflicted=$(kubectl -n gateway-api-application get listenerset standard-listener-9982ca9ea010779f -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="Conflicted")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                if [ "$resolved" -ge 2 ] && [ "$conflicted" -eq 0 ]; then
+                  break
+                fi
+                if [ "$i" -eq 120 ]; then
+                  kubectl -n gateway-api-application get listenerset standard-listener-9982ca9ea010779f -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+
+              wait_route_ready() {
+                name="$1"
+                for i in $(seq 1 120); do
+                  accepted=$(kubectl -n gateway-api-application get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  resolved=$(kubectl -n gateway-api-application get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  if [ "$accepted" -ge 1 ] && [ "$resolved" -ge 1 ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                kubectl -n gateway-api-application get httproute "$name" -o yaml
+                return 1
+              }
+
+              wait_route_ready standard
+              wait_route_ready standard-redirect
+        - script:
+            content: |
+              # Trigger Skiperator after child status is ready. This verifies
+              # the normal readiness gate without patching status by hand.
+              kubectl -n gateway-api-application label applications.skiperator.kartverket.no standard gateway-api-ready=true --overwrite
+        - assert:
+            file: application-assert.yaml
+    - try:
+        - create:
+            file: missing-istio-revision.yaml
+        - assert:
+            file: missing-istio-revision-assert.yaml

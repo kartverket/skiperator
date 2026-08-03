@@ -17,8 +17,14 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.summary.status
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
+      type: string
+    - jsonPath: .spec.routingProvider
+      name: Routing
       type: string
     name: v1alpha1
     schema:
@@ -45,6 +51,15 @@ spec:
             properties:
               hostname:
                 type: string
+              ownership:
+                default: Standalone
+                description: |-
+                  Ownership controls whether this Routing owns the hostname exclusively or
+                  contributes paths to a shared hostname.
+                enum:
+                - Standalone
+                - Shared
+                type: string
               redirectToHTTPS:
                 default: true
                 type: boolean
@@ -52,6 +67,8 @@ spec:
                 items:
                   properties:
                     pathPrefix:
+                      minLength: 1
+                      pattern: ^\/
                       type: string
                     port:
                       format: int32
@@ -66,10 +83,25 @@ spec:
                   - targetApp
                   type: object
                 type: array
+              routingProvider:
+                default: Legacy
+                description: |-
+                  RoutingProvider controls which routing API Skiperator uses.
+                  Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
+                enum:
+                - Legacy
+                - Standard
+                type: string
             required:
             - hostname
             - routes
             type: object
+            x-kubernetes-validations:
+            - message: spec.ownership=Shared requires spec.routingProvider=Standard
+              rule: '!has(self.ownership) || self.ownership != ''Shared'' || self.routingProvider
+                == ''Standard'''
+            - message: spec.hostname is immutable
+              rule: self.hostname == oldSelf.hostname
           status:
             description: |-
               SkiperatorStatus
@@ -135,6 +167,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status
@@ -180,6 +215,8 @@ spec:
         required:
         - spec
         type: object
+    selectableFields:
+    - jsonPath: .spec.routingProvider
     served: true
     storage: true
     subresources:

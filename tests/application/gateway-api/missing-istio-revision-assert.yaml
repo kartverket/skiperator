@@ -1,0 +1,12 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: no-istio
+  namespace: gateway-api-application-no-istio
+status:
+  summary:
+    status: Error
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: NamespaceMissingIstioInjection

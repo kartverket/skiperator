@@ -5,6 +5,9 @@ metadata:
 status:
   accessPolicies: Ready
   conditions:
+    - type: Ready
+      status: 'Unknown'
+      reason: JobPending
     - type: Failed
       status: 'False'
     - type: Running

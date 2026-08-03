@@ -31,17 +31,20 @@ type Reconciliation interface {
 	GetRestConfig() *rest.Config
 	GetAuthConfigs() *auth.AuthConfigs
 	GetSkiperatorConfig() config.SkiperatorConfig
+	GenerateLegacyRouting() bool
+	SetGenerateLegacyRouting(bool)
 }
 
 type baseReconciliation struct {
-	ctx              context.Context
-	logger           log.Logger
-	resources        []client.Object
-	istioEnabled     bool
-	restConfig       *rest.Config
-	skipObject       v1alpha1.SKIPObject
-	authConfigs      *auth.AuthConfigs
-	skiperatorConfig config.SkiperatorConfig
+	ctx                   context.Context
+	logger                log.Logger
+	resources             []client.Object
+	istioEnabled          bool
+	restConfig            *rest.Config
+	skipObject            v1alpha1.SKIPObject
+	authConfigs           *auth.AuthConfigs
+	skiperatorConfig      config.SkiperatorConfig
+	generateLegacyRouting bool
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -78,4 +81,12 @@ func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
 
 func (b *baseReconciliation) GetSkiperatorConfig() config.SkiperatorConfig {
 	return b.skiperatorConfig
+}
+
+func (b *baseReconciliation) GenerateLegacyRouting() bool {
+	return b.generateLegacyRouting
+}
+
+func (b *baseReconciliation) SetGenerateLegacyRouting(generate bool) {
+	b.generateLegacyRouting = generate
 }

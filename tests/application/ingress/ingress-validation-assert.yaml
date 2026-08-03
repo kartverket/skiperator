@@ -26,14 +26,62 @@ source:
 involvedObject:
   apiVersion: skiperator.kartverket.no/v1alpha1
   kind: Application
-  name: ingresses-capital
----
-apiVersion: v1
-kind: Event
-reason: InvalidApplication
-source:
-  component: application-controller
-involvedObject:
-  apiVersion: skiperator.kartverket.no/v1alpha1
-  kind: Application
   name: ingresses-no-domain
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  namespace: istio-gateways
+  name: ingress-ingresses-capital-ingress-34888c0b0c2a4a2c
+spec:
+  issuerRef:
+    kind: ClusterIssuer
+    name: cluster-issuer
+  secretName: ingress-ingresses-capital-ingress-34888c0b0c2a4a2c
+  dnsNames:
+    - test.com
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: ingresses-capital-ingress-34888c0b0c2a4a2c
+spec:
+  servers:
+    - hosts:
+        - test.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - test.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: ingress-ingresses-capital-ingress-34888c0b0c2a4a2c
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: ingresses-capital-ingress
+spec:
+  exportTo:
+    - .
+    - istio-system
+    - istio-gateways
+  gateways:
+    - ingresses-capital-ingress-34888c0b0c2a4a2c
+  hosts:
+    - test.com
+  http:
+    - match:
+        - port: 80
+      redirect:
+        redirectCode: 308
+        scheme: https
+    - route:
+        - destination:
+            host: ingresses-capital
