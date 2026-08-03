@@ -54,11 +54,15 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				serviceEntryName = fmt.Sprintf("%v-%v", strings.ToLower(objectKind), serviceEntryName)
 			}
 
-			resolution, addresses, endpoints := getIpData(rule.Ip)
-
 			ports, err := getPorts(rule.Ports, rule.Ip)
 			if err != nil {
 				err := &reconciliation.SubResourceError{Message: "Could not set port for Service Entry", WrapErr: err, Reason: reconciliation.InternalError}
+				return err
+			}
+
+			resolution, addresses, endpoints, err := getServiceEntryEndpointData(rule.Host, rule.Ip, ports)
+			if err != nil {
+				err := &reconciliation.SubResourceError{Message: "Could not set endpoint data for Service Entry", WrapErr: err, Reason: reconciliation.InternalError}
 				return err
 			}
 
@@ -116,12 +120,34 @@ func getPorts(externalPorts []podtypes.ExternalPort, ruleIP string) ([]*networki
 	return ports, nil
 }
 
-func getIpData(ip string) (networkingv1api.ServiceEntry_Resolution, []string, []*networkingv1api.WorkloadEntry) {
-	if ip == "" {
-		return networkingv1api.ServiceEntry_DNS, nil, nil
+func getServiceEntryEndpointData(host string, ip string, ports []*networkingv1api.ServicePort) (networkingv1api.ServiceEntry_Resolution, []string, []*networkingv1api.WorkloadEntry, error) {
+	if ip != "" {
+		return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}, nil
 	}
 
-	return networkingv1api.ServiceEntry_STATIC, []string{ip}, []*networkingv1api.WorkloadEntry{{Address: ip}}
+	if isWildcardHost(host) {
+		if hasTCPPort(ports) {
+			return networkingv1api.ServiceEntry_NONE, nil, nil, errors.New("static IP must be set for TCP port with wildcard host")
+		}
+
+		return networkingv1api.ServiceEntry_NONE, nil, nil, nil
+	}
+
+	return networkingv1api.ServiceEntry_DNS, nil, nil, nil
+}
+
+func isWildcardHost(host string) bool {
+	return strings.HasPrefix(host, "*.")
+}
+
+func hasTCPPort(ports []*networkingv1api.ServicePort) bool {
+	for _, port := range ports {
+		if port.Protocol == "TCP" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func setCloudSqlRule(accessPolicy *podtypes.AccessPolicy, object skiperatorv1alpha1.SKIPObject) (*podtypes.AccessPolicy, error) {
