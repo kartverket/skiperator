@@ -54,6 +54,9 @@ status:
     ServiceEntry[working-egress-56cd7aa901014e78]:
       message: ServiceEntry has finished synchronizing
       status: Synced
+    Sidecar[working]:
+      message: Sidecar has finished synchronizing
+      status: Synced
     ServiceMonitor[working]:
       message: ServiceMonitor has finished synchronizing
       status: Synced

@@ -11,6 +11,7 @@ import (
 
 type JobReconciliation struct {
 	baseReconciliation
+	resolvedOutboundRules []ResolvedOutboundRule
 }
 
 func NewJobReconciliation(ctx context.Context, job *skiperatorv1beta1.SKIPJob, logger log.Logger, istioEnabled bool, restConfig *rest.Config, skiperatorConfig config.SkiperatorConfig) *JobReconciliation {
@@ -28,4 +29,12 @@ func NewJobReconciliation(ctx context.Context, job *skiperatorv1beta1.SKIPJob, l
 
 func (j *JobReconciliation) GetType() ObjectType {
 	return JobType
+}
+
+func (j *JobReconciliation) GetResolvedOutboundRules() []ResolvedOutboundRule {
+	return j.resolvedOutboundRules
+}
+
+func (j *JobReconciliation) SetResolvedOutboundRules(rules []ResolvedOutboundRule) {
+	j.resolvedOutboundRules = rules
 }

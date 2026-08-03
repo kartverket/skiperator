@@ -28,6 +28,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/peerauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/requestauthentication"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/serviceentry"
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/sidecar"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/telemetry"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/maskinporten"
@@ -73,7 +74,7 @@ import (
 // +kubebuilder:rbac:groups=core,resources=services;configmaps;serviceaccounts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;virtualservices,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;serviceentries;sidecars;virtualservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=telemetry.istio.io,resources=telemetries,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=security.istio.io,resources=peerauthentications;authorizationpolicies;requestauthentications,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=autoscaling,resources=horizontalpodautoscalers,verbs=get;list;watch;create;update;patch;delete
@@ -100,6 +101,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&istionetworkingv1.ServiceEntry{}).
+		Owns(&istionetworkingv1.Sidecar{}).
 		Owns(&istionetworkingv1.Gateway{}, builder.WithPredicates(
 			util.MatchesPredicate[*istionetworkingv1.Gateway](isIngressGateway),
 		)).
@@ -230,7 +232,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
-	r.UpdateAccessPolicy(ctx, application)
+	resolvedOutboundRules := r.UpdateAccessPolicy(ctx, application)
 
 	//Start the actual reconciliation
 	rLog.Debug("Starting reconciliation loop", "application", application.Name)
@@ -244,6 +246,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	reconciliationApp.SetResolvedOutboundRules(resolvedOutboundRules)
 
 	//TODO status and conditions in application object
 	funcs := []reconciliationFunc{
@@ -251,6 +254,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		service.Generate,
 		auth.Generate,
 		serviceentry.Generate,
+		sidecar.Generate,
 		gateway.Generate,
 		virtualservice.Generate,
 		telemetry.Generate,

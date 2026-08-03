@@ -59,6 +59,9 @@ status:
     ServiceEntry[badport-egress-56cd7aa901014e78]:
       message: ServiceEntry has finished synchronizing
       status: Synced
+    Sidecar[badport]:
+      message: Sidecar has finished synchronizing
+      status: Synced
     Service[badport]:
       message: >-
         Service Service "badport" is invalid: [spec.ports[0].port: Invalid
