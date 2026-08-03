@@ -78,12 +78,16 @@ func IsExternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
 			return true
 		}
 
-		if err := domain.Check(normalizedHost); err != nil {
+		if err := domain.Check(normalizeWildcardHost(normalizedHost)); err != nil {
 			return false
 		}
 	}
 
 	return true
+}
+
+func normalizeWildcardHost(host string) string {
+	return strings.TrimPrefix(host, "*.")
 }
 
 func GetInternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) metav1.Condition {
