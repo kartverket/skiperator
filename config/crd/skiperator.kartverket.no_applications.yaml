@@ -1346,6 +1346,11 @@ spec:
                     description: |-
                       Retries is configurable automatic retries for requests towards the application.
                       By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.
+
+                      Retries require spec.routingProvider=Legacy. Gateway API serves HTTPRoute
+                      retries only on its experimental channel, which SKIP clusters do not install,
+                      so an Application that asks for both retries and Standard routing is rejected
+                      instead of losing its retry policy.
                     properties:
                       attempts:
                         description: |-
@@ -2285,6 +2290,11 @@ spec:
             - message: extraContainers ingressPort must differ from spec.port
               rule: '!has(self.extraContainers) || self.extraContainers.all(c, !has(c.ingressPort)
                 || c.ingressPort != self.port)'
+            - message: spec.istioSettings.retries is not supported with spec.routingProvider=Standard,
+                since Gateway API serves HTTPRoute retries only on its experimental
+                channel
+              rule: self.routingProvider != 'Standard' || !has(self.istioSettings)
+                || !has(self.istioSettings.retries)
           status:
             description: ApplicationStatus is a specialized status specific to the
               Application kind.

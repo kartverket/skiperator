@@ -70,3 +70,18 @@ spec:
             file: missing-istio-revision.yaml
         - assert:
             file: missing-istio-revision-assert.yaml
+    - try:
+        # Gateway API serves HTTPRoute retries only on its experimental channel,
+        # which SKIP clusters do not install, so the Application CRD rejects
+        # retries together with Standard routing rather than letting the retry
+        # policy be dropped silently.
+        - apply:
+            file: unsupported-retries.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: Application
+                  metadata:
+                    name: unsupported-retries
+                check:
+                  ($error != null): true

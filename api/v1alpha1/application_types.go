@@ -72,6 +72,7 @@ type Application struct {
 // +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, self.extraContainers.filter(x, x.name == c.name).size() == 1)",message="extraContainers names must be unique"
 // +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.filter(c, has(c.ingressPort)).size() <= 1",message="at most one extra container may set ingressPort"
 // +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, !has(c.ingressPort) || c.ingressPort != self.port)",message="extraContainers ingressPort must differ from spec.port"
+// +kubebuilder:validation:XValidation:rule="self.routingProvider != 'Standard' || !has(self.istioSettings) || !has(self.istioSettings.retries)",message="spec.istioSettings.retries is not supported with spec.routingProvider=Standard, since Gateway API serves HTTPRoute retries only on its experimental channel"
 type ApplicationSpec struct {
 	// The image the application will run. This image will be added to a Deployment resource
 	//

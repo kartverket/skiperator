@@ -275,6 +275,12 @@ var retriable5xxCodes = []int{500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 
 const retriable4xxCode = 409
 
 // applyRetries translates Istio retry settings onto a Gateway API rule.
+//
+// Unreachable while the Application CRD refuses retries together with
+// spec.routingProvider=Standard, because Gateway API serves rules[].retry only
+// on its experimental channel. Kept ready for the day retry graduates to the
+// standard channel: drop that CEL rule in api/v1alpha1/application_types.go and
+// this translation takes over. Timeouts are standard channel already.
 // Attempts and status codes become HTTPRouteRetry, and perTryTimeout becomes the
 // per-attempt Timeouts.BackendRequest. Settings that have no Gateway API
 // equivalent are reported through onUnsupportedRetryOption so users can see that

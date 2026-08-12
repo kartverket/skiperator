@@ -1,0 +1,15 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: unsupported-retries
+  namespace: gateway-api-application
+spec:
+  image: image
+  port: 8080
+  routingProvider: Standard
+  ingresses:
+    - unsupported-retries.example.com
+  istioSettings:
+    retries:
+      attempts: 3
+      retryOnHttpResponseCodes: [503]

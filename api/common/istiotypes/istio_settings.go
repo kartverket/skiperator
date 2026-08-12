@@ -36,6 +36,11 @@ type Telemetry struct {
 // Retries is configurable automatic retries for requests towards the application.
 // By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.
 //
+// Retries require spec.routingProvider=Legacy. Gateway API serves HTTPRoute
+// retries only on its experimental channel, which SKIP clusters do not install,
+// so an Application that asks for both retries and Standard routing is rejected
+// instead of losing its retry policy.
+//
 // +kubebuilder:object:generate=true
 type Retries struct {
 	// Attempts is the number of retries to be allowed for a given request before giving up. The interval between retries will be determined automatically (25ms+).

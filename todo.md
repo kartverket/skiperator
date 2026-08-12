@@ -113,13 +113,16 @@ the generators emit — ListenerSet with HTTP and HTTPS listeners, TLS Terminate
       exactly that, so the codes are now sorted and deduplicated.
 - [x] `retry.attempts` gained `Minimum: 1` in 1.6.0. Skiperator defaults to 2 and
       its own `Retries.Attempts` field is already `Minimum=1`, so nothing to do.
-- [ ] **`spec.rules[].retry` is experimental-channel only**, in both 1.5.1 and
-      1.6.0 (`grep -c retry:` over `config/crd/standard` returns 0). The Makefile
-      installs `standard-install.yaml`, so retry translation is silently pruned
-      locally and in CI, and in any cluster on the standard channel. Decide
-      whether SKIP clusters run the experimental channel; if not, retries do not
-      survive the migration and users should be told that instead of having the
-      field quietly dropped.
+- [x] **`spec.rules[].retry` is experimental-channel only**, in both 1.5.1 and
+      1.6.0 (`grep -c retry:` over `config/crd/standard` returns 0). SKIP runs the
+      standard channel, so the field cannot be served: `kubectl` rejects it with
+      `strict decoding error: unknown field "spec.rules[0].retry"`, and a
+      non-strict client has it pruned. The Application CRD now refuses
+      `spec.istioSettings.retries` together with `spec.routingProvider=Standard`
+      via CEL, so the migration is blocked at admission with a message instead of
+      the retry policy disappearing. The translation code in `applyRetries` stays,
+      unreachable, for the day retry graduates to the standard channel — remove
+      the CEL rule then.
 - [ ] 1.6.0 ships a `ValidatingAdmissionPolicy`
       `safe-upgrades.gateway.networking.k8s.io` that refuses experimental CRDs
       installed over standard ones. Switching channels now needs a deliberate
