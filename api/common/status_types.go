@@ -109,12 +109,7 @@ func (s *SkiperatorStatus) SetSummarySynced() {
 }
 
 func (s *SkiperatorStatus) SetSummaryProgressing() {
-	s.Summary.Status = PROGRESSING
-	s.Summary.Message = "Resource is progressing"
-	s.Summary.TimeStamp = metav1.Now().String()
-	if s.Conditions == nil {
-		s.Conditions = make([]metav1.Condition, 0)
-	}
+	s.SetSummaryProgressingMessage("Resource is progressing")
 	s.SubResources = make(map[string]Status)
 	s.AccessPolicies = PENDING
 }
@@ -141,50 +136,33 @@ func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
 	}
 }
 
-func (s *SkiperatorStatus) SetReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+func (s *SkiperatorStatus) setCondition(conditionType string, status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
 	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
-		Type:               ReadyConditionType,
+		Type:               conditionType,
 		Status:             status,
 		ObservedGeneration: observedGeneration,
 		LastTransitionTime: metav1.Now(),
 		Reason:             reason,
 		Message:            message,
 	})
+}
+
+func (s *SkiperatorStatus) SetReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(ReadyConditionType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) SetStandardRoutingReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
-	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
-		Type:               StandardRoutingReadyConditionType,
-		Status:             status,
-		ObservedGeneration: observedGeneration,
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	})
+	s.setCondition(StandardRoutingReadyConditionType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) SetLegacyRoutingActiveCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
-	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
-		Type:               LegacyRoutingActiveConditionType,
-		Status:             status,
-		ObservedGeneration: observedGeneration,
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	})
+	s.setCondition(LegacyRoutingActiveConditionType, status, observedGeneration, reason, message)
 }
 
 // SetSharedRoutingResourcesCondition records whether a Routing depends on
 // shared Gateway API listener, redirect, and certificate resources.
 func (s *SkiperatorStatus) SetSharedRoutingResourcesCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
-	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
-		Type:               SharedRoutingResourcesType,
-		Status:             status,
-		ObservedGeneration: observedGeneration,
-		LastTransitionTime: metav1.Now(),
-		Reason:             reason,
-		Message:            message,
-	})
+	s.setCondition(SharedRoutingResourcesType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {

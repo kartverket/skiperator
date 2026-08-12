@@ -3,6 +3,7 @@ package gwapi
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -114,16 +115,22 @@ func DeleteSharedMembership(ctx context.Context, c client.Client, hostname strin
 	return nil
 }
 
+// SharedRoutingLabels are the labels every shared routing object for a hostname
+// carries, whichever Routing happened to create it.
+func SharedRoutingLabels(hostname string) map[string]string {
+	return map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "routing-shared",
+		"skiperator.kartverket.no/hostname":   fmt.Sprintf("%x", util.GenerateHashFromName(strings.ToLower(hostname))),
+	}
+}
+
 func newMembershipConfigMap(hostname string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: IstioGatewayNamespace,
 			Name:      SharedMembershipName(hostname),
-			Labels: map[string]string{
-				"app.kubernetes.io/managed-by":        "skiperator",
-				"skiperator.kartverket.no/controller": "routing-shared",
-				"skiperator.kartverket.no/hostname":   fmt.Sprintf("%x", util.GenerateHashFromName(hostname)),
-			},
+			Labels:    SharedRoutingLabels(hostname),
 		},
 	}
 }

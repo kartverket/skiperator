@@ -27,13 +27,13 @@ what to cut, and what replaces it.
 
 ## Duplication
 
-- [ ] `api/common/status_types.go` — 4 near-identical `SetXCondition` methods
+- [x] `api/common/status_types.go` — 4 near-identical `SetXCondition` methods
       differing only in `Type`. One private `setCondition` + 4 one-liners.
-- [ ] `api/common/status_types.go` — `SetSummaryProgressingMessage` copies
+- [x] `api/common/status_types.go` — `SetSummaryProgressingMessage` copies
       `SetSummaryProgressing`. Share one setter.
-- [ ] `pkg/resourcegenerator/resourceutils/metadata.go` — shared-routing label
+- [x] `pkg/resourcegenerator/resourceutils/metadata.go` — shared-routing label
       map is also written in `pkg/gwapi/membership.go`. One helper, two callers.
-- [ ] `pkg/metrics/usage/routing_provider.go` — `routingProviderFromObject` +
+- [x] `pkg/metrics/usage/routing_provider.go` — `routingProviderFromObject` +
       `routingProviderOrLegacy` are one lookup with one default. One function.
 
 ## Speculative structure

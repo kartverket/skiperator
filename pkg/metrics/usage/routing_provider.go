@@ -45,7 +45,7 @@ func updateRoutingProviderUsage(ctx context.Context, k client.Client, logger log
 			team:            team,
 			division:        division,
 			kind:            kind,
-			routingProvider: routingProviderOrLegacy(routingProviderFromObject(item)),
+			routingProvider: routingProviderFromObject(item),
 		}
 		counts[key]++
 	})
@@ -61,15 +61,12 @@ func updateRoutingProviderUsage(ctx context.Context, k client.Client, logger log
 	}
 }
 
+// routingProviderFromObject reads spec.routingProvider, defaulting to Legacy for
+// objects written before the field existed.
 func routingProviderFromObject(obj unstructured.Unstructured) string {
 	provider, _, _ := unstructured.NestedString(obj.Object, "spec", "routingProvider")
-	return provider
-}
-
-func routingProviderOrLegacy(provider string) string {
 	if provider == "" {
 		return string(v1alpha1.RoutingProviderLegacy)
 	}
-
 	return provider
 }
