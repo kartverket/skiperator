@@ -69,6 +69,28 @@ what to cut, and what replaces it.
 - [x] `pkg/gwapi/README.md` — 20 lines of prose restate the mermaid state list
       line by line. Keep the legend, cut the walkthrough.
 
+## Retry translation gaps (Application only)
+
+Routing has no retry config in either provider — `Retries` lives on
+`IstioSettingsApplication`, not `RoutingSpec` — so the deleted warn closure was
+unreachable, not a missing feature. The Application path is where Istio retry
+semantics do not survive translation:
+
+- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `perTryTimeout` is
+      reported as unsupported, but Gateway API v1.5.1 expresses it as
+      `HTTPRouteRule.Timeouts.BackendRequest`. Translate it instead of warning.
+- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — legacy always sets
+      `retryOn: connect-failure,refused-stream,unavailable,cancelled`.
+      `HTTPRouteRetry` has only Codes, Attempts, and Backoff, so those
+      conditions are dropped with no warning: standard routing stops retrying
+      connection failures and stream resets while status reports Ready. Verify
+      what Istio's own HTTPRoute retry implementation defaults to, then either
+      document the narrowing or warn on it.
+- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `"5xx"` and
+      `"retriable-4xx"` are valid CRD enum values that `strconv.Atoi` rejects,
+      so they are warned about and dropped. Both expand losslessly into Codes:
+      5xx to 500-511, retriable-4xx to 409.
+
 ## Out of scope, worth doing later
 
 - [ ] `pkg/metrics/usage/` — `forEachRoutableResource` runs once per gauge, so
