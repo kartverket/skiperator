@@ -219,8 +219,9 @@ func redirectRule() gatewayapiv1.HTTPRouteRule {
 
 // backendRule returns one Gateway API HTTPRoute rule for a backend Service.
 // Routing objects may create several such rules, while Application creates one
-// default rule pointing to the Application Service.
-func backendRule(name string, port int32, pathPrefix string, rewrite bool, retries *istiotypes.Retries, onUnsupportedRetryOption unsupportedRetryOptionFunc) (gatewayapiv1.HTTPRouteRule, error) {
+// default rule pointing to the Application Service. Retries are set by the
+// caller, since only Application supports them.
+func backendRule(name string, serviceName string, port int32, pathPrefix string, rewrite bool) gatewayapiv1.HTTPRouteRule {
 	portNumber := gatewayapiv1.PortNumber(port)
 	pathType := gatewayapiv1.PathMatchPathPrefix
 	ruleName := gatewayapiv1.SectionName(name)
@@ -238,7 +239,7 @@ func backendRule(name string, port int32, pathPrefix string, rewrite bool, retri
 			{
 				BackendRef: gatewayapiv1.BackendRef{
 					BackendObjectReference: gatewayapiv1.BackendObjectReference{
-						Name: gatewayapiv1.ObjectName(name),
+						Name: gatewayapiv1.ObjectName(serviceName),
 						Port: &portNumber,
 					},
 				},
@@ -259,12 +260,7 @@ func backendRule(name string, port int32, pathPrefix string, rewrite bool, retri
 			},
 		}
 	}
-	retry, err := retryPolicy(retries, onUnsupportedRetryOption)
-	if err != nil {
-		return gatewayapiv1.HTTPRouteRule{}, err
-	}
-	rule.Retry = retry
-	return rule, nil
+	return rule
 }
 
 // retryPolicy translates the subset of Istio retry settings that Gateway API
@@ -281,7 +277,7 @@ func retryPolicy(retries *istiotypes.Retries, onUnsupportedRetryOption unsupport
 	}
 	policy := &gatewayapiv1.HTTPRouteRetry{Attempts: &attempts}
 
-	if retries.PerTryTimeout != nil && onUnsupportedRetryOption != nil {
+	if retries.PerTryTimeout != nil {
 		onUnsupportedRetryOption("perTryTimeout", retries.PerTryTimeout.Duration.String())
 	}
 
@@ -313,9 +309,7 @@ func retryCode(code intstr.IntOrString, onUnsupportedRetryOption unsupportedRetr
 	}
 	value, err := strconv.Atoi(code.StrVal)
 	if err != nil {
-		if onUnsupportedRetryOption != nil {
-			onUnsupportedRetryOption("retryOnHttpResponseCodes", code.StrVal)
-		}
+		onUnsupportedRetryOption("retryOnHttpResponseCodes", code.StrVal)
 		return 0, false, nil
 	}
 	value, err = validateRetryCode(value)

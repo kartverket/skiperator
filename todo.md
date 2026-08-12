@@ -21,7 +21,7 @@ what to cut, and what replaces it.
       tail.
 - [x] `pkg/k8sfeatures/crd.go` — `crd == nil` after `err == nil` is
       unreachable. Delete.
-- [ ] `pkg/resourcegenerator/gatewayapi/routing.go` — the warn closure passed to
+- [x] `pkg/resourcegenerator/gatewayapi/routing.go` — the warn closure passed to
       `backendRule` can never fire: Routing passes `retries: nil` and
       `retryPolicy` returns early on nil. Delete.
 
@@ -51,13 +51,13 @@ what to cut, and what replaces it.
 - [ ] `pkg/gwapi/routable.go` — `legacyRoutable` exists only to be embedded in
       `routablePlanner`, and both concrete types already have its two methods.
       Fold into `Routable`.
-- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` —
+- [x] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` —
       `unsupportedRetryOptionFunc` is threaded 3 levels deep with `!= nil`
       guards for one real caller. Pass the logger instead.
 
 ## Small stuff
 
-- [ ] `pkg/resourcegenerator/gatewayapi/application.go` — `backendRule` is called
+- [x] `pkg/resourcegenerator/gatewayapi/application.go` — `backendRule` is called
       with a placeholder rule name, then `BackendRefs[0].Name` is overwritten.
       Pass the service name in.
 - [ ] `internal/controllers/routing.go` — `SetSubresourceDefaults(resources, …)`

@@ -56,13 +56,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 
 	rules := make([]gatewayapiv1.HTTPRouteRule, 0, len(routing.Spec.Routes))
 	for _, route := range routing.Spec.Routes {
-		rule, err := backendRule(route.TargetApp, route.Port, route.PathPrefix, route.RewriteUri, nil, func(field string, value string) {
-			ctxLog.Warn("Ignoring unsupported Gateway API retry option", "kind", "Routing", "namespace", routing.Namespace, "name", routing.Name, "field", field, "value", value)
-		})
-		if err != nil {
-			return err
-		}
-		rules = append(rules, rule)
+		rules = append(rules, backendRule(route.TargetApp, route.TargetApp, route.Port, route.PathPrefix, route.RewriteUri))
 	}
 
 	r.AddResource(newBackendRoute(routing.Namespace, routePrefix, listenerSetNamespace, listenerSetNames, hostnames, rules))

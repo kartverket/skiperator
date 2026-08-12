@@ -40,13 +40,13 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		r.AddResource(newRedirectRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames))
 	}
 
-	backend, err := backendRule("default-app-route", int32(application.Spec.Port), "/", false, applicationRetries(application), func(field string, value string) {
+	backend := backendRule("default-app-route", application.Name, int32(application.Spec.Port), "/", false)
+	backend.Retry, err = retryPolicy(applicationRetries(application), func(field string, value string) {
 		ctxLog.Warn("Ignoring unsupported Gateway API retry option", "kind", "Application", "namespace", application.Namespace, "name", application.Name, "field", field, "value", value)
 	})
 	if err != nil {
 		return err
 	}
-	backend.BackendRefs[0].Name = gatewayapiv1.ObjectName(application.Name)
 
 	r.AddResource(newBackendRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames, []gatewayapiv1.HTTPRouteRule{backend}))
 
