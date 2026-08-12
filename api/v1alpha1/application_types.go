@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hash/fnv"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -489,7 +489,7 @@ func (a *Application) Hostnames() (common.HostCollection, error) {
 // GetGatewayName returns the legacy Istio Gateway resource name for a hostname.
 // This does not refer to a Kubernetes Gateway API Gateway.
 func (a *Application) GetGatewayName(hostname string) string {
-	return fmt.Sprintf("%s-ingress-%x", a.Name, hashHostname(hostname))
+	return fmt.Sprintf("%s-ingress-%x", a.Name, util.GenerateHashFromName(hostname))
 }
 
 func (a *Application) GetGatewayNames() ([]string, error) {
@@ -513,13 +513,7 @@ func (a *Application) GetCertificateName(host *common.Host) (string, error) {
 	if host.UsesCustomCert() {
 		return *host.CustomCertificateSecret, nil
 	}
-	return fmt.Sprintf("%s-%s-ingress-%x", a.Namespace, a.Name, hashHostname(host.Hostname)), nil
-}
-
-func hashHostname(hostname string) uint64 {
-	hash := fnv.New64()
-	_, _ = hash.Write([]byte(hostname))
-	return hash.Sum64()
+	return fmt.Sprintf("%s-%s-ingress-%x", a.Namespace, a.Name, util.GenerateHashFromName(host.Hostname)), nil
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.
