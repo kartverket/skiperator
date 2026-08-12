@@ -151,24 +151,13 @@ func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj common.SKIPO
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
 	skipObj.GetStatus().SetReadyCondition(metav1.ConditionFalse, skipObj.GetGeneration(), reason, message+": "+err.Error())
-	r.updateStatus(ctx, skipObj)
+	r.UpdateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
 	skipObj.GetStatus().SetReadyCondition(metav1.ConditionUnknown, skipObj.GetGeneration(), "Reconciling", message)
-	r.updateStatus(ctx, skipObj)
-}
-
-func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
-	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
-	skipObj.GetStatus().SetSummarySynced()
-	skipObj.GetStatus().SetReadyCondition(metav1.ConditionTrue, skipObj.GetGeneration(), "Reconciled", message)
-	r.updateStatus(ctx, skipObj)
-}
-
-func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	r.UpdateStatus(ctx, skipObj)
 }
 

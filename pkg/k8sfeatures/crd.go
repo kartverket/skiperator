@@ -31,9 +31,6 @@ func CheckCRDPresent(ctx context.Context, client apiextensionsclient.Interface, 
 	if err != nil {
 		return fmt.Errorf("missing CRD %q: %w", name, err)
 	}
-	if crd == nil {
-		return fmt.Errorf("missing CRD %q", name)
-	}
 
 	missingVersions := make([]string, 0)
 	for _, requiredVersion := range versions {

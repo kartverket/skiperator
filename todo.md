@@ -11,15 +11,15 @@ what to cut, and what replaces it.
 
 ## Dead code
 
-- [ ] `internal/controllers/common/reconciler.go` — `SetSyncedState` has no
+- [x] `internal/controllers/common/reconciler.go` — `SetSyncedState` has no
       callers left; `skipjob.go` inlined it. Delete.
-- [ ] `internal/controllers/common/reconciler.go` — private `updateStatus` is a
+- [x] `internal/controllers/common/reconciler.go` — private `updateStatus` is a
       pass-through to `UpdateStatus`. Delete, call `UpdateStatus` at the 3 sites.
-- [ ] `internal/controllers/common/util.go` — `SetReadyCondition`,
+- [x] `internal/controllers/common/util.go` — `SetReadyCondition`,
       `SetReadyInvalidConfig`, `SetReadyReconciled` return `[]metav1.Condition`
       that no caller reads. Drop the return type and the `FindStatusCondition`
       tail.
-- [ ] `pkg/k8sfeatures/crd.go` — `crd == nil` after `err == nil` is
+- [x] `pkg/k8sfeatures/crd.go` — `crd == nil` after `err == nil` is
       unreachable. Delete.
 - [ ] `pkg/resourcegenerator/gatewayapi/routing.go` — the warn closure passed to
       `backendRule` can never fire: Routing passes `retries: nil` and

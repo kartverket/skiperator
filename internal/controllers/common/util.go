@@ -133,12 +133,12 @@ func SetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionSta
 	meta.SetStatusCondition(&obj.GetStatus().Conditions, GetExternalRulesCondition(obj, status))
 }
 
-func SetReadyInvalidConfig(obj common.SKIPObject, message string) []metav1.Condition {
-	return SetReadyCondition(obj, metav1.ConditionFalse, "InvalidConfig", message)
+func SetReadyInvalidConfig(obj common.SKIPObject, message string) {
+	obj.GetStatus().SetReadyCondition(metav1.ConditionFalse, obj.GetGeneration(), "InvalidConfig", message)
 }
 
-func SetReadyReconciled(obj common.SKIPObject, message string) []metav1.Condition {
-	return SetReadyCondition(obj, metav1.ConditionTrue, "Reconciled", message)
+func SetReadyReconciled(obj common.SKIPObject, message string) {
+	obj.GetStatus().SetReadyCondition(metav1.ConditionTrue, obj.GetGeneration(), "Reconciled", message)
 }
 
 func ClearGatewayAPIConditions(obj common.SKIPObject) {
@@ -148,15 +148,6 @@ func ClearGatewayAPIConditions(obj common.SKIPObject) {
 	// Drop the migration clock too, so switching back to legacy does not leave
 	// a stale start time that mis-seeds a future migration as already stalled.
 	obj.GetStatus().MigrationStartedAt = nil
-}
-
-func SetReadyCondition(obj common.SKIPObject, status metav1.ConditionStatus, reason string, message string) []metav1.Condition {
-	obj.GetStatus().SetReadyCondition(status, obj.GetGeneration(), reason, message)
-	readyCondition := meta.FindStatusCondition(obj.GetStatus().Conditions, common.ReadyConditionType)
-	if readyCondition == nil {
-		return nil
-	}
-	return []metav1.Condition{*readyCondition}
 }
 
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
