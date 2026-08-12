@@ -14,9 +14,8 @@ import (
 // of gwapi stays type-agnostic. Adding a new routable kind means adding one
 // planner and one case in plannerFor, touching nothing else.
 type routablePlanner interface {
-	// legacyRoutable supplies the legacy Istio resources to probe during
-	// migration; satisfied by the embedded concrete object.
-	legacyRoutable
+	// Routable is satisfied by the embedded concrete object.
+	Routable
 	// readinessPlan resolves all standard-routing probe targets without any
 	// cluster I/O (the pure Plan stage).
 	readinessPlan() (readinessPlan, error)

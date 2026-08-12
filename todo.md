@@ -38,17 +38,19 @@ what to cut, and what replaces it.
 
 ## Speculative structure
 
-- [ ] `pkg/gwapi/migration.go` — the 6-value `routingState` enum has 4 values
-      (`LegacyOnly`, `GreenfieldPending`, `CutoverReadyPruneLegacy`,
-      `StandardOnly`) that nothing reads, in code or tests. Behaviour needs one
-      bit: stalled or not. The 6 names stay in the README for humans.
-- [ ] `pkg/gwapi/readiness.go` — `legacyResourceExists` wraps one `Get` in
-      `retry.OnError`. The function returns the error and both controllers
-      requeue on it, so the requeue is the retry. Delete the wrapper.
-- [ ] `pkg/gwapi/readiness.go` — the 5 probe helpers build success messages with
+- [x] `pkg/gwapi/migration.go` — the 6-value `routingState` enum collapsed to
+      one `stalled` bool. Only 2 of the 6 values drove behaviour; the migration
+      tests now build state through `determineRoutingState` instead of
+      hand-writing result literals, which also removes literals for states the
+      function cannot produce. The 6 names stay in the README for humans.
+- [~] `pkg/gwapi/readiness.go` — `legacyResourceExists` wraps one `Get` in
+      `retry.OnError`. Rejected: a requeue is not a free retry here, it first
+      writes Ready=False plus a warning event for a blip. Kept, with the reason
+      as a comment.
+- [x] `pkg/gwapi/readiness.go` — the 5 probe helpers build success messages with
       `fmt.Sprintf` that `observeReadiness` throws away. Return
       `Readiness{Ready: true}`.
-- [ ] `pkg/gwapi/routable.go` — `legacyRoutable` exists only to be embedded in
+- [x] `pkg/gwapi/routable.go` — `legacyRoutable` exists only to be embedded in
       `routablePlanner`, and both concrete types already have its two methods.
       Fold into `Routable`.
 - [x] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` —

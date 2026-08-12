@@ -9,16 +9,13 @@ import (
 )
 
 // Routable is the small shared contract Application and Routing expose to
-// Gateway API support code.
+// Gateway API support code. The two legacy getters supply the Istio resources
+// to probe during migration.
 type Routable interface {
 	client.Object
 	UsesStandardRouting() bool
 	Hostnames() (common.HostCollection, error)
 	GetCertificateName(*common.Host) (string, error)
-}
-
-type legacyRoutable interface {
-	client.Object
 	GetVirtualServiceName() string
 	GetGatewayNames() ([]string, error)
 }

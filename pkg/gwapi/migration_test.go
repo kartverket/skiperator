@@ -14,11 +14,7 @@ import (
 func TestUpdateRoutingStatusTracksLegacyRoutingAndMigration(t *testing.T) {
 	status := &commontypes.SkiperatorStatus{}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: true,
-		Readiness:             Readiness{Message: "waiting"},
-		state:                 routingStateMigratingWithFallback,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(true, Readiness{Message: "waiting"}, true, nil))
 
 	require.Len(t, events, 1)
 	assert.Equal(t, "GatewayAPIMigrationStarted", events[0].Reason)
@@ -37,11 +33,7 @@ func TestUpdateRoutingStatusMarksStalledMigration(t *testing.T) {
 	started := metav1.NewTime(time.Now().Add(-11 * time.Minute))
 	status := &commontypes.SkiperatorStatus{MigrationStartedAt: &started}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: true,
-		Readiness:             Readiness{Message: "waiting"},
-		state:                 routingStateMigrationStalled,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(true, Readiness{Message: "waiting"}, true, &started))
 
 	require.Len(t, events, 1)
 	assert.True(t, events[0].Warning)
@@ -55,11 +47,7 @@ func TestUpdateRoutingStatusClearsMigrationWhenReady(t *testing.T) {
 	started := metav1.NewTime(time.Now().Add(-11 * time.Minute))
 	status := &commontypes.SkiperatorStatus{MigrationStartedAt: &started}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: false,
-		Readiness:             Readiness{Ready: true, Message: "ready"},
-		state:                 routingStateStandardOnly,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(true, Readiness{Ready: true, Message: "ready"}, false, &started))
 
 	require.Len(t, events, 1)
 	assert.Equal(t, "GatewayAPIMigrationFinished", events[0].Reason)
@@ -73,11 +61,7 @@ func TestUpdateRoutingStatusClearsMigrationWhenReady(t *testing.T) {
 func TestUpdateRoutingStatusSkipsMigrationEventsForGreenfield(t *testing.T) {
 	status := &commontypes.SkiperatorStatus{}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: false,
-		Readiness:             Readiness{Message: "waiting"},
-		state:                 routingStateGreenfieldPending,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(true, Readiness{Message: "waiting"}, false, nil))
 
 	assert.Empty(t, events)
 	assert.Nil(t, status.MigrationStartedAt)
@@ -86,11 +70,7 @@ func TestUpdateRoutingStatusSkipsMigrationEventsForGreenfield(t *testing.T) {
 func TestUpdateRoutingStatusDoesNotStartMigrationForLegacyOnly(t *testing.T) {
 	status := &commontypes.SkiperatorStatus{}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: true,
-		Readiness:             Readiness{Message: "using only official Istio APIs"},
-		state:                 routingStateLegacyOnly,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(false, Readiness{}, true, nil))
 
 	assert.Empty(t, events)
 	assert.Nil(t, status.MigrationStartedAt)
@@ -109,11 +89,7 @@ func TestUpdateRoutingStatusEmitsStalledEventOnce(t *testing.T) {
 		},
 	}
 
-	events := UpdateRoutingStatus(status, 1, RoutingStateResult{
-		GenerateLegacyRouting: true,
-		Readiness:             Readiness{Message: "waiting"},
-		state:                 routingStateMigrationStalled,
-	})
+	events := UpdateRoutingStatus(status, 1, determineRoutingState(true, Readiness{Message: "waiting"}, true, &started))
 
 	assert.Empty(t, events)
 }

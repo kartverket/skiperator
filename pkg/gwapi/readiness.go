@@ -59,7 +59,7 @@ type readinessPlan struct {
 // present. A non-NotFound API error is returned rather than swallowed: a
 // transient error must not be read as "legacy absent", or the migration state
 // machine would prune legacy routing while standard routing is not yet ready.
-func legacyRoutingExists(ctx context.Context, c client.Client, routable legacyRoutable) (bool, error) {
+func legacyRoutingExists(ctx context.Context, c client.Client, routable Routable) (bool, error) {
 	virtualService := &istionetworkingv1.VirtualService{}
 	exists, err := legacyResourceExists(ctx, c, types.NamespacedName{Namespace: routable.GetNamespace(), Name: routable.GetVirtualServiceName()}, virtualService)
 	if err != nil {
@@ -87,6 +87,8 @@ func legacyRoutingExists(ctx context.Context, c client.Client, routable legacyRo
 }
 
 func legacyResourceExists(ctx context.Context, c client.Client, key types.NamespacedName, obj client.Object) (bool, error) {
+	// Retried in-line, not via reconciler requeue: a requeue would first write a
+	// user-visible Ready=False and a warning event for what is a blip.
 	err := retry.OnError(retry.DefaultRetry, func(err error) bool {
 		return !apierrors.IsNotFound(err)
 	}, func() error {
@@ -204,7 +206,7 @@ func managedCertificateReady(ctx context.Context, c client.Client, namespace str
 	}
 	for _, condition := range certificate.Status.Conditions {
 		if condition.Type == certmanagerv1.CertificateConditionReady && condition.Status == certmanagermetav1.ConditionTrue {
-			return Readiness{Ready: true, Message: fmt.Sprintf("Certificate %s/%s is ready", namespace, name)}
+			return Readiness{Ready: true}
 		}
 	}
 	return Readiness{Message: fmt.Sprintf("waiting for Certificate %s/%s Ready=True", namespace, name)}
@@ -224,7 +226,7 @@ func tlsSecretReady(ctx context.Context, c client.Client, namespace string, name
 	if len(secret.Data[corev1.TLSCertKey]) == 0 || len(secret.Data[corev1.TLSPrivateKeyKey]) == 0 {
 		return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s tls.crt and tls.key", namespace, name)}
 	}
-	return Readiness{Ready: true, Message: fmt.Sprintf("Secret %s/%s is ready", namespace, name)}
+	return Readiness{Ready: true}
 }
 
 func listenerSetReady(ctx context.Context, c client.Client, namespace string, name string) Readiness {
@@ -263,7 +265,7 @@ func listenerSetReady(ctx context.Context, c client.Client, namespace string, na
 			return Readiness{Message: fmt.Sprintf("waiting for ListenerSet %s/%s listener %s ResolvedRefs=True", namespace, name, listener.Name)}
 		}
 	}
-	return Readiness{Ready: true, Message: fmt.Sprintf("ListenerSet %s/%s is ready", namespace, name)}
+	return Readiness{Ready: true}
 }
 
 func parentGatewayReady(ctx context.Context, c client.Client, listenerSet *gatewayapiv1.ListenerSet) Readiness {
@@ -283,7 +285,7 @@ func parentGatewayReady(ctx context.Context, c client.Client, listenerSet *gatew
 	if !meta.IsStatusConditionTrue(gateway.Status.Conditions, string(gatewayapiv1.GatewayConditionProgrammed)) {
 		return Readiness{Message: fmt.Sprintf("parent Gateway %s/%s is not yet programmed", namespace, name)}
 	}
-	return Readiness{Ready: true, Message: fmt.Sprintf("parent Gateway %s/%s is ready", namespace, name)}
+	return Readiness{Ready: true}
 }
 
 func httpRouteReady(ctx context.Context, c client.Client, namespace string, name string) Readiness {
@@ -305,5 +307,5 @@ func httpRouteReady(ctx context.Context, c client.Client, namespace string, name
 			return Readiness{Message: fmt.Sprintf("waiting for HTTPRoute %s/%s ResolvedRefs=True", namespace, name)}
 		}
 	}
-	return Readiness{Ready: true, Message: fmt.Sprintf("HTTPRoute %s/%s is ready", namespace, name)}
+	return Readiness{Ready: true}
 }

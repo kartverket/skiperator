@@ -21,16 +21,7 @@ const (
 	migrationStalledEventReason  = "GatewayAPIMigrationStalled"
 
 	migrationStalledAfter = 10 * time.Minute
-
-	routingStateLegacyOnly              routingState = "LegacyOnly"
-	routingStateGreenfieldPending       routingState = "GreenfieldPending"
-	routingStateMigratingWithFallback   routingState = "MigratingWithFallback"
-	routingStateMigrationStalled        routingState = "MigrationStalled"
-	routingStateCutoverReadyPruneLegacy routingState = "CutoverReadyPruneLegacy"
-	routingStateStandardOnly            routingState = "StandardOnly"
 )
-
-type routingState string
 
 // MigrationEvent describes a Kubernetes Event the reconciler should emit when
 // a standard-routing migration starts, finishes, or stalls.
@@ -42,63 +33,38 @@ type MigrationEvent struct {
 
 // RoutingStateResult is the state machine output consumed by reconcilers.
 //
-// State itself is intentionally package-private. Callers should make decisions
-// from GenerateLegacyRouting and Readiness, while this package owns how states
-// map to Skiperator status conditions and events.
+// Callers make decisions from GenerateLegacyRouting and Readiness, while this
+// package owns how the state maps to Skiperator status conditions and events.
+// See README.md for the named states this collapses to.
 type RoutingStateResult struct {
 	GenerateLegacyRouting bool
 	Readiness             Readiness
-	state                 routingState
+	// stalled means legacy fallback has stayed active past the deadline.
+	stalled bool
 }
 
 // determineRoutingState turns provider choice, standard-routing readiness, and
 // existing legacy resources into one migration state.
 //
-// The order matters. A ready standard route with legacy resources means cutover
-// is safe and legacy can be pruned. A not-ready standard route with legacy
-// resources means fallback must stay. A not-ready standard route with no legacy
-// resources is a greenfield rollout, so generating legacy resources would create
-// an unintended second routing provider.
+// The order matters. A ready standard route means cutover is safe and legacy can
+// be pruned. A not-ready standard route with no legacy resources is a greenfield
+// rollout, so generating legacy resources would create an unintended second
+// routing provider. Only a not-ready standard route with legacy resources keeps
+// the fallback, and that is the case the migration clock applies to.
 func determineRoutingState(usesStandardRouting bool, ready Readiness, legacyRoutingExists bool, migrationStartedAt *metav1.Time) RoutingStateResult {
 	if !usesStandardRouting {
 		return RoutingStateResult{
 			GenerateLegacyRouting: true,
 			Readiness:             Readiness{Ready: true, Message: "using only official Istio APIs"},
-			state:                 routingStateLegacyOnly,
 		}
 	}
-	if ready.Ready && legacyRoutingExists {
-		return RoutingStateResult{
-			GenerateLegacyRouting: false,
-			Readiness:             ready,
-			state:                 routingStateCutoverReadyPruneLegacy,
-		}
-	}
-	if ready.Ready {
-		return RoutingStateResult{
-			GenerateLegacyRouting: false,
-			Readiness:             ready,
-			state:                 routingStateStandardOnly,
-		}
-	}
-	if !legacyRoutingExists {
-		return RoutingStateResult{
-			GenerateLegacyRouting: false,
-			Readiness:             ready,
-			state:                 routingStateGreenfieldPending,
-		}
-	}
-	if migrationStartedAt != nil && time.Since(migrationStartedAt.Time) > migrationStalledAfter {
-		return RoutingStateResult{
-			GenerateLegacyRouting: true,
-			Readiness:             ready,
-			state:                 routingStateMigrationStalled,
-		}
+	if ready.Ready || !legacyRoutingExists {
+		return RoutingStateResult{Readiness: ready}
 	}
 	return RoutingStateResult{
 		GenerateLegacyRouting: true,
 		Readiness:             ready,
-		state:                 routingStateMigratingWithFallback,
+		stalled:               migrationStartedAt != nil && time.Since(migrationStartedAt.Time) > migrationStalledAfter,
 	}
 }
 
@@ -123,11 +89,13 @@ func UpdateRoutingStatus(status *commontypes.SkiperatorStatus, generation int64,
 		return migrationEvents(previous, status, state.GenerateLegacyRouting)
 	}
 
-	if state.state == routingStateMigratingWithFallback && status.MigrationStartedAt == nil {
+	// Legacy fallback active while standard routing is not ready: the migration
+	// clock runs. A stalled migration always has a start time already.
+	if state.GenerateLegacyRouting && status.MigrationStartedAt == nil {
 		status.MigrationStartedAt = new(metav1.Now())
 	}
 	reason := standardRoutingNotReadyReason
-	if state.state == routingStateMigrationStalled {
+	if state.stalled {
 		reason = migrationStalledReason
 	}
 	status.SetReadyCondition(metav1.ConditionFalse, generation, reason, state.Readiness.Message)
