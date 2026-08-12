@@ -76,20 +76,21 @@ Routing has no retry config in either provider — `Retries` lives on
 unreachable, not a missing feature. The Application path is where Istio retry
 semantics do not survive translation:
 
-- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `perTryTimeout` is
-      reported as unsupported, but Gateway API v1.5.1 expresses it as
-      `HTTPRouteRule.Timeouts.BackendRequest`. Translate it instead of warning.
-- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — legacy always sets
+- [x] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `perTryTimeout` now
+      becomes `HTTPRouteRule.Timeouts.BackendRequest`. The warning remains only
+      for durations GEP-2257 cannot express, such as sub-millisecond ones.
+      `sigs.k8s.io/gateway-api/pkg/utils` has a GEP-2257 formatter but it is
+      `package main`, so `gatewayAPIDuration` is local.
+- [ ] **Needs a decision.** `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — legacy always sets
       `retryOn: connect-failure,refused-stream,unavailable,cancelled`.
       `HTTPRouteRetry` has only Codes, Attempts, and Backoff, so those
       conditions are dropped with no warning: standard routing stops retrying
       connection failures and stream resets while status reports Ready. Verify
       what Istio's own HTTPRoute retry implementation defaults to, then either
       document the narrowing or warn on it.
-- [ ] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `"5xx"` and
-      `"retriable-4xx"` are valid CRD enum values that `strconv.Atoi` rejects,
-      so they are warned about and dropped. Both expand losslessly into Codes:
-      5xx to 500-511, retriable-4xx to 409.
+- [x] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `"5xx"` and
+      `"retriable-4xx"` now expand into explicit Codes instead of being warned
+      about and dropped.
 
 ## Out of scope, worth doing later
 

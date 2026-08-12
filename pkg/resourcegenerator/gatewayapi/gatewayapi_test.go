@@ -234,16 +234,18 @@ func TestRoutingSharedOwnershipUsesSharedListenerSet(t *testing.T) {
 	assert.Equal(t, []gatewayapiv1.Hostname{"api.example.com"}, route.Spec.Hostnames)
 }
 
-func TestRetryPolicySkipsUnsupportedStringCodes(t *testing.T) {
+func TestApplyRetriesExpandsStringCodeShorthands(t *testing.T) {
 	codes := []intstr.IntOrString{
 		intstr.FromString("5xx"),
 		intstr.FromString("retriable-4xx"),
 		intstr.FromInt32(503),
+		intstr.FromString("teapot"),
 	}
 	attempts := int32(4)
 	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
 
-	retry, err := retryPolicy(&istiotypes.Retries{
+	err := applyRetries(&rule, &istiotypes.Retries{
 		Attempts:                 &attempts,
 		RetryOnHttpResponseCodes: &codes,
 	}, func(field string, value string) {
@@ -251,24 +253,63 @@ func TestRetryPolicySkipsUnsupportedStringCodes(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	require.NotNil(t, retry)
-	require.Equal(t, 4, *retry.Attempts)
-	require.Equal(t, []gatewayapiv1.HTTPRouteRetryStatusCode{503}, retry.Codes)
-	require.Equal(t, []string{"5xx", "retriable-4xx"}, unsupportedOptions["retryOnHttpResponseCodes"])
+	require.NotNil(t, rule.Retry)
+	require.Equal(t, 4, *rule.Retry.Attempts)
+	require.Equal(t, []gatewayapiv1.HTTPRouteRetryStatusCode{
+		500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511, 409, 503,
+	}, rule.Retry.Codes)
+	require.Equal(t, []string{"teapot"}, unsupportedOptions["retryOnHttpResponseCodes"])
 }
 
-func TestRetryPolicyDoesNotMapPerTryTimeoutToBackoff(t *testing.T) {
+func TestApplyRetriesMapsPerTryTimeoutToBackendRequest(t *testing.T) {
 	timeout := metav1.Duration{Duration: 500 * time.Millisecond}
 	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
 
-	retry, err := retryPolicy(&istiotypes.Retries{PerTryTimeout: &timeout}, func(field string, value string) {
+	err := applyRetries(&rule, &istiotypes.Retries{PerTryTimeout: &timeout}, func(field string, value string) {
 		unsupportedOptions[field] = append(unsupportedOptions[field], value)
 	})
 
 	require.NoError(t, err)
-	require.NotNil(t, retry)
-	require.Nil(t, retry.Backoff)
-	require.Equal(t, []string{"500ms"}, unsupportedOptions["perTryTimeout"])
+	require.NotNil(t, rule.Timeouts)
+	require.Equal(t, gatewayapiv1.Duration("500ms"), *rule.Timeouts.BackendRequest)
+	require.Nil(t, rule.Retry.Backoff)
+	require.Empty(t, unsupportedOptions)
+}
+
+func TestApplyRetriesReportsInexpressiblePerTryTimeout(t *testing.T) {
+	timeout := metav1.Duration{Duration: 500 * time.Microsecond}
+	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
+
+	err := applyRetries(&rule, &istiotypes.Retries{PerTryTimeout: &timeout}, func(field string, value string) {
+		unsupportedOptions[field] = append(unsupportedOptions[field], value)
+	})
+
+	require.NoError(t, err)
+	require.Nil(t, rule.Timeouts)
+	require.Equal(t, []string{"500\u00b5s"}, unsupportedOptions["perTryTimeout"])
+}
+
+func TestGatewayAPIDuration(t *testing.T) {
+	for _, tc := range []struct {
+		duration time.Duration
+		expected gatewayapiv1.Duration
+	}{
+		{500 * time.Millisecond, "500ms"},
+		{time.Minute, "1m"},
+		{90 * time.Second, "1m30s"},
+		{time.Hour + 2*time.Minute + 3*time.Second + 4*time.Millisecond, "1h2m3s4ms"},
+	} {
+		got, err := gatewayAPIDuration(tc.duration)
+		require.NoError(t, err)
+		require.Equal(t, tc.expected, got)
+	}
+
+	for _, invalid := range []time.Duration{0, -time.Second, 100 * time.Microsecond} {
+		_, err := gatewayAPIDuration(invalid)
+		require.Error(t, err)
+	}
 }
 
 func skiperatorv1alpha1Bool(value bool) *bool {
