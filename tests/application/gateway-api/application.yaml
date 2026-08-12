@@ -9,10 +9,3 @@ spec:
   ingresses:
     - standard.example.com
   redirectToHTTPS: true
-  istioSettings:
-    retries:
-      attempts: 4
-      perTryTimeout: 2s
-      retryOnHttpResponseCodes:
-        - 503
-        - "504"
