@@ -2,6 +2,7 @@ package gatewayapi
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -313,6 +314,11 @@ func applyRetries(rule *gatewayapiv1.HTTPRouteRule, retries *istiotypes.Retries,
 			codes = append(codes, gatewayapiv1.HTTPRouteRetryStatusCode(value))
 		}
 	}
+	// retry.codes is listType=set from Gateway API 1.6, so duplicates are
+	// rejected by the API server. Expanding "5xx" next to an explicit 503 is a
+	// realistic way to produce them.
+	slices.Sort(codes)
+	codes = slices.Compact(codes)
 	if len(codes) > 0 {
 		rule.Retry.Codes = codes
 	}

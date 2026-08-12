@@ -81,13 +81,14 @@ semantics do not survive translation:
       for durations GEP-2257 cannot express, such as sub-millisecond ones.
       `sigs.k8s.io/gateway-api/pkg/utils` has a GEP-2257 formatter but it is
       `package main`, so `gatewayAPIDuration` is local.
-- [ ] **Needs a decision.** `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — legacy always sets
-      `retryOn: connect-failure,refused-stream,unavailable,cancelled`.
-      `HTTPRouteRetry` has only Codes, Attempts, and Backoff, so those
-      conditions are dropped with no warning: standard routing stops retrying
-      connection failures and stream resets while status reports Ready. Verify
-      what Istio's own HTTPRoute retry implementation defaults to, then either
-      document the narrowing or warn on it.
+- [x] Retry conditions: verified, no gap. Istio 1.30.3 programs
+      `retryOn: connect-failure,refused-stream,unavailable,cancelled,retriable-status-codes`
+      for a Gateway API HTTPRoute retry — the same condition set the legacy
+      VirtualService generator writes. `timeouts.backendRequest: 500ms` becomes
+      Envoy `perTryTimeout: 0.500s`, and `retry.codes` becomes
+      `retriableStatusCodes`. Measured on kind with Gateway API 1.6.0
+      experimental CRDs, reading `istioctl proxy-config route` on the
+      istio-external gateway pod. No warning needed.
 - [x] `pkg/resourcegenerator/gatewayapi/gatewayapi.go` — `"5xx"` and
       `"retriable-4xx"` now expand into explicit Codes instead of being warned
       about and dropped.
@@ -97,3 +98,29 @@ semantics do not survive translation:
 - [ ] `pkg/metrics/usage/` — `forEachRoutableResource` runs once per gauge, so
       each tick does 2 namespace lists and 4 CR lists. One sweep feeding both
       gauges is the same code and half the API load.
+
+## Gateway API 1.6.0 readiness
+
+Checked against 1.6.0 experimental CRDs on the local kind cluster. Every shape
+the generators emit — ListenerSet with HTTP and HTTPS listeners, TLS Terminate,
+`allowedRoutes` Same and All, the 308 redirect route, and the backend route with
+`retry`, `timeouts`, and URLRewrite — passes a server-side dry run unchanged.
+
+- [x] `retry.codes` is `listType=set` from 1.6.0
+      ([PR #4907](https://github.com/kubernetes-sigs/gateway-api/pull/4907)), so
+      duplicates are rejected: `.spec.rules[0].retry.codes: duplicate entries
+      for key [=503]`. Expanding `"5xx"` next to an explicit `503` produced
+      exactly that, so the codes are now sorted and deduplicated.
+- [x] `retry.attempts` gained `Minimum: 1` in 1.6.0. Skiperator defaults to 2 and
+      its own `Retries.Attempts` field is already `Minimum=1`, so nothing to do.
+- [ ] **`spec.rules[].retry` is experimental-channel only**, in both 1.5.1 and
+      1.6.0 (`grep -c retry:` over `config/crd/standard` returns 0). The Makefile
+      installs `standard-install.yaml`, so retry translation is silently pruned
+      locally and in CI, and in any cluster on the standard channel. Decide
+      whether SKIP clusters run the experimental channel; if not, retries do not
+      survive the migration and users should be told that instead of having the
+      field quietly dropped.
+- [ ] 1.6.0 ships a `ValidatingAdmissionPolicy`
+      `safe-upgrades.gateway.networking.k8s.io` that refuses experimental CRDs
+      installed over standard ones. Switching channels now needs a deliberate
+      uninstall of that policy, which belongs in the migration runbook.

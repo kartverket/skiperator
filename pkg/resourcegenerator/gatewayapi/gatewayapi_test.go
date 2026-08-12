@@ -255,8 +255,10 @@ func TestApplyRetriesExpandsStringCodeShorthands(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rule.Retry)
 	require.Equal(t, 4, *rule.Retry.Attempts)
+	// Sorted and deduplicated: retry.codes is listType=set from Gateway API 1.6,
+	// and "5xx" already covers the explicit 503.
 	require.Equal(t, []gatewayapiv1.HTTPRouteRetryStatusCode{
-		500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511, 409, 503,
+		409, 500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
 	}, rule.Retry.Codes)
 	require.Equal(t, []string{"teapot"}, unsupportedOptions["retryOnHttpResponseCodes"])
 }
