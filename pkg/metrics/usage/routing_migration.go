@@ -1,13 +1,9 @@
 package usage
 
 import (
-	"context"
-
 	commontypes "github.com/kartverket/skiperator/api/common"
-	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type routingMigrationMetricKey struct {
@@ -26,13 +22,13 @@ func init() {
 	registerGaugeVecFunc(metadata, labels, updateRoutingMigrationStalled)
 }
 
-func updateRoutingMigrationStalled(ctx context.Context, k client.Client, logger log.Logger, currentGauge *prometheus.GaugeVec) {
+func updateRoutingMigrationStalled(usage clusterUsage, currentGauge *prometheus.GaugeVec) {
 	counts := make(map[routingMigrationMetricKey]float64)
-	forEachRoutableResource(ctx, k, logger, func(item unstructured.Unstructured, kind, team, division string) {
-		if !hasStalledRoutingMigration(item) {
+	usage.routables(func(resource usageResource) {
+		if !hasStalledRoutingMigration(resource.item) {
 			return
 		}
-		counts[routingMigrationMetricKey{team: team, division: division, kind: kind}]++
+		counts[routingMigrationMetricKey{team: resource.team, division: resource.division, kind: resource.kind}]++
 	})
 
 	currentGauge.Reset()

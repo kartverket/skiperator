@@ -93,11 +93,19 @@ semantics do not survive translation:
       `"retriable-4xx"` now expand into explicit Codes instead of being warned
       about and dropped.
 
-## Out of scope, worth doing later
+## Metrics API load
 
-- [ ] `pkg/metrics/usage/` — `forEachRoutableResource` runs once per gauge, so
-      each tick does 2 namespace lists and 4 CR lists. One sweep feeding both
-      gauges is the same code and half the API load.
+- [x] `pkg/metrics/usage/` — every computed gauge listed the same data itself.
+      `team_usage` was the worst: one List per namespace per kind, so a cluster
+      with 500 namespaces made ~1500 List calls every 30s tick. Each tick now
+      takes one `collectClusterUsage` sweep — one List for namespaces plus one
+      per kind, cluster-wide — and the four gauges count from that snapshot.
+      Registering another gauge now costs no API calls.
+
+      Metric names and label values are unchanged. Two behaviour notes: a failed
+      namespace List now skips the whole tick rather than one gauge, keeping
+      stale values instead of wrong ones, and CRs in a namespace that appeared
+      mid-sweep are counted under `unknown` rather than dropped.
 
 ## Gateway API 1.6.0 readiness
 
