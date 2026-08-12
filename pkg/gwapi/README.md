@@ -52,26 +52,9 @@ Legend:
   resources are still present.
 - Greenfield standard routing never creates legacy fallback.
 
-How to read the diagram:
-
-- `LegacyOnly` is used when `routingProvider` is not `Standard`. Skiperator
-  generates only the old Istio Gateway and VirtualService resources and reports
-  the object ready once reconciliation succeeds.
-- `GreenfieldPending` is a new object that opted into Gateway API but has no
-  legacy resources to fall back to. Skiperator generates only Gateway API
-  resources and reports not ready until those resources are accepted and
-  programmed.
-- `MigratingWithFallback` is an existing object that opted into Gateway API while
-  legacy resources still exist. Skiperator keeps generating legacy resources as
-  fallback while Gateway API becomes ready, and records `MigrationStartedAt`.
-- `MigrationStalled` is the same fallback mode after the migration has been
-  pending for more than 10 minutes. Legacy routing stays active, but Skiperator
-  emits a warning event.
-- `CutoverReadyPruneLegacy` means Gateway API is ready while legacy resources
-  still exist. Skiperator stops generating legacy resources, so resource
-  processing can delete them.
-- `StandardOnly` means Gateway API is ready and legacy resources are gone.
-  Skiperator generates only Gateway API resources and reports the object ready.
+The state names above are documentation. In code, `RoutingStateResult` carries
+what reconcilers act on: `GenerateLegacyRouting`, `Readiness`, and whether the
+migration has stalled.
 
 ## Shared routing membership
 

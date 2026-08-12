@@ -402,10 +402,10 @@ func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object
 	if err != nil {
 		return err
 	}
+	if err := r.SetSubresourceDefaults(resources, routing); err != nil {
+		return err
+	}
 	for _, resource := range resources {
-		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
-			return err
-		}
 		if routing.UsesSharedOwnership() && resource.GetNamespace() == gwapi.IstioGatewayNamespace && isSharedRoutingInfrastructure(resource) {
 			resourceutils.SetSharedRoutingLabels(resource, host.Hostname)
 			continue

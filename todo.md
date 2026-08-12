@@ -62,10 +62,11 @@ what to cut, and what replaces it.
 - [x] `pkg/resourcegenerator/gatewayapi/application.go` — `backendRule` is called
       with a placeholder rule name, then `BackendRefs[0].Name` is overwritten.
       Pass the service name in.
-- [ ] `internal/controllers/routing.go` — `SetSubresourceDefaults(resources, …)`
-      sits inside the loop over `resources`, so it does a full pass per
-      resource. Hoist above the loop. Pre-existing; this PR touches the loop.
-- [ ] `pkg/gwapi/README.md` — 20 lines of prose restate the mermaid state list
+- [x] `internal/controllers/routing.go` — `SetSubresourceDefaults(resources, …)`
+      sat inside the loop over `resources`, so it did a full pass per resource.
+      Hoisted. The same bug was in `application.go` and `skipjob.go`, so all
+      three are fixed.
+- [x] `pkg/gwapi/README.md` — 20 lines of prose restate the mermaid state list
       line by line. Keep the legend, cut the walkthrough.
 
 ## Out of scope, worth doing later
