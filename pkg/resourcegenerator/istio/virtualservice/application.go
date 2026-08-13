@@ -2,12 +2,12 @@ package virtualservice
 
 import (
 	"fmt"
-	"hash/fnv"
 	"strconv"
 	"strings"
 
 	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"google.golang.org/protobuf/types/known/durationpb"
 	networkingv1api "istio.io/api/networking/v1"
@@ -27,10 +27,13 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	virtualService := networkingv1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
-			Name:      application.Name + "-ingress",
+			Name:      application.GetVirtualServiceName(),
 			Namespace: application.Namespace,
 		},
 	}
@@ -42,7 +45,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	if len(hosts.Hostnames()) > 0 {
 		virtualService.Spec = networkingv1api.VirtualService{
-			ExportTo: []string{".", "istio-system", "istio-gateways"},
+			ExportTo: []string{".", mesh.SystemNamespace, mesh.GatewayNamespace},
 			Gateways: getGatewaysFromApplication(application),
 			Hosts:    hosts.Hostnames(),
 			Http:     []*networkingv1api.HTTPRoute{},
@@ -89,11 +92,7 @@ func getGatewaysFromApplication(application *skiperatorv1alpha1.Application) []s
 	hosts, _ := application.Spec.Hosts()
 	gateways := make([]string, 0, hosts.Count())
 	for _, hostname := range hosts.Hostnames() {
-		// Generate gateway name
-		hash := fnv.New64()
-		_, _ = hash.Write([]byte(hostname))
-		name := fmt.Sprintf("%s-ingress-%x", application.Name, hash.Sum64())
-		gateways = append(gateways, name)
+		gateways = append(gateways, application.GetGatewayName(hostname))
 	}
 
 	return gateways

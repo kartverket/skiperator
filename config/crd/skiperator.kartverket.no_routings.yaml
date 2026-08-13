@@ -150,6 +150,9 @@ spec:
                   - type
                   type: object
                 type: array
+              migrationStartedAt:
+                format: date-time
+                type: string
               subresources:
                 additionalProperties:
                   description: Status

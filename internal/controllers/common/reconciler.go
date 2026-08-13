@@ -124,6 +124,15 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 	return exists && len(v) > 0
 }
 
+// ValidateIstioEnabledForGatewayAPI requires the namespace to be in the mesh.
+// Istio only programs Gateway API resources for namespaces it manages.
+func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, istioEnabled bool, namespaceName string) error {
+	if !usesStandardRouting || istioEnabled {
+		return nil
+	}
+	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label", namespaceName, mesh.RevisionLabel)
+}
+
 func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {
 	for _, resource := range resources {
 		if err := resourceutils.AddGVK(r.GetScheme(), resource); err != nil {

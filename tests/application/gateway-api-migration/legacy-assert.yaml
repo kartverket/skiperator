@@ -1,0 +1,51 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: gateway-api-application-migration-migration-app-ingress-a58ae9650224440c
+  namespace: istio-gateways
+spec:
+  dnsNames:
+    - migration-app.example.com
+  secretName: gateway-api-application-migration-migration-app-ingress-a58ae9650224440c
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-app-ingress-a58ae9650224440c
+  namespace: gateway-api-application-migration
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: migration-app-ingress-489984a8ae28cf26
+  namespace: gateway-api-application-migration
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: migration-app-ingress
+  namespace: gateway-api-application-migration
+spec:
+  hosts:
+    - migration-app.example.com
+    - migration-app-custom.example.com
+  gateways:
+    - migration-app-ingress-a58ae9650224440c
+    - migration-app-ingress-489984a8ae28cf26
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: migration-app
+  namespace: gateway-api-application-migration
+status:
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+    - type: InternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled

@@ -13,9 +13,10 @@ import (
 // A status field shown on a Skiperator resource which contains information regarding deployment of the resource.
 // +kubebuilder:object:generate=true
 type SkiperatorStatus struct {
-	Summary      Status             `json:"summary"`
-	SubResources map[string]Status  `json:"subresources"`
-	Conditions   []metav1.Condition `json:"conditions"`
+	Summary            Status             `json:"summary"`
+	SubResources       map[string]Status  `json:"subresources"`
+	Conditions         []metav1.Condition `json:"conditions"`
+	MigrationStartedAt *metav1.Time       `json:"migrationStartedAt,omitempty"`
 	// Indicates if access policies are valid
 	AccessPolicies StatusNames `json:"accessPolicies"`
 }
@@ -44,6 +45,11 @@ const (
 	ReadyConditionType                = "Ready"
 	StandardRoutingReadyConditionType = "StandardRoutingReady"
 	LegacyRoutingActiveConditionType  = "LegacyRoutingActive"
+
+	// MigrationStalledReason is the condition reason written when a Gateway API
+	// migration has kept legacy routing active past the deadline. Shared so the
+	// usage metrics package counts exactly the reason gwapi writes.
+	MigrationStalledReason = "MigrationStalled"
 )
 
 // conditionOrder is the canonical order status conditions are persisted in.

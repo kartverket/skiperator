@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/kartverket/skiperator/api/common"
+	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -482,6 +483,40 @@ func (a *Application) IngressTargetPort() int {
 
 func (a *Application) UsesStandardRouting() bool {
 	return a.Spec.RoutingProvider == RoutingProviderStandard
+}
+
+func (a *Application) Hostnames() (common.HostCollection, error) {
+	return a.Spec.Hosts()
+}
+
+// GetGatewayName returns the legacy Istio Gateway resource name for a hostname.
+// This does not refer to a Kubernetes Gateway API Gateway.
+func (a *Application) GetGatewayName(hostname string) string {
+	return fmt.Sprintf("%s-ingress-%x", a.Name, util.GenerateHashFromName(hostname))
+}
+
+func (a *Application) GetGatewayNames() ([]string, error) {
+	hosts, err := a.Hostnames()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewayNames := make([]string, 0, hosts.Count())
+	for _, host := range hosts.AllHosts() {
+		gatewayNames = append(gatewayNames, a.GetGatewayName(host.Hostname))
+	}
+	return gatewayNames, nil
+}
+
+func (a *Application) GetVirtualServiceName() string {
+	return a.Name + "-ingress"
+}
+
+func (a *Application) GetCertificateName(host *common.Host) (string, error) {
+	if host.UsesCustomCert() {
+		return *host.CustomCertificateSecret, nil
+	}
+	return fmt.Sprintf("%s-%s-ingress-%x", a.Namespace, a.Name, util.GenerateHashFromName(host.Hostname)), nil
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.

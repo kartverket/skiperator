@@ -6,6 +6,7 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -42,7 +43,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		return err
 	}
 
-	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: IstioGatewayNamespace, Name: certificateName}}
+	certificate := certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: mesh.GatewayNamespace, Name: certificateName}}
 
 	certificate.Spec = certmanagerv1.CertificateSpec{
 		IssuerRef: certmanagermetav1.IssuerReference{
