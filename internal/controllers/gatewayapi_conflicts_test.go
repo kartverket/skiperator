@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	commontypes "github.com/kartverket/skiperator/api/common"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	controllercommon "github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/mesh"
@@ -12,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -94,6 +96,26 @@ func TestApplicationStandardRoutingAllowsAmbientNamespace(t *testing.T) {
 	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), meshMode, application.Namespace)
 
 	require.NoError(t, err)
+}
+
+func TestRoutingSharedOwnershipSetsSharedResourcesCondition(t *testing.T) {
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.example.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Ownership:       skiperatorv1alpha1.RoutingOwnershipShared,
+			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
+		},
+	}
+
+	setSharedRoutingResourcesCondition(routing)
+
+	condition := meta.FindStatusCondition(routing.Status.Conditions, commontypes.SharedRoutingResourcesType)
+	if assert.NotNil(t, condition) {
+		assert.Equal(t, metav1.ConditionTrue, condition.Status)
+		assert.Equal(t, "SharedRoutingResourcesActive", condition.Reason)
+	}
 }
 
 func TestRoutingCertificateWatchUsesRoutingLabels(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	commontypes "github.com/kartverket/skiperator/api/common"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/gwapi"
@@ -24,15 +25,21 @@ import (
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
+
+// sharedRoutingFinalizer drives ref-counted cleanup of shared Gateway API
+// resources in istio-gateways, which are not owned by any single contributor.
+const sharedRoutingFinalizer = "skiperator.kartverket.no/shared-routing-cleanup"
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=routings;routings/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch
@@ -85,6 +92,13 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	} else if err != nil {
 		r.EmitWarningEvent(routing, "ReconcileStartFail", "something went wrong fetching the Routing, it might have been deleted")
 		return common.RequeueWithError(err)
+	}
+
+	// Shared routing resources in istio-gateways are not owned by any single
+	// contributor, so a finalizer drives ref-counted cleanup when the last
+	// contributor for a hostname is deleted.
+	if handled, result, err := r.reconcileSharedRoutingFinalizer(ctx, routing, rLog); handled {
+		return result, err
 	}
 
 	if !common.ShouldReconcile(routing) {
@@ -152,6 +166,22 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		emitMigrationEvents(&r.ReconcilerBase, routing, gwapi.UpdateRoutingStatus(routing.GetStatus(), routing.GetGeneration(), routingState))
 	}
 
+	// Register before generating/applying shared resources. The finalizer is
+	// added in an earlier reconcile pass, and tests/users may observe shared
+	// resources before every contributor has completed status updates. A visible
+	// shared resource must therefore never precede its membership entry.
+	if routing.UsesSharedOwnership() {
+		host, err := routing.Spec.GetHost()
+		if err != nil {
+			r.SetErrorState(ctx, routing, err, "failed to resolve shared routing host", "SharedRoutingHostFailure")
+			return common.RequeueWithError(err)
+		}
+		if err := gwapi.RegisterSharedContributor(ctx, r.GetClient(), host.Hostname, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name}); err != nil {
+			r.SetErrorState(ctx, routing, err, "failed to register shared routing contributor", "SharedRoutingMembershipFailure")
+			return common.RequeueWithError(err)
+		}
+	}
+
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
@@ -197,12 +227,25 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	// Ready/summary come from the shared routing-status assembler, the same path
 	// Application uses, so the two controllers cannot drift.
 	finalizeRoutingStatus(&r.ReconcilerBase, routing, routingState, "Routing has been reconciled")
+	if routing.UsesStandardRouting() {
+		setSharedRoutingResourcesCondition(routing)
+	}
 	r.UpdateStatus(ctx, routing)
 	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
 	return common.DoNotRequeue()
+}
+
+// setSharedRoutingResourcesCondition exposes shared Gateway API infrastructure
+// only when active, without adding conditions to standalone Routing objects.
+func setSharedRoutingResourcesCondition(routing *skiperatorv1alpha1.Routing) {
+	if routing.UsesSharedOwnership() {
+		common.SetSharedRoutingResourcesActive(routing)
+		return
+	}
+	common.ClearSharedRoutingResourcesCondition(routing)
 }
 
 func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Routing, error) {
@@ -231,6 +274,103 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 // reconcileSharedRoutingFinalizer adds/removes the shared-routing finalizer and,
 // on deletion, performs ref-counted cleanup of shared istio-gateways resources.
 // It returns handled=true when it owns the outcome of this reconcile pass.
+func (r *RoutingReconciler) reconcileSharedRoutingFinalizer(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) (bool, reconcile.Result, error) {
+	if !routing.GetDeletionTimestamp().IsZero() {
+		if !ctrlutil.ContainsFinalizer(routing, sharedRoutingFinalizer) {
+			return true, reconcile.Result{}, nil
+		}
+		if err := r.handleSharedRoutingDeletion(ctx, routing, rLog); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		ctrlutil.RemoveFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{}, nil
+	}
+
+	hasFinalizer := ctrlutil.ContainsFinalizer(routing, sharedRoutingFinalizer)
+	// Add the finalizer for shared routings, remove it if a Routing switched away
+	// from shared ownership. Requeue so the rest of the reconcile runs cleanly.
+	if routing.UsesSharedOwnership() && !hasFinalizer {
+		ctrlutil.AddFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{Requeue: true}, nil
+	}
+	if !routing.UsesSharedOwnership() && hasFinalizer {
+		// Switched away from shared ownership: release membership so the shared
+		// resources are cleaned up if this was the last contributor.
+		if err := r.releaseSharedMembership(ctx, routing, rLog); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		ctrlutil.RemoveFinalizer(routing, sharedRoutingFinalizer)
+		if err := r.GetClient().Update(ctx, routing); err != nil {
+			return true, reconcile.Result{}, err
+		}
+		return true, reconcile.Result{Requeue: true}, nil
+	}
+	return false, reconcile.Result{}, nil
+}
+
+// handleSharedRoutingDeletion prunes the deleted Routing's own resources, then
+// releases its shared-routing membership.
+func (r *RoutingReconciler) handleSharedRoutingDeletion(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) error {
+	if errs := r.cleanUpWatchedResources(ctx, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name}); len(errs) > 0 {
+		return fmt.Errorf("failed to clean up routing resources: %w", errs[0])
+	}
+	return r.releaseSharedMembership(ctx, routing, rLog)
+}
+
+// releaseSharedMembership deregisters this Routing from its hostname's shared
+// membership and, when it was the last contributor, deletes the shared
+// istio-gateways resources and the membership ConfigMap. Used both on deletion
+// and when a Routing switches away from shared ownership.
+func (r *RoutingReconciler) releaseSharedMembership(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) error {
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
+	empty, err := gwapi.DeregisterSharedContributor(ctx, r.GetClient(), host.Hostname, types.NamespacedName{Namespace: routing.Namespace, Name: routing.Name})
+	if err != nil {
+		return err
+	}
+	if !empty {
+		rLog.Debug("Other shared Routings still use hostname, keeping shared resources", "hostname", host.Hostname)
+		return nil
+	}
+	if err := r.deleteSharedRoutingResources(ctx, routing, host); err != nil {
+		return err
+	}
+	return gwapi.DeleteSharedMembership(ctx, r.GetClient(), host.Hostname)
+}
+
+// deleteSharedRoutingResources deletes the shared ListenerSet, redirect HTTPRoute
+// and certificate for a hostname from istio-gateways. Missing resources are
+// ignored so the cleanup is idempotent.
+func (r *RoutingReconciler) deleteSharedRoutingResources(ctx context.Context, routing *skiperatorv1alpha1.Routing, host *commontypes.Host) error {
+	resources := []client.Object{
+		&gatewayapiv1.ListenerSet{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: gwapi.SharedListenerSetName(host.Hostname)}},
+		&gatewayapiv1.HTTPRoute{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: gwapi.SharedRedirectRouteName(host.Hostname)}},
+	}
+	if !host.UsesCustomCert() {
+		certName, err := routing.GetCertificateName(host)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, &certmanagerv1.Certificate{ObjectMeta: metav1.ObjectMeta{Namespace: gwapi.IstioGatewayNamespace, Name: certName}})
+	}
+
+	for _, obj := range resources {
+		if err := r.GetClient().Delete(ctx, obj); err != nil && !errors.IsNotFound(err) {
+			return fmt.Errorf("failed to delete shared routing resource %s/%s: %w", obj.GetNamespace(), obj.GetName(), err)
+		}
+	}
+	return nil
+}
+
+// TODO Do this with application too for dynamic port allocation?
 func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) (map[string]int32, error) {
 	targetAppPorts := make(map[string]int32)
 	for i := range routing.Spec.Routes {
@@ -253,13 +393,32 @@ func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skipera
 }
 
 func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
+	}
 	if err := r.SetSubresourceDefaults(resources, routing); err != nil {
 		return err
 	}
 	for _, resource := range resources {
+		if routing.UsesSharedOwnership() && resource.GetNamespace() == gwapi.IstioGatewayNamespace && isSharedRoutingInfrastructure(resource) {
+			resourceutils.SetSharedRoutingLabels(resource, host.Hostname)
+			continue
+		}
 		resourceutils.SetRoutingLabels(resource, routing)
 	}
 	return nil
+}
+
+// isSharedRoutingInfrastructure selects the cross-namespace objects whose
+// labels must be stable across all Routing contributors for one hostname.
+func isSharedRoutingInfrastructure(resource client.Object) bool {
+	switch resource.(type) {
+	case *certmanagerv1.Certificate, *gatewayapiv1.ListenerSet, *gatewayapiv1.HTTPRoute:
+		return true
+	default:
+		return false
+	}
 }
 
 func (r *RoutingReconciler) skiperatorApplicationsChanges(context context.Context, obj client.Object) []reconcile.Request {

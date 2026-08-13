@@ -1,0 +1,17 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: app-a
+  namespace: gateway-api-shared-a
+spec:
+  image: image
+  port: 8080
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: app-b
+  namespace: gateway-api-shared-b
+spec:
+  image: image
+  port: 8080

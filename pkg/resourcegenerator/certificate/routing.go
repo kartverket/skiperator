@@ -44,7 +44,11 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		r.AddResource(newCertificate(mesh.GatewayNamespace, certificateName, h.Hostname))
 	}
 	if routing.UsesStandardRouting() {
-		r.AddResource(newCertificate(routing.Namespace, certificateName, h.Hostname))
+		namespace := routing.Namespace
+		if routing.UsesSharedOwnership() {
+			namespace = mesh.GatewayNamespace
+		}
+		r.AddResource(newCertificate(namespace, certificateName, h.Hostname))
 	}
 
 	ctxLog.Debug("Finished generating certificates for routing", "routing", routing.Name)

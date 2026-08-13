@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	commontypes "github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
@@ -116,6 +117,140 @@ func TestApplicationLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, r.GetResources())
+}
+
+func TestRoutingStandardPathRewrite(t *testing.T) {
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.example.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Routes: []skiperatorv1alpha1.Route{
+				{TargetApp: "backend", PathPrefix: "/v1", RewriteUri: true, Port: 8080},
+			},
+		},
+	}
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
+
+	err := Generate(r)
+
+	require.NoError(t, err)
+	require.Len(t, r.GetResources(), 3)
+
+	listenerSet := r.GetResources()[0].(*gatewayapiv1.ListenerSet)
+	assert.Equal(t, "team-a", listenerSet.Namespace)
+	assert.Equal(t, gatewayapiv1.ObjectName(gwapi.ExternalGatewayName), listenerSet.Spec.ParentRef.Name)
+
+	redirectRoute := r.GetResources()[1].(*gatewayapiv1.HTTPRoute)
+	assert.Equal(t, gwapi.RedirectRouteName(gwapi.RoutingResourcePrefix("api")), redirectRoute.Name)
+	assert.Equal(t, httpSectionName, *redirectRoute.Spec.ParentRefs[0].SectionName)
+	assert.Equal(t, gatewayapiv1.HTTPRouteFilterRequestRedirect, redirectRoute.Spec.Rules[0].Filters[0].Type)
+
+	route := r.GetResources()[2].(*gatewayapiv1.HTTPRoute)
+	assert.Equal(t, httpsSectionName, *route.Spec.ParentRefs[0].SectionName)
+	assert.Equal(t, gatewayapiv1.HTTPRouteFilterURLRewrite, route.Spec.Rules[0].Filters[0].Type)
+	assert.Equal(t, "/v1", *route.Spec.Rules[0].Matches[0].Path.Value)
+	assert.Equal(t, gatewayapiv1.ObjectName("backend"), route.Spec.Rules[0].BackendRefs[0].Name)
+	assert.Equal(t, gatewayapiv1.PortNumber(8080), *route.Spec.Rules[0].BackendRefs[0].Port)
+}
+
+func TestRoutingLegacyRoutingSkipsGatewayAPI(t *testing.T) {
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.example.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderLegacy,
+			Ownership:       skiperatorv1alpha1.RoutingOwnershipShared,
+			Routes: []skiperatorv1alpha1.Route{
+				{TargetApp: "backend", PathPrefix: "/v1", Port: 8080},
+			},
+		},
+	}
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
+
+	err := Generate(r)
+
+	require.NoError(t, err)
+	require.Empty(t, r.GetResources())
+}
+
+func mustNewHost(t *testing.T, hostname string) *commontypes.Host {
+	t.Helper()
+	host, err := commontypes.NewHost(hostname)
+	require.NoError(t, err)
+	return host
+}
+
+// Two Routings in different namespaces sharing one hostname must resolve to the
+// same shared certificate, so they do not flap the shared ListenerSet's cert ref.
+func TestRoutingSharedCertificateIsHostnameDerived(t *testing.T) {
+	host := mustNewHost(t, "api.kartverket.no")
+	a := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "team-a-routing", Namespace: "team-a"},
+		Spec:       skiperatorv1alpha1.RoutingSpec{Ownership: skiperatorv1alpha1.RoutingOwnershipShared},
+	}
+	b := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "team-b-routing", Namespace: "team-b"},
+		Spec:       skiperatorv1alpha1.RoutingSpec{Ownership: skiperatorv1alpha1.RoutingOwnershipShared},
+	}
+
+	aName, err := a.GetCertificateName(host)
+	require.NoError(t, err)
+	bName, err := b.GetCertificateName(host)
+	require.NoError(t, err)
+	assert.Equal(t, aName, bName)
+}
+
+func TestRoutingSharedOwnershipUsesSharedListenerSet(t *testing.T) {
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "API.example.COM",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Ownership:       skiperatorv1alpha1.RoutingOwnershipShared,
+			Routes: []skiperatorv1alpha1.Route{
+				{TargetApp: "backend", PathPrefix: "/v1", Port: 8080},
+			},
+		},
+	}
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
+
+	err := Generate(r)
+
+	require.NoError(t, err)
+	require.Len(t, r.GetResources(), 3)
+
+	listenerSet := r.GetResources()[0].(*gatewayapiv1.ListenerSet)
+	assert.Equal(t, gwapi.IstioGatewayNamespace, listenerSet.Namespace)
+	assert.Equal(t, gwapi.SharedListenerSetName("api.example.com"), listenerSet.Name)
+	assert.Equal(t, "api.example.com", string(*listenerSet.Spec.Listeners[1].Hostname))
+
+	// The shared HTTPS listener accepts routes from contributor namespaces, but
+	// the HTTP listener stays same-namespace (redirect-only, no plain-HTTP
+	// backends from teams).
+	require.NotNil(t, listenerSet.Spec.Listeners[1].AllowedRoutes)
+	require.NotNil(t, listenerSet.Spec.Listeners[1].AllowedRoutes.Namespaces)
+	assert.Equal(t, gatewayapiv1.NamespacesFromAll, *listenerSet.Spec.Listeners[1].AllowedRoutes.Namespaces.From)
+	require.NotNil(t, listenerSet.Spec.Listeners[0].AllowedRoutes)
+	require.NotNil(t, listenerSet.Spec.Listeners[0].AllowedRoutes.Namespaces)
+	assert.Equal(t, gatewayapiv1.NamespacesFromSame, *listenerSet.Spec.Listeners[0].AllowedRoutes.Namespaces.From)
+	// The TLS cert ref is hostname-derived, identical across all contributors.
+	sharedCert, err := routing.GetCertificateName(mustNewHost(t, "api.example.com"))
+	require.NoError(t, err)
+	assert.Equal(t, gatewayapiv1.ObjectName(sharedCert), listenerSet.Spec.Listeners[1].TLS.CertificateRefs[0].Name)
+
+	redirectRoute := r.GetResources()[1].(*gatewayapiv1.HTTPRoute)
+	assert.Equal(t, gwapi.IstioGatewayNamespace, redirectRoute.Namespace)
+	assert.Equal(t, gwapi.SharedRedirectRouteName("api.example.com"), redirectRoute.Name)
+	assert.Nil(t, redirectRoute.Spec.ParentRefs[0].Namespace)
+	assert.Equal(t, []gatewayapiv1.Hostname{"api.example.com"}, redirectRoute.Spec.Hostnames)
+
+	route := r.GetResources()[2].(*gatewayapiv1.HTTPRoute)
+	assert.Equal(t, "team-a", route.Namespace)
+	require.NotNil(t, route.Spec.ParentRefs[0].Namespace)
+	assert.Equal(t, gatewayapiv1.Namespace(gwapi.IstioGatewayNamespace), *route.Spec.ParentRefs[0].Namespace)
+	assert.Equal(t, gatewayapiv1.ObjectName(gwapi.SharedListenerSetName("api.example.com")), route.Spec.ParentRefs[0].Name)
+	assert.Equal(t, []gatewayapiv1.Hostname{"api.example.com"}, route.Spec.Hostnames)
 }
 
 func TestApplyRetriesExpandsStringCodeShorthands(t *testing.T) {

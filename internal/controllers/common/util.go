@@ -10,6 +10,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
@@ -141,9 +142,27 @@ func SetReadyReconciled(obj common.SKIPObject, message string) {
 	obj.GetStatus().SetReadyCondition(metav1.ConditionTrue, obj.GetGeneration(), "Reconciled", message)
 }
 
+// SetSharedRoutingResourcesActive marks that the object contributes to shared
+// Gateway API resources, which live outside its own namespace.
+func SetSharedRoutingResourcesActive(obj common.SKIPObject) {
+	obj.GetStatus().SetSharedRoutingResourcesCondition(
+		metav1.ConditionTrue,
+		obj.GetGeneration(),
+		"SharedRoutingResourcesActive",
+		fmt.Sprintf("Routing uses shared Gateway API resources in %s", mesh.GatewayNamespace),
+	)
+}
+
+// ClearSharedRoutingResourcesCondition drops the condition, so a standalone
+// object does not carry one.
+func ClearSharedRoutingResourcesCondition(obj common.SKIPObject) {
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.SharedRoutingResourcesType)
+}
+
 func ClearGatewayAPIConditions(obj common.SKIPObject) {
 	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.StandardRoutingReadyConditionType)
 	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.LegacyRoutingActiveConditionType)
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.SharedRoutingResourcesType)
 	// Drop the migration clock too, so switching back to legacy does not leave
 	// a stale start time that mis-seeds a future migration as already stalled.
 	obj.GetStatus().MigrationStartedAt = nil

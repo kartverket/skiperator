@@ -6,6 +6,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/pkg/gwapi"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -90,6 +91,17 @@ func SetRoutingLabels(object client.Object, routing *skiperatorv1alpha1.Routing)
 		labels = make(map[string]string)
 	}
 	maps.Copy(labels, routing.GetDefaultLabels())
+	object.SetLabels(labels)
+}
+
+// SetSharedRoutingLabels gives shared routing infrastructure labels that are
+// stable for all Routing objects contributing to the same hostname.
+func SetSharedRoutingLabels(object client.Object, hostname string) {
+	labels := object.GetLabels()
+	if len(labels) == 0 {
+		labels = make(map[string]string)
+	}
+	maps.Copy(labels, gwapi.SharedRoutingLabels(hostname))
 	object.SetLabels(labels)
 }
 
