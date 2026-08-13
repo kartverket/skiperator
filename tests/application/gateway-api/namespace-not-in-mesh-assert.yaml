@@ -9,4 +9,4 @@ status:
   conditions:
     - type: Ready
       status: "False"
-      reason: NamespaceMissingIstioInjection
+      reason: NamespaceNotInMesh

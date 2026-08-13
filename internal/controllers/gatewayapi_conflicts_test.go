@@ -68,6 +68,35 @@ func TestApplicationStandardRoutingAllowsIstioRevision(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestApplicationStandardRoutingAllowsAmbientNamespace(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "team-a",
+			Labels: map[string]string{"istio.io/dataplane-mode": "ambient"},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(namespace).Build()
+	reconciler := &ApplicationReconciler{ReconcilerBase: controllercommon.NewReconcilerBase(client, nil, scheme, nil, nil)}
+	application := &skiperatorv1alpha1.Application{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.ApplicationSpec{
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+		},
+	}
+
+	istioEnabled, ambientEnabled, err := reconciler.IstioModesForNamespace(context.Background(), application.Namespace)
+	require.NoError(t, err)
+	// Ambient namespaces get no sidecar, so sidecar-specific resources must stay off.
+	assert.False(t, istioEnabled)
+	assert.True(t, ambientEnabled)
+
+	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), istioEnabled || ambientEnabled, application.Namespace)
+
+	require.NoError(t, err)
+}
+
 func TestRoutingSharedOwnershipSetsSharedResourcesCondition(t *testing.T) {
 	routing := &skiperatorv1alpha1.Routing{
 		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},

@@ -214,20 +214,21 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		return common.DoNotRequeue()
 	}
 
-	// Resolve Istio enablement once and reuse it for both the Gateway API
+	// Resolve mesh membership once and reuse it for both the Gateway API
 	// prerequisite check and the reconciliation, instead of looking the
 	// namespace up twice. A lookup error requeues rather than being read as
-	// "Istio disabled".
-	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, application.Namespace)
+	// "Istio disabled". Only the sidecar flag goes into the reconciliation,
+	// because ambient namespaces get no sidecar.
+	istioEnabled, ambientEnabled, err := r.IstioModesForNamespace(ctx, application.Namespace)
 	if err != nil {
-		rLog.Error(err, "failed to check Istio revision label for namespace")
-		r.SetErrorState(ctx, application, err, "failed to check Istio revision label for namespace", "NamespaceLookupFailure")
+		rLog.Error(err, "failed to check Istio labels for namespace")
+		r.SetErrorState(ctx, application, err, "failed to check Istio labels for namespace", "NamespaceLookupFailure")
 		return common.RequeueWithError(err)
 	}
 
 	// Gateway API uses shared cluster resources, so fail before generating
 	// resources if namespace setup or ownership checks are invalid.
-	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, istioEnabled, rLog) {
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, istioEnabled || ambientEnabled, rLog) {
 		return common.DoNotRequeue()
 	}
 

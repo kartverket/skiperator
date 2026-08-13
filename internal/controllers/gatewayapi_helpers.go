@@ -19,10 +19,10 @@ type gatewayAPIRoutable interface {
 	gwapi.Routable
 }
 
-func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, istioEnabled bool, logger log.Logger) bool {
-	if err := r.ValidateIstioEnabledForGatewayAPI(obj.UsesStandardRouting(), istioEnabled, obj.GetNamespace()); err != nil {
-		logger.Error(err, "gateway api requires istio revision label")
-		r.SetErrorState(ctx, obj, err, "gateway api requires istio revision label", "NamespaceMissingIstioInjection")
+func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, meshEnabled bool, logger log.Logger) bool {
+	if err := r.ValidateIstioEnabledForGatewayAPI(obj.UsesStandardRouting(), meshEnabled, obj.GetNamespace()); err != nil {
+		logger.Error(err, "namespace is not part of the Istio mesh")
+		r.SetErrorState(ctx, obj, err, "namespace is not part of the Istio mesh", "NamespaceNotInMesh")
 		return true
 	}
 

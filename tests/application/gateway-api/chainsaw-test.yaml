@@ -67,9 +67,9 @@ spec:
             file: application-assert.yaml
     - try:
         - create:
-            file: missing-istio-revision.yaml
+            file: namespace-not-in-mesh.yaml
         - assert:
-            file: missing-istio-revision-assert.yaml
+            file: namespace-not-in-mesh-assert.yaml
     - try:
         # Gateway API serves HTTPRoute retries only on its experimental channel,
         # which SKIP clusters do not install, so the Application CRD rejects
