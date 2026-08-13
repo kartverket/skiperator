@@ -48,8 +48,9 @@ type ApplicationList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
-// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`,priority=1
 // +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`

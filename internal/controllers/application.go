@@ -341,25 +341,30 @@ func (r *ApplicationReconciler) updateApplicationStatus(ctx context.Context, app
 }
 
 func (r *ApplicationReconciler) updateStatus(app *skiperatorv1alpha1.Application) {
-	app.Status.Conditions, app.Status.AccessPolicies = getConditions(app)
+	app.Status.AccessPolicies = applyApplicationConditions(app)
 	app.Status.ApplicationKind = app.ExpectedApplicationKind()
 }
 
-func getConditions(app *skiperatorv1alpha1.Application) ([]metav1.Condition, skiperatorv1alpha1.StatusNames) {
-	var conditions []metav1.Condition
+// applyApplicationConditions merges the access-policy conditions in place
+// (preserving LastTransitionTime). Only invalid config sets Ready here; a valid
+// config leaves Ready to the end of the reconcile, so an early Ready=True cannot
+// mask a later failure.
+func applyApplicationConditions(app *skiperatorv1alpha1.Application) skiperatorv1alpha1.StatusNames {
 	accessPolicy := app.Spec.AccessPolicy
 
 	if accessPolicy != nil && !common.IsInternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "Internal rules are invalid")
+		common.SetInternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
 	if accessPolicy != nil && !common.IsExternalRulesValid(accessPolicy) {
-		conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionFalse))
-		return conditions, skiperatorv1alpha1.INVALIDCONFIG
+		common.SetReadyInvalidConfig(app, "External rules are invalid")
+		common.SetExternalRulesCondition(app, metav1.ConditionFalse)
+		return skiperatorv1alpha1.INVALIDCONFIG
 	}
-	conditions = append(conditions, common.GetInternalRulesCondition(app, metav1.ConditionTrue))
-	conditions = append(conditions, common.GetExternalRulesCondition(app, metav1.ConditionTrue))
-	return conditions, skiperatorv1alpha1.READY
+	common.SetInternalRulesCondition(app, metav1.ConditionTrue)
+	common.SetExternalRulesCondition(app, metav1.ConditionTrue)
+	return skiperatorv1alpha1.READY
 }
 
 func (r *ApplicationReconciler) getApplication(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Application, error) {

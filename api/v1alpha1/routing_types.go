@@ -22,7 +22,8 @@ type RoutingList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="routing"
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
 type Routing struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -72,6 +73,8 @@ func (in *Routing) GetRedirectToHTTPS() bool {
 	return true
 }
 
+// GetGatewayName returns the legacy Istio Gateway resource name.
+// This does not refer to a Kubernetes Gateway API Gateway.
 func (in *Routing) GetGatewayName() string {
 	return fmt.Sprintf("%s-routing-ingress", in.Name)
 }

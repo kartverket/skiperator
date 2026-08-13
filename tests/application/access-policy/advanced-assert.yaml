@@ -128,6 +128,9 @@ spec:
 status:
   accessPolicies: Ready
   conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
     - type: InternalRulesValid
       status: "True"
     - type: ExternalRulesValid

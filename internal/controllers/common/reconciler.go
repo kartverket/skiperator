@@ -140,23 +140,27 @@ func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipO
 func (r *ReconcilerBase) SetErrorState(ctx context.Context, skipObj common.SKIPObject, err error, message string, reason string) {
 	r.EmitWarningEvent(skipObj, reason, message)
 	skipObj.GetStatus().SetSummaryError(message + ": " + err.Error())
-	r.updateStatus(ctx, skipObj)
+	skipObj.GetStatus().SetReadyCondition(metav1.ConditionFalse, skipObj.GetGeneration(), reason, message+": "+err.Error())
+	r.UpdateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
-	r.updateStatus(ctx, skipObj)
+	skipObj.GetStatus().SetReadyCondition(metav1.ConditionUnknown, skipObj.GetGeneration(), "Reconciling", message)
+	r.UpdateStatus(ctx, skipObj)
 }
 
 func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
 	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
 	skipObj.GetStatus().SetSummarySynced()
-	r.updateStatus(ctx, skipObj)
+	SetReadyReconciled(skipObj, message)
+	r.UpdateStatus(ctx, skipObj)
 }
 
-func (r *ReconcilerBase) updateStatus(ctx context.Context, skipObj common.SKIPObject) {
+func (r *ReconcilerBase) UpdateStatus(ctx context.Context, skipObj common.SKIPObject) {
 	key := client.ObjectKeyFromObject(skipObj)
+	skipObj.GetStatus().SortConditions()
 	desiredStatus := skipObj.GetStatus().DeepCopy()
 
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {

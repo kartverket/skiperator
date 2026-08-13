@@ -1,6 +1,9 @@
 package common
 
 import (
+	"sort"
+
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,7 +40,47 @@ const (
 	PENDING       StatusNames = "Pending"
 	READY         StatusNames = "Ready"
 	INVALIDCONFIG StatusNames = "InvalidConfig"
+
+	ReadyConditionType                = "Ready"
+	StandardRoutingReadyConditionType = "StandardRoutingReady"
+	LegacyRoutingActiveConditionType  = "LegacyRoutingActive"
 )
+
+// conditionOrder is the canonical order status conditions are persisted in.
+// meta.SetStatusCondition appends new conditions in first-seen order, which
+// makes the stored order depend on reconcile history (e.g. routing conditions
+// primed before access-policy conditions during a pending migration). Sorting
+// by this map before persisting keeps status output deterministic.
+// String literals (not the SKIPJob constants) because api/common is imported by
+// the SKIPJob types, so it cannot import them back.
+var conditionOrder = map[string]int{
+	ReadyConditionType:                0,
+	"Failed":                          1,
+	"Running":                         2,
+	"Finished":                        3,
+	"InternalRulesValid":              4,
+	"ExternalRulesValid":              5,
+	LegacyRoutingActiveConditionType:  6,
+	StandardRoutingReadyConditionType: 7,
+}
+
+// SortConditions orders Conditions canonically (see conditionOrder), so the
+// persisted status does not depend on the order conditions were first added
+// across reconciles. Unknown condition types are kept, in stable order, after
+// the known ones.
+func (s *SkiperatorStatus) SortConditions() {
+	sort.SliceStable(s.Conditions, func(i, j int) bool {
+		oi, oki := conditionOrder[s.Conditions[i].Type]
+		oj, okj := conditionOrder[s.Conditions[j].Type]
+		if oki != okj {
+			return oki
+		}
+		if !oki {
+			return false
+		}
+		return oi < oj
+	})
+}
 
 func (s *SkiperatorStatus) SetSummaryPending() {
 	s.Summary.Status = PENDING
@@ -58,14 +101,22 @@ func (s *SkiperatorStatus) SetSummarySynced() {
 }
 
 func (s *SkiperatorStatus) SetSummaryProgressing() {
+	s.SetSummaryProgressingMessage("Resource is progressing")
+	s.SubResources = make(map[string]Status)
+	s.AccessPolicies = PENDING
+}
+
+// SetSummaryProgressingMessage marks the summary as progressing with a custom
+// message, without resetting subresource state. Use after subresources are
+// reconciled but an asynchronous dependency (e.g. standard routing readiness)
+// is still pending.
+func (s *SkiperatorStatus) SetSummaryProgressingMessage(message string) {
 	s.Summary.Status = PROGRESSING
-	s.Summary.Message = "Resource is progressing"
+	s.Summary.Message = message
 	s.Summary.TimeStamp = metav1.Now().String()
 	if s.Conditions == nil {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
-	s.SubResources = make(map[string]Status)
-	s.AccessPolicies = PENDING
 }
 
 func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
@@ -75,6 +126,29 @@ func (s *SkiperatorStatus) SetSummaryError(errorMsg string) {
 	if s.Conditions == nil {
 		s.Conditions = make([]metav1.Condition, 0)
 	}
+}
+
+func (s *SkiperatorStatus) setCondition(conditionType string, status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	meta.SetStatusCondition(&s.Conditions, metav1.Condition{
+		Type:               conditionType,
+		Status:             status,
+		ObservedGeneration: observedGeneration,
+		LastTransitionTime: metav1.Now(),
+		Reason:             reason,
+		Message:            message,
+	})
+}
+
+func (s *SkiperatorStatus) SetReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(ReadyConditionType, status, observedGeneration, reason, message)
+}
+
+func (s *SkiperatorStatus) SetStandardRoutingReadyCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(StandardRoutingReadyConditionType, status, observedGeneration, reason, message)
+}
+
+func (s *SkiperatorStatus) SetLegacyRoutingActiveCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(LegacyRoutingActiveConditionType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {

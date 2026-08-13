@@ -17,11 +17,15 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .status.summary.status
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
       type: string
     - jsonPath: .status.accessPolicies
       name: AccessPolicies
+      priority: 1
       type: string
     - jsonPath: .status.applicationKind
       name: WorkloadType
