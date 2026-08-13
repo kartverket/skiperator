@@ -6,6 +6,7 @@ import (
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -42,7 +43,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 			return err
 		}
 		if r.GenerateLegacyRouting() {
-			r.AddResource(newCertificate(IstioGatewayNamespace, certificateName, h.Hostname))
+			r.AddResource(newCertificate(mesh.GatewayNamespace, certificateName, h.Hostname))
 		}
 		if application.UsesStandardRouting() {
 			r.AddResource(newCertificate(application.Namespace, certificateName, h.Hostname))

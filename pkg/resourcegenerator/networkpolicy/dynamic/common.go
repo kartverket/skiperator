@@ -204,7 +204,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, me
 			},
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: util.PointTo(util.IstioMetricsPortName),
+					Port: new(mesh.MetricsPortName),
 				},
 			},
 		}
@@ -286,10 +286,10 @@ func getGatewayIngressRule(isInternal bool, port int32, meshMode mesh.Mode) netw
 		From: []networkingv1.NetworkPolicyPeer{
 			{
 				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "istio-gateways"},
+					MatchLabels: mesh.GatewayNamespaceLabels(),
 				},
 				PodSelector: &metav1.LabelSelector{
-					MatchLabels: getIngressGatewayLabel(isInternal),
+					MatchLabels: mesh.IngressGatewayLabels(isInternal),
 				},
 			},
 		},
@@ -316,15 +316,6 @@ func getInboundPorts(port int32, meshMode mesh.Mode) []networkingv1.NetworkPolic
 	}
 
 	return ports
-}
-
-// TODO Should be in constants or something
-func getIngressGatewayLabel(isInternal bool) map[string]string {
-	if isInternal {
-		return map[string]string{"app": "istio-ingress-internal"}
-	} else {
-		return map[string]string{"app": "istio-ingress-external"}
-	}
 }
 
 var sortNetPolPorts = func(a networkingv1.NetworkPolicyPort, b networkingv1.NetworkPolicyPort) int {

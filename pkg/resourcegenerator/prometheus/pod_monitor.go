@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -44,8 +45,8 @@ func generateForSkipJob(r reconciliation.Reconciliation) error {
 		},
 		PodMetricsEndpoints: []pov1.PodMetricsEndpoint{
 			{
-				Path:       util.IstioMetricsPath,
-				TargetPort: &util.IstioMetricsPortName,
+				Path:       mesh.MetricsPath,
+				TargetPort: new(mesh.MetricsPortName),
 				Interval:   getScrapeInterval(skipJob.Spec.Prometheus),
 			},
 		},
@@ -54,7 +55,7 @@ func generateForSkipJob(r reconciliation.Reconciliation) error {
 		podMonitor.Spec.PodMetricsEndpoints[0].MetricRelabelConfigs = []pov1.RelabelConfig{
 			{
 				Action:       "drop",
-				Regex:        strings.Join(util.DefaultMetricDropList, "|"),
+				Regex:        strings.Join(mesh.DefaultMetricDropList, "|"),
 				SourceLabels: []pov1.LabelName{"__name__"},
 			},
 		}

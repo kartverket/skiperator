@@ -7,6 +7,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"google.golang.org/protobuf/types/known/durationpb"
 	networkingv1api "istio.io/api/networking/v1"
@@ -44,7 +45,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 
 	if len(hosts.Hostnames()) > 0 {
 		virtualService.Spec = networkingv1api.VirtualService{
-			ExportTo: []string{".", "istio-system", "istio-gateways"},
+			ExportTo: []string{".", mesh.SystemNamespace, mesh.GatewayNamespace},
 			Gateways: getGatewaysFromApplication(application),
 			Hosts:    hosts.Hostnames(),
 			Http:     []*networkingv1api.HTTPRoute{},

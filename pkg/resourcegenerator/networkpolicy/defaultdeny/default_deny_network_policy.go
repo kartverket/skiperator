@@ -117,7 +117,7 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 							MatchLabels: map[string]string{"app": "istiod"},
 						},
 						NamespaceSelector: &metav1.LabelSelector{
-							MatchLabels: map[string]string{"kubernetes.io/metadata.name": "istio-system"},
+							MatchLabels: map[string]string{"kubernetes.io/metadata.name": mesh.SystemNamespace},
 						},
 					},
 				},

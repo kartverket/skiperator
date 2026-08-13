@@ -51,7 +51,7 @@ func TestApplicationStandardRoutingKeepsLegacyCertWhenLegacyEnabled(t *testing.T
 
 	require.NoError(t, err)
 	require.Len(t, r.GetResources(), 2)
-	assert.Equal(t, IstioGatewayNamespace, r.GetResources()[0].GetNamespace())
+	assert.Equal(t, mesh.GatewayNamespace, r.GetResources()[0].GetNamespace())
 	assert.Equal(t, "team-a", r.GetResources()[1].GetNamespace())
 }
 
@@ -71,7 +71,7 @@ func TestApplicationLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, r.GetResources(), 1)
-	assert.Equal(t, IstioGatewayNamespace, r.GetResources()[0].GetNamespace())
+	assert.Equal(t, mesh.GatewayNamespace, r.GetResources()[0].GetNamespace())
 }
 
 func TestRoutingLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
@@ -90,7 +90,7 @@ func TestRoutingLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, r.GetResources(), 1)
-	assert.Equal(t, IstioGatewayNamespace, r.GetResources()[0].GetNamespace())
+	assert.Equal(t, mesh.GatewayNamespace, r.GetResources()[0].GetNamespace())
 }
 
 func TestRoutingSharedOwnershipGeneratesStandardCertInIstioGateways(t *testing.T) {
@@ -111,6 +111,6 @@ func TestRoutingSharedOwnershipGeneratesStandardCertInIstioGateways(t *testing.T
 	require.NoError(t, err)
 	require.Len(t, r.GetResources(), 1)
 	certificate := r.GetResources()[0].(*certmanagerv1.Certificate)
-	assert.Equal(t, IstioGatewayNamespace, certificate.Namespace)
+	assert.Equal(t, mesh.GatewayNamespace, certificate.Namespace)
 	assert.Equal(t, []string{"api.example.com"}, certificate.Spec.DNSNames)
 }

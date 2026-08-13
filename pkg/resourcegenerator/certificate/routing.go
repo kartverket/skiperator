@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 )
 
@@ -40,12 +41,12 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	if r.GenerateLegacyRouting() {
-		r.AddResource(newCertificate(IstioGatewayNamespace, certificateName, h.Hostname))
+		r.AddResource(newCertificate(mesh.GatewayNamespace, certificateName, h.Hostname))
 	}
 	if routing.UsesStandardRouting() {
 		namespace := routing.Namespace
 		if routing.UsesSharedOwnership() {
-			namespace = IstioGatewayNamespace
+			namespace = mesh.GatewayNamespace
 		}
 		r.AddResource(newCertificate(namespace, certificateName, h.Hostname))
 	}

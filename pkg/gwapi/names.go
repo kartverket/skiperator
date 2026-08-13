@@ -3,14 +3,17 @@ package gwapi
 import (
 	"fmt"
 
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/util"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 const (
-	IstioGatewayNamespace = "istio-gateways"
-	InternalGatewayName   = "istio-internal"
-	ExternalGatewayName   = "istio-external"
+	// IstioGatewayNamespace is where the shared Gateway API resources live.
+	IstioGatewayNamespace = mesh.GatewayNamespace
+
+	InternalGatewayName = "istio-internal"
+	ExternalGatewayName = "istio-external"
 )
 
 // GatewayNameForHost selects shared Kubernetes Gateway API Gateway by hostname.

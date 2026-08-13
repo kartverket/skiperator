@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -55,10 +56,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 					From: []networkingv1.NetworkPolicyPeer{
 						{
 							NamespaceSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewaySelector(),
+								MatchLabels: mesh.GatewayNamespaceLabels(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: util.GetIstioGatewayLabelSelector(host.Hostname),
+								MatchLabels: mesh.IngressGatewayLabels(util.IsInternal(host.Hostname)),
 							},
 						},
 					},
