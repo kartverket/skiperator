@@ -24,6 +24,8 @@ type RoutingList struct {
 // +kubebuilder:resource:shortName="routing"
 // +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
 // +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="Routing",type=string,JSONPath=`.spec.routingProvider`
+// +kubebuilder:selectablefield:JSONPath=".spec.routingProvider"
 type Routing struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -37,6 +39,14 @@ type Routing struct {
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`
+
+	// RoutingProvider controls which routing API Skiperator uses.
+	// Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
+	//
+	//+kubebuilder:validation:Enum=Legacy;Standard
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=Legacy
+	RoutingProvider RoutingProvider `json:"routingProvider,omitempty"`
 
 	//+kubebuilder:validation:Required
 	Routes []Route `json:"routes"`
@@ -71,6 +81,10 @@ func (in *Routing) GetRedirectToHTTPS() bool {
 		return *in.Spec.RedirectToHTTPS
 	}
 	return true
+}
+
+func (in *Routing) UsesStandardRouting() bool {
+	return in.Spec.RoutingProvider == RoutingProviderStandard
 }
 
 // GetGatewayName returns the legacy Istio Gateway resource name.

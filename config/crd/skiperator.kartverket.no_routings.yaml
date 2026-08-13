@@ -23,6 +23,9 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].reason
       name: Status
       type: string
+    - jsonPath: .spec.routingProvider
+      name: Routing
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -69,6 +72,15 @@ spec:
                   - targetApp
                   type: object
                 type: array
+              routingProvider:
+                default: Legacy
+                description: |-
+                  RoutingProvider controls which routing API Skiperator uses.
+                  Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
+                enum:
+                - Legacy
+                - Standard
+                type: string
             required:
             - hostname
             - routes
@@ -183,6 +195,8 @@ spec:
         required:
         - spec
         type: object
+    selectableFields:
+    - jsonPath: .spec.routingProvider
     served: true
     storage: true
     subresources:
