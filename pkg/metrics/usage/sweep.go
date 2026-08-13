@@ -73,8 +73,11 @@ func collectClusterUsage(ctx context.Context, k client.Client, logger log.Logger
 		list := &unstructured.UnstructuredList{}
 		list.SetGroupVersionKind(swept.groupVersion.WithKind(swept.kind + "List"))
 		if err := k.List(ctx, list); err != nil {
+			// Returning a partial snapshot would let updateMetrics reset this
+			// kind's gauges to zero, which reads as "no resources" rather than
+			// "not measured". Keep the previous values instead.
 			logger.Error(err, "failed to list resources", "kind", swept.kind)
-			continue
+			return clusterUsage{}, false
 		}
 		for _, item := range list.Items {
 			labels, ok := labelsByNamespace[item.GetNamespace()]

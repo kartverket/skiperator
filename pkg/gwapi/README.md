@@ -7,7 +7,7 @@ resources are generated.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> LegacyOnly: routingProvider != standard
+    [*] --> LegacyOnly: routingProvider != Standard
 
     [*] --> StandardOnly: standard ready + no legacy resources
     [*] --> CutoverReadyPruneLegacy: standard ready + legacy resources exist

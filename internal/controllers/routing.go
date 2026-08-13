@@ -25,7 +25,6 @@ import (
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -243,15 +242,10 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 // only when active, without adding conditions to standalone Routing objects.
 func setSharedRoutingResourcesCondition(routing *skiperatorv1alpha1.Routing) {
 	if routing.UsesSharedOwnership() {
-		routing.GetStatus().SetSharedRoutingResourcesCondition(
-			metav1.ConditionTrue,
-			routing.GetGeneration(),
-			"SharedRoutingResourcesActive",
-			"Routing uses shared Gateway API resources in istio-gateways",
-		)
+		common.SetSharedRoutingResourcesActive(routing)
 		return
 	}
-	meta.RemoveStatusCondition(&routing.GetStatus().Conditions, commontypes.SharedRoutingResourcesType)
+	common.ClearSharedRoutingResourcesCondition(routing)
 }
 
 func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Routing, error) {
