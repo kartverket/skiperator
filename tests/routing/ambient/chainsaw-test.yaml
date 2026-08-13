@@ -1,0 +1,17 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ambient-routing
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: ambient-routing
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - create:
+            file: routing.yaml
+        - assert:
+            file: routing-assert.yaml

@@ -1,0 +1,20 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: backend
+  namespace: ambient-routing
+spec:
+  image: image
+  port: 8080
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: api
+  namespace: ambient-routing
+spec:
+  hostname: ambient-routing.example.com
+  routes:
+    - targetApp: backend
+      pathPrefix: /
+      port: 8080
