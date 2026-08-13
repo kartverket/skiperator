@@ -319,6 +319,12 @@ func (r *ApplicationReconciler) setSyncedApplicationState(ctx context.Context, a
 	r.EmitNormalEvent(app, "ReconcileEndSuccess", message)
 	app.GetStatus().SetSummarySynced()
 	r.updateStatus(app)
+	// updateStatus only sets Ready for an invalid access policy, so a successful
+	// reconcile has to mark it ready here. The Application reconciler does not go
+	// through ReconcilerBase.SetSyncedState.
+	if app.Status.AccessPolicies != skiperatorv1alpha1.INVALIDCONFIG {
+		common.SetReadyReconciled(app, message)
+	}
 	r.updateApplicationStatus(ctx, app)
 }
 
