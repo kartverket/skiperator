@@ -1,0 +1,50 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ambient-app
+  namespace: ambient-application
+spec:
+  podSelector:
+    matchLabels:
+      app: ambient-app
+  ingress:
+    # Ambient delivers both gateway and mesh traffic through ztunnel on 15008,
+    # while the source restrictions stay the same. No alloy scrape rule here,
+    # because ambient pods have no sidecar to scrape.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-external
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 15008
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: ambient-application
+          podSelector:
+            matchLabels:
+              app: caller
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 15008
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: ambient-application
+spec:
+  # Ambient SNATs kubelet probes to a link-local address, so the namespace-wide
+  # deny must let them through for pods without a policy of their own.
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 169.254.7.127/32

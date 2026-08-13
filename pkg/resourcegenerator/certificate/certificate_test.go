@@ -8,6 +8,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestApplicationStandardRoutingGeneratesOnlyLocalCertWhenLegacyDisabled(t *t
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 	r.SetGenerateLegacyRouting(false)
 
 	err := Generate(r)
@@ -44,7 +45,7 @@ func TestApplicationStandardRoutingKeepsLegacyCertWhenLegacyEnabled(t *testing.T
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
@@ -64,7 +65,7 @@ func TestApplicationLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderLegacy,
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
@@ -83,7 +84,7 @@ func TestRoutingLegacyRoutingGeneratesOnlyLegacyCert(t *testing.T) {
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
 
 	err := Generate(r)
 
@@ -102,7 +103,7 @@ func TestRoutingSharedOwnershipGeneratesStandardCertInIstioGateways(t *testing.T
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
 	r.SetGenerateLegacyRouting(false)
 
 	err := Generate(r)

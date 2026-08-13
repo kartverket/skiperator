@@ -45,7 +45,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	// auth proxy), route the Service's target port to that container's port
 	// while keeping the external port at spec.port.
 	ports := append(getAdditionalPorts(application.Spec.AdditionalPorts), getServicePort(application.Spec.Port, application.IngressTargetPort(), application.Spec.AppProtocol))
-	if r.IsIstioEnabled() {
+	if r.IsSidecarEnabled() {
 		ports = append(ports, defaultPrometheusPort)
 	}
 

@@ -14,13 +14,6 @@ var (
 	// IstioTraceProvider Name of the trace provider set up in the istiod installation
 	IstioTraceProvider = "otel-tracing"
 
-	// IstioRevisionLabel enables sidecar injection for a namespace.
-	IstioRevisionLabel = "istio.io/rev"
-	// IstioDataplaneModeLabel with the value IstioAmbientMode puts a namespace
-	// in the ambient mesh. Ambient namespaces get no sidecar.
-	IstioDataplaneModeLabel = "istio.io/dataplane-mode"
-	IstioAmbientMode        = "ambient"
-
 	DefaultMetricDropList = []string{
 		"istio_request_bytes_bucket",
 		"istio_response_bytes_bucket",

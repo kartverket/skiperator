@@ -12,6 +12,7 @@ import (
 	"github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/gwapi"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	gatewayapigenerator "github.com/kartverket/skiperator/pkg/resourcegenerator/gatewayapi"
@@ -134,9 +135,8 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	// Resolve mesh membership once and reuse it for both the Gateway API
 	// prerequisite check and the reconciliation, instead of looking the
 	// namespace up twice. A lookup error requeues rather than being read as
-	// "Istio disabled". Only the sidecar flag goes into the reconciliation,
-	// because ambient namespaces get no sidecar.
-	istioEnabled, ambientEnabled, err := r.IstioModesForNamespace(ctx, routing.Namespace)
+	// "Istio disabled".
+	meshMode, err := r.MeshModeForNamespace(ctx, routing.Namespace)
 	if err != nil {
 		rLog.Error(err, "failed to check Istio labels for namespace")
 		r.SetErrorState(ctx, routing, err, "failed to check Istio labels for namespace", "NamespaceLookupFailure")
@@ -145,11 +145,11 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	// Gateway API uses shared cluster resources, so fail before generating
 	// resources if namespace setup or ownership checks are invalid.
-	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, routing, istioEnabled || ambientEnabled, rLog) {
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, routing, meshMode, rLog) {
 		return common.DoNotRequeue()
 	}
 
-	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), targetAppPorts)
+	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, meshMode, r.GetRestConfig(), targetAppPorts)
 	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), routing, routing.GetStatus())
 	if err != nil {
 		// A failed routing-state lookup must not be read as "legacy absent":
@@ -271,7 +271,7 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	route.SetName(name.Name)
 	route.SetNamespace(name.Namespace)
 
-	reconciliation := reconciliation.NewRoutingReconciliation(ctx, route, log.NewLogger(), false, nil, nil)
+	reconciliation := reconciliation.NewRoutingReconciliation(ctx, route, log.NewLogger(), mesh.ModeNone, nil, nil)
 
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetRoutingSchemas(r.GetScheme()), r.GetScheme())
 	return processor.Process(reconciliation)

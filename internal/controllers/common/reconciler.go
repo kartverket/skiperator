@@ -7,8 +7,8 @@ import (
 	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -107,22 +107,11 @@ func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, m
 	)
 }
 
-// IsIstioEnabledForNamespace reports whether the namespace carries the Istio
-// revision label, which means its pods get a sidecar. Ambient namespaces have
-// no sidecar, so they are not included here. A lookup error is returned rather
-// than swallowed, so callers can requeue instead of treating a transient
-// failure as "Istio disabled".
-// Transient errors are retried by the reconciler requeue, not in-line here.
-func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) (bool, error) {
-	sidecarEnabled, _, err := r.IstioModesForNamespace(ctx, namespaceName)
-	return sidecarEnabled, err
-}
-
-// IstioModesForNamespace reports the two ways a namespace can join the mesh:
-// sidecar injection and ambient mode. The flags are independent, and only the
-// sidecar flag must drive sidecar-specific resources such as the Sidecar
-// resource, the proxy metrics port, and the scrape network policy.
-func (r *ReconcilerBase) IstioModesForNamespace(ctx context.Context, namespaceName string) (sidecarEnabled bool, ambientEnabled bool, err error) {
+// MeshModeForNamespace reports how the namespace joins the Istio mesh. A lookup
+// error is returned rather than swallowed, so callers can requeue instead of
+// treating a transient failure as "Istio disabled". Transient errors are
+// retried by the reconciler requeue, not in-line here.
+func (r *ReconcilerBase) MeshModeForNamespace(ctx context.Context, namespaceName string) (mesh.Mode, error) {
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
@@ -130,23 +119,21 @@ func (r *ReconcilerBase) IstioModesForNamespace(ctx context.Context, namespaceNa
 	}
 
 	if err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace); err != nil {
-		return false, false, err
+		return mesh.ModeNone, err
 	}
 
-	return len(namespace.Labels[util.IstioRevisionLabel]) > 0,
-		namespace.Labels[util.IstioDataplaneModeLabel] == util.IstioAmbientMode,
-		nil
+	return mesh.ModeFromLabels(namespace.Labels), nil
 }
 
 // ValidateIstioEnabledForGatewayAPI requires the namespace to be in the mesh,
 // through a sidecar or through ambient mode. Istio only programs Gateway API
 // resources for namespaces it manages.
-func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, meshEnabled bool, namespaceName string) error {
-	if !usesStandardRouting || meshEnabled {
+func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, meshMode mesh.Mode, namespaceName string) error {
+	if !usesStandardRouting || meshMode.IsEnabled() {
 		return nil
 	}
 	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label or the %s=%s label",
-		namespaceName, util.IstioRevisionLabel, util.IstioDataplaneModeLabel, util.IstioAmbientMode)
+		namespaceName, mesh.RevisionLabel, mesh.DataplaneModeLabel, mesh.AmbientDataplaneMode)
 }
 
 func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {

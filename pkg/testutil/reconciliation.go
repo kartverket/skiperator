@@ -8,6 +8,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -27,7 +28,7 @@ func GetTestMinimalAppReconciliation() *reconciliation.ApplicationReconciliation
 	application.FillDefaultsSpec()
 	maps.Copy(application.Labels, application.GetDefaultLabels())
 	ctx := context.TODO()
-	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(ctx, application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	return r
 }

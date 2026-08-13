@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/kartverket/skiperator/internal/config"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
@@ -153,6 +154,25 @@ func (ddnp *DefaultDenyNetworkPolicy) Generate(r reconciliation.Reconciliation) 
 				},
 			},
 		},
+	}
+
+	// Ambient rewrites the source address of kubelet health probes to a
+	// link-local address, which the deny all ingress rule above drops. Probes
+	// then fail for every pod in the namespace, including pods without a
+	// generated network policy of their own.
+	// https://istio.io/latest/docs/ambient/usage/networkpolicy/
+	if r.MeshMode() == mesh.ModeAmbient {
+		networkPolicy.Spec.Ingress = []networkingv1.NetworkPolicyIngressRule{
+			{
+				From: []networkingv1.NetworkPolicyPeer{
+					{
+						IPBlock: &networkingv1.IPBlock{
+							CIDR: mesh.AmbientHealthProbeCIDR,
+						},
+					},
+				},
+			},
+		}
 	}
 
 	r.AddResource(&networkPolicy)

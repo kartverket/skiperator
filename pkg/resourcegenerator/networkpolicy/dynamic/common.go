@@ -7,6 +7,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/core/v1"
@@ -51,7 +52,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 		inboundPort = int32(application.IngressTargetPort())
 	}
 
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.IsIstioEnabled(), namespace, inboundPort)
+	ingressRules := getIngressRules(accessPolicy, ingresses, r.MeshMode(), namespace, inboundPort)
 	egressRules := getEgressRules(accessPolicy, object)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -172,21 +173,21 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 }
 
 // TODO Clean up better
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, istioEnabled bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, meshMode mesh.Mode, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if len(ingresses) > 0 {
 		if hasInternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(true, port))
+			ingressRules = append(ingressRules, getGatewayIngressRule(true, port, meshMode))
 		}
 
 		if hasExternalIngress(ingresses) {
-			ingressRules = append(ingressRules, getGatewayIngressRule(false, port))
+			ingressRules = append(ingressRules, getGatewayIngressRule(false, port, meshMode))
 		}
 	}
 
 	// Allow grafana-alloy to scrape
-	if istioEnabled {
+	if meshMode == mesh.ModeSidecar {
 		promScrapeRuleAlloy := networkingv1.NetworkPolicyIngressRule{
 			From: []networkingv1.NetworkPolicyPeer{
 				{
@@ -216,13 +217,10 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 	}
 
 	if accessPolicy.Inbound != nil {
-		inboundTrafficIngressRule := networkingv1.NetworkPolicyIngressRule{
-			From: getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
-		}
-		if port != 0 {
-			inboundTrafficIngressRule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(port))}}
-		}
-		ingressRules = append(ingressRules, inboundTrafficIngressRule)
+		ingressRules = append(ingressRules, networkingv1.NetworkPolicyIngressRule{
+			From:  getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
+			Ports: getInboundPorts(port, meshMode),
+		})
 	}
 
 	return ingressRules
@@ -283,8 +281,8 @@ func hasInternalIngress(ingresses []string) bool {
 	return false
 }
 
-func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPolicyIngressRule {
-	ingressRule := networkingv1.NetworkPolicyIngressRule{
+func getGatewayIngressRule(isInternal bool, port int32, meshMode mesh.Mode) networkingv1.NetworkPolicyIngressRule {
+	return networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
 			{
 				NamespaceSelector: &metav1.LabelSelector{
@@ -295,11 +293,29 @@ func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPoli
 				},
 			},
 		},
+		Ports: getInboundPorts(port, meshMode),
 	}
-	if port != 0 {
-		ingressRule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(port))}}
+}
+
+// getInboundPorts restricts an ingress rule to the port that receives traffic.
+// Ambient tunnels mesh traffic to ztunnel's HBONE port instead of the
+// application port, so ambient pods must accept both from the same sources.
+// A zero port means the rule is not port restricted at all.
+// https://istio.io/latest/docs/ambient/usage/networkpolicy/
+func getInboundPorts(port int32, meshMode mesh.Mode) []networkingv1.NetworkPolicyPort {
+	if port == 0 {
+		return nil
 	}
-	return ingressRule
+
+	ports := []networkingv1.NetworkPolicyPort{{Port: new(intstr.FromInt32(port))}}
+	if meshMode == mesh.ModeAmbient {
+		ports = append(ports, networkingv1.NetworkPolicyPort{
+			Protocol: new(v1.ProtocolTCP),
+			Port:     new(mesh.ZtunnelInboundPort),
+		})
+	}
+
+	return ports
 }
 
 // TODO Should be in constants or something

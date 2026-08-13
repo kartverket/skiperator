@@ -5,6 +5,7 @@ import (
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"k8s.io/client-go/rest"
 )
 
@@ -14,12 +15,12 @@ type RoutingReconciliation struct {
 }
 
 func NewRoutingReconciliation(ctx context.Context, routing *skiperatorv1alpha1.Routing,
-	logger log.Logger, istioEnabled bool, restConfig *rest.Config, targetAppPorts map[string]int32) *RoutingReconciliation {
+	logger log.Logger, meshMode mesh.Mode, restConfig *rest.Config, targetAppPorts map[string]int32) *RoutingReconciliation {
 	return &RoutingReconciliation{
 		baseReconciliation: baseReconciliation{
 			ctx:                   ctx,
 			logger:                logger,
-			istioEnabled:          istioEnabled,
+			meshMode:              meshMode,
 			restConfig:            restConfig,
 			skipObject:            routing,
 			generateLegacyRouting: true,

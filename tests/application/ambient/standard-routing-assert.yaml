@@ -1,0 +1,12 @@
+# The prerequisite check runs before any resource is generated, so an existing
+# HTTPRoute proves the ambient namespace label was accepted for Standard
+# routing. Readiness is not asserted here; it needs cert-manager and Istio and
+# is covered by tests/application/gateway-api.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ambient-standard
+  namespace: ambient-application
+spec:
+  hostnames:
+    - ambient-standard.example.com

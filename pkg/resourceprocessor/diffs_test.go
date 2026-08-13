@@ -7,6 +7,7 @@ import (
 	"github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
@@ -74,7 +75,7 @@ func TestGetDiffForApplicationShouldCreateDelete(t *testing.T) {
 	assert.Nil(t, err)
 	err = mockClient.Create(ctx, liveSA)
 	assert.Nil(t, err)
-	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.TODO(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 	_ = resourceutils.AddGVK(scheme, newSA)
 	_ = resourceutils.AddGVK(scheme, liveDeploymentIgnorePatchOrCreate)
 	//build reconcile objects array

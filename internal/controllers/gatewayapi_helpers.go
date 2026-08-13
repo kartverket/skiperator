@@ -7,6 +7,7 @@ import (
 	controllercommon "github.com/kartverket/skiperator/internal/controllers/common"
 	"github.com/kartverket/skiperator/pkg/gwapi"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -19,8 +20,8 @@ type gatewayAPIRoutable interface {
 	gwapi.Routable
 }
 
-func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, meshEnabled bool, logger log.Logger) bool {
-	if err := r.ValidateIstioEnabledForGatewayAPI(obj.UsesStandardRouting(), meshEnabled, obj.GetNamespace()); err != nil {
+func checkGatewayAPIPrerequisites(ctx context.Context, r *controllercommon.ReconcilerBase, obj gatewayAPIRoutable, meshMode mesh.Mode, logger log.Logger) bool {
+	if err := r.ValidateIstioEnabledForGatewayAPI(obj.UsesStandardRouting(), meshMode, obj.GetNamespace()); err != nil {
 		logger.Error(err, "namespace is not part of the Istio mesh")
 		r.SetErrorState(ctx, obj, err, "namespace is not part of the Istio mesh", "NamespaceNotInMesh")
 		return true

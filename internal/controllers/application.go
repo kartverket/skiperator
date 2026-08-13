@@ -18,6 +18,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/gwapi"
 	"github.com/kartverket/skiperator/pkg/k8sfeatures"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/deployment"
@@ -217,9 +218,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	// Resolve mesh membership once and reuse it for both the Gateway API
 	// prerequisite check and the reconciliation, instead of looking the
 	// namespace up twice. A lookup error requeues rather than being read as
-	// "Istio disabled". Only the sidecar flag goes into the reconciliation,
-	// because ambient namespaces get no sidecar.
-	istioEnabled, ambientEnabled, err := r.IstioModesForNamespace(ctx, application.Namespace)
+	// "Istio disabled".
+	meshMode, err := r.MeshModeForNamespace(ctx, application.Namespace)
 	if err != nil {
 		rLog.Error(err, "failed to check Istio labels for namespace")
 		r.SetErrorState(ctx, application, err, "failed to check Istio labels for namespace", "NamespaceLookupFailure")
@@ -228,7 +228,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 
 	// Gateway API uses shared cluster resources, so fail before generating
 	// resources if namespace setup or ownership checks are invalid.
-	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, istioEnabled || ambientEnabled, rLog) {
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, application, meshMode, rLog) {
 		return common.DoNotRequeue()
 	}
 
@@ -269,7 +269,7 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 		rLog.Error(err, "unable to resolve request auth config for application", "application", application.Name)
 	}
 
-	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, istioEnabled, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
+	reconciliationApp := reconciliation.NewApplicationReconciliation(ctx, application, rLog, meshMode, r.GetRestConfig(), authConfigs, r.SkiperatorConfig)
 	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), application, application.GetStatus())
 	if err != nil {
 		// A failed routing-state lookup must not be read as "legacy absent":
@@ -443,7 +443,7 @@ func (r *ApplicationReconciler) cleanUpWatchedResources(ctx context.Context, nam
 	app.SetName(name.Name)
 	app.SetNamespace(name.Namespace)
 
-	reconciliation := reconciliation.NewApplicationReconciliation(ctx, app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	reconciliation := reconciliation.NewApplicationReconciliation(ctx, app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 	processor := resourceprocessor.NewResourceProcessor(r.GetClient(), resourceschemas.GetApplicationSchemas(r.GetScheme()), r.GetScheme())
 
 	return processor.Process(reconciliation)

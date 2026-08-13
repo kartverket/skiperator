@@ -70,15 +70,15 @@ func (r *NamespaceReconciler) Reconcile(ctx context.Context, req reconcile.Reque
 	//This is a hack because namespace shouldn't be here. We need this to keep things generic
 	SKIPNamespace := skiperatorv1alpha1.SKIPNamespace{Namespace: namespace}
 
-	istioEnabled, err := r.IsIstioEnabledForNamespace(ctx, namespace.Name)
+	meshMode, err := r.MeshModeForNamespace(ctx, namespace.Name)
 	if err != nil {
-		rLog.Error(err, "failed to check Istio revision label for namespace")
+		rLog.Error(err, "failed to check Istio labels for namespace")
 		return common.RequeueWithError(err)
 	}
 
 	rLog.Debug("Starting reconciliation", "namespace", namespace.Name)
 	r.EmitNormalEvent(namespace, "ReconcileStart", fmt.Sprintf("Namespace %v has started reconciliation loop", namespace.Name))
-	reconciliation := reconciliation.NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, istioEnabled, r.GetRestConfig())
+	reconciliation := reconciliation.NewNamespaceReconciliation(ctx, SKIPNamespace, rLog, meshMode, r.GetRestConfig())
 
 	funcs := []reconciliationFunc{
 		sidecar.Generate,

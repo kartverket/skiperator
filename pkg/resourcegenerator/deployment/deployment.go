@@ -45,7 +45,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	}
 
 	podOpts := pod.PodOpts{
-		IstioEnabled:     r.IsIstioEnabled(),
+		IstioEnabled:     r.IsSidecarEnabled(),
 		LocalBuiltImages: r.GetSkiperatorConfig().EnableLocallyBuiltImages,
 	}
 
@@ -118,7 +118,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if r.IsIstioEnabled() {
+	if r.IsSidecarEnabled() {
 		if application.Spec.Prometheus != nil {
 			// If the application has exposed metrics
 			generatedSpecAnnotations["prometheus.io/port"] = application.ResolvePortNumber(application.Spec.Prometheus.Port, ctxLog.GetLogger())

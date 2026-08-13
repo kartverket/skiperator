@@ -8,6 +8,7 @@ import (
 	commontypes "github.com/kartverket/skiperator/api/common"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	controllercommon "github.com/kartverket/skiperator/internal/controllers/common"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -31,14 +32,15 @@ func TestApplicationStandardRoutingRequiresIstioRevision(t *testing.T) {
 		},
 	}
 
-	istioEnabled, err := reconciler.IsIstioEnabledForNamespace(context.Background(), application.Namespace)
+	meshMode, err := reconciler.MeshModeForNamespace(context.Background(), application.Namespace)
 	require.NoError(t, err)
-	assert.False(t, istioEnabled)
+	assert.Equal(t, mesh.ModeNone, meshMode)
 
-	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), istioEnabled, application.Namespace)
+	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), meshMode, application.Namespace)
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "istio.io/rev")
+	assert.Contains(t, err.Error(), "istio.io/dataplane-mode=ambient")
 }
 
 func TestApplicationStandardRoutingAllowsIstioRevision(t *testing.T) {
@@ -59,11 +61,11 @@ func TestApplicationStandardRoutingAllowsIstioRevision(t *testing.T) {
 		},
 	}
 
-	istioEnabled, err := reconciler.IsIstioEnabledForNamespace(context.Background(), application.Namespace)
+	meshMode, err := reconciler.MeshModeForNamespace(context.Background(), application.Namespace)
 	require.NoError(t, err)
-	assert.True(t, istioEnabled)
+	assert.Equal(t, mesh.ModeSidecar, meshMode)
 
-	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), istioEnabled, application.Namespace)
+	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), meshMode, application.Namespace)
 
 	require.NoError(t, err)
 }
@@ -86,13 +88,12 @@ func TestApplicationStandardRoutingAllowsAmbientNamespace(t *testing.T) {
 		},
 	}
 
-	istioEnabled, ambientEnabled, err := reconciler.IstioModesForNamespace(context.Background(), application.Namespace)
+	meshMode, err := reconciler.MeshModeForNamespace(context.Background(), application.Namespace)
 	require.NoError(t, err)
 	// Ambient namespaces get no sidecar, so sidecar-specific resources must stay off.
-	assert.False(t, istioEnabled)
-	assert.True(t, ambientEnabled)
+	assert.Equal(t, mesh.ModeAmbient, meshMode)
 
-	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), istioEnabled || ambientEnabled, application.Namespace)
+	err = reconciler.ValidateIstioEnabledForGatewayAPI(application.UsesStandardRouting(), meshMode, application.Namespace)
 
 	require.NoError(t, err)
 }
