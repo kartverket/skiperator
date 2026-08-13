@@ -7,6 +7,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
@@ -73,7 +74,7 @@ func getServiceEntries(r reconciliation.Reconciliation) error {
 				},
 				Spec: networkingv1api.ServiceEntry{
 					// Avoid leaking service entry to other namespaces
-					ExportTo:   []string{".", "istio-system", "istio-gateways"},
+					ExportTo:   []string{".", mesh.SystemNamespace, mesh.GatewayNamespace},
 					Hosts:      []string{rule.Host},
 					Resolution: resolution,
 					Addresses:  addresses,

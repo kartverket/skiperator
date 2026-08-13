@@ -7,6 +7,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	skiperatorv1beta1 "github.com/kartverket/skiperator/api/v1beta1"
 	"github.com/kartverket/skiperator/internal/config"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/volume"
 	"github.com/kartverket/skiperator/pkg/util"
 	"github.com/kartverket/skiperator/pkg/util/array"
@@ -353,8 +354,8 @@ func getContainerPorts(application *skiperatorv1alpha1.Application, opts PodOpts
 	// Expose Prometheus telemetry to Service, so it can be picked up from ServiceMonitor
 	if opts.IstioEnabled {
 		containerPorts = append(containerPorts, corev1.ContainerPort{
-			Name:          util.IstioMetricsPortName.StrVal,
-			ContainerPort: util.IstioMetricsPortNumber.IntVal,
+			Name:          mesh.MetricsPortName.StrVal,
+			ContainerPort: mesh.MetricsPortNumber.IntVal,
 			Protocol:      corev1.ProtocolTCP,
 		})
 	}

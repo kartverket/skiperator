@@ -31,14 +31,6 @@ func IsInternal(hostname string) bool {
 	return internalPattern.MatchString(hostname)
 }
 
-func GetIstioGatewayLabelSelector(hostname string) map[string]string {
-	if IsInternal(hostname) {
-		return map[string]string{"app": "istio-ingress-internal"}
-	}
-	return map[string]string{"app": "istio-ingress-external"}
-
-}
-
 func GetHashForStructs(obj []interface{}) string {
 	hash, err := hashstructure.Hash(obj, hashstructure.FormatV2, nil)
 	if err != nil {
@@ -131,10 +123,6 @@ func PointToInt64(n int64) *int64 {
 	return &n
 }
 
-func GetIstioGatewaySelector() map[string]string {
-	return map[string]string{"kubernetes.io/metadata.name": "istio-gateways"}
-}
-
 func GetPodAppSelector(applicationName string) map[string]string {
 	return map[string]string{"app": applicationName}
 }
@@ -158,10 +146,6 @@ func HasUpperCaseLetter(word string) bool {
 
 func ResourceNameWithKindPostfix(resourceName string, kind string) string {
 	return strings.ToLower(fmt.Sprintf("%v-%v", resourceName, kind))
-}
-
-func GetGatewaySecretName(namespace string, name string) string {
-	return fmt.Sprintf("%s-%s-ingress", namespace, name)
 }
 
 func GetSecretName(prefix string, name string) (string, error) {

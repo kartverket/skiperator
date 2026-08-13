@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,7 +107,7 @@ func (r *ResourceProcessor) listResourcesByLabels(ctx context.Context, namespace
 }
 
 func (r *ResourceProcessor) getCertificates(ctx context.Context, labels map[string]string, objList *[]client.Object) error {
-	return r.listResourcesByLabels(ctx, "istio-gateways", labels, objList)
+	return r.listResourcesByLabels(ctx, mesh.GatewayNamespace, labels, objList)
 }
 
 // TODO: Should we compare annotations?

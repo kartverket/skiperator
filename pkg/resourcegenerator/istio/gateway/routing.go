@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1api "istio.io/api/networking/v1"
@@ -44,7 +45,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 		}
 	}
 
-	gateway.Spec.Selector = util.GetIstioGatewayLabelSelector(h.Hostname)
+	gateway.Spec.Selector = mesh.IngressGatewayLabels(util.IsInternal(h.Hostname))
 	gateway.Spec.Servers = []*networkingv1api.Server{
 		{
 			Hosts: []string{h.Hostname},

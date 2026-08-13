@@ -7,8 +7,8 @@ import (
 	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
-	"github.com/kartverket/skiperator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
@@ -119,7 +119,7 @@ func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespa
 		return false
 	}
 
-	v, exists := namespace.Labels[util.IstioRevisionLabel]
+	v, exists := namespace.Labels[mesh.RevisionLabel]
 
 	return exists && len(v) > 0
 }

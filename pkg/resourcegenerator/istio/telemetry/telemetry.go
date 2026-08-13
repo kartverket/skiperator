@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -33,7 +34,7 @@ func Generate(r reconciliation.Reconciliation) error {
 		telemetryTracing = append(telemetryTracing, &telemetryapiv1.Tracing{
 			Providers: []*telemetryapiv1.ProviderRef{
 				{
-					Name: util.IstioTraceProvider,
+					Name: mesh.TraceProvider,
 				},
 			},
 			RandomSamplingPercentage: util.PointTo(wrapperspb.DoubleValue{
