@@ -326,6 +326,17 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td>false</td>
       </tr>
       <tr>
+        <td><b>routingProvider</b></td>
+        <td>enum</td>
+        <td>
+          RoutingProvider controls which routing API Skiperator uses for ingresses.<br/>Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.<br/>
+          <br/>
+            <i>Enum</i>: Legacy, Standard<br/>
+            <i>Default</i>: `Legacy`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b><a href="#applicationspecstartup">startup</a></b></td>
         <td>object</td>
         <td>
@@ -4356,6 +4367,17 @@ Status
           <br/>
           <br/>
             <i>Default</i>: `true`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>routingProvider</b></td>
+        <td>enum</td>
+        <td>
+          RoutingProvider controls which routing API Skiperator uses.<br/>Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.<br/>
+          <br/>
+            <i>Enum</i>: Legacy, Standard<br/>
+            <i>Default</i>: `Legacy`<br/>
         </td>
         <td>false</td>
       </tr>
