@@ -29,6 +29,14 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	if err != nil {
 		return err
 	}
+	// Without ingresses there is no ListenerSet to attach to, and the routes
+	// below would be created with no parentRefs: inert objects that Istio never
+	// programs. Readiness already treats an object with no hosts as ready, so
+	// generate nothing and stay consistent with it.
+	if hosts.Count() == 0 {
+		ctxLog.Debug("Standard routing without ingresses, no Gateway API resources to generate", "application", application.Name)
+		return nil
+	}
 
 	listenerSetNames, hostnames, err := addListenerSets(r, application.Namespace, application.Name, hosts, application.GetCertificateName)
 	if err != nil {

@@ -20,6 +20,24 @@ import (
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
+func TestApplicationStandardRoutingWithoutIngresses(t *testing.T) {
+	app := &skiperatorv1alpha1.Application{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.ApplicationSpec{
+			Image:           "image",
+			Port:            8080,
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			RedirectToHTTPS: skiperatorv1alpha1Bool(true),
+		},
+	}
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
+
+	require.NoError(t, Generate(r))
+
+	// Routes without parentRefs would never be programmed, so none are created.
+	assert.Empty(t, r.GetResources())
+}
+
 func TestApplicationStandardRouting(t *testing.T) {
 	app := &skiperatorv1alpha1.Application{
 		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
