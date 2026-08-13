@@ -7,6 +7,7 @@ import (
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,7 @@ func TestApplicationVirtualServiceSkipsLegacyWhenDisabled(t *testing.T) {
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 	r.SetGenerateLegacyRouting(false)
 
 	err := Generate(r)
@@ -44,7 +45,7 @@ func TestApplicationLegacyRoutingGeneratesVirtualService(t *testing.T) {
 			IstioSettings:   &skiperatorv1alpha1.IstioSettingsApplication{},
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), application, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
@@ -65,7 +66,7 @@ func TestRoutingLegacyRoutingGeneratesVirtualService(t *testing.T) {
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}
-	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), false, nil, nil)
+	r := reconciliation.NewRoutingReconciliation(context.Background(), routing, log.NewLogger(), mesh.ModeNone, nil, nil)
 
 	err := Generate(r)
 

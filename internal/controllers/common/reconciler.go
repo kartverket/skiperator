@@ -107,30 +107,33 @@ func (r *ReconcilerBase) EmitNormalEvent(object runtime.Object, reason string, m
 	)
 }
 
-func (r *ReconcilerBase) IsIstioEnabledForNamespace(ctx context.Context, namespaceName string) bool {
+// MeshModeForNamespace reports how the namespace joins the Istio mesh. A lookup
+// error is returned rather than swallowed, so callers can requeue instead of
+// treating a transient failure as "Istio disabled". Transient errors are
+// retried by the reconciler requeue, not in-line here.
+func (r *ReconcilerBase) MeshModeForNamespace(ctx context.Context, namespaceName string) (mesh.Mode, error) {
 	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespaceName,
 		},
 	}
 
-	err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace)
-	if err != nil {
-		return false
+	if err := r.GetClient().Get(ctx, client.ObjectKeyFromObject(&namespace), &namespace); err != nil {
+		return mesh.ModeNone, err
 	}
 
-	v, exists := namespace.Labels[mesh.RevisionLabel]
-
-	return exists && len(v) > 0
+	return mesh.ModeFromLabels(namespace.Labels), nil
 }
 
-// ValidateIstioEnabledForGatewayAPI requires the namespace to be in the mesh.
-// Istio only programs Gateway API resources for namespaces it manages.
-func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, istioEnabled bool, namespaceName string) error {
-	if !usesStandardRouting || istioEnabled {
+// ValidateIstioEnabledForGatewayAPI requires the namespace to be in the mesh,
+// through a sidecar or through ambient mode. Istio only programs Gateway API
+// resources for namespaces it manages.
+func (r *ReconcilerBase) ValidateIstioEnabledForGatewayAPI(usesStandardRouting bool, meshMode mesh.Mode, namespaceName string) error {
+	if !usesStandardRouting || meshMode.IsEnabled() {
 		return nil
 	}
-	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label", namespaceName, mesh.RevisionLabel)
+	return fmt.Errorf("gateway API routing requires namespace %q to have the %s revision label or the %s=%s label",
+		namespaceName, mesh.RevisionLabel, mesh.DataplaneModeLabel, mesh.AmbientDataplaneMode)
 }
 
 func (r *ReconcilerBase) SetSubresourceDefaults(resources []client.Object, skipObj client.Object) error {
@@ -157,13 +160,6 @@ func (r *ReconcilerBase) SetProgressingState(ctx context.Context, skipObj common
 	r.EmitNormalEvent(skipObj, "ReconcileStart", message)
 	skipObj.GetStatus().SetSummaryProgressing()
 	skipObj.GetStatus().SetReadyCondition(metav1.ConditionUnknown, skipObj.GetGeneration(), "Reconciling", message)
-	r.UpdateStatus(ctx, skipObj)
-}
-
-func (r *ReconcilerBase) SetSyncedState(ctx context.Context, skipObj common.SKIPObject, message string) {
-	r.EmitNormalEvent(skipObj, "ReconcileEndSuccess", message)
-	skipObj.GetStatus().SetSummarySynced()
-	SetReadyReconciled(skipObj, message)
 	r.UpdateStatus(ctx, skipObj)
 }
 

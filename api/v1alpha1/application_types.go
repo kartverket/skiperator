@@ -16,9 +16,6 @@ import (
 )
 
 type ApplicationKind string
-
-// RoutingProvider selects which routing API Skiperator generates ingress
-// resources with.
 type RoutingProvider string
 
 // Kind values for the workload skiperator generates for an Application
