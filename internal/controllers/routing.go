@@ -192,10 +192,10 @@ func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skipera
 }
 
 func (r *RoutingReconciler) setRoutingResourceDefaults(resources []client.Object, routing *skiperatorv1alpha1.Routing) error {
+	if err := r.SetSubresourceDefaults(resources, routing); err != nil {
+		return err
+	}
 	for _, resource := range resources {
-		if err := r.SetSubresourceDefaults(resources, routing); err != nil {
-			return err
-		}
 		resourceutils.SetRoutingLabels(resource, routing)
 	}
 	return nil

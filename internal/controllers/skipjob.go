@@ -256,10 +256,10 @@ func (r *SKIPJobReconciler) teamNameForNamespace(ctx context.Context, skipJob *s
 	return "", fmt.Errorf("missing value for team label")
 }
 func (r *SKIPJobReconciler) setResourceDefaults(resources []client.Object, skipJob *skiperatorv1beta1.SKIPJob) error {
+	if err := r.SetSubresourceDefaults(resources, skipJob); err != nil {
+		return err
+	}
 	for _, resource := range resources {
-		if err := r.SetSubresourceDefaults(resources, skipJob); err != nil {
-			return err
-		}
 		resourceutils.SetSKIPJobLabels(resource, skipJob)
 	}
 	return nil
