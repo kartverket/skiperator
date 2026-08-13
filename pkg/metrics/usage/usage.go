@@ -2,7 +2,6 @@ package usage
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/kartverket/skiperator/pkg/log"
@@ -25,8 +24,9 @@ var (
 )
 
 // updateGaugeFunc is a function that will be called when it's time to
-// update the gauge.
-type updateGaugeFunc = func(ctx context.Context, k client.Client, logger log.Logger, currentGauge *prometheus.GaugeVec)
+// update the gauge. It counts from the tick's clusterUsage snapshot rather than
+// listing anything itself, so registering another gauge costs no API calls.
+type updateGaugeFunc = func(usage clusterUsage, currentGauge *prometheus.GaugeVec)
 
 // computableGauge is a struct that holds a gauge and a function to update
 // it in order to make it easier to do bookkeeping
@@ -35,8 +35,9 @@ type computableGauge struct {
 	fn    updateGaugeFunc
 }
 
-// NewUsageMetrics initializes the usage metrics subsystem, ensuring that metrics will be updated
-func NewUsageMetrics(k8sConfig *rest.Config, log log.Logger) error {
+// NewUsageMetrics initializes the usage metrics subsystem, ensuring that metrics will be updated.
+// The refresh goroutine runs until ctx is cancelled, so it stops on manager shutdown / loss of leadership.
+func NewUsageMetrics(ctx context.Context, k8sConfig *rest.Config, log log.Logger) error {
 	if k8sConfig == nil {
 		return errors.New("missing k8s REST config")
 	}
@@ -64,10 +65,15 @@ func NewUsageMetrics(k8sConfig *rest.Config, log log.Logger) error {
 		// regular update
 		ticker := time.NewTicker(metricsRefreshInterval)
 		defer ticker.Stop()
-		for range ticker.C {
-			ctx, cancel := apiserverCtx()
-			updateMetrics(ctx)
-			cancel()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				tickCtx, cancel := apiserverCtx()
+				updateMetrics(tickCtx)
+				cancel()
+			}
 		}
 	}()
 
@@ -76,8 +82,12 @@ func NewUsageMetrics(k8sConfig *rest.Config, log log.Logger) error {
 
 func updateMetrics(ctx context.Context) {
 	logger.Debug("refreshing data and updating metrics")
+	usage, ok := collectClusterUsage(ctx, *kclient, logger)
+	if !ok {
+		return
+	}
 	for _, g := range gauges {
-		g.fn(ctx, *kclient, logger, g.gauge)
+		g.fn(usage, g.gauge)
 	}
 }
 
@@ -87,18 +97,6 @@ func registerGaugeVecFunc(opts prometheus.GaugeOpts, labelNames []string, fn upd
 	g := prometheus.NewGaugeVec(opts, labelNames)
 	metrics.Registry.MustRegister(g)
 	gauges[opts.Name] = computableGauge{gauge: g, fn: fn}
-}
-
-// Helper function to split key back into label values
-func splitKey(key string) []string {
-	parts := [2]string{unknownValue, unknownValue}
-	if key == "" {
-		return parts[:]
-	}
-
-	split := strings.SplitN(key, "|", 2)
-	copy(parts[:], split)
-	return parts[:]
 }
 
 // Ensure empty string if label is missing to avoid "no metric for label set" errors
