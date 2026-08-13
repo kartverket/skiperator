@@ -36,6 +36,7 @@ type Routing struct {
 }
 
 // +kubebuilder:object:generate=true
+// +kubebuilder:validation:XValidation:rule="self.hostname == oldSelf.hostname",message="spec.hostname is immutable"
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Hostname string `json:"hostname"`
@@ -61,6 +62,8 @@ type Route struct {
 	//+kubebuilder:validation:Required
 	TargetApp string `json:"targetApp"`
 	//+kubebuilder:validation:Required
+	//+kubebuilder:validation:MinLength=1
+	//+kubebuilder:validation:Pattern=`^\/`
 	PathPrefix string `json:"pathPrefix"`
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=false
@@ -87,17 +90,32 @@ func (in *Routing) UsesStandardRouting() bool {
 	return in.Spec.RoutingProvider == RoutingProviderStandard
 }
 
+func (in *Routing) Hostnames() (common.HostCollection, error) {
+	hosts := common.NewCollection()
+	if err := hosts.Add(in.Spec.Hostname); err != nil {
+		return hosts, err
+	}
+	return hosts, nil
+}
+
 // GetGatewayName returns the legacy Istio Gateway resource name.
 // This does not refer to a Kubernetes Gateway API Gateway.
 func (in *Routing) GetGatewayName() string {
 	return fmt.Sprintf("%s-routing-ingress", in.Name)
 }
 
+func (in *Routing) GetGatewayNames() ([]string, error) {
+	return []string{in.GetGatewayName()}, nil
+}
+
 func (in *Routing) GetVirtualServiceName() string {
 	return fmt.Sprintf("%s-routing-ingress", in.Name)
 }
 
-func (in *Routing) GetCertificateName() (string, error) {
+func (in *Routing) GetCertificateName(host *common.Host) (string, error) {
+	if host.UsesCustomCert() {
+		return *host.CustomCertificateSecret, nil
+	}
 	namePrefix := fmt.Sprintf("%s-%s", in.Namespace, in.Name)
 	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L82
 	// https://github.com/nais/naiserator/blob/faed273b68dff8541e1e2889fda5d017730f9796/pkg/resourcecreator/idporten/idporten.go#L170

@@ -4,13 +4,16 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/controllers/common"
+	"github.com/kartverket/skiperator/pkg/gwapi"
 	"github.com/kartverket/skiperator/pkg/log"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/certificate"
+	gatewayapigenerator "github.com/kartverket/skiperator/pkg/resourcegenerator/gatewayapi"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/gateway"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/istio/virtualservice"
 	networkpolicy "github.com/kartverket/skiperator/pkg/resourcegenerator/networkpolicy/dynamic"
@@ -23,16 +26,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=routings;routings/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=networking.istio.io,resources=gateways;virtualservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=listenersets;httproutes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=gateway.networking.k8s.io,resources=gateways,verbs=get;list;watch
 
 type RoutingReconciler struct {
 	common.ReconcilerBase
@@ -44,11 +52,21 @@ func (r *RoutingReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&istionetworkingv1.Gateway{}).
 		Owns(&networkingv1.NetworkPolicy{}).
 		Owns(&istionetworkingv1.VirtualService{}).
+		Owns(&gatewayapiv1.ListenerSet{}).
+		Owns(&gatewayapiv1.HTTPRoute{}).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(r.skiperatorRoutingCertRequests)).
 		Watches(
 			&skiperatorv1alpha1.Application{},
 			handler.EnqueueRequestsFromMapFunc(r.skiperatorApplicationsChanges)).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicate.LabelChangedPredicate{})).
+		WithEventFilter(predicate.Or(
+			predicate.GenerationChangedPredicate{},
+			predicate.LabelChangedPredicate{},
+			// Finalizer-driven deletes arrive as metadata-only updates (deletion
+			// timestamp set, generation unchanged), so let those through too.
+			predicate.Funcs{UpdateFunc: func(e event.UpdateEvent) bool {
+				return !e.ObjectNew.GetDeletionTimestamp().IsZero()
+			}},
+		)).
 		Complete(r)
 }
 
@@ -82,6 +100,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 
 	if len(statusDiff) > 0 {
 		rLog.Info("Status has changed", "diff", statusDiff)
+		routing.GetStatus().SortConditions()
 		err = r.GetClient().Status().Update(ctx, routing)
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -97,13 +116,40 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop", "routing", routing.Name)
 	r.SetProgressingState(ctx, routing, fmt.Sprintf("Routing %v has started reconciliation loop", routing.Name))
 
+	// Resolve mesh membership once and reuse it for both the Gateway API
+	// prerequisite check and the reconciliation, instead of looking the
+	// namespace up twice.
 	istioEnabled := r.IsIstioEnabledForNamespace(ctx, routing.Namespace)
 
+	// Gateway API uses shared cluster resources, so fail before generating
+	// resources if namespace setup or ownership checks are invalid.
+	if checkGatewayAPIPrerequisites(ctx, &r.ReconcilerBase, routing, istioEnabled, rLog) {
+		return common.DoNotRequeue()
+	}
+
 	reconciliationRouting := reconciliation.NewRoutingReconciliation(ctx, routing, rLog, istioEnabled, r.GetRestConfig(), targetAppPorts)
+	routingState, err := gwapi.EvaluateRoutingState(ctx, r.GetClient(), routing, routing.GetStatus())
+	if err != nil {
+		// A failed routing-state lookup must not be read as "legacy absent":
+		// requeue without generating resources so legacy routing is preserved.
+		rLog.Error(err, "failed to evaluate Gateway API routing state")
+		r.SetErrorState(ctx, routing, err, "failed to evaluate Gateway API routing state", "RoutingStateFailure")
+		return common.RequeueWithError(err)
+	}
+	reconciliationRouting.SetGenerateLegacyRouting(routingState.GenerateLegacyRouting)
+
+	// Prime migration status (start time + stall detection) before generating
+	// resources, so the migration clock advances and stalls are surfaced even if
+	// resource generation keeps failing. Persisted by the success or error path.
+	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
+		emitMigrationEvents(&r.ReconcilerBase, routing, gwapi.UpdateRoutingStatus(routing.GetStatus(), routing.GetGeneration(), routingState))
+	}
+
 	resourceGeneration := []reconciliationFunc{
 		networkpolicy.Generate,
 		virtualservice.Generate,
 		gateway.Generate,
+		gatewayapigenerator.Generate,
 		certificate.Generate,
 	}
 
@@ -141,7 +187,13 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.RequeueWithError(err)
 	}
 
-	r.SetSyncedState(ctx, routing, "Routing has been reconciled")
+	// Ready/summary come from the shared routing-status assembler, the same path
+	// Application uses, so the two controllers cannot drift.
+	finalizeRoutingStatus(&r.ReconcilerBase, routing, routingState, "Routing has been reconciled")
+	r.UpdateStatus(ctx, routing)
+	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	return common.DoNotRequeue()
 }
@@ -169,7 +221,9 @@ func (r *RoutingReconciler) cleanUpWatchedResources(ctx context.Context, name ty
 	return processor.Process(reconciliation)
 }
 
-// TODO Do this with application too for dynamic port allocation?
+// reconcileSharedRoutingFinalizer adds/removes the shared-routing finalizer and,
+// on deletion, performs ref-counted cleanup of shared istio-gateways resources.
+// It returns handled=true when it owns the outcome of this reconcile pass.
 func (r *RoutingReconciler) setDefaultSpec(ctx context.Context, routing *skiperatorv1alpha1.Routing) (map[string]int32, error) {
 	targetAppPorts := make(map[string]int32)
 	for i := range routing.Spec.Routes {
@@ -245,8 +299,8 @@ func (r *RoutingReconciler) skiperatorRoutingCertRequests(_ context.Context, obj
 	if isSkiperatorRoutingOwned {
 		requests = append(requests, reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Namespace: certificate.Labels["application.skiperator.no/app-namespace"],
-				Name:      certificate.Labels["application.skiperator.no/app-name"],
+				Namespace: certificate.Labels["skiperator.kartverket.no/source-namespace"],
+				Name:      certificate.Labels["skiperator.kartverket.no/routing-name"],
 			},
 		})
 	}

@@ -58,6 +58,8 @@ spec:
                 items:
                   properties:
                     pathPrefix:
+                      minLength: 1
+                      pattern: ^\/
                       type: string
                     port:
                       format: int32
@@ -85,6 +87,9 @@ spec:
             - hostname
             - routes
             type: object
+            x-kubernetes-validations:
+            - message: spec.hostname is immutable
+              rule: self.hostname == oldSelf.hostname
           status:
             description: |-
               SkiperatorStatus
