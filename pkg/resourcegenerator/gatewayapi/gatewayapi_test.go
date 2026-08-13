@@ -3,7 +3,9 @@ package gatewayapi
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/gwapi"
@@ -12,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
 
@@ -112,6 +115,86 @@ func TestApplicationLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Empty(t, r.GetResources())
+}
+
+func TestApplyRetriesExpandsStringCodeShorthands(t *testing.T) {
+	codes := []intstr.IntOrString{
+		intstr.FromString("5xx"),
+		intstr.FromString("retriable-4xx"),
+		intstr.FromInt32(503),
+		intstr.FromString("teapot"),
+	}
+	attempts := int32(4)
+	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
+
+	err := applyRetries(&rule, &istiotypes.Retries{
+		Attempts:                 &attempts,
+		RetryOnHttpResponseCodes: &codes,
+	}, func(field string, value string) {
+		unsupportedOptions[field] = append(unsupportedOptions[field], value)
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, rule.Retry)
+	require.Equal(t, 4, *rule.Retry.Attempts)
+	// Sorted and deduplicated: retry.codes is listType=set from Gateway API 1.6,
+	// and "5xx" already covers the explicit 503.
+	require.Equal(t, []gatewayapiv1.HTTPRouteRetryStatusCode{
+		409, 500, 501, 502, 503, 504, 505, 506, 507, 508, 510, 511,
+	}, rule.Retry.Codes)
+	require.Equal(t, []string{"teapot"}, unsupportedOptions["retryOnHttpResponseCodes"])
+}
+
+func TestApplyRetriesMapsPerTryTimeoutToBackendRequest(t *testing.T) {
+	timeout := metav1.Duration{Duration: 500 * time.Millisecond}
+	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
+
+	err := applyRetries(&rule, &istiotypes.Retries{PerTryTimeout: &timeout}, func(field string, value string) {
+		unsupportedOptions[field] = append(unsupportedOptions[field], value)
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, rule.Timeouts)
+	require.Equal(t, gatewayapiv1.Duration("500ms"), *rule.Timeouts.BackendRequest)
+	require.Nil(t, rule.Retry.Backoff)
+	require.Empty(t, unsupportedOptions)
+}
+
+func TestApplyRetriesReportsInexpressiblePerTryTimeout(t *testing.T) {
+	timeout := metav1.Duration{Duration: 500 * time.Microsecond}
+	unsupportedOptions := make(map[string][]string)
+	rule := gatewayapiv1.HTTPRouteRule{}
+
+	err := applyRetries(&rule, &istiotypes.Retries{PerTryTimeout: &timeout}, func(field string, value string) {
+		unsupportedOptions[field] = append(unsupportedOptions[field], value)
+	})
+
+	require.NoError(t, err)
+	require.Nil(t, rule.Timeouts)
+	require.Equal(t, []string{"500\u00b5s"}, unsupportedOptions["perTryTimeout"])
+}
+
+func TestGatewayAPIDuration(t *testing.T) {
+	for _, tc := range []struct {
+		duration time.Duration
+		expected gatewayapiv1.Duration
+	}{
+		{500 * time.Millisecond, "500ms"},
+		{time.Minute, "1m"},
+		{90 * time.Second, "1m30s"},
+		{time.Hour + 2*time.Minute + 3*time.Second + 4*time.Millisecond, "1h2m3s4ms"},
+	} {
+		got, err := gatewayAPIDuration(tc.duration)
+		require.NoError(t, err)
+		require.Equal(t, tc.expected, got)
+	}
+
+	for _, invalid := range []time.Duration{0, -time.Second, 100 * time.Microsecond} {
+		_, err := gatewayAPIDuration(invalid)
+		require.Error(t, err)
+	}
 }
 
 func skiperatorv1alpha1Bool(value bool) *bool {
