@@ -25,10 +25,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Golang environment
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -36,7 +36,7 @@ jobs:
         run: make generate
 
       - name: Upload CRD and ClusterRole
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
@@ -62,22 +62,25 @@ jobs:
           identity: skiperator
 
       - name: Checkout apps repo
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: kartverket/skip-apps
           token: ${{ steps.octo-sts.outputs.token }}
 
       - name: Download CRD and RBAC
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: config/
 
       - name: Patch Image Digest
+        env:
+          IMAGE_DIGEST: ${{ github.event.inputs.image_digest }}
         run: |
           kubectl patch --type=merge --local \
             -f ${{ matrix.base_dir }}/kustomization.yaml \
-            -p '{"images":[{"name":"${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}","digest":"${{ github.event.inputs.image_digest }}"}]}' \
+            -p "$(jq -nc --arg name "$REGISTRY/$IMAGE_NAME" --arg digest "$IMAGE_DIGEST" \
+                  '{images:[{name:$name,digest:$digest}]}')" \
             -o yaml > ${{ matrix.base_dir }}/$TMP_FILE
 
           rm ${{ matrix.base_dir }}/kustomization.yaml
@@ -91,8 +94,10 @@ jobs:
           rm -rf config/
 
       - name: Commit Changes to Repo
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -am "deploy skiperator branch: ${{github.ref_name}}"
+          git commit -am "deploy skiperator branch: $REF_NAME"
           git pull --rebase && git push
