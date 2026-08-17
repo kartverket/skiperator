@@ -153,11 +153,13 @@ jobs:
           rm -rf config/
 
       - name: Commit Changes to Repo
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          COMMIT_SHA: ${{ github.event.after }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           git config --global user.email "noreply@kartverket.no"
           git config --global user.name "GitHub Actions"
-          git commit -aF- <<EOF
-          skiperator ${{ github.ref_name }}[${{ github.event.after }}]: ${{ github.event.head_commit.message }}
-          EOF
-          
+          printf 'skiperator %s[%s]: %s\n' "$REF_NAME" "$COMMIT_SHA" "$COMMIT_MESSAGE" | git commit -aF-
+
           git push
