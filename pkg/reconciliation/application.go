@@ -12,6 +12,7 @@ import (
 
 type ApplicationReconciliation struct {
 	baseReconciliation
+	resolvedOutboundRules []ResolvedOutboundRule
 }
 
 func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1alpha1.Application,
@@ -31,4 +32,12 @@ func NewApplicationReconciliation(ctx context.Context, application *skiperatorv1
 
 func (r *ApplicationReconciliation) GetType() ObjectType {
 	return ApplicationType
+}
+
+func (r *ApplicationReconciliation) GetResolvedOutboundRules() []ResolvedOutboundRule {
+	return r.resolvedOutboundRules
+}
+
+func (r *ApplicationReconciliation) SetResolvedOutboundRules(rules []ResolvedOutboundRule) {
+	r.resolvedOutboundRules = rules
 }

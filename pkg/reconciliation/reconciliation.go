@@ -33,6 +33,11 @@ type Reconciliation interface {
 	GetSkiperatorConfig() config.SkiperatorConfig
 }
 
+type ResolvedOutboundRule struct {
+	Application string
+	Namespaces  []string
+}
+
 type baseReconciliation struct {
 	ctx              context.Context
 	logger           log.Logger
