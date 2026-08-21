@@ -35,7 +35,7 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		Labels:    map[string]string{"instance": "primary"},
 	}}
 
-	if !r.IsIstioEnabled() {
+	if !r.IsSidecarEnabled() {
 		return nil
 	}
 

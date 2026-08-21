@@ -9,7 +9,6 @@ import (
 	"github.com/kartverket/skiperator/pkg/util"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 func init() {
@@ -22,6 +21,10 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	routing, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Routing)
 	if !ok {
 		return fmt.Errorf("failed to cast object to Routing")
+	}
+	host, err := routing.Spec.GetHost()
+	if err != nil {
+		return err
 	}
 
 	uniqueTargetApps := make(map[string]skiperatorv1alpha1.Route)
@@ -55,15 +58,11 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: mesh.GatewayNamespaceLabels(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: mesh.IngressGatewayLabels(util.IsInternal(routing.Spec.Hostname)),
+								MatchLabels: mesh.IngressGatewayLabels(util.IsInternal(host.Hostname)),
 							},
 						},
 					},
-					Ports: []networkingv1.NetworkPolicyPort{
-						{
-							Port: util.PointTo(intstr.FromInt32(targetPort)),
-						},
-					},
+					Ports: getInboundPorts(targetPort, r.MeshMode()),
 				},
 			},
 		}

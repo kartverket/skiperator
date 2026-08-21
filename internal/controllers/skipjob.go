@@ -173,9 +173,14 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	rLog.Debug("Starting reconciliation loop")
 	r.SetProgressingState(ctx, skipJob, fmt.Sprintf("SKIPJob %v has started reconciliation loop", skipJob.Name))
 
-	istioEnabled := r.IsIstioEnabledForNamespace(ctx, skipJob.Namespace)
+	meshMode, err := r.MeshModeForNamespace(ctx, skipJob.Namespace)
+	if err != nil {
+		rLog.Error(err, "failed to check Istio labels for namespace")
+		r.SetErrorState(ctx, skipJob, err, "failed to check Istio labels for namespace", "NamespaceLookupFailure")
+		return common.RequeueWithError(err)
+	}
 
-	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, istioEnabled, r.GetRestConfig(), r.SkiperatorConfig)
+	reconciliationJob := reconciliation.NewJobReconciliation(ctx, skipJob, rLog, meshMode, r.GetRestConfig(), r.SkiperatorConfig)
 
 	resourceGeneration := []reconciliationFunc{
 		serviceaccount.Generate,

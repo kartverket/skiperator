@@ -46,7 +46,7 @@ func Generate(r reconciliation.Reconciliation) error {
 	// See
 	//  - https://superorbital.io/blog/istio-metrics-merging/
 	//  - https://androidexample365.com/an-example-of-how-istio-metrics-merging-works/
-	if r.IsIstioEnabled() && skipJob.Spec.Prometheus != nil {
+	if r.IsSidecarEnabled() && skipJob.Spec.Prometheus != nil {
 		skipJob.Annotations["prometheus.io/port"] = skipJob.Spec.Prometheus.Port.StrVal
 		skipJob.Annotations["prometheus.io/path"] = skipJob.Spec.Prometheus.Path
 	}

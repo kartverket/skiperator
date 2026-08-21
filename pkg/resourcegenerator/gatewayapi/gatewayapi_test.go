@@ -10,6 +10,7 @@ import (
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/gwapi"
 	"github.com/kartverket/skiperator/pkg/log"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func TestApplicationStandardRoutingWithoutIngresses(t *testing.T) {
 			RedirectToHTTPS: skiperatorv1alpha1Bool(true),
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	require.NoError(t, Generate(r))
 
@@ -47,7 +48,7 @@ func TestApplicationStandardRouting(t *testing.T) {
 			RedirectToHTTPS: skiperatorv1alpha1Bool(true),
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
@@ -88,7 +89,7 @@ func TestApplicationStandardRoutingWithExtraContainerUsesServicePort(t *testing.
 			},
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
@@ -109,7 +110,7 @@ func TestApplicationLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderLegacy,
 		},
 	}
-	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), false, nil, nil, config.SkiperatorConfig{})
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
 
 	err := Generate(r)
 
