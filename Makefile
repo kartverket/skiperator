@@ -29,6 +29,9 @@ LOCAL_WEBHOOK_CERTS_DIR    := $(shell mktemp -d -t skiperator-webhook-certs.XXXX
 WEBHOOK_HOST                = 0.0.0.0
 WEBHOOK_ARGS                = --webhook-cert-dir=$(LOCAL_WEBHOOK_CERTS_DIR) --webhook-host=$(WEBHOOK_HOST)
 SKIPJOB_CRD_FILE            ?= config/crd/skiperator.kartverket.no_skipjobs.yaml
+# Pinned by digest so local runs and the api-docs workflow render identically.
+CRDOC_IMAGE                ?= ghcr.io/fybrik/crdoc@sha256:355ef777a45021ee864e613b2234b4f2c6193762e3e0de94a26b66d06cec81c3
+CRDOC_RESOURCES_DIR        := crdoc-resources
 
 .PHONY: ensure-kubectl
 ensure-kubectl:
@@ -47,6 +50,7 @@ ensure-kubectl:
 generate:
 	go generate ./...
 	@$(MAKE) patch-skipjob-crd SKIPJOB_CRD_FILE=$(SKIPJOB_CRD_FILE)
+	@$(MAKE) apidocs
 
 .PHONY: patch-skipjob-crd
 patch-skipjob-crd: ensure-kubectl
@@ -61,6 +65,20 @@ patch-skipjob-crd: ensure-kubectl
 	awk 'NR==1 && $$0!="---"{print "---"} {print}' "$$tmp_file" > "$$normalized_file"; \
 	rm -f "$$tmp_file"; \
 	mv "$$normalized_file" "$(SKIPJOB_CRD_FILE)"
+
+# Renders api-docs.md from the generated CRDs. crdoc only reads the directory it
+# is pointed at, so the CRDs are staged in one and removed again afterwards.
+.PHONY: apidocs
+apidocs:
+	@mkdir -p $(CRDOC_RESOURCES_DIR)
+	@cp config/crd/skiperator.kartverket.no_*.yaml $(CRDOC_RESOURCES_DIR)/
+	@docker run -u $$(id -u):$$(id -g) --rm -v "$(PWD)":/workdir $(CRDOC_IMAGE) \
+		--resources /workdir/$(CRDOC_RESOURCES_DIR) \
+		--output /workdir/api-docs.md \
+		--template /workdir/.github/crdoc.tmpl; \
+	status=$$?; \
+	rm -rf $(CRDOC_RESOURCES_DIR); \
+	exit $$status
 
 .PHONY: build
 build: generate
