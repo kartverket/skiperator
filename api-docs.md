@@ -4390,7 +4390,7 @@ Status
         <td><b>redirectToHTTPS</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          RedirectToHTTPS applies per hostname rather than per contributor. With<br/>ownership=Shared the redirect route is itself a shared resource: the first<br/>contributor asking for it creates it for the whole hostname, and no<br/>contributor removes it again. Setting this to false has no effect while<br/>another contributor on the same hostname keeps it enabled.<br/>
           <br/>
             <i>Default</i>: `true`<br/>
         </td>

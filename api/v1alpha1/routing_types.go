@@ -63,6 +63,11 @@ type RoutingSpec struct {
 	//+kubebuilder:validation:Required
 	Routes []Route `json:"routes"`
 
+	// RedirectToHTTPS applies per hostname rather than per contributor. With
+	// ownership=Shared the redirect route is itself a shared resource: the first
+	// contributor asking for it creates it for the whole hostname, and no
+	// contributor removes it again. Setting this to false has no effect while
+	// another contributor on the same hostname keeps it enabled.
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
