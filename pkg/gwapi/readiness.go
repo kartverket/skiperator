@@ -44,6 +44,7 @@ type planInput struct {
 	redirectToHTTPS bool
 	hosts           common.HostCollection
 	certificateName func(*common.Host) (string, error)
+	sharedRouting   bool
 }
 
 // readinessPlan is the fully-resolved set of probe targets for one routable.
@@ -118,22 +119,32 @@ func buildReadinessPlan(in planInput) (readinessPlan, error) {
 		routes: []routeCheck{{Namespace: in.namespace, Name: in.routeBaseName}},
 	}
 	if in.redirectToHTTPS {
-		plan.routes = append(plan.routes, routeCheck{Namespace: in.namespace, Name: RedirectRouteName(in.routeBaseName)})
+		redirectRoute := routeCheck{Namespace: in.namespace, Name: RedirectRouteName(in.routeBaseName)}
+		if in.sharedRouting {
+			redirectRoute.Namespace = IstioGatewayNamespace
+			redirectRoute.Name = SharedRedirectRouteName(in.hosts.AllHosts()[0].Hostname)
+		}
+		plan.routes = append(plan.routes, redirectRoute)
 	}
 	for _, host := range in.hosts.AllHosts() {
 		name, err := in.certificateName(host)
 		if err != nil {
 			return readinessPlan{}, err
 		}
+		namespace := in.namespace
+		// Key off the (kind-qualified) base name, the same prefix the generator
+		// uses, so Application and Routing ListenerSets stay distinct.
+		listenerSetName := ListenerSetName(in.routeBaseName, host.Hostname)
+		if in.sharedRouting {
+			namespace = IstioGatewayNamespace
+			listenerSetName = SharedListenerSetName(host.Hostname)
+		}
 		plan.hosts = append(plan.hosts, standardHost{
 			Hostname:        host.Hostname,
 			CertificateName: name,
 			CustomSecret:    host.CustomCertificateSecret,
-			Namespace:       in.namespace,
-			// Key off the (kind-qualified) base name, the same prefix the
-			// generator uses, so Application and Routing ListenerSets stay
-			// distinct.
-			ListenerSetName: ListenerSetName(in.routeBaseName, host.Hostname),
+			Namespace:       namespace,
+			ListenerSetName: listenerSetName,
 		})
 	}
 	return plan, nil

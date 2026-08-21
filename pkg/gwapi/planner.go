@@ -72,6 +72,7 @@ func (p routingPlanner) readinessPlan() (readinessPlan, error) {
 		redirectToHTTPS: p.GetRedirectToHTTPS(),
 		hosts:           hosts,
 		certificateName: p.GetCertificateName,
+		sharedRouting:   p.UsesSharedOwnership(),
 	})
 }
 

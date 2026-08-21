@@ -315,6 +315,32 @@ func TestRoutingConflictIgnoresRedirectRoute(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRoutingStandaloneConflictsWithSharedListenerSet(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	listenerSet := readySharedRoutingListenerSet("API.example.COM")
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet).Build()
+	routing := gatewayAPIRouting()
+
+	err := ValidateConflicts(context.Background(), c, routing)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already has an accepted ListenerSet")
+}
+
+func TestRoutingSharedOwnershipAllowsSharedListenerSet(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	listenerSet := readySharedRoutingListenerSet("api.example.com")
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet).Build()
+	routing := gatewayAPIRouting()
+	routing.Spec.Ownership = skiperatorv1alpha1.RoutingOwnershipShared
+
+	err := ValidateConflicts(context.Background(), c, routing)
+
+	require.NoError(t, err)
+}
+
 func TestRoutingStandardRoutingKeepsLegacyUntilReady(t *testing.T) {
 	scheme := runtime.NewScheme()
 	resourceschemas.AddSchemas(scheme)
@@ -539,6 +565,24 @@ func readyListenerSet(namespace string, name string) *gatewayapiv1.ListenerSet {
 			},
 		},
 	}
+}
+
+func readySharedRoutingListenerSet(hostname string) *gatewayapiv1.ListenerSet {
+	listenerSet := readyListenerSet(IstioGatewayNamespace, SharedListenerSetName(hostname))
+	listenerSet.Labels = map[string]string{
+		"app.kubernetes.io/managed-by":        "skiperator",
+		"skiperator.kartverket.no/controller": "routing-shared",
+	}
+	listenerSet.Spec.Listeners = []gatewayapiv1.ListenerEntry{{Name: "https", Hostname: gatewayHostname(hostname)}}
+	listenerSet.Status.Listeners = []gatewayapiv1.ListenerEntryStatus{
+		{
+			Name: "https",
+			Conditions: []metav1.Condition{
+				{Type: string(gatewayapiv1.ListenerConditionResolvedRefs), Status: metav1.ConditionTrue},
+			},
+		},
+	}
+	return listenerSet
 }
 
 func readyTLSSecret(namespace string, name string) *corev1.Secret {

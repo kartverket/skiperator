@@ -4376,6 +4376,17 @@ Status
         <td>true</td>
       </tr>
       <tr>
+        <td><b>ownership</b></td>
+        <td>enum</td>
+        <td>
+          Ownership controls whether this Routing owns the hostname exclusively or<br/>contributes paths to a shared hostname.<br/>
+          <br/>
+            <i>Enum</i>: Standalone, Shared<br/>
+            <i>Default</i>: `Standalone`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b>redirectToHTTPS</b></td>
         <td>boolean</td>
         <td>

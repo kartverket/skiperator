@@ -86,8 +86,8 @@ func validateRoutingConflicts(ctx context.Context, c client.Client, routing *ski
 	return nil
 }
 
-// validateRoutingHostnameOwnership prevents a Routing from attaching to a
-// hostname already claimed by another object's ListenerSet.
+// validateRoutingHostnameOwnership prevents standalone Routing from attaching
+// to a hostname already claimed by shared or application-owned ListenerSets.
 func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing, hostname string) error {
 	listenerSets := &gatewayapiv1.ListenerSetList{}
 	if err := c.List(ctx, listenerSets); err != nil {
@@ -102,6 +102,9 @@ func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, rout
 		}
 		for _, listener := range listenerSet.Spec.Listeners {
 			if !listenerCoversHostname(listener.Hostname, hostname) {
+				continue
+			}
+			if routing.UsesSharedOwnership() && sharedRoutingListenerSet(listenerSet.Labels, listenerSet.Name, hostname) {
 				continue
 			}
 			if listenerSetAccepted(listenerSet) {
@@ -140,6 +143,13 @@ func sameRouting(labels map[string]string, routing *skiperatorv1alpha1.Routing) 
 	return labels["skiperator.kartverket.no/controller"] == "routing" &&
 		labels["skiperator.kartverket.no/routing-name"] == routing.Name &&
 		labels["skiperator.kartverket.no/source-namespace"] == routing.Namespace
+}
+
+// sharedRoutingListenerSet identifies the one shared ListenerSet that all
+// shared Routing objects for a hostname are allowed to reuse.
+func sharedRoutingListenerSet(labels map[string]string, name string, hostname string) bool {
+	return labels["skiperator.kartverket.no/controller"] == "routing-shared" &&
+		name == SharedListenerSetName(hostname)
 }
 
 func isRedirectRoute(route gatewayapiv1.HTTPRoute) bool {

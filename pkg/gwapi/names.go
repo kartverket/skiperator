@@ -38,7 +38,17 @@ func ListenerSetName(prefix string, hostname string) string {
 	return fmt.Sprintf("%s-listener-%x", prefix, util.GenerateHashFromName(hostname))
 }
 
+// SharedListenerSetName returns generated shared ListenerSet name for hostname.
+func SharedListenerSetName(hostname string) string {
+	return ListenerSetName("shared", hostname)
+}
+
 // RedirectRouteName returns HTTP-to-HTTPS redirect HTTPRoute name.
 func RedirectRouteName(prefix string) string {
 	return fmt.Sprintf("%s-redirect", prefix)
+}
+
+// SharedRedirectRouteName returns generated shared redirect HTTPRoute name for hostname.
+func SharedRedirectRouteName(hostname string) string {
+	return RedirectRouteName(fmt.Sprintf("shared-%x", util.GenerateHashFromName(hostname)))
 }

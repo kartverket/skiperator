@@ -61,6 +61,7 @@ func TestRoutingLegacyRoutingGeneratesGateway(t *testing.T) {
 		Spec: skiperatorv1alpha1.RoutingSpec{
 			Hostname:        "api.example.com",
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderLegacy,
+			Ownership:       skiperatorv1alpha1.RoutingOwnershipShared,
 			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/", Port: 8080}},
 		},
 	}

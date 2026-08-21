@@ -45,6 +45,7 @@ const (
 	ReadyConditionType                = "Ready"
 	StandardRoutingReadyConditionType = "StandardRoutingReady"
 	LegacyRoutingActiveConditionType  = "LegacyRoutingActive"
+	SharedRoutingResourcesType        = "SharedRoutingResources"
 
 	// MigrationStalledReason is the condition reason written when a Gateway API
 	// migration has kept legacy routing active past the deadline. Shared so the
@@ -68,6 +69,7 @@ var conditionOrder = map[string]int{
 	"ExternalRulesValid":              5,
 	LegacyRoutingActiveConditionType:  6,
 	StandardRoutingReadyConditionType: 7,
+	SharedRoutingResourcesType:        8,
 }
 
 // SortConditions orders Conditions canonically (see conditionOrder), so the
@@ -155,6 +157,12 @@ func (s *SkiperatorStatus) SetStandardRoutingReadyCondition(status metav1.Condit
 
 func (s *SkiperatorStatus) SetLegacyRoutingActiveCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
 	s.setCondition(LegacyRoutingActiveConditionType, status, observedGeneration, reason, message)
+}
+
+// SetSharedRoutingResourcesCondition records whether a Routing depends on
+// shared Gateway API listener, redirect, and certificate resources.
+func (s *SkiperatorStatus) SetSharedRoutingResourcesCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(SharedRoutingResourcesType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {
