@@ -192,6 +192,196 @@ func TestApplicationStandardRoutingCustomCertRequiresSecret(t *testing.T) {
 	assert.Contains(t, state.Readiness.Message, "Secret team-a/custom-tls")
 }
 
+func TestRoutingPathConflict(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	pathType := gatewayapiv1.PathMatchPathPrefix
+	path := "/v1"
+	route := &gatewayapiv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "accepted",
+			Namespace: "team-b",
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by":        "skiperator",
+				"skiperator.kartverket.no/controller": "routing",
+			},
+		},
+		Spec: gatewayapiv1.HTTPRouteSpec{
+			Hostnames: []gatewayapiv1.Hostname{"API.example.COM"},
+			Rules: []gatewayapiv1.HTTPRouteRule{
+				{Matches: []gatewayapiv1.HTTPRouteMatch{{Path: &gatewayapiv1.HTTPPathMatch{Type: &pathType, Value: &path}}}},
+			},
+		},
+		Status: gatewayapiv1.HTTPRouteStatus{
+			RouteStatus: gatewayapiv1.RouteStatus{
+				Parents: []gatewayapiv1.RouteParentStatus{
+					{Conditions: []metav1.Condition{{Type: string(gatewayapiv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}},
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(route).Build()
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.EXAMPLE.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/v1/users", Port: 8080}},
+		},
+	}
+
+	err := ValidateConflicts(context.Background(), c, routing)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "conflicts with accepted HTTPRoute")
+}
+
+func TestRoutingPathConflictWithMatchAllRule(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	route := &gatewayapiv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "accepted",
+			Namespace: "team-b",
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by":        "skiperator",
+				"skiperator.kartverket.no/controller": "routing",
+			},
+		},
+		Spec: gatewayapiv1.HTTPRouteSpec{
+			Hostnames: []gatewayapiv1.Hostname{"api.example.com"},
+			Rules:     []gatewayapiv1.HTTPRouteRule{{}},
+		},
+		Status: gatewayapiv1.HTTPRouteStatus{
+			RouteStatus: gatewayapiv1.RouteStatus{
+				Parents: []gatewayapiv1.RouteParentStatus{
+					{Conditions: []metav1.Condition{{Type: string(gatewayapiv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}},
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(route).Build()
+	routing := &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.example.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Routes:          []skiperatorv1alpha1.Route{{TargetApp: "backend", PathPrefix: "/v1", Port: 8080}},
+		},
+	}
+
+	err := ValidateConflicts(context.Background(), c, routing)
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "conflicts with accepted HTTPRoute")
+}
+
+func TestRoutingConflictIgnoresRedirectRoute(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	pathType := gatewayapiv1.PathMatchPathPrefix
+	path := "/"
+	route := &gatewayapiv1.HTTPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "accepted-redirect",
+			Namespace: "team-b",
+			Labels: map[string]string{
+				"app.kubernetes.io/managed-by":        "skiperator",
+				"skiperator.kartverket.no/controller": "routing",
+			},
+		},
+		Spec: gatewayapiv1.HTTPRouteSpec{
+			Hostnames: []gatewayapiv1.Hostname{"api.example.com"},
+			Rules: []gatewayapiv1.HTTPRouteRule{
+				{
+					Matches: []gatewayapiv1.HTTPRouteMatch{{Path: &gatewayapiv1.HTTPPathMatch{Type: &pathType, Value: &path}}},
+					Filters: []gatewayapiv1.HTTPRouteFilter{{Type: gatewayapiv1.HTTPRouteFilterRequestRedirect}},
+				},
+			},
+		},
+		Status: gatewayapiv1.HTTPRouteStatus{
+			RouteStatus: gatewayapiv1.RouteStatus{
+				Parents: []gatewayapiv1.RouteParentStatus{
+					{Conditions: []metav1.Condition{{Type: string(gatewayapiv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}},
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(route).Build()
+	routing := gatewayAPIRouting()
+
+	err := ValidateConflicts(context.Background(), c, routing)
+
+	require.NoError(t, err)
+}
+
+func TestRoutingStandardRoutingKeepsLegacyUntilReady(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	routing := gatewayAPIRouting()
+	legacy := &istionetworkingv1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: "api-routing-ingress", Namespace: "team-a"}}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routing, legacy).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, routing, routing.GetStatus())
+	require.NoError(t, err)
+
+	assert.True(t, state.GenerateLegacyRouting)
+	assert.False(t, state.Readiness.Ready)
+	assert.Contains(t, state.Readiness.Message, "Certificate")
+}
+
+func TestRoutingStandardRoutingPrunesLegacyWhenReady(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	routing := gatewayAPIRouting()
+	certificateName, err := routing.GetCertificateName(mustHost(t, "api.example.com"))
+	require.NoError(t, err)
+	objects := []client.Object{
+		routing,
+		&istionetworkingv1.VirtualService{ObjectMeta: metav1.ObjectMeta{Name: "api-routing-ingress", Namespace: "team-a"}},
+		readyGateway(IstioGatewayNamespace, ExternalGatewayName),
+		readyCertificate("team-a", certificateName),
+		tlsSecret("team-a", certificateName),
+		readyListenerSet("team-a", ListenerSetName(RoutingResourcePrefix("api"), "api.example.com")),
+		readyHTTPRoute("team-a", RoutingResourcePrefix("api")),
+		readyHTTPRoute("team-a", RedirectRouteName(RoutingResourcePrefix("api"))),
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, routing, routing.GetStatus())
+	require.NoError(t, err)
+
+	assert.False(t, state.GenerateLegacyRouting)
+	assert.True(t, state.Readiness.Ready)
+}
+
+func TestRoutingStandardRoutingGreenfieldSkipsLegacy(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	routing := gatewayAPIRouting()
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routing).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, routing, routing.GetStatus())
+	require.NoError(t, err)
+
+	assert.False(t, state.GenerateLegacyRouting)
+	assert.False(t, state.Readiness.Ready)
+}
+
+func TestRoutingStandardRoutingCustomCertRequiresSecret(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	routing := gatewayAPIRouting()
+	routing.Spec.Hostname = "api.example.com+custom-tls"
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routing).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, routing, routing.GetStatus())
+	require.NoError(t, err)
+
+	assert.False(t, state.Readiness.Ready)
+	assert.Contains(t, state.Readiness.Message, "Secret team-a/custom-tls")
+}
+
 func TestListenerSetReadyWaitsForListenerStatus(t *testing.T) {
 	scheme := runtime.NewScheme()
 	resourceschemas.AddSchemas(scheme)
@@ -268,6 +458,19 @@ func gatewayAPIApplication() *skiperatorv1alpha1.Application {
 			Port:            8080,
 			Ingresses:       []string{"app.example.com"},
 			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+		},
+	}
+}
+
+func gatewayAPIRouting() *skiperatorv1alpha1.Routing {
+	return &skiperatorv1alpha1.Routing{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.RoutingSpec{
+			Hostname:        "api.example.com",
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+			Routes: []skiperatorv1alpha1.Route{
+				{TargetApp: "backend", PathPrefix: "/", Port: 8080},
+			},
 		},
 	}
 }

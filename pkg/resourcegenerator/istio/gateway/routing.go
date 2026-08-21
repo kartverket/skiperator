@@ -27,6 +27,9 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to routing")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	h, err := routing.Spec.GetHost()
 	if err != nil {
@@ -39,7 +42,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if h.UsesCustomCert() {
 		determinedCredentialName = *h.CustomCertificateSecret
 	} else {
-		determinedCredentialName, err = routing.GetCertificateName()
+		determinedCredentialName, err = routing.GetCertificateName(h)
 		if err != nil {
 			return err
 		}

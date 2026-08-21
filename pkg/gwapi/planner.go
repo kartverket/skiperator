@@ -8,11 +8,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// routablePlanner centralizes the only per-kind type switch in this package.
-// Every per-type difference — Gateway API resource names, legacy resource refs,
-// and conflict scope — lives behind this interface, so the rest of gwapi stays
-// type-agnostic. Adding a new routable kind means adding one planner and one
-// case in plannerFor, touching nothing else.
+// routablePlanner centralizes the only Application-vs-Routing type switch in
+// this package. Every per-type difference — Gateway API resource names, legacy
+// resource refs, and conflict scope — lives behind this interface, so the rest
+// of gwapi stays type-agnostic. Adding a new routable kind means adding one
+// planner and one case in plannerFor, touching nothing else.
 type routablePlanner interface {
 	// Routable is satisfied by the embedded concrete object.
 	Routable
@@ -28,6 +28,8 @@ func plannerFor(routable Routable) (routablePlanner, error) {
 	switch obj := routable.(type) {
 	case *skiperatorv1alpha1.Application:
 		return applicationPlanner{obj}, nil
+	case *skiperatorv1alpha1.Routing:
+		return routingPlanner{obj}, nil
 	default:
 		return nil, fmt.Errorf("unsupported Gateway API routable type %T", routable)
 	}
@@ -53,4 +55,26 @@ func (p applicationPlanner) readinessPlan() (readinessPlan, error) {
 
 func (p applicationPlanner) validateConflicts(ctx context.Context, c client.Client) error {
 	return validateApplicationConflicts(ctx, c, p.Application)
+}
+
+type routingPlanner struct {
+	*skiperatorv1alpha1.Routing
+}
+
+func (p routingPlanner) readinessPlan() (readinessPlan, error) {
+	hosts, err := p.Hostnames()
+	if err != nil {
+		return readinessPlan{}, err
+	}
+	return buildReadinessPlan(planInput{
+		namespace:       p.Namespace,
+		routeBaseName:   RoutingResourcePrefix(p.Name),
+		redirectToHTTPS: p.GetRedirectToHTTPS(),
+		hosts:           hosts,
+		certificateName: p.GetCertificateName,
+	})
+}
+
+func (p routingPlanner) validateConflicts(ctx context.Context, c client.Client) error {
+	return validateRoutingConflicts(ctx, c, p.Routing)
 }

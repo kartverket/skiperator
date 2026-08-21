@@ -1,0 +1,73 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-routing-migration
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: gateway-api-routing-migration
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - create:
+            file: application.yaml
+        - create:
+            file: routing-legacy.yaml
+        - assert:
+            file: legacy-assert.yaml
+    - try:
+        - apply:
+            file: routing-standard.yaml
+        - assert:
+            file: standard-not-ready-assert.yaml
+        - error:
+            file: generated-cert-error.yaml
+    - try:
+        - apply:
+            file: ready-secret.yaml
+        - script:
+            content: |
+              kubectl -n gateway-api-routing-migration wait certificate migration-routing-tls --for=condition=Ready --timeout=120s
+        - script:
+            content: |
+              kubectl -n gateway-api-routing-migration wait listenerset migration-routing-routing-listener-6ec458aa1f12ad13 --for=condition=Accepted --timeout=120s
+              kubectl -n gateway-api-routing-migration wait listenerset migration-routing-routing-listener-6ec458aa1f12ad13 --for=condition=Programmed --timeout=120s
+
+              for i in $(seq 1 120); do
+                resolved=$(kubectl -n gateway-api-routing-migration get listenerset migration-routing-routing-listener-6ec458aa1f12ad13 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                conflicted=$(kubectl -n gateway-api-routing-migration get listenerset migration-routing-routing-listener-6ec458aa1f12ad13 -o jsonpath='{range .status.listeners[*].conditions[?(@.type=="Conflicted")]}{.status}{"\n"}{end}' | grep -c '^True$' || true)
+                if [ "$resolved" -ge 2 ] && [ "$conflicted" -eq 0 ]; then
+                  break
+                fi
+                if [ "$i" -eq 120 ]; then
+                  kubectl -n gateway-api-routing-migration get listenerset migration-routing-routing-listener-6ec458aa1f12ad13 -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+
+              wait_route_ready() {
+                name="$1"
+                for i in $(seq 1 120); do
+                  accepted=$(kubectl -n gateway-api-routing-migration get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  resolved=$(kubectl -n gateway-api-routing-migration get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="ResolvedRefs")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  if [ "$accepted" -ge 1 ] && [ "$resolved" -ge 1 ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                kubectl -n gateway-api-routing-migration get httproute "$name" -o yaml
+                return 1
+              }
+
+              wait_route_ready migration-routing-routing
+              wait_route_ready migration-routing-routing-redirect
+        - script:
+            content: |
+              kubectl -n gateway-api-routing-migration label routings.skiperator.kartverket.no migration-routing gateway-api-migration-ready=true --overwrite
+        - assert:
+            file: standard-ready-assert.yaml
+        - error:
+            file: legacy-gone-error.yaml

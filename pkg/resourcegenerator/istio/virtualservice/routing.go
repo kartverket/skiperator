@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	networkingv1api "istio.io/api/networking/v1"
 	networkingv1 "istio.io/client-go/pkg/apis/networking/v1"
@@ -22,6 +23,9 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	if !ok {
 		return fmt.Errorf("failed to cast object to Application")
 	}
+	if !r.GenerateLegacyRouting() {
+		return nil
+	}
 
 	virtualService := networkingv1.VirtualService{
 		ObjectMeta: v1.ObjectMeta{
@@ -36,7 +40,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 	}
 
 	virtualService.Spec = networkingv1api.VirtualService{
-		ExportTo: []string{".", "istio-system", "istio-gateways"},
+		ExportTo: []string{".", mesh.SystemNamespace, mesh.GatewayNamespace},
 		Gateways: []string{
 			routing.GetGatewayName(),
 		},
