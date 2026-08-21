@@ -1,0 +1,13 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: contributor-custom-cert
+  namespace: gateway-api-shared-a
+spec:
+  hostname: shared-multi.kartverket.no+custom-tls
+  routingProvider: Standard
+  ownership: Shared
+  routes:
+    - pathPrefix: /team-c
+      targetApp: app-a
+      port: 8080

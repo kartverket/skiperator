@@ -38,6 +38,7 @@ type Routing struct {
 
 // +kubebuilder:object:generate=true
 // +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || self.routingProvider == 'Standard'",message="spec.ownership=Shared requires spec.routingProvider=Standard"
+// +kubebuilder:validation:XValidation:rule="!has(self.ownership) || self.ownership != 'Shared' || !self.hostname.contains('+')",message="spec.ownership=Shared cannot use a custom certificate secret; the certificate is shared per hostname"
 // +kubebuilder:validation:XValidation:rule="self.hostname == oldSelf.hostname",message="spec.hostname is immutable"
 type RoutingSpec struct {
 	//+kubebuilder:validation:Required

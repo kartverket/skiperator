@@ -94,3 +94,18 @@ spec:
               echo "shared resources leaked after the last contributor was deleted"
               kubectl -n istio-gateways get listenerset,httproute,certificate -l "$SEL" -o wide
               exit 1
+
+    # A shared contributor must not bring its own certificate: the hostname's
+    # certificate is shared, so a custom secret would rewrite the shared
+    # ListenerSet's certificateRef out from under every other contributor.
+    - try:
+        - script:
+            content: |
+              out=$(kubectl apply -f routing-custom-cert.yaml 2>&1) && {
+                echo "custom certificate secret was accepted on a shared Routing"
+                exit 1
+              }
+              echo "$out" | grep -q "cannot use a custom certificate secret" || {
+                echo "rejected for the wrong reason: $out"
+                exit 1
+              }
