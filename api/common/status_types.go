@@ -46,6 +46,7 @@ const (
 	StandardRoutingReadyConditionType = "StandardRoutingReady"
 	LegacyRoutingActiveConditionType  = "LegacyRoutingActive"
 	SharedRoutingResourcesType        = "SharedRoutingResources"
+	RoutePathConflictType             = "RoutePathConflict"
 
 	// MigrationStalledReason is the condition reason written when a Gateway API
 	// migration has kept legacy routing active past the deadline. Shared so the
@@ -70,6 +71,7 @@ var conditionOrder = map[string]int{
 	LegacyRoutingActiveConditionType:  6,
 	StandardRoutingReadyConditionType: 7,
 	SharedRoutingResourcesType:        8,
+	RoutePathConflictType:             9,
 }
 
 // SortConditions orders Conditions canonically (see conditionOrder), so the
@@ -163,6 +165,12 @@ func (s *SkiperatorStatus) SetLegacyRoutingActiveCondition(status metav1.Conditi
 // shared Gateway API listener, redirect, and certificate resources.
 func (s *SkiperatorStatus) SetSharedRoutingResourcesCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
 	s.setCondition(SharedRoutingResourcesType, status, observedGeneration, reason, message)
+}
+
+// SetRoutePathConflictCondition records that another accepted HTTPRoute on the
+// same hostname overlaps one of this object's path prefixes.
+func (s *SkiperatorStatus) SetRoutePathConflictCondition(status metav1.ConditionStatus, observedGeneration int64, reason string, message string) {
+	s.setCondition(RoutePathConflictType, status, observedGeneration, reason, message)
 }
 
 func (s *SkiperatorStatus) AddSubResourceStatus(object client.Object, message string, status StatusNames) {

@@ -153,6 +153,24 @@ func SetSharedRoutingResourcesActive(obj common.SKIPObject) {
 	)
 }
 
+// SetRoutePathConflict marks that this object's paths overlap another accepted
+// route on the same hostname. Gateway API has already decided which route
+// answers a request, so the condition reports the overlap instead of blocking
+// the reconcile.
+func SetRoutePathConflict(obj common.SKIPObject, message string) {
+	obj.GetStatus().SetRoutePathConflictCondition(
+		metav1.ConditionTrue,
+		obj.GetGeneration(),
+		"OverlappingPathPrefix",
+		message,
+	)
+}
+
+// ClearRoutePathConflictCondition drops the condition when no overlap remains.
+func ClearRoutePathConflictCondition(obj common.SKIPObject) {
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.RoutePathConflictType)
+}
+
 // ClearSharedRoutingResourcesCondition drops the condition, so a standalone
 // object does not carry one.
 func ClearSharedRoutingResourcesCondition(obj common.SKIPObject) {

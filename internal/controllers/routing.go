@@ -229,6 +229,7 @@ func (r *RoutingReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	finalizeRoutingStatus(&r.ReconcilerBase, routing, routingState, "Routing has been reconciled")
 	if routing.UsesStandardRouting() {
 		setSharedRoutingResourcesCondition(routing)
+		r.setRoutePathConflictCondition(ctx, routing, rLog)
 	}
 	r.UpdateStatus(ctx, routing)
 	if routing.UsesStandardRouting() && !routingState.Readiness.Ready {
@@ -246,6 +247,26 @@ func setSharedRoutingResourcesCondition(routing *skiperatorv1alpha1.Routing) {
 		return
 	}
 	common.ClearSharedRoutingResourcesCondition(routing)
+}
+
+// setRoutePathConflictCondition reports overlaps Gateway API has already
+// resolved. Two Routings applied close together both pass validation, and from
+// then on Gateway API picks which one answers a request without telling either
+// team. The condition and its event are how they find out. A failed lookup
+// keeps the previous condition, because "could not check" is not the same
+// answer as "no conflict".
+func (r *RoutingReconciler) setRoutePathConflictCondition(ctx context.Context, routing *skiperatorv1alpha1.Routing, rLog log.Logger) {
+	conflict, err := gwapi.DetectRoutingPathConflict(ctx, r.GetClient(), routing)
+	if err != nil {
+		rLog.Error(err, "failed to check for overlapping route paths")
+		return
+	}
+	if conflict == nil {
+		common.ClearRoutePathConflictCondition(routing)
+		return
+	}
+	common.SetRoutePathConflict(routing, conflict.Message())
+	r.EmitWarningEvent(routing, "RoutePathConflict", conflict.Message())
 }
 
 func (r *RoutingReconciler) getRouting(ctx context.Context, req reconcile.Request) (*skiperatorv1alpha1.Routing, error) {
