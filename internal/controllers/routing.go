@@ -41,6 +41,11 @@ import (
 // resources in istio-gateways, which are not owned by any single contributor.
 const sharedRoutingFinalizer = "skiperator.kartverket.no/shared-routing-cleanup"
 
+// finalizerRequeueDelay is how long to wait before reconciling a Routing whose
+// finalizer was just written. Short enough to be invisible, long enough for the
+// cache to have caught up with the write.
+const finalizerRequeueDelay = time.Second
+
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=routings;routings/status,verbs=get;list;watch;update
 // +kubebuilder:rbac:groups=skiperator.kartverket.no,resources=applications;applications/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
@@ -312,13 +317,15 @@ func (r *RoutingReconciler) reconcileSharedRoutingFinalizer(ctx context.Context,
 
 	hasFinalizer := ctrlutil.ContainsFinalizer(routing, sharedRoutingFinalizer)
 	// Add the finalizer for shared routings, remove it if a Routing switched away
-	// from shared ownership. Requeue so the rest of the reconcile runs cleanly.
+	// from shared ownership. Writing the finalizer leaves the generation
+	// untouched, so the event filter drops the resulting update and the requeue
+	// below is what runs the rest of the reconcile.
 	if routing.UsesSharedOwnership() && !hasFinalizer {
 		ctrlutil.AddFinalizer(routing, sharedRoutingFinalizer)
 		if err := r.GetClient().Update(ctx, routing); err != nil {
 			return true, reconcile.Result{}, err
 		}
-		return true, reconcile.Result{Requeue: true}, nil
+		return true, reconcile.Result{RequeueAfter: finalizerRequeueDelay}, nil
 	}
 	if !routing.UsesSharedOwnership() && hasFinalizer {
 		// Switched away from shared ownership: release membership so the shared
@@ -330,7 +337,7 @@ func (r *RoutingReconciler) reconcileSharedRoutingFinalizer(ctx context.Context,
 		if err := r.GetClient().Update(ctx, routing); err != nil {
 			return true, reconcile.Result{}, err
 		}
-		return true, reconcile.Result{Requeue: true}, nil
+		return true, reconcile.Result{RequeueAfter: finalizerRequeueDelay}, nil
 	}
 	return false, reconcile.Result{}, nil
 }
