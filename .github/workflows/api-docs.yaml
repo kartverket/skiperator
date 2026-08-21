@@ -28,6 +28,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run crdoc Docker container
+        working-directory: skiperator
         run: |
           make apidocs
 
