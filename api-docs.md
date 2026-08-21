@@ -305,7 +305,7 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td><b>replicas</b></td>
         <td>JSON</td>
         <td>
-          The number of replicas can either be specified as a static number as follows:<br/><br/>	replicas: 2<br/><br/>Or by specifying a range between min and max to enable HorizontalPodAutoscaling.<br/>The default value for replicas is:<br/>	replicas:<br/>		min: 2<br/>		max: 5<br/>		targetCpuUtilization: 80<br/>     targetMemoryUtilization: 21<br/>Using autoscaling is the recommended configuration for replicas.<br/>
+          The number of replicas can either be specified as a static number as follows:<br/><br/>	replicas: 2<br/><br/>Or by specifying a range between min and max to enable HorizontalPodAutoscaling.<br/>The default value for replicas is:<br/>	replicas:<br/>		min: 2<br/>		max: 5<br/>		targetCpuUtilization: 80<br/>     targetMemoryUtilization: 80<br/>Using autoscaling is the recommended configuration for replicas.<br/>
         </td>
         <td>false</td>
       </tr>
