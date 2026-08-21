@@ -31,17 +31,20 @@ type Reconciliation interface {
 	GetRestConfig() *rest.Config
 	GetAuthConfigs() *auth.AuthConfigs
 	GetSkiperatorConfig() config.SkiperatorConfig
+	GenerateLegacyRouting() bool
+	SetGenerateLegacyRouting(bool)
 }
 
 type baseReconciliation struct {
-	ctx              context.Context
-	logger           log.Logger
-	resources        []client.Object
-	istioEnabled     bool
-	restConfig       *rest.Config
-	skipObject       v1alpha1.SKIPObject
-	authConfigs      *auth.AuthConfigs
-	skiperatorConfig config.SkiperatorConfig
+	ctx                   context.Context
+	logger                log.Logger
+	resources             []client.Object
+	istioEnabled          bool
+	restConfig            *rest.Config
+	skipObject            v1alpha1.SKIPObject
+	authConfigs           *auth.AuthConfigs
+	skiperatorConfig      config.SkiperatorConfig
+	generateLegacyRouting bool
 }
 
 func (b *baseReconciliation) GetLogger() log.Logger {
@@ -74,6 +77,18 @@ func (b *baseReconciliation) GetSKIPObject() v1alpha1.SKIPObject {
 
 func (b *baseReconciliation) GetAuthConfigs() *auth.AuthConfigs {
 	return b.authConfigs
+}
+
+// GenerateLegacyRouting reports whether legacy Istio Gateway and VirtualService
+// resources belong in the desired resource set. It stays true while an object
+// migrates to Gateway API routing, so traffic keeps flowing until the Gateway
+// API path is ready; once it turns false, resource processing prunes them.
+func (b *baseReconciliation) GenerateLegacyRouting() bool {
+	return b.generateLegacyRouting
+}
+
+func (b *baseReconciliation) SetGenerateLegacyRouting(generate bool) {
+	b.generateLegacyRouting = generate
 }
 
 func (b *baseReconciliation) GetSkiperatorConfig() config.SkiperatorConfig {

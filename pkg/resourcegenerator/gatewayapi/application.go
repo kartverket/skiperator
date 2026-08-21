@@ -1,0 +1,55 @@
+package gatewayapi
+
+import (
+	"fmt"
+
+	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/reconciliation"
+	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+)
+
+func init() {
+	multiGenerator.Register(reconciliation.ApplicationType, generateForApplication)
+}
+
+func generateForApplication(r reconciliation.Reconciliation) error {
+	ctxLog := r.GetLogger()
+	ctxLog.Debug("Attempting to generate gateway api resources for application", "application", r.GetSKIPObject().GetName())
+
+	application, ok := r.GetSKIPObject().(*skiperatorv1alpha1.Application)
+	if !ok {
+		return fmt.Errorf("failed to cast object to Application")
+	}
+	if !application.UsesStandardRouting() {
+		return nil
+	}
+
+	hosts, err := application.Spec.Hosts()
+	if err != nil {
+		return err
+	}
+	// Without ingresses there is no ListenerSet to attach to, and the routes
+	// below would be created with no parentRefs: inert objects that Istio never
+	// programs. Readiness already treats an object with no hosts as ready, so
+	// generate nothing and stay consistent with it.
+	if hosts.Count() == 0 {
+		ctxLog.Debug("Standard routing without ingresses, no Gateway API resources to generate", "application", application.Name)
+		return nil
+	}
+
+	listenerSetNames, hostnames, err := addListenerSets(r, application.Namespace, application.Name, hosts, application.GetCertificateName)
+	if err != nil {
+		return err
+	}
+
+	redirectToHTTPS := application.Spec.RedirectToHTTPS != nil && *application.Spec.RedirectToHTTPS
+	if redirectToHTTPS {
+		r.AddResource(newRedirectRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames))
+	}
+
+	backend := backendRule("default-app-route", application.Name, int32(application.Spec.Port), "/", false)
+	r.AddResource(newBackendRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames, []gatewayapiv1.HTTPRouteRule{backend}))
+
+	ctxLog.Debug("Finished generating gateway api resources for application", "application", application.Name)
+	return nil
+}

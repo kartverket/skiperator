@@ -4100,6 +4100,16 @@ ApplicationStatus is a specialized status specific to the Application kind.
         </td>
         <td>false</td>
       </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
+      </tr>
     </tbody>
 </table>
 <a id="applicationstatusconditionsindex"></a>
@@ -4488,6 +4498,16 @@ A status field shown on a Skiperator resource which contains information regardi
           Status<br/>
         </td>
         <td>true</td>
+      </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
       </tr>
     </tbody>
 </table>
@@ -6642,6 +6662,16 @@ A status field shown on a Skiperator resource which contains information regardi
         </td>
         <td>true</td>
       </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
+      </tr>
     </tbody>
 </table>
 <a id="skipjobstatusconditionsindex"></a>
@@ -8773,6 +8803,16 @@ A status field shown on a Skiperator resource which contains information regardi
           Status<br/>
         </td>
         <td>true</td>
+      </tr>
+      <tr>
+        <td><b>migrationStartedAt</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: date-time<br/>
+        </td>
+        <td>false</td>
       </tr>
     </tbody>
 </table>

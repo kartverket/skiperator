@@ -141,6 +141,14 @@ func SetReadyReconciled(obj common.SKIPObject, message string) {
 	obj.GetStatus().SetReadyCondition(metav1.ConditionTrue, obj.GetGeneration(), "Reconciled", message)
 }
 
+func ClearGatewayAPIConditions(obj common.SKIPObject) {
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.StandardRoutingReadyConditionType)
+	meta.RemoveStatusCondition(&obj.GetStatus().Conditions, common.LegacyRoutingActiveConditionType)
+	// Drop the migration clock too, so switching back to legacy does not leave
+	// a stale start time that mis-seeds a future migration as already stalled.
+	obj.GetStatus().MigrationStartedAt = nil
+}
+
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {
 	aKind := reflect.ValueOf(a).Kind()
 	bKind := reflect.ValueOf(b).Kind()
