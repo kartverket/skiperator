@@ -3,10 +3,12 @@ package gwapi
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 )
@@ -45,6 +47,18 @@ func validateApplicationConflicts(ctx context.Context, c client.Client, applicat
 	return nil
 }
 
+// RoutePathConflict is an overlap between one of a Routing's path prefixes and
+// an accepted HTTPRoute belonging to another Routing on the same hostname.
+type RoutePathConflict struct {
+	Hostname   string
+	PathPrefix string
+	Route      types.NamespacedName
+}
+
+func (c RoutePathConflict) Message() string {
+	return fmt.Sprintf("path %q on hostname %q overlaps accepted HTTPRoute %s, so Gateway API decides per request which of the two serves it", c.PathPrefix, c.Hostname, c.Route)
+}
+
 // validateRoutingConflicts enforces first-accepted-route-wins for shared
 // hostnames.
 //
@@ -52,6 +66,14 @@ func validateApplicationConflicts(ctx context.Context, c client.Client, applicat
 // predictable. Skiperator refuses overlapping path prefixes only when the
 // existing HTTPRoute is already accepted by Gateway API. Redirect-only routes
 // are ignored because they do not claim a backend path.
+//
+// The exception is a path this Routing is already serving. Two Routings applied
+// close together both pass validation, and once Gateway API accepts them the
+// overlap exists whatever Skiperator does. Refusing the reconcile then hands the
+// path to nobody and only stops this Routing from converging, so the overlap is
+// reported through DetectRoutingPathConflict instead. Claiming a new path over
+// an accepted route is still refused, including from a Routing that already
+// serves other paths on the hostname.
 func validateRoutingConflicts(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing) error {
 	if !routing.UsesStandardRouting() {
 		return nil
@@ -64,26 +86,94 @@ func validateRoutingConflicts(ctx context.Context, c client.Client, routing *ski
 	if err := validateRoutingHostnameOwnership(ctx, c, routing, host.Hostname); err != nil {
 		return err
 	}
+	conflict, alreadyServing, err := findRoutingPathConflict(ctx, c, routing, host.Hostname)
+	if err != nil {
+		return err
+	}
+	if conflict == nil || alreadyServing {
+		return nil
+	}
+	return fmt.Errorf("path %q on hostname %q conflicts with accepted HTTPRoute %s", conflict.PathPrefix, conflict.Hostname, conflict.Route)
+}
+
+// DetectRoutingPathConflict reports the overlap that validateRoutingConflicts
+// lets through. Gateway API has already picked which route answers a request,
+// and it tells neither team, so this is what the contributors have to go on.
+func DetectRoutingPathConflict(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing) (*RoutePathConflict, error) {
+	if !routing.UsesStandardRouting() {
+		return nil, nil
+	}
+	hosts, err := routing.Hostnames()
+	if err != nil {
+		return nil, err
+	}
+	conflict, _, err := findRoutingPathConflict(ctx, c, routing, hosts.AllHosts()[0].Hostname)
+	return conflict, err
+}
+
+// findRoutingPathConflict returns the first overlap between routing's paths and
+// another Routing's accepted route on hostname. The second return says whether
+// routing's own accepted route already carries the conflicting path, which is
+// what separates a live overlap from a new claim on someone else's path.
+func findRoutingPathConflict(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing, hostname string) (*RoutePathConflict, bool, error) {
 	routes := &gatewayapiv1.HTTPRouteList{}
 	if err := c.List(ctx, routes); err != nil {
-		return fmt.Errorf("failed to list Gateway API HTTPRoutes: %w", err)
+		return nil, false, fmt.Errorf("failed to list Gateway API HTTPRoutes: %w", err)
 	}
+
+	var conflict *RoutePathConflict
+	servedPaths := []string{}
 	for _, existing := range routes.Items {
-		if !skiperatorManaged(existing.Labels) || sameRouting(existing.Labels, routing) || !routeAccepted(existing) || isRedirectRoute(existing) {
+		if !skiperatorManaged(existing.Labels) || isRedirectRoute(existing) || !routeHasHostname(existing, hostname) {
 			continue
 		}
-		if !routeHasHostname(existing, host.Hostname) {
+		if sameRouting(existing.Labels, routing) {
+			if routeAccepted(existing) {
+				servedPaths = append(servedPaths, routePathPrefixes(existing)...)
+			}
 			continue
 		}
-		for _, existingRule := range existing.Spec.Rules {
-			for _, newRoute := range routing.Spec.Routes {
-				if routeRuleOverlaps(existingRule, newRoute.PathPrefix) {
-					return fmt.Errorf("path %q on hostname %q conflicts with accepted HTTPRoute %s/%s", newRoute.PathPrefix, host.Hostname, existing.Namespace, existing.Name)
-				}
+		if conflict != nil || !routeAccepted(existing) {
+			continue
+		}
+		if pathPrefix, overlaps := overlappingPathPrefix(existing, routing); overlaps {
+			conflict = &RoutePathConflict{
+				Hostname:   hostname,
+				PathPrefix: pathPrefix,
+				Route:      types.NamespacedName{Namespace: existing.Namespace, Name: existing.Name},
 			}
 		}
 	}
-	return nil
+	if conflict == nil {
+		return nil, false, nil
+	}
+	return conflict, slices.Contains(servedPaths, conflict.PathPrefix), nil
+}
+
+// overlappingPathPrefix returns the first path prefix in routing's spec that
+// collides with a rule on existing.
+func overlappingPathPrefix(existing gatewayapiv1.HTTPRoute, routing *skiperatorv1alpha1.Routing) (string, bool) {
+	for _, rule := range existing.Spec.Rules {
+		for _, route := range routing.Spec.Routes {
+			if routeRuleOverlaps(rule, route.PathPrefix) {
+				return route.PathPrefix, true
+			}
+		}
+	}
+	return "", false
+}
+
+// routePathPrefixes lists the path prefixes a live HTTPRoute matches on.
+func routePathPrefixes(route gatewayapiv1.HTTPRoute) []string {
+	prefixes := []string{}
+	for _, rule := range route.Spec.Rules {
+		for _, match := range rule.Matches {
+			if match.Path != nil && match.Path.Value != nil {
+				prefixes = append(prefixes, *match.Path.Value)
+			}
+		}
+	}
+	return prefixes
 }
 
 // validateRoutingHostnameOwnership prevents standalone Routing from attaching

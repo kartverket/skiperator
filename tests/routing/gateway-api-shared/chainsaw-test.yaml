@@ -56,6 +56,60 @@ spec:
               wait_has_finalizer gateway-api-shared-a contributor-a
               wait_has_finalizer gateway-api-shared-b contributor-b
 
+    # One contributor must not be able to take over a path another contributor is
+    # already serving. Team B is accepted on /team-b, then tries to also claim
+    # team A's /team-a: Skiperator refuses the claim, and B's HTTPRoute keeps
+    # serving only its own path.
+    - try:
+        - script:
+            content: |
+              wait_route_accepted() {
+                ns="$1"; name="$2"
+                for i in $(seq 1 120); do
+                  accepted=$(kubectl -n "$ns" get httproute "$name" -o jsonpath='{range .status.parents[*]}{range .conditions[?(@.type=="Accepted")]}{.status}{"\n"}{end}{end}' | grep -c '^True$' || true)
+                  if [ "$accepted" -ge 1 ]; then
+                    return 0
+                  fi
+                  sleep 1
+                done
+                echo "httproute $ns/$name was never accepted"
+                kubectl -n "$ns" get httproute "$name" -o yaml
+                return 1
+              }
+
+              wait_route_accepted gateway-api-shared-a contributor-a-routing
+              wait_route_accepted gateway-api-shared-b contributor-b-routing
+
+              kubectl -n gateway-api-shared-b patch routing contributor-b --type=merge \
+                -p '{"spec":{"routes":[{"pathPrefix":"/team-b","targetApp":"app-b","port":8080},{"pathPrefix":"/team-a","targetApp":"app-b","port":8080}]}}'
+
+              for i in $(seq 1 60); do
+                summary=$(kubectl -n gateway-api-shared-b get routing contributor-b -o jsonpath='{.status.summary.message}')
+                case "$summary" in
+                  *"conflicts with accepted HTTPRoute"*) break ;;
+                esac
+                if [ "$i" -eq 60 ]; then
+                  echo "contributor-b was allowed to claim team A's path: $summary"
+                  kubectl -n gateway-api-shared-b get routing contributor-b -o yaml
+                  exit 1
+                fi
+                sleep 1
+              done
+
+              paths=$(kubectl -n gateway-api-shared-b get httproute contributor-b-routing -o jsonpath='{.spec.rules[*].matches[*].path.value}')
+              case "$paths" in
+                *"/team-a"*)
+                  echo "contributor-b's HTTPRoute picked up team A's path: $paths"
+                  kubectl -n gateway-api-shared-b get httproute contributor-b-routing -o yaml
+                  exit 1
+                  ;;
+              esac
+
+              # Hand team B back its own spec so the deletion steps below start
+              # from a healthy pair.
+              kubectl -n gateway-api-shared-b patch routing contributor-b --type=merge \
+                -p '{"spec":{"routes":[{"pathPrefix":"/team-b","targetApp":"app-b","port":8080}]}}'
+
     # Deleting one contributor must NOT remove the shared resources: the other
     # contributor still uses the hostname.
     - try:
@@ -94,3 +148,18 @@ spec:
               echo "shared resources leaked after the last contributor was deleted"
               kubectl -n istio-gateways get listenerset,httproute,certificate -l "$SEL" -o wide
               exit 1
+
+    # A shared contributor must not bring its own certificate: the hostname's
+    # certificate is shared, so a custom secret would rewrite the shared
+    # ListenerSet's certificateRef out from under every other contributor.
+    - try:
+        - script:
+            content: |
+              out=$(kubectl apply -f routing-custom-cert.yaml 2>&1) && {
+                echo "custom certificate secret was accepted on a shared Routing"
+                exit 1
+              }
+              echo "$out" | grep -q "cannot use a custom certificate secret" || {
+                echo "rejected for the wrong reason: $out"
+                exit 1
+              }
