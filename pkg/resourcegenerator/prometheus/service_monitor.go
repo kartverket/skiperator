@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	pov1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -47,13 +48,13 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 		},
 		Endpoints: []pov1.Endpoint{
 			{
-				Path:       util.IstioMetricsPath,
-				TargetPort: &util.IstioMetricsPortName,
+				Path:       mesh.MetricsPath,
+				TargetPort: new(mesh.MetricsPortName),
 				Interval:   getScrapeInterval(application.Spec.Prometheus),
 				MetricRelabelConfigs: []pov1.RelabelConfig{
 					{
 						Action:       "drop",
-						Regex:        strings.Join(util.DefaultMetricDropList, "|"),
+						Regex:        strings.Join(mesh.DefaultMetricDropList, "|"),
 						SourceLabels: []pov1.LabelName{"__name__"},
 					},
 				},

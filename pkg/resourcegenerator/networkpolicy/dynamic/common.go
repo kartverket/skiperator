@@ -7,6 +7,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/core/v1"
@@ -203,7 +204,7 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, is
 			},
 			Ports: []networkingv1.NetworkPolicyPort{
 				{
-					Port: util.PointTo(util.IstioMetricsPortName),
+					Port: new(mesh.MetricsPortName),
 				},
 			},
 		}
@@ -288,10 +289,10 @@ func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPoli
 		From: []networkingv1.NetworkPolicyPeer{
 			{
 				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "istio-gateways"},
+					MatchLabels: mesh.GatewayNamespaceLabels(),
 				},
 				PodSelector: &metav1.LabelSelector{
-					MatchLabels: getIngressGatewayLabel(isInternal),
+					MatchLabels: mesh.IngressGatewayLabels(isInternal),
 				},
 			},
 		},
@@ -300,15 +301,6 @@ func getGatewayIngressRule(isInternal bool, port int32) networkingv1.NetworkPoli
 		ingressRule.Ports = []networkingv1.NetworkPolicyPort{{Port: util.PointTo(intstr.FromInt32(port))}}
 	}
 	return ingressRule
-}
-
-// TODO Should be in constants or something
-func getIngressGatewayLabel(isInternal bool) map[string]string {
-	if isInternal {
-		return map[string]string{"app": "istio-ingress-internal"}
-	} else {
-		return map[string]string{"app": "istio-ingress-external"}
-	}
 }
 
 var sortNetPolPorts = func(a networkingv1.NetworkPolicyPort, b networkingv1.NetworkPolicyPort) int {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
+	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/resourcegenerator/statefulset"
@@ -18,10 +19,10 @@ import (
 const defaultPortName = "http"
 
 var defaultPrometheusPort = corev1.ServicePort{
-	Name:       util.IstioMetricsPortName.StrVal,
+	Name:       mesh.MetricsPortName.StrVal,
 	Protocol:   corev1.ProtocolTCP,
-	Port:       util.IstioMetricsPortNumber.IntVal,
-	TargetPort: util.IstioMetricsPortNumber,
+	Port:       mesh.MetricsPortNumber.IntVal,
+	TargetPort: mesh.MetricsPortNumber,
 }
 
 func Generate(r reconciliation.Reconciliation) error {
