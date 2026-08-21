@@ -70,9 +70,13 @@ patch-skipjob-crd: ensure-kubectl
 # is pointed at, so the CRDs are staged in one and removed again afterwards.
 .PHONY: apidocs
 apidocs:
-	@mkdir -p $(CRDOC_RESOURCES_DIR)
-	@cp config/crd/skiperator.kartverket.no_*.yaml $(CRDOC_RESOURCES_DIR)/
-	@docker run -u $$(id -u):$$(id -g) --rm -v "$(PWD)":/workdir $(CRDOC_IMAGE) \
+	@if ! command -v docker >/dev/null 2>&1; then \
+		echo "docker not found on PATH, skipping apidocs"; \
+		exit 0; \
+	fi; \
+	mkdir -p $(CRDOC_RESOURCES_DIR) || exit 1; \
+	cp config/crd/skiperator.kartverket.no_*.yaml $(CRDOC_RESOURCES_DIR)/ || exit 1; \
+	docker run -u $$(id -u):$$(id -g) --rm -v "$(PWD)":/workdir $(CRDOC_IMAGE) \
 		--resources /workdir/$(CRDOC_RESOURCES_DIR) \
 		--output /workdir/api-docs.md \
 		--template /workdir/.github/crdoc.tmpl; \
