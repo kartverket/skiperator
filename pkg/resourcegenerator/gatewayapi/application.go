@@ -3,6 +3,7 @@ package gatewayapi
 import (
 	"fmt"
 
+	"github.com/kartverket/skiperator/api/common/istiotypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/reconciliation"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -48,8 +49,21 @@ func generateForApplication(r reconciliation.Reconciliation) error {
 	}
 
 	backend := backendRule("default-app-route", application.Name, int32(application.Spec.Port), "/", false)
+	if err := applyRetries(&backend, applicationRetries(application), func(field string, value string) {
+		ctxLog.Warn("Ignoring unsupported Gateway API retry option", "kind", "Application", "namespace", application.Namespace, "name", application.Name, "field", field, "value", value)
+	}); err != nil {
+		return err
+	}
+
 	r.AddResource(newBackendRoute(application.Namespace, application.Name, "", listenerSetNames, hostnames, []gatewayapiv1.HTTPRouteRule{backend}))
 
 	ctxLog.Debug("Finished generating gateway api resources for application", "application", application.Name)
 	return nil
+}
+
+func applicationRetries(application *skiperatorv1alpha1.Application) *istiotypes.Retries {
+	if application.Spec.IstioSettings == nil {
+		return nil
+	}
+	return application.Spec.IstioSettings.Retries
 }

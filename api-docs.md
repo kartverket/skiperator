@@ -2609,7 +2609,7 @@ By default, tracing is enabled with a random sampling percentage of 10%.
         <td><b><a href="#applicationspecistiosettingsretries">retries</a></b></td>
         <td>object</td>
         <td>
-          Retries is configurable automatic retries for requests towards the application.<br/>By default requests falling under: &#34;connect-failure,refused-stream,unavailable,cancelled&#34; will be retried.<br/>
+          Retries is configurable automatic retries for requests towards the application.<br/>By default requests falling under: &#34;connect-failure,refused-stream,unavailable,cancelled&#34; will be retried.<br/><br/>Retries require spec.routingProvider=Legacy. Gateway API serves HTTPRoute<br/>retries only on its experimental channel, which SKIP clusters do not install,<br/>so an Application that asks for both retries and Standard routing is rejected<br/>instead of losing its retry policy.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -2632,6 +2632,11 @@ By default, tracing is enabled with a random sampling percentage of 10%.
 
 Retries is configurable automatic retries for requests towards the application.
 By default requests falling under: "connect-failure,refused-stream,unavailable,cancelled" will be retried.
+
+Retries require spec.routingProvider=Legacy. Gateway API serves HTTPRoute
+retries only on its experimental channel, which SKIP clusters do not install,
+so an Application that asks for both retries and Standard routing is rejected
+instead of losing its retry policy.
 
 <table>
     <thead>
