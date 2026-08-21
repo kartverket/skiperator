@@ -13,6 +13,7 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -118,6 +119,26 @@ func GetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionSta
 		Reason:             "ApplicationReconciled",
 		Message:            message,
 	}
+}
+
+// SetInternalRulesCondition and SetExternalRulesCondition merge the rules
+// conditions in place via meta.SetStatusCondition, which preserves
+// LastTransitionTime when the status does not change (unlike rebuilding the
+// condition slice from scratch every reconcile).
+func SetInternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) {
+	meta.SetStatusCondition(&obj.GetStatus().Conditions, GetInternalRulesCondition(obj, status))
+}
+
+func SetExternalRulesCondition(obj common.SKIPObject, status metav1.ConditionStatus) {
+	meta.SetStatusCondition(&obj.GetStatus().Conditions, GetExternalRulesCondition(obj, status))
+}
+
+func SetReadyInvalidConfig(obj common.SKIPObject, message string) {
+	obj.GetStatus().SetReadyCondition(metav1.ConditionFalse, obj.GetGeneration(), "InvalidConfig", message)
+}
+
+func SetReadyReconciled(obj common.SKIPObject, message string) {
+	obj.GetStatus().SetReadyCondition(metav1.ConditionTrue, obj.GetGeneration(), "Reconciled", message)
 }
 
 func GetObjectDiff[T any](a T, b T) (diff.Changelog, error) {

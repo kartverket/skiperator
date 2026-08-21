@@ -16,10 +16,17 @@ import (
 
 type ApplicationKind string
 
+// RoutingProvider selects which routing API Skiperator generates ingress
+// resources with.
+type RoutingProvider string
+
 // Kind values for the workload skiperator generates for an Application
 const (
 	ApplicationKindDeployment  ApplicationKind = "Deployment"
 	ApplicationKindStatefulSet ApplicationKind = "StatefulSet"
+
+	RoutingProviderLegacy   RoutingProvider = "Legacy"
+	RoutingProviderStandard RoutingProvider = "Standard"
 )
 
 // ApplicationStatus is a specialized status specific to the Application kind.
@@ -48,9 +55,12 @@ type ApplicationList struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="app"
-// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.summary.status`
-// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`
+// +kubebuilder:printcolumn:name="Status",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`
+// +kubebuilder:printcolumn:name="AccessPolicies",type=string,JSONPath=`.status.accessPolicies`,priority=1
+// +kubebuilder:printcolumn:name="Routing",type=string,JSONPath=`.spec.routingProvider`
 // +kubebuilder:printcolumn:name="WorkloadType",type=string,JSONPath=`.status.applicationKind`
+// +kubebuilder:selectablefield:JSONPath=".spec.routingProvider"
 type Application struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -93,6 +103,14 @@ type ApplicationSpec struct {
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
+
+	// RoutingProvider controls which routing API Skiperator uses for ingresses.
+	// Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
+	//
+	//+kubebuilder:validation:Enum=Legacy;Standard
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default=Legacy
+	RoutingProvider RoutingProvider `json:"routingProvider,omitempty"`
 
 	// An optional priority. Supported values are 'low', 'medium' and 'high'.
 	// The default value is 'medium'.
@@ -460,6 +478,10 @@ func (a *Application) IngressTargetPort() int {
 		}
 	}
 	return a.Spec.Port
+}
+
+func (a *Application) UsesStandardRouting() bool {
+	return a.Spec.RoutingProvider == RoutingProviderStandard
 }
 
 // ResolvePortNumber resolves an IntOrString port to the numeric string value.
