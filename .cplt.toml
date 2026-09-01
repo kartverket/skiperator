@@ -1,0 +1,7 @@
+[propose]
+allow_docker = true
+git_push_prevention = true
+allow_localhost_any = true
+
+[propose.allow]
+read = ["~/.kube/config"]
