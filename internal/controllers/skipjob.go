@@ -4,11 +4,11 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"time"
 
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
 	"github.com/kartverket/skiperator/pkg/resourceschemas"
-
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	commontypes "github.com/kartverket/skiperator/api/common"
@@ -231,12 +231,17 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		r.SetErrorState(ctx, skipJob, err, "failed to update conditions", "ConditionsFailure")
 		return common.RequeueWithError(err)
 	}
+	if skipJob.Status.AccessPolicies == skiperatorv1beta1.INVALIDCONFIG {
+		skipJob.GetStatus().SetSummaryError("Access policy configuration is invalid")
+		r.UpdateStatus(ctx, skipJob)
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 
 	r.EmitNormalEvent(skipJob, "ReconcileEndSuccess", "SKIPJob has been reconciled")
 	skipJob.GetStatus().SetSummarySynced()
 	r.UpdateStatus(ctx, skipJob)
 
-	return common.RequeueWithError(err)
+	return common.DoNotRequeue()
 }
 
 func (r *SKIPJobReconciler) getSKIPJob(ctx context.Context, req reconcile.Request) (*skiperatorv1beta1.SKIPJob, error) {

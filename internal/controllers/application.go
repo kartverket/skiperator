@@ -355,6 +355,9 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	r.setSyncedApplicationState(ctx, application, "Application has been reconciled", routingState)
+	if application.Status.AccessPolicies == skiperatorv1alpha1.INVALIDCONFIG {
+		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+	}
 	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
