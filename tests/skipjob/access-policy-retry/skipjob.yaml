@@ -1,0 +1,14 @@
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: retry-job
+spec:
+  image: "perl:5.34.0"
+  command:
+    - "perl"
+    - "-e"
+    - "print 1"
+  accessPolicy:
+    outbound:
+      rules:
+        - application: retry-target

@@ -4,7 +4,6 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
-	"time"
 
 	"github.com/kartverket/skiperator/internal/config"
 	"github.com/kartverket/skiperator/pkg/resourceprocessor"
@@ -61,6 +60,13 @@ type SKIPJobReconciler struct {
 
 // TODO Watch applications that are using dynamic port allocation
 func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &skiperatorv1beta1.SKIPJob{},
+		common.OutboundTargetIndex, func(obj client.Object) []string {
+			return common.OutboundTargets(obj.(*skiperatorv1beta1.SKIPJob).Spec.AccessPolicy)
+		}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		// GenerationChangedPredicate is now only applied to the SkipJob itself to allow status changes on Jobs/CronJobs to affect reconcile loops
 		For(&skiperatorv1beta1.SKIPJob{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
@@ -93,6 +99,10 @@ func (r *SKIPJobReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		// Some NetPol entries are not added unless an application is present. If we reconcile all jobs when there has been changes to NetPols, we can assume
 		// that changes to an Applications AccessPolicy will cause a reconciliation of Jobs
 		Watches(&networkingv1.NetworkPolicy{}, handler.EnqueueRequestsFromMapFunc(r.getJobsToReconcile)).
+		// An outbound rule stays unresolved until the Service of the target
+		// application exists. Dependent objects therefore reconcile as soon as
+		// that Service appears or is deleted, and not at the next periodic requeue.
+		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.outboundTargetRequests)).
 		Complete(r)
 }
 
@@ -234,7 +244,16 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 	if skipJob.Status.AccessPolicies == skiperatorv1beta1.INVALIDCONFIG {
 		skipJob.GetStatus().SetSummaryError("Access policy configuration is invalid")
 		r.UpdateStatus(ctx, skipJob)
-		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
+		// Internal rules take their ports from the Service of the target
+		// application, so they can become valid with no change to this spec.
+		// The Service watch covers a target that appears or is deleted. This
+		// poll covers only the cases that no watch reports. External rules
+		// depend on the spec alone, so there is nothing to wait for and the
+		// reconcile stops until the spec changes.
+		if !common.IsInternalRulesValid(skipJob.Spec.AccessPolicy) {
+			return reconcile.Result{RequeueAfter: common.AccessPolicyRequeueDelay}, nil
+		}
+		return common.DoNotRequeue()
 	}
 
 	r.EmitNormalEvent(skipJob, "ReconcileEndSuccess", "SKIPJob has been reconciled")
@@ -287,6 +306,28 @@ func (r *SKIPJobReconciler) finalizeSkipJob(skipJob *skiperatorv1beta1.SKIPJob, 
 		}
 	}
 	return nil
+}
+
+// outboundTargetRequests maps a changed Service to the SKIPJobs whose outbound
+// rules target it. The ports of an outbound rule come from the Service of the
+// target application (see setPortsForRules). A dependent object stays in
+// InvalidConfig until that Service exists, and must reconcile as soon as the
+// Service appears or is deleted.
+func (r *SKIPJobReconciler) outboundTargetRequests(ctx context.Context, service client.Object) []reconcile.Request {
+	dependents := &skiperatorv1beta1.SKIPJobList{}
+	if err := r.GetClient().List(ctx, dependents, client.MatchingFields{common.OutboundTargetIndex: service.GetName()}); err != nil {
+		r.Logger.Error(err, "failed to list SKIPJobs that target a Service",
+			"service", client.ObjectKeyFromObject(service))
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(dependents.Items))
+	for i := range dependents.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(&dependents.Items[i]),
+		})
+	}
+	return requests
 }
 
 func (r *SKIPJobReconciler) getJobsToReconcile(ctx context.Context, object client.Object) []reconcile.Request {

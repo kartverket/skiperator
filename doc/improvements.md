@@ -95,12 +95,12 @@ already flags the code as wrong.
 
 ### E4. `perf` — scope the SKIPJob fan-out to one namespace
 
-[skipjob.go:95](../internal/controllers/skipjob.go:95) watches every
+[skipjob.go:101](../internal/controllers/skipjob.go:101) watches every
 NetworkPolicy in the cluster.
-[skipjob.go:301](../internal/controllers/skipjob.go:301) then lists **every**
+[skipjob.go:347](../internal/controllers/skipjob.go:347) then lists **every**
 SKIPJob in the cluster and enqueues all of them.
 
-A guard at [skipjob.go:296](../internal/controllers/skipjob.go:296) limits this to
+A guard at [skipjob.go:343](../internal/controllers/skipjob.go:343) limits this to
 NetworkPolicies owned by an Application, so it does not fire on every event.
 When it does fire with `MaxConcurrentReconciles: 1`, one access-policy edit
 serializes a full-fleet sweep.
@@ -110,7 +110,7 @@ Action: add `client.InNamespace(object.GetNamespace())` to the List.
 ### E5. `perf` — set `MaxConcurrentReconciles` on the other three controllers
 
 Only the Application controller wires the value, at
-[application.go:140](../internal/controllers/application.go:140). The Routing,
+[application.go:151](../internal/controllers/application.go:151). The Routing,
 SKIPJob, and Namespace controllers call `.Complete(r)` with no
 `WithOptions`, so they run one worker each.
 
@@ -124,10 +124,10 @@ the three controllers, so the setting means the same thing everywhere.
 
 ### E6. `perf` — check the ServiceMonitor CRD once, not once per reconcile
 
-[application.go:507](../internal/controllers/application.go:507) runs an
+[application.go:527](../internal/controllers/application.go:527) runs an
 uncached GET against the apiextensions API on every Application reconcile. A
 failure calls `panic` at
-[application.go:156](../internal/controllers/application.go:156).
+[application.go:167](../internal/controllers/application.go:167).
 
 The Gateway API CRDs already use the correct pattern: one check at startup, at
 [main.go:337](../cmd/skiperator/main.go:337).
@@ -163,7 +163,7 @@ Action: remove the `DeepCopyObject` call. Preallocate with `len(schema.Items)`.
 
 ### E9. `perf` — hoist the ingress-gateway regular expression
 
-[application.go:569](../internal/controllers/application.go:569) calls
+[application.go:614](../internal/controllers/application.go:614) calls
 `regexp.MatchString("^.*-ingress-.*$", gateway.Name)` for every Istio Gateway
 event. The same file already shows the correct pattern at
 [application.go:102](../internal/controllers/application.go:102), with
@@ -241,9 +241,9 @@ Action: delete the function and its call.
 `ResourceProcessor.Process` returns `[]error` at
 [processor.go:28](../pkg/resourceprocessor/processor.go:28). All three controllers
 collapse it to `fmt.Errorf("found %d errors", len(errs))`, at
-[application.go:353](../internal/controllers/application.go:353),
+[application.go:364](../internal/controllers/application.go:364),
 [routing.go:223](../internal/controllers/routing.go:223), and
-[skipjob.go:224](../internal/controllers/skipjob.go:224). The error text loses
+[skipjob.go:234](../internal/controllers/skipjob.go:234). The error text loses
 every cause.
 
 Action: return `errors.Join(errs...)`.
@@ -269,7 +269,7 @@ is archived. `fmt.Errorf` with the `%w` verb replaces it.
 
 ### E17. `delete` — remove the stale requeue comment
 
-[util.go:27](../internal/controllers/common/util.go:27) says
+[util.go:28](../internal/controllers/common/util.go:28) says
 `// TODO: exponential backoff`. Controller-runtime already applies exponential
 backoff, from 5 ms to 1000 s, to a reconcile that returns an error.
 
@@ -291,14 +291,14 @@ that is worth setting.
 
 ### E19. `perf` — make the workload predicates cheap, and drop a dependency
 
-[predicates.go:26](../internal/controllers/common/predicates.go:26) and
-[predicates.go:48](../internal/controllers/common/predicates.go:48) run, per
+[predicates.go:52](../internal/controllers/common/predicates.go:52) and
+[predicates.go:61](../internal/controllers/common/predicates.go:61) run, per
 Deployment or StatefulSet event: two `DeepCopyObject` calls, then two
 `hashstructure.Hash` reflection walks over a whole PodSpec.
 
 The predicate itself is **correct and load-bearing**. It masks
 `Spec.Replicas` so that HPA scaling does not start a reconcile. Keep that.
-The comment at [predicates.go:39](../internal/controllers/common/predicates.go:39)
+The comment at [predicates.go:52](../internal/controllers/common/predicates.go:52)
 records the accepted trade-off, that a manual replica edit no longer
 reconciles. Keep that too.
 
@@ -332,6 +332,40 @@ earlier optimization pass. The numbers are useful. Their location is not.
 Action: move both into `doc/` as a baseline record.
 
 ---
+
+### E21. `perf` — use field indexes in the remaining map functions
+
+A map function that answers "which objects depend on this one" has an upstream
+tool: a field index, registered with `mgr.GetFieldIndexer().IndexField` and read
+with `client.MatchingFields`. The lookup is served from the cache. The
+repository has one index, `OutboundTargetIndex` at
+[util.go:55](../internal/controllers/common/util.go:55). The other map functions
+list a kind and filter in memory, or do not filter at all.
+
+[routing.go:461](../internal/controllers/routing.go:461) lists every Routing in
+the namespace of the changed Application and enqueues all of them. A Routing
+names its applications in `spec.routes[].targetApp`, so an index on that field
+returns only the Routings that reference the object that changed.
+
+[skipjob.go:347](../internal/controllers/skipjob.go:347) lists every SKIPJob in
+the cluster and enqueues all of them. E4 narrows it to one namespace, which is
+the cheaper first step. The dependency behind this watch is not documented. A
+SKIPJob derives its network policies from its own access policy. The Service
+watch on each controller now covers a target that appears or is deleted.
+Establish what the watch is for before you index it. It can be redundant.
+
+[conflicts.go](../pkg/gwapi/conflicts.go) runs three unfiltered cluster-wide
+Lists per reconcile. B14 covers those.
+
+Action: register the index in `SetupWithManager`, then query it with
+`client.MatchingFields`.
+[application.go:105](../internal/controllers/application.go:105) is a worked
+example, and two rules from it carry over. First, keep the index function pure.
+It runs inside the informer, where a panic stops the process, so it must not
+call an accessor that assumes a defaulted field. Second, index the narrowest key
+that cannot miss a dependent. The key of `OutboundTargetIndex` is the
+application name and not the namespace, because a rule can select namespaces by
+label. A redundant reconcile costs less than a lookup.
 
 ## Bigger tasks
 
@@ -442,9 +476,9 @@ field. No namespace, label, or field restriction exists anywhere in the
 repository.
 
 Cached cluster-wide today: **every Secret** (from
-[application.go:129](../internal/controllers/application.go:129) and
+[application.go:136](../internal/controllers/application.go:136) and
 [namespace.go:44](../internal/controllers/namespace.go:44)) and **every
-ConfigMap** (from [application.go:110](../internal/controllers/application.go:110)),
+ConfigMap** (from [application.go:117](../internal/controllers/application.go:117)),
 plus about 25 other kinds.
 
 Across 500 namespaces this holds every service-account token, every Helm
@@ -453,7 +487,7 @@ on the heap.
 
 The consumers are already narrow. The Secret map function wants only
 `type` containing `digdirator.nais.io`, at
-[application.go:533](../internal/controllers/application.go:533). The Namespace
+[application.go:578](../internal/controllers/application.go:578). The Namespace
 controller wants only `github-auth`.
 
 Action:
@@ -465,12 +499,12 @@ Action:
 
 ### B4. `perf` — make Gateway API readiness event-driven
 
-[application.go:358](../internal/controllers/application.go:358) and
+[application.go:369](../internal/controllers/application.go:369) and
 [routing.go:234](../internal/controllers/routing.go:234) return
 `RequeueAfter: 10 * time.Second` while standard routing is not ready.
 
 The polling loop is load-bearing, not decorative. The event filter at
-[application.go:131](../internal/controllers/application.go:131) uses
+[application.go:142](../internal/controllers/application.go:142) uses
 `predicate.Or(GenerationChangedPredicate{}, LabelChangedPredicate{})`. That
 filter drops status-only updates on ListenerSet, HTTPRoute, and Certificate.
 Those updates are the ones that report readiness.
@@ -494,11 +528,11 @@ Two problems compound here.
 
 **Two status writes per reconcile.** `SetProgressingState` writes status
 before any work happens, at
-[application.go:265](../internal/controllers/application.go:265), through a
+[application.go:276](../internal/controllers/application.go:276), through a
 `RetryOnConflict` loop that adds its own GET, at
 [reconciler.go:171](../internal/controllers/common/reconciler.go:171). The
 terminal path writes again at
-[application.go:378](../internal/controllers/application.go:378). The same shape
+[application.go:398](../internal/controllers/application.go:398). The same shape
 appears in `routing.go:132` and `skipjob.go:174`.
 
 **Every status value changes every reconcile.** `Status.TimeStamp` is set from
@@ -509,7 +543,7 @@ appears in `routing.go:132` and `skipjob.go:174`.
 
 The second problem produced the workaround for the first.
 `filterOutStatusTimestamps`, at
-[util.go:188](../internal/controllers/common/util.go:188), exists to hide the
+[util.go:246](../internal/controllers/common/util.go:246), exists to hide the
 churn that the operator itself creates, and it needs a whole diffing library
 to do it.
 
@@ -522,7 +556,7 @@ Action:
    dependency `github.com/r3labs/diff/v3` goes away.
 
 `GetObjectDiff` is also worth reading on its own, at
-[util.go:171](../internal/controllers/common/util.go:171). Its guard compares
+[util.go:211](../internal/controllers/common/util.go:211). Its guard compares
 `reflect.Kind` of two values of the same type parameter, so the guard can never
 fire. Four of its five callers only test `len(diff) > 0`.
 
@@ -535,9 +569,9 @@ body is a map lookup.
 
 The lookup re-derives a fact that the compiler already knows. The controllers
 build type-specific slices at
-[application.go:292](../internal/controllers/application.go:292),
+[application.go:303](../internal/controllers/application.go:303),
 [routing.go:185](../internal/controllers/routing.go:185), and
-[skipjob.go:185](../internal/controllers/skipjob.go:185). An Application-only
+[skipjob.go:195](../internal/controllers/skipjob.go:195). An Application-only
 slice already names `certificate.Generate`.
 
 The codebase now has three dispatch styles for one job. `defaultdeny` and
@@ -606,13 +640,13 @@ Each of the three controllers holds its own copy of the same five blocks.
 | `cleanUpWatchedResources`                                                                  | 2      | 10    |
 
 `updateApplicationStatus` at
-[application.go:381](../internal/controllers/application.go:381) is a retype of
+[application.go:401](../internal/controllers/application.go:401) is a retype of
 `ReconcilerBase.UpdateStatus` at
 [reconciler.go:166](../internal/controllers/common/reconciler.go:166).
 `Application` already satisfies `common.SKIPObject`.
 
 Four near-identical SKIPJob condition constructors at
-[skipjob.go:316](../internal/controllers/skipjob.go:316) reduce to one closure and
+[skipjob.go:362](../internal/controllers/skipjob.go:362) reduce to one closure and
 a four-row table.
 
 ### B10. `shrink` — one generic guard for the generators
@@ -887,7 +921,7 @@ source as ugly at [diffs.go:29](../pkg/resourceprocessor/diffs.go:29).
 
 **4. The ignore label is implemented twice.**
 Once for events, in `common.ShouldReconcile` at
-[util.go:32](../internal/controllers/common/util.go:32). Once for diffing, in
+[util.go:33](../internal/controllers/common/util.go:33). Once for diffing, in
 `shouldIgnoreObject` at [diffs.go:111](../pkg/resourceprocessor/diffs.go:111).
 Both call the same metrics functions.
 
@@ -1164,7 +1198,7 @@ Benchmarks worth writing, with `-benchmem`:
   the JSON marshal, and the SHA-256, twice per object.
 - `BenchmarkDeploymentPredicate` with a real `event.UpdateEvent`. Measures two
   `DeepCopyObject` calls and two `hashstructure.Hash` reflection walks per
-  Deployment event, at [predicates.go:32](../internal/controllers/common/predicates.go:32).
+  Deployment event, at [predicates.go:45](../internal/controllers/common/predicates.go:45).
 - `BenchmarkGetObjectDiff` on a populated `ApplicationSpec`, against
   `equality.Semantic.DeepEqual`.
 
@@ -1175,7 +1209,8 @@ Benchmarks worth writing, with `-benchmem`:
 1. **B15** — golden-file tests over the generators. Do this **first**. It is
    the safety net that makes everything below cheap to attempt, and it is the
    one thing naiserator already proves works.
-2. **E1, E2, E3, E4, E6** — five small perf fixes, no design decision needed.
+2. **E1, E2, E3, E4, E6, E21** — six small perf fixes, no design decision
+   needed. Do E4 before E21: it is the cheaper half of the same finding.
 3. **B1** — typed lists. The largest immediate win. Measure with the
    ratio in the table above.
 4. **B3** — cache selectors and a transform. The largest memory win. About 20

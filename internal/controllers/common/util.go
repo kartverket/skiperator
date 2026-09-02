@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/chmike/domain"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -43,6 +44,45 @@ func ShouldReconcile(obj client.Object) bool {
 
 func IsNamespaceTerminating(namespace *corev1.Namespace) bool {
 	return namespace.Status.Phase == corev1.NamespaceTerminating
+}
+
+// OutboundTargetIndex is the field index that Application and SKIPJob
+// register on the applications their outbound rules target. The index maps a
+// changed Service back to its dependents. Without it, each Service event must
+// list every object.
+//
+// Inbound rules need no index. They compile to label selectors that Kubernetes
+// evaluates, so the operator has nothing to recompute when a peer appears.
+const OutboundTargetIndex = "accessPolicy.outbound.rules.application"
+
+// AccessPolicyRequeueDelay is how often an object with unresolved internal
+// rules reconciles again. The Service watch on each controller covers a target
+// Service that appears or is deleted. This delay covers the two
+// cases that no watch reports. A target Service can gain ports, and a namespace
+// can gain a label that a rule selects on.
+const AccessPolicyRequeueDelay = 5 * time.Minute
+
+// OutboundTargets lists the applications that the outbound rules target,
+// for use as index values. The namespace is not part of the key. Rules can
+// select namespaces by label, and that set of namespaces needs a lookup. A key
+// of the name alone selects too many objects, but it never misses a dependent.
+// A reconcile is idempotent, so a redundant one costs less than the lookup.
+//
+// This function takes the access policy and not a client.Object, so that it
+// stays pure and has no panic path of its own. An index function runs inside the informer,
+// where a panic stops the process. The spec accessors on Application and
+// SKIPJob read fields that the API server defaults. An object built in memory
+// does not have those defaults.
+func OutboundTargets(accessPolicy *podtypes.AccessPolicy) []string {
+	if accessPolicy == nil || accessPolicy.Outbound == nil {
+		return nil
+	}
+
+	targets := make([]string, len(accessPolicy.Outbound.Rules))
+	for i, rule := range accessPolicy.Outbound.Rules {
+		targets[i] = rule.Application
+	}
+	return targets
 }
 
 func IsInternalRulesValid(accessPolicy *podtypes.AccessPolicy) bool {
