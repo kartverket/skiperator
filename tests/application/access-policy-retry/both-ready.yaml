@@ -1,0 +1,41 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: first
+status:
+  accessPolicies: Ready
+  applicationKind: Deployment
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+      message: Application has been reconciled
+    - type: InternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+      message: Internal rules are valid
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+      message: External rules are valid
+---
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: second
+status:
+  accessPolicies: Ready
+  applicationKind: Deployment
+  conditions:
+    - type: Ready
+      status: "True"
+      reason: Reconciled
+      message: Application has been reconciled
+    - type: InternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+      message: Internal rules are valid
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled
+      message: External rules are valid

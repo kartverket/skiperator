@@ -1,0 +1,19 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: access-policy-retry
+spec:
+  skip: false
+  concurrent: false
+  skipDelete: false
+  steps:
+    - try:
+        - apply:
+            file: first.yaml
+        - assert:
+            file: first-not-ready.yaml
+    - try:
+        - apply:
+            file: second.yaml
+        - assert:
+            file: both-ready.yaml
