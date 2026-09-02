@@ -3,9 +3,11 @@ package resourceprocessor
 import (
 	"maps"
 
+	"github.com/kartverket/skiperator/pkg/resourcegenerator/resourceutils"
 	"github.com/kartverket/skiperator/pkg/util"
 	v1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -50,6 +52,8 @@ func preparePatch(new client.Object, old client.Object) {
 		// rollouts of different replicasets. This annotation must not trigger a new reconcile, and a quick and easy
 		// fix is to just remove it from the map before hashing and checking the diff.
 		delete(deployment.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
+
+		preserveReloaderState(&definition.Spec.Template, &deployment.Spec.Template)
 	case *v1.StatefulSet:
 		sts := old.(*v1.StatefulSet)
 		definition := new.(*v1.StatefulSet)
@@ -63,6 +67,8 @@ func preparePatch(new client.Object, old client.Object) {
 
 		// same kubectl rollout restart annotation handling as for Deployment
 		delete(sts.Spec.Template.Annotations, "kubectl.kubernetes.io/restartedAt")
+
+		preserveReloaderState(&definition.Spec.Template, &sts.Spec.Template)
 	case *batchv1.Job:
 		job := old.(*batchv1.Job)
 		definition := new.(*batchv1.Job)
@@ -70,6 +76,21 @@ func preparePatch(new client.Object, old client.Object) {
 		definition.Spec.Selector = job.Spec.Selector                         // immutable
 		definition.Spec.Template = job.Spec.Template                         // immutable
 		definition.Spec.Completions = job.Spec.Completions                   // immutable
+	}
+}
+
+// preserveReloaderState ensures relevant Stakater Reloader state is copied from the live workload to the generated
+// workload, if present.
+//
+// Only reload-strategy=annotations is supported, for which resourceutils.AnnotationKeyReloaderLastReloadedFrom must be
+// preserved. To support reload-strategy=env-vars, this method must be expanded to preserve the dummy env vars Reloader
+// sets when using this strategy.
+func preserveReloaderState(desired, live *corev1.PodTemplateSpec) {
+	if lastReloadedFrom, ok := live.Annotations[resourceutils.AnnotationKeyReloaderLastReloadedFrom]; ok {
+		if desired.Annotations == nil {
+			desired.Annotations = make(map[string]string)
+		}
+		desired.Annotations[resourceutils.AnnotationKeyReloaderLastReloadedFrom] = lastReloadedFrom
 	}
 }
 

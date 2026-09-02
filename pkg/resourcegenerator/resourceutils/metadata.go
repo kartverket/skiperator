@@ -19,6 +19,8 @@ var (
 	}
 
 	AnnotationKeyLinkPrefix = "link.argocd.argoproj.io/external-link"
+
+	AnnotationKeyReloaderLastReloadedFrom = "reloader.stakater.com/last-reloaded-from"
 )
 
 func SetCommonAnnotations(object client.Object) {
