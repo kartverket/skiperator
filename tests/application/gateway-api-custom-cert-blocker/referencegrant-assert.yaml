@@ -1,7 +1,7 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: ReferenceGrant
 metadata:
-  name: gateway-api-custom-cert-blocker-blocked-app-listener-ccf610bd40e4ffec
+  name: gateway-api-custom-cert-blocker-cert-883f6b52509c24c9
   namespace: istio-gateways
 spec:
   from:

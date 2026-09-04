@@ -522,6 +522,16 @@ func TestListenerSetReadyReportsUnprogrammedParentGateway(t *testing.T) {
 	assert.Contains(t, ready.Message, "parent Gateway istio-gateways/istio-external is not yet programmed")
 }
 
+func TestCertificateReferenceGrantNameSeparatesNamespaceFromName(t *testing.T) {
+	// A namespace and a ListenerSet name are both DNS labels that can contain
+	// "-", so joining them is not unique. Sharing one grant would let the second
+	// ListenerSet point it at its own Secret and take the certificate
+	// authorization away from the first.
+	assert.NotEqual(t,
+		CertificateReferenceGrantName("team-a", "app-x"),
+		CertificateReferenceGrantName("team", "a-app-x"))
+}
+
 func gatewayHostname(hostname string) *gatewayapiv1.Hostname {
 	h := gatewayapiv1.Hostname(hostname)
 	return &h

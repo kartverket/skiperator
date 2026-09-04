@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	istionetworkingv1 "istio.io/client-go/pkg/apis/networking/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,4 +76,32 @@ func TestLegacyRoutingExistsDoesNotRetryNotFound(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, exists)
 	assert.Equal(t, 2, c.gets)
+}
+
+func TestCustomCertificateReadinessReportsMissingSecret(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	c := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+	ready := tlsSecretReady(context.Background(), c, IstioGatewayNamespace, "custom-tls", customCertificateMissingReason)
+
+	assert.False(t, ready.Ready)
+	assert.Equal(t, customCertificateMissingReason, ready.Reason)
+}
+
+func TestCustomCertificateReadinessKeepsAPIErrorsGeneric(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	c := &transientGetClient{
+		Client:   fake.NewClientBuilder().WithScheme(scheme).Build(),
+		failures: 1000,
+	}
+
+	ready := tlsSecretReady(context.Background(), c, IstioGatewayNamespace, "custom-tls", customCertificateMissingReason)
+
+	// An API or permission error is not the team's to fix. Reporting it as a
+	// missing certificate would send them looking for a Secret that the read
+	// never reached.
+	assert.False(t, ready.Ready)
+	assert.Empty(t, ready.Reason)
 }

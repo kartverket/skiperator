@@ -189,14 +189,13 @@ func observeReadiness(ctx context.Context, c client.Client, plan readinessPlan) 
 			if ready := managedCertificateReady(ctx, c, host.CertificateNamespace, host.CertificateName); !ready.Ready {
 				return ready
 			}
-			if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, host.CertificateName); !ready.Ready {
+			if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, host.CertificateName, ""); !ready.Ready {
 				return ready
 			}
-		} else if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, *host.CustomSecret); !ready.Ready {
-			// The team provisions a custom certificate, so a missing or
-			// unusable Secret blocks the migration until the team acts. No
-			// wait resolves it, so it gets its own reason.
-			ready.Reason = customCertificateMissingReason
+			// The team provisions a custom certificate, so a missing or unusable
+			// Secret blocks the migration until the team acts. No wait resolves
+			// it, so it gets its own reason.
+		} else if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, *host.CustomSecret, customCertificateMissingReason); !ready.Ready {
 			return ready
 		}
 		if ready := listenerSetReady(ctx, c, host.Namespace, host.ListenerSetName); !ready.Ready {
@@ -227,19 +226,27 @@ func managedCertificateReady(ctx context.Context, c client.Client, namespace str
 	return Readiness{Message: fmt.Sprintf("waiting for Certificate %s/%s Ready=True", namespace, name)}
 }
 
-func tlsSecretReady(ctx context.Context, c client.Client, namespace string, name string) Readiness {
+// tlsSecretReady reports whether a TLS Secret exists and holds a certificate
+// and a key.
+//
+// secretProblemReason is the condition reason to report when the Secret itself
+// is the problem. A read that fails for another cause, such as an API timeout
+// or a denied permission, keeps an empty reason. Nobody resolves those by
+// provisioning a certificate, so they must stay separate from the blockers that
+// name the team.
+func tlsSecretReady(ctx context.Context, c client.Client, namespace string, name string, secretProblemReason string) Readiness {
 	secret := &corev1.Secret{}
 	if err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s", namespace, name)}
+			return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s", namespace, name)}
 		}
 		return Readiness{Message: err.Error()}
 	}
 	if secret.Type != corev1.SecretTypeTLS {
-		return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s to be kubernetes.io/tls", namespace, name)}
+		return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s to be kubernetes.io/tls", namespace, name)}
 	}
 	if len(secret.Data[corev1.TLSCertKey]) == 0 || len(secret.Data[corev1.TLSPrivateKeyKey]) == 0 {
-		return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s tls.crt and tls.key", namespace, name)}
+		return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s tls.crt and tls.key", namespace, name)}
 	}
 	return Readiness{Ready: true}
 }

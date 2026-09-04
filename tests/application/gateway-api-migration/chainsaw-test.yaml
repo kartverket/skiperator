@@ -75,8 +75,15 @@ spec:
             file: legacy-gone-error.yaml
       finally:
         # cert-manager keeps the Secret when its Certificate is deleted, and
-        # istio-gateways is shared between tests. Remove it, or the next run
-        # starts with the certificate already in place.
+        # istio-gateways is shared between tests. Remove both, or the next run
+        # starts with the certificate already in place. The Certificate goes
+        # first, because cert-manager reissues the Secret while it exists.
+        - delete:
+            ref:
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              namespace: istio-gateways
+              name: migration-app-custom-tls
         - delete:
             ref:
               apiVersion: v1
