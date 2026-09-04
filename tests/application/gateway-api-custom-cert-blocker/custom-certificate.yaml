@@ -1,0 +1,13 @@
+# A plain Secret, not a cert-manager Certificate. cert-manager keeps the Secret
+# when its Certificate is deleted, which would leave a certificate behind in the
+# shared istio-gateways namespace and make the next run of this test start from
+# an already-ready application. Chainsaw removes what it creates here.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: blocked-app-custom-tls
+  namespace: istio-gateways
+type: kubernetes.io/tls
+stringData:
+  tls.crt: dummy-certificate
+  tls.key: dummy-key

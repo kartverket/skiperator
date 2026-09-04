@@ -88,7 +88,11 @@ Action: remove the entry.
 This exactly doubles the List cost of every Application reconcile, to fetch
 one kind.
 
-Action: pass a schema slice that holds `CertificateList` only.
+Action: pass a schema slice that holds `CertificateList` and
+`ReferenceGrantList`. Certificates are not the only kind Skiperator owns in
+`istio-gateways`. A custom certificate also gets a ReferenceGrant there, and
+this call is what prunes an orphaned one. A slice holding `CertificateList`
+alone leaks those grants.
 
 The in-source comment at [diffs.go:29](../pkg/resourceprocessor/diffs.go:29)
 already flags the code as wrong.

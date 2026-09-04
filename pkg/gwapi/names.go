@@ -43,6 +43,14 @@ func SharedListenerSetName(hostname string) string {
 	return ListenerSetName("shared", hostname)
 }
 
+// CertificateReferenceGrantName returns the ReferenceGrant that lets one
+// ListenerSet read a custom certificate in istio-gateways. The grant lives in
+// istio-gateways, which is shared, so the name carries the namespace of the
+// ListenerSet to keep it unique.
+func CertificateReferenceGrantName(listenerSetNamespace string, listenerSetName string) string {
+	return fmt.Sprintf("%s-%s", listenerSetNamespace, listenerSetName)
+}
+
 // RedirectRouteName returns HTTP-to-HTTPS redirect HTTPRoute name.
 func RedirectRouteName(prefix string) string {
 	return fmt.Sprintf("%s-redirect", prefix)

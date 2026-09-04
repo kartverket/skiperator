@@ -85,6 +85,7 @@ func GetApplicationSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredLi
 		&certmanagerv1.CertificateList{},
 		&gatewayapiv1.ListenerSetList{},
 		&gatewayapiv1.HTTPRouteList{},
+		&gatewayapiv1.ReferenceGrantList{},
 	}, scheme)
 }
 
@@ -109,6 +110,7 @@ func GetRoutingSchemas(scheme *runtime.Scheme) []unstructured.UnstructuredList {
 		&istionetworkingv1.VirtualServiceList{},
 		&gatewayapiv1.ListenerSetList{},
 		&gatewayapiv1.HTTPRouteList{},
+		&gatewayapiv1.ReferenceGrantList{},
 	}, scheme)
 }
 

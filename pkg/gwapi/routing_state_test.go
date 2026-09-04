@@ -189,7 +189,63 @@ func TestApplicationStandardRoutingCustomCertRequiresSecret(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.False(t, state.Readiness.Ready)
-	assert.Contains(t, state.Readiness.Message, "Secret team-a/custom-tls")
+	assert.Contains(t, state.Readiness.Message, "Secret istio-gateways/custom-tls")
+}
+
+func TestApplicationStandardRoutingCustomCertBlocksMigration(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	application := gatewayAPIApplication()
+	application.Spec.Ingresses = []string{"app.example.com+custom-tls"}
+	virtualService := &istionetworkingv1.VirtualService{
+		ObjectMeta: metav1.ObjectMeta{Name: application.GetVirtualServiceName(), Namespace: application.Namespace},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(application, virtualService).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, application, application.GetStatus())
+	require.NoError(t, err)
+
+	assert.False(t, state.Readiness.Ready)
+	assert.Equal(t, customCertificateMissingReason, state.Readiness.Reason)
+	assert.Contains(t, state.Readiness.Message, "Secret istio-gateways/custom-tls")
+	// The blocker must not cut over: legacy routing keeps serving the hostname.
+	assert.True(t, state.GenerateLegacyRouting)
+}
+
+func TestApplicationStandardRoutingCustomCertReadyInIstioGateways(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	application := gatewayAPIApplication()
+	application.Spec.Ingresses = []string{"app.example.com+custom-tls"}
+	// The team keeps the certificate where legacy routing read it.
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "custom-tls", Namespace: IstioGatewayNamespace},
+		Type:       corev1.SecretTypeTLS,
+		Data:       map[string][]byte{corev1.TLSCertKey: []byte("cert"), corev1.TLSPrivateKeyKey: []byte("key")},
+	}
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(application, secret).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, application, application.GetStatus())
+	require.NoError(t, err)
+
+	// Not ready yet (no ListenerSet), but past the certificate blocker.
+	assert.Empty(t, state.Readiness.Reason)
+	assert.NotContains(t, state.Readiness.Message, "custom certificate")
+}
+
+func TestSharedRoutingCustomCertKeepsIstioGatewaysNamespace(t *testing.T) {
+	scheme := runtime.NewScheme()
+	resourceschemas.AddSchemas(scheme)
+	routing := gatewayAPIRouting()
+	routing.Spec.Ownership = skiperatorv1alpha1.RoutingOwnershipShared
+	routing.Spec.Hostname = "api.example.com+custom-tls"
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(routing).Build()
+
+	state, err := EvaluateRoutingState(context.Background(), c, routing, routing.GetStatus())
+	require.NoError(t, err)
+
+	assert.Equal(t, customCertificateMissingReason, state.Readiness.Reason)
+	assert.Contains(t, state.Readiness.Message, "Secret istio-gateways/custom-tls")
 }
 
 func TestRoutingPathConflict(t *testing.T) {
@@ -405,7 +461,7 @@ func TestRoutingStandardRoutingCustomCertRequiresSecret(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.False(t, state.Readiness.Ready)
-	assert.Contains(t, state.Readiness.Message, "Secret team-a/custom-tls")
+	assert.Contains(t, state.Readiness.Message, "Secret istio-gateways/custom-tls")
 }
 
 func TestListenerSetReadyWaitsForListenerStatus(t *testing.T) {
@@ -428,7 +484,7 @@ func TestListenerSetReadyWaitsForListenerStatus(t *testing.T) {
 			},
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, readyGateway(IstioGatewayNamespace, ExternalGatewayName), readyTLSSecret("team-a", "tls")).Build()
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, readyGateway(IstioGatewayNamespace, ExternalGatewayName), readyTLSSecret(IstioGatewayNamespace, "tls")).Build()
 
 	ready := standardApplicationReadiness(t, context.Background(), c)
 
@@ -440,7 +496,7 @@ func TestListenerSetReadyReportsMissingParentGateway(t *testing.T) {
 	scheme := runtime.NewScheme()
 	resourceschemas.AddSchemas(scheme)
 	listenerSet := readyListenerSet("team-a", ListenerSetName("app", "app.example.com"))
-	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, readyTLSSecret("team-a", "tls")).Build()
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, readyTLSSecret(IstioGatewayNamespace, "tls")).Build()
 
 	ready := standardApplicationReadiness(t, context.Background(), c)
 
@@ -458,7 +514,7 @@ func TestListenerSetReadyReportsUnprogrammedParentGateway(t *testing.T) {
 			Namespace: IstioGatewayNamespace,
 		},
 	}
-	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, gateway, readyTLSSecret("team-a", "tls")).Build()
+	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(listenerSet, gateway, readyTLSSecret(IstioGatewayNamespace, "tls")).Build()
 
 	ready := standardApplicationReadiness(t, context.Background(), c)
 

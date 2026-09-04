@@ -1,0 +1,37 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: gateway-api-custom-cert-blocker
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  namespace: gateway-api-custom-cert-blocker
+  steps:
+    # A custom certificate lives in istio-gateways under both routing
+    # providers. Legacy reads it from there, and so does a standard listener.
+    - try:
+        - apply:
+            file: namespace.yaml
+        - create:
+            file: application-legacy.yaml
+        - assert:
+            file: legacy-assert.yaml
+    # Without the Secret the migration must stop with a reason that names it,
+    # and legacy routing must keep serving the hostname.
+    - try:
+        - apply:
+            file: application-standard.yaml
+        - assert:
+            file: blocked-assert.yaml
+        - assert:
+            file: legacy-assert.yaml
+        # The cross-namespace read is invalid without this grant.
+        - assert:
+            file: referencegrant-assert.yaml
+    # With the certificate in istio-gateways, the blocker clears.
+    - try:
+        - apply:
+            file: custom-certificate.yaml
+        - error:
+            file: blocked-assert.yaml

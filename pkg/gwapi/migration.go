@@ -15,6 +15,9 @@ const (
 	migrationStalledReason        = commontypes.MigrationStalledReason
 	legacyRoutingActiveReason     = "LegacyRoutingActive"
 	legacyRoutingInactiveReason   = "LegacyRoutingInactive"
+	// customCertificateMissingReason marks a blocker that no wait resolves.
+	// The team must put the custom certificate in the application namespace.
+	customCertificateMissingReason = "CustomCertificateMissing"
 
 	migrationStartedEventReason  = "GatewayAPIMigrationStarted"
 	migrationFinishedEventReason = "GatewayAPIMigrationFinished"
@@ -95,6 +98,11 @@ func UpdateRoutingStatus(status *commontypes.SkiperatorStatus, generation int64,
 		status.MigrationStartedAt = new(metav1.Now())
 	}
 	reason := standardRoutingNotReadyReason
+	if state.Readiness.Reason != "" {
+		reason = state.Readiness.Reason
+	}
+	// A stalled migration still reports as stalled, so the deadline stays
+	// visible. The message keeps the blocker text.
 	if state.stalled {
 		reason = migrationStalledReason
 	}

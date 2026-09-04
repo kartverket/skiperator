@@ -1,0 +1,14 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: ReferenceGrant
+metadata:
+  name: gateway-api-custom-cert-blocker-blocked-app-listener-ccf610bd40e4ffec
+  namespace: istio-gateways
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: ListenerSet
+      namespace: gateway-api-custom-cert-blocker
+  to:
+    - group: ""
+      kind: Secret
+      name: blocked-app-custom-tls

@@ -93,3 +93,19 @@ func TestUpdateRoutingStatusEmitsStalledEventOnce(t *testing.T) {
 
 	assert.Empty(t, events)
 }
+
+func TestUpdateRoutingStatusReportsCustomCertificateBlocker(t *testing.T) {
+	status := &commontypes.SkiperatorStatus{}
+
+	state := determineRoutingState(true, Readiness{Reason: customCertificateMissingReason, Message: "copy it"}, true, nil)
+	UpdateRoutingStatus(status, 1, state)
+
+	standard := meta.FindStatusCondition(status.Conditions, commontypes.StandardRoutingReadyConditionType)
+	require.NotNil(t, standard)
+	assert.Equal(t, "CustomCertificateMissing", standard.Reason)
+	assert.Equal(t, "copy it", standard.Message)
+	// Legacy routing must stay active: the migration is blocked, not finished.
+	legacy := meta.FindStatusCondition(status.Conditions, commontypes.LegacyRoutingActiveConditionType)
+	require.NotNil(t, legacy)
+	assert.Equal(t, metav1.ConditionTrue, legacy.Status)
+}

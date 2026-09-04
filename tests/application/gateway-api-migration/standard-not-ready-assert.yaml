@@ -82,10 +82,12 @@ metadata:
   name: migration-app
   namespace: gateway-api-application-migration
 status:
+  # No reason on the routing conditions: which dependency blocks first depends
+  # on whether cert-manager issued the managed certificate yet. The reason for
+  # a missing custom certificate is asserted in gateway-api-custom-cert-blocker.
   conditions:
     - type: Ready
       status: "False"
-      reason: StandardRoutingNotReady
     - type: InternalRulesValid
       status: "True"
       reason: ApplicationReconciled
@@ -97,4 +99,3 @@ status:
       reason: LegacyRoutingActive
     - type: StandardRoutingReady
       status: "False"
-      reason: StandardRoutingNotReady

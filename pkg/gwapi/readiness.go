@@ -18,10 +18,13 @@ import (
 )
 
 // Readiness reports whether the standard Gateway API path is safe to use.
-// Message contains the first blocking dependency when Ready is false.
+// Message contains the first blocking dependency when Ready is false. Reason
+// names that dependency when the team must act on it. Reason stays empty when
+// Skiperator only waits.
 type Readiness struct {
 	Ready   bool
 	Message string
+	Reason  string
 }
 
 type standardHost struct {
@@ -29,7 +32,11 @@ type standardHost struct {
 	CertificateName string
 	CustomSecret    *string
 	Namespace       string
-	ListenerSetName string
+	// CertificateNamespace is where the listener reads its TLS Secret from. It
+	// is the namespace of the ListenerSet for a managed certificate, and
+	// istio-gateways for a custom one.
+	CertificateNamespace string
+	ListenerSetName      string
 }
 
 type routeCheck struct {
@@ -139,12 +146,17 @@ func buildReadinessPlan(in planInput) (readinessPlan, error) {
 			namespace = IstioGatewayNamespace
 			listenerSetName = SharedListenerSetName(host.Hostname)
 		}
+		certificateNamespace := namespace
+		if host.UsesCustomCert() {
+			certificateNamespace = IstioGatewayNamespace
+		}
 		plan.hosts = append(plan.hosts, standardHost{
-			Hostname:        host.Hostname,
-			CertificateName: name,
-			CustomSecret:    host.CustomCertificateSecret,
-			Namespace:       namespace,
-			ListenerSetName: listenerSetName,
+			Hostname:             host.Hostname,
+			CertificateName:      name,
+			CustomSecret:         host.CustomCertificateSecret,
+			Namespace:            namespace,
+			CertificateNamespace: certificateNamespace,
+			ListenerSetName:      listenerSetName,
 		})
 	}
 	return plan, nil
@@ -173,15 +185,18 @@ func observeStandardRouting(ctx context.Context, c client.Client, planner routab
 // not, which dependency blocks safe legacy pruning.
 func observeReadiness(ctx context.Context, c client.Client, plan readinessPlan) Readiness {
 	for _, host := range plan.hosts {
-		certificateName := host.CertificateName
 		if host.CustomSecret == nil {
-			if ready := managedCertificateReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
+			if ready := managedCertificateReady(ctx, c, host.CertificateNamespace, host.CertificateName); !ready.Ready {
 				return ready
 			}
-		} else {
-			certificateName = *host.CustomSecret
-		}
-		if ready := tlsSecretReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
+			if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, host.CertificateName); !ready.Ready {
+				return ready
+			}
+		} else if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, *host.CustomSecret); !ready.Ready {
+			// The team provisions a custom certificate, so a missing or
+			// unusable Secret blocks the migration until the team acts. No
+			// wait resolves it, so it gets its own reason.
+			ready.Reason = customCertificateMissingReason
 			return ready
 		}
 		if ready := listenerSetReady(ctx, c, host.Namespace, host.ListenerSetName); !ready.Ready {

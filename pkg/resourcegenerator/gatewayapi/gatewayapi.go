@@ -63,7 +63,7 @@ func parentListenerSetRef(namespace string, name string, section gatewayapiv1.Se
 // newListenerSet adds HTTP and HTTPS listeners for one hostname. TLS
 // termination happens on the HTTPS listener using a Secret in the same namespace
 // as the ListenerSet.
-func newListenerSet(namespace string, name string, hostname string, secretName string, allowCrossNamespaceRoutes bool) *gatewayapiv1.ListenerSet {
+func newListenerSet(namespace string, name string, hostname string, secretName string, secretNamespace string, allowCrossNamespaceRoutes bool) *gatewayapiv1.ListenerSet {
 	return &gatewayapiv1.ListenerSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -71,7 +71,7 @@ func newListenerSet(namespace string, name string, hostname string, secretName s
 		},
 		Spec: gatewayapiv1.ListenerSetSpec{
 			ParentRef: parentGatewayRef(hostname),
-			Listeners: listeners(hostname, secretName, allowCrossNamespaceRoutes),
+			Listeners: listeners(hostname, secretName, secretNamespace, allowCrossNamespaceRoutes),
 		},
 	}
 }
@@ -87,9 +87,35 @@ func parentRefs(listenerSetNamespace string, listenerSetNames []string, section 
 	return parents
 }
 
-func secretRef(name string) gatewayapiv1.SecretObjectReference {
+func secretRef(name string, namespace string) gatewayapiv1.SecretObjectReference {
 	return gatewayapiv1.SecretObjectReference{
-		Name: gatewayapiv1.ObjectName(name),
+		Name:      gatewayapiv1.ObjectName(name),
+		Namespace: new(gatewayapiv1.Namespace(namespace)),
+	}
+}
+
+// newCertificateReferenceGrant lets one ListenerSet read one custom certificate
+// in istio-gateways. Legacy routing read that Secret from istio-gateways, so
+// the certificate does not move when a team migrates. The grant names the
+// Secret, so it does not open the other certificates in that namespace.
+func newCertificateReferenceGrant(listenerSetNamespace string, listenerSetName string, secretName string) *gatewayapiv1.ReferenceGrant {
+	return &gatewayapiv1.ReferenceGrant{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gwapi.CertificateReferenceGrantName(listenerSetNamespace, listenerSetName),
+			Namespace: gwapi.IstioGatewayNamespace,
+		},
+		Spec: gatewayapiv1.ReferenceGrantSpec{
+			From: []gatewayapiv1.ReferenceGrantFrom{{
+				Group:     gatewayapiv1.GroupName,
+				Kind:      "ListenerSet",
+				Namespace: gatewayapiv1.Namespace(listenerSetNamespace),
+			}},
+			To: []gatewayapiv1.ReferenceGrantTo{{
+				Group: "",
+				Kind:  "Secret",
+				Name:  new(gatewayapiv1.ObjectName(secretName)),
+			}},
+		},
 	}
 }
 
@@ -119,9 +145,20 @@ func addListenerSetsWithName(r reconciliation.Reconciliation, namespace string, 
 		if err != nil {
 			return nil, nil, err
 		}
+		// A custom certificate stays in istio-gateways, where the team
+		// provisioned it for legacy routing. The listener then reads it across
+		// namespaces, which Gateway API permits only with a ReferenceGrant.
+		// Shared listeners already live in istio-gateways and need no grant.
+		secretNamespace := namespace
+		if h.UsesCustomCert() {
+			secretNamespace = gwapi.IstioGatewayNamespace
+			if secretNamespace != namespace {
+				r.AddResource(newCertificateReferenceGrant(namespace, name, secretName))
+			}
+		}
 		listenerSetNames = append(listenerSetNames, name)
 		hostnames = append(hostnames, gatewayapiv1.Hostname(h.Hostname))
-		r.AddResource(newListenerSet(namespace, name, h.Hostname, secretName, allowCrossNamespaceRoutes))
+		r.AddResource(newListenerSet(namespace, name, h.Hostname, secretName, secretNamespace, allowCrossNamespaceRoutes))
 	}
 	return listenerSetNames, hostnames, nil
 }
@@ -164,7 +201,7 @@ func newHTTPRoute(namespace string, name string, listenerSetNamespace string, li
 
 // listeners returns the two listeners Skiperator exposes for each hostname:
 // port 80 HTTP for redirects and port 443 HTTPS for backend routes.
-func listeners(hostname string, secretName string, allowCrossNamespaceRoutes bool) []gatewayapiv1.ListenerEntry {
+func listeners(hostname string, secretName string, secretNamespace string, allowCrossNamespaceRoutes bool) []gatewayapiv1.ListenerEntry {
 	terminate := gatewayapiv1.TLSModeTerminate
 
 	// On shared listeners only the HTTPS listener accepts routes from other
@@ -195,7 +232,7 @@ func listeners(hostname string, secretName string, allowCrossNamespaceRoutes boo
 			Protocol: gatewayapiv1.HTTPSProtocolType,
 			TLS: &gatewayapiv1.ListenerTLSConfig{
 				Mode:            &terminate,
-				CertificateRefs: []gatewayapiv1.SecretObjectReference{secretRef(secretName)},
+				CertificateRefs: []gatewayapiv1.SecretObjectReference{secretRef(secretName, secretNamespace)},
 			},
 			AllowedRoutes: httpsAllowedRoutes,
 		},

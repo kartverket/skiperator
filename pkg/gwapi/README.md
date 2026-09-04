@@ -56,6 +56,28 @@ The state names above are documentation. In code, `RoutingStateResult` carries
 what reconcilers act on: `GenerateLegacyRouting`, `Readiness`, and whether the
 migration has stalled.
 
+## Where certificates live
+
+Skiperator issues a managed certificate next to the ListenerSet that uses it. A
+custom certificate works differently. The team provisions it in
+`istio-gateways`, and both routing providers read it from there.
+
+| Certificate | ListenerSet namespace | Secret namespace | ReferenceGrant |
+| --- | --- | --- | --- |
+| Managed | the object's own | the object's own | none |
+| Custom, Application or standalone Routing | the object's own | `istio-gateways` | one per ListenerSet |
+| Custom, shared Routing | `istio-gateways` | `istio-gateways` | none |
+
+Gateway API rejects a cross-namespace `certificateRefs` unless a ReferenceGrant
+in the target namespace permits it. Skiperator writes that grant into
+`istio-gateways`. The grant names the Secret, so it does not open the other
+certificates in that namespace.
+
+A missing or unusable custom certificate is reported as
+`CustomCertificateMissing` on `Ready` and `StandardRoutingReady`. No wait
+resolves that condition, because the team must provision the Secret. Legacy
+routing stays active while it holds.
+
 ## Shared routing membership
 
 Shared `Routing` objects can come from many namespaces, but the shared Gateway
