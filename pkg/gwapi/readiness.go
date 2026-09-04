@@ -18,10 +18,13 @@ import (
 )
 
 // Readiness reports whether the standard Gateway API path is safe to use.
-// Message contains the first blocking dependency when Ready is false.
+// Message contains the first blocking dependency when Ready is false. Reason
+// names that dependency when the team must act on it. Reason stays empty when
+// Skiperator only waits.
 type Readiness struct {
 	Ready   bool
 	Message string
+	Reason  string
 }
 
 type standardHost struct {
@@ -29,7 +32,11 @@ type standardHost struct {
 	CertificateName string
 	CustomSecret    *string
 	Namespace       string
-	ListenerSetName string
+	// CertificateNamespace is where the listener reads its TLS Secret from. It
+	// is the namespace of the ListenerSet for a managed certificate, and
+	// istio-gateways for a custom one.
+	CertificateNamespace string
+	ListenerSetName      string
 }
 
 type routeCheck struct {
@@ -139,12 +146,17 @@ func buildReadinessPlan(in planInput) (readinessPlan, error) {
 			namespace = IstioGatewayNamespace
 			listenerSetName = SharedListenerSetName(host.Hostname)
 		}
+		certificateNamespace := namespace
+		if host.UsesCustomCert() {
+			certificateNamespace = IstioGatewayNamespace
+		}
 		plan.hosts = append(plan.hosts, standardHost{
-			Hostname:        host.Hostname,
-			CertificateName: name,
-			CustomSecret:    host.CustomCertificateSecret,
-			Namespace:       namespace,
-			ListenerSetName: listenerSetName,
+			Hostname:             host.Hostname,
+			CertificateName:      name,
+			CustomSecret:         host.CustomCertificateSecret,
+			Namespace:            namespace,
+			CertificateNamespace: certificateNamespace,
+			ListenerSetName:      listenerSetName,
 		})
 	}
 	return plan, nil
@@ -173,15 +185,17 @@ func observeStandardRouting(ctx context.Context, c client.Client, planner routab
 // not, which dependency blocks safe legacy pruning.
 func observeReadiness(ctx context.Context, c client.Client, plan readinessPlan) Readiness {
 	for _, host := range plan.hosts {
-		certificateName := host.CertificateName
 		if host.CustomSecret == nil {
-			if ready := managedCertificateReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
+			if ready := managedCertificateReady(ctx, c, host.CertificateNamespace, host.CertificateName); !ready.Ready {
 				return ready
 			}
-		} else {
-			certificateName = *host.CustomSecret
-		}
-		if ready := tlsSecretReady(ctx, c, host.Namespace, certificateName); !ready.Ready {
+			if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, host.CertificateName, ""); !ready.Ready {
+				return ready
+			}
+			// The team provisions a custom certificate, so a missing or unusable
+			// Secret blocks the migration until the team acts. No wait resolves
+			// it, so it gets its own reason.
+		} else if ready := tlsSecretReady(ctx, c, host.CertificateNamespace, *host.CustomSecret, customCertificateMissingReason); !ready.Ready {
 			return ready
 		}
 		if ready := listenerSetReady(ctx, c, host.Namespace, host.ListenerSetName); !ready.Ready {
@@ -212,19 +226,27 @@ func managedCertificateReady(ctx context.Context, c client.Client, namespace str
 	return Readiness{Message: fmt.Sprintf("waiting for Certificate %s/%s Ready=True", namespace, name)}
 }
 
-func tlsSecretReady(ctx context.Context, c client.Client, namespace string, name string) Readiness {
+// tlsSecretReady reports whether a TLS Secret exists and holds a certificate
+// and a key.
+//
+// secretProblemReason is the condition reason to report when the Secret itself
+// is the problem. A read that fails for another cause, such as an API timeout
+// or a denied permission, keeps an empty reason. Nobody resolves those by
+// provisioning a certificate, so they must stay separate from the blockers that
+// name the team.
+func tlsSecretReady(ctx context.Context, c client.Client, namespace string, name string, secretProblemReason string) Readiness {
 	secret := &corev1.Secret{}
 	if err := c.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, secret); err != nil {
 		if apierrors.IsNotFound(err) {
-			return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s", namespace, name)}
+			return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s", namespace, name)}
 		}
 		return Readiness{Message: err.Error()}
 	}
 	if secret.Type != corev1.SecretTypeTLS {
-		return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s to be kubernetes.io/tls", namespace, name)}
+		return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s to be kubernetes.io/tls", namespace, name)}
 	}
 	if len(secret.Data[corev1.TLSCertKey]) == 0 || len(secret.Data[corev1.TLSPrivateKeyKey]) == 0 {
-		return Readiness{Message: fmt.Sprintf("waiting for Secret %s/%s tls.crt and tls.key", namespace, name)}
+		return Readiness{Reason: secretProblemReason, Message: fmt.Sprintf("waiting for Secret %s/%s tls.crt and tls.key", namespace, name)}
 	}
 	return Readiness{Ready: true}
 }

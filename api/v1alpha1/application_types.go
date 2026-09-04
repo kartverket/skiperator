@@ -98,7 +98,8 @@ type ApplicationSpec struct {
 	// HTTP and HTTPS.
 	//
 	// Ingresses must be lowercase, contain no spaces, be a non-empty string, and have a hostname/domain separated by a period
-	// They can optionally be suffixed with a plus and name of a custom TLS secret located in the istio-gateways namespace.
+	// They can optionally be suffixed with a plus and the name of a custom TLS secret in the istio-gateways namespace.
+	// Both routing providers read the secret from that namespace.
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`

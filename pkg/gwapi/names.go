@@ -43,6 +43,21 @@ func SharedListenerSetName(hostname string) string {
 	return ListenerSetName("shared", hostname)
 }
 
+// CertificateReferenceGrantName returns the ReferenceGrant that lets one
+// ListenerSet read a custom certificate in istio-gateways. Every namespace
+// shares istio-gateways, so this name must be unique across all of them.
+//
+// The hash covers both parts, because joining them is not unique on its own. A
+// namespace and a ListenerSet name are both DNS labels that can contain "-", so
+// namespace "team-a" with name "app-x" and namespace "team" with name "a-app-x"
+// join to one string. Two ListenerSets would then share a grant, and the second
+// reconcile would point it at its own Secret. The first listener loses the
+// authorization it needs to read its certificate. A slash cannot appear in
+// either part, so it separates them in the hashed value.
+func CertificateReferenceGrantName(listenerSetNamespace string, listenerSetName string) string {
+	return fmt.Sprintf("%s-cert-%x", listenerSetNamespace, util.GenerateHashFromName(listenerSetNamespace+"/"+listenerSetName))
+}
+
 // RedirectRouteName returns HTTP-to-HTTPS redirect HTTPRoute name.
 func RedirectRouteName(prefix string) string {
 	return fmt.Sprintf("%s-redirect", prefix)

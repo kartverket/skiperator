@@ -1,0 +1,11 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: blocked-app-ingress-ccf610bd40e4ffec
+  namespace: gateway-api-custom-cert-blocker
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: blocked-app-ingress
+  namespace: gateway-api-custom-cert-blocker

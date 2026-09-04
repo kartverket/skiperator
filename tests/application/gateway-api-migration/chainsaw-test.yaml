@@ -26,7 +26,7 @@ spec:
         - script:
             content: |
               kubectl -n gateway-api-application-migration wait certificate gateway-api-application-migration-migration-app-ingress-a58ae9650224440c --for=condition=Ready --timeout=120s
-              kubectl -n gateway-api-application-migration wait certificate migration-app-custom-tls --for=condition=Ready --timeout=120s
+              kubectl -n istio-gateways wait certificate migration-app-custom-tls --for=condition=Ready --timeout=120s
         - script:
             content: |
               wait_listener_ready() {
@@ -73,3 +73,20 @@ spec:
             file: standard-ready-assert.yaml
         - error:
             file: legacy-gone-error.yaml
+      finally:
+        # cert-manager keeps the Secret when its Certificate is deleted, and
+        # istio-gateways is shared between tests. Remove both, or the next run
+        # starts with the certificate already in place. The Certificate goes
+        # first, because cert-manager reissues the Secret while it exists.
+        - delete:
+            ref:
+              apiVersion: cert-manager.io/v1
+              kind: Certificate
+              namespace: istio-gateways
+              name: migration-app-custom-tls
+        - delete:
+            ref:
+              apiVersion: v1
+              kind: Secret
+              namespace: istio-gateways
+              name: migration-app-custom-tls

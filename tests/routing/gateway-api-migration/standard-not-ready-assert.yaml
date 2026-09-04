@@ -36,6 +36,7 @@ spec:
           - group: ""
             kind: Secret
             name: migration-routing-tls
+            namespace: istio-gateways
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -82,10 +83,10 @@ status:
   conditions:
     - type: Ready
       status: "False"
-      reason: StandardRoutingNotReady
+      reason: CustomCertificateMissing
     - type: LegacyRoutingActive
       status: "True"
       reason: LegacyRoutingActive
     - type: StandardRoutingReady
       status: "False"
-      reason: StandardRoutingNotReady
+      reason: CustomCertificateMissing

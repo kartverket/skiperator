@@ -18,6 +18,11 @@
 //   - one or more HTTPRoutes for redirect and backend routing rules
 //   - cert-manager Certificates and TLS Secrets in the application namespace
 //
+// A custom certificate is the exception. The team provisions it in
+// istio-gateways, and the listener reads it there through a ReferenceGrant. The
+// certificate therefore does not move when an object migrates to standard
+// routing. See README.md.
+//
 // The Gateway API controller, Istio in this case, is responsible for accepting
 // those resources and programming Envoy. Skiperator waits for that status before
 // pruning legacy Istio resources. This is the zero-downtime migration rule:

@@ -174,6 +174,70 @@ func TestRoutingLegacyRoutingSkipsGatewayAPI(t *testing.T) {
 	require.Empty(t, r.GetResources())
 }
 
+func TestApplicationCustomCertificateStaysInIstioGateways(t *testing.T) {
+	app := &skiperatorv1alpha1.Application{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.ApplicationSpec{
+			Image:           "image",
+			Port:            8080,
+			Ingresses:       []string{"app.example.com+custom-tls"},
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+		},
+	}
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
+
+	require.NoError(t, Generate(r))
+
+	var listenerSet *gatewayapiv1.ListenerSet
+	var grant *gatewayapiv1.ReferenceGrant
+	for _, resource := range r.GetResources() {
+		switch typed := resource.(type) {
+		case *gatewayapiv1.ListenerSet:
+			listenerSet = typed
+		case *gatewayapiv1.ReferenceGrant:
+			grant = typed
+		}
+	}
+
+	// The listener stays with the application and reads the certificate across
+	// namespaces, so the team does not have to copy the Secret.
+	require.NotNil(t, listenerSet)
+	certificateRef := listenerSet.Spec.Listeners[1].TLS.CertificateRefs[0]
+	assert.Equal(t, gatewayapiv1.ObjectName("custom-tls"), certificateRef.Name)
+	require.NotNil(t, certificateRef.Namespace)
+	assert.Equal(t, gatewayapiv1.Namespace(gwapi.IstioGatewayNamespace), *certificateRef.Namespace)
+
+	// Gateway API rejects that read without a grant in the target namespace.
+	require.NotNil(t, grant)
+	assert.Equal(t, gwapi.IstioGatewayNamespace, grant.Namespace)
+	assert.Equal(t, gatewayapiv1.Kind("ListenerSet"), grant.Spec.From[0].Kind)
+	assert.Equal(t, gatewayapiv1.Namespace("team-a"), grant.Spec.From[0].Namespace)
+	assert.Equal(t, gatewayapiv1.Kind("Secret"), grant.Spec.To[0].Kind)
+	// The grant names the Secret, so it does not open the other certificates.
+	require.NotNil(t, grant.Spec.To[0].Name)
+	assert.Equal(t, gatewayapiv1.ObjectName("custom-tls"), *grant.Spec.To[0].Name)
+}
+
+func TestApplicationManagedCertificateNeedsNoReferenceGrant(t *testing.T) {
+	app := &skiperatorv1alpha1.Application{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "team-a"},
+		Spec: skiperatorv1alpha1.ApplicationSpec{
+			Image:           "image",
+			Port:            8080,
+			Ingresses:       []string{"app.example.com"},
+			RoutingProvider: skiperatorv1alpha1.RoutingProviderStandard,
+		},
+	}
+	r := reconciliation.NewApplicationReconciliation(context.Background(), app, log.NewLogger(), mesh.ModeNone, nil, nil, config.SkiperatorConfig{})
+
+	require.NoError(t, Generate(r))
+
+	for _, resource := range r.GetResources() {
+		_, isGrant := resource.(*gatewayapiv1.ReferenceGrant)
+		assert.False(t, isGrant, "a managed certificate is issued next to the ListenerSet")
+	}
+}
+
 func mustNewHost(t *testing.T, hostname string) *commontypes.Host {
 	t.Helper()
 	host, err := commontypes.NewHost(hostname)

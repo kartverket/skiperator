@@ -113,6 +113,7 @@ rules:
   resources:
   - httproutes
   - listenersets
+  - referencegrants
   verbs:
   - create
   - delete
