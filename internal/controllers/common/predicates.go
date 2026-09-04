@@ -10,11 +10,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
+// DefaultPredicate limits Create events to the types that skiperator reacts to.
+// The subresources that skiperator creates itself do not start a second
+// reconcile. corev1.Service is in the list because the ports of an outbound
+// access policy come from the Service of the target application. A new Service
+// is therefore the signal that unblocks every object that references it (see
+// OutboundTargets).
+//
+// The controller installs this predicate through WithEventFilter, so it applies
+// to every watch. A type must appear in the list below, or its Create events
+// never reach the reconciler. A predicate per watch through
+// builder.WithPredicates is more precise, but then every Owns() call needs a
+// predicate of its own.
 var DefaultPredicate = predicate.Funcs{
 	CreateFunc: func(e event.CreateEvent) bool {
 		switch e.Object.(type) {
 		case *skiperatorv1alpha1.Application,
 			*corev1.Secret,
+			*corev1.Service,
 			*certmanagerv1.Certificate:
 			return true
 		default:

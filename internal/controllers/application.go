@@ -102,6 +102,13 @@ const applicationFinalizer = "skip.statkart.no/finalizer"
 var hostMatchExpression = regexp.MustCompile(`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`)
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentReconciles int) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &skiperatorv1alpha1.Application{},
+		common.OutboundTargetIndex, func(obj client.Object) []string {
+			return common.OutboundTargets(obj.(*skiperatorv1alpha1.Application).Spec.AccessPolicy)
+		}); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&skiperatorv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}, builder.WithPredicates(common.DeploymentPredicate)).
@@ -128,6 +135,10 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager, concurrentRec
 		Owns(&gatewayapiv1.HTTPRoute{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(handleDigdiratorSecret)).
 		Watches(&certmanagerv1.Certificate{}, handler.EnqueueRequestsFromMapFunc(handleApplicationCertRequest)).
+		// An outbound rule stays unresolved until the Service of the target
+		// application exists. Dependent objects therefore reconcile as soon as
+		// that Service appears or is deleted, and not at the next periodic requeue.
+		Watches(&corev1.Service{}, handler.EnqueueRequestsFromMapFunc(r.outboundTargetRequests)).
 		WithEventFilter(
 			predicate.And(
 				common.DefaultPredicate, // Runs first
@@ -355,6 +366,18 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	}
 
 	r.setSyncedApplicationState(ctx, application, "Application has been reconciled", routingState)
+	if application.Status.AccessPolicies == skiperatorv1alpha1.INVALIDCONFIG {
+		// Internal rules take their ports from the Service of the target
+		// application, so they can become valid with no change to this spec.
+		// The Service watch covers a target that appears or is deleted. This
+		// poll covers only the cases that no watch reports. External rules
+		// depend on the spec alone, so there is nothing to wait for and the
+		// reconcile stops until the spec changes.
+		if !common.IsInternalRulesValid(application.Spec.AccessPolicy) {
+			return reconcile.Result{RequeueAfter: common.AccessPolicyRequeueDelay}, nil
+		}
+		return common.DoNotRequeue()
+	}
 	if application.UsesStandardRouting() && !routingState.Readiness.Ready {
 		return reconcile.Result{RequeueAfter: 10 * time.Second}, nil
 	}
@@ -519,6 +542,28 @@ func (r *ApplicationReconciler) teamNameForNamespace(ctx context.Context, app *s
 		return teamValue, nil
 	}
 	return "", fmt.Errorf("missing value for team label")
+}
+
+// outboundTargetRequests maps a changed Service to the Applications whose outbound
+// rules target it. The ports of an outbound rule come from the Service of the
+// target application (see setPortsForRules). A dependent object stays in
+// InvalidConfig until that Service exists, and must reconcile as soon as the
+// Service appears or is deleted.
+func (r *ApplicationReconciler) outboundTargetRequests(ctx context.Context, service client.Object) []reconcile.Request {
+	dependents := &skiperatorv1alpha1.ApplicationList{}
+	if err := r.GetClient().List(ctx, dependents, client.MatchingFields{common.OutboundTargetIndex: service.GetName()}); err != nil {
+		r.Logger.Error(err, "failed to list Applications that target a Service",
+			"service", client.ObjectKeyFromObject(service))
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(dependents.Items))
+	for i := range dependents.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: client.ObjectKeyFromObject(&dependents.Items[i]),
+		})
+	}
+	return requests
 }
 
 func handleDigdiratorSecret(_ context.Context, obj client.Object) []reconcile.Request {

@@ -1,0 +1,17 @@
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Application
+metadata:
+  name: first
+status:
+  accessPolicies: InvalidConfig
+  applicationKind: Deployment
+  conditions:
+    - type: Ready
+      status: "False"
+      reason: InvalidConfig
+    - type: InternalRulesValid
+      status: "False"
+      reason: ApplicationReconciled
+    - type: ExternalRulesValid
+      status: "True"
+      reason: ApplicationReconciled

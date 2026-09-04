@@ -264,3 +264,33 @@ func TestValidateContainerImageString(t *testing.T) {
 		}))
 	})
 }
+
+func outboundPolicyTo(applications ...string) *podtypes.AccessPolicy {
+	rules := make([]podtypes.InternalRule, len(applications))
+	for i, application := range applications {
+		rules[i] = podtypes.InternalRule{Application: application}
+	}
+	return &podtypes.AccessPolicy{
+		Outbound: &podtypes.OutboundPolicy{
+			Rules: rules,
+		},
+	}
+}
+
+func TestOutboundTargets(t *testing.T) {
+	tests := map[string]struct {
+		accessPolicy *podtypes.AccessPolicy
+		expected     []string
+	}{
+		"no access policy":  {accessPolicy: nil, expected: nil},
+		"no outbound rules": {accessPolicy: externalPolicyTo(podtypes.ExternalRule{Host: "example.com"}), expected: []string{}},
+		"one target":        {accessPolicy: outboundPolicyTo("second"), expected: []string{"second"}},
+		"several targets":   {accessPolicy: outboundPolicyTo("second", "third"), expected: []string{"second", "third"}},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			assert.Equal(t, test.expected, OutboundTargets(test.accessPolicy))
+		})
+	}
+}

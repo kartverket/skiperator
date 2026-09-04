@@ -1,0 +1,26 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: skipjob-access-policy-retry
+spec:
+  skip: false
+  concurrent: false
+  skipDelete: false
+  timeouts:
+    apply: 30s
+    assert: 30s
+    cleanup: 30s
+    delete: 30s
+    error: 30s
+    exec: 30s
+  steps:
+    - try:
+        - apply:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-not-ready.yaml
+    - try:
+        - apply:
+            file: target.yaml
+        - assert:
+            file: skipjob-ready.yaml
