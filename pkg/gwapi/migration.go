@@ -16,7 +16,7 @@ const (
 	legacyRoutingActiveReason     = "LegacyRoutingActive"
 	legacyRoutingInactiveReason   = "LegacyRoutingInactive"
 	// customCertificateMissingReason marks a blocker that no wait resolves.
-	// The team must put the custom certificate in the application namespace.
+	// The team must provision the custom certificate in istio-gateways.
 	customCertificateMissingReason = "CustomCertificateMissing"
 
 	migrationStartedEventReason  = "GatewayAPIMigrationStarted"
