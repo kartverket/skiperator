@@ -6,7 +6,7 @@ require (
 	github.com/cert-manager/cert-manager v1.21.1
 	github.com/chmike/domain v1.1.0
 	github.com/go-logr/logr v1.4.4
-	github.com/google/go-containerregistry v0.22.0
+	github.com/google/go-containerregistry v0.22.1
 	github.com/google/k8s-digester v0.1.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/nais/digdirator v0.0.0-20260427083038-2db1d00194f8
