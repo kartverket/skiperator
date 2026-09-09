@@ -1,6 +1,6 @@
 module github.com/kartverket/skiperator
 
-go 1.26.7
+go 1.27.1
 
 require (
 	github.com/cert-manager/cert-manager v1.21.1
