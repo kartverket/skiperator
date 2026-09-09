@@ -71,6 +71,16 @@ type RoutingSpec struct {
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:default:=true
 	RedirectToHTTPS *bool `json:"redirectToHTTPS,omitempty"`
+
+	// ForceInternal forces this hostname to be served through the internal
+	// ingress gateway even when the hostname does not match the known-internal
+	// domain suffixes (skip.statkart.no / kartverket-intern.cloud).
+	// Use this when you want to expose a Routing on a custom hostname that
+	// should only be reachable from within the internal network.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	ForceInternal bool `json:"forceInternal,omitempty"`
 }
 
 // RoutingOwnership controls whether one Routing owns a hostname or shares it
@@ -128,6 +138,10 @@ func (in *Routing) Hostnames() (common.HostCollection, error) {
 	if err := hosts.Add(in.Spec.Hostname); err != nil {
 		return hosts, err
 	}
+	// Apply ForceInternal override from spec.
+	for _, h := range hosts.AllHosts() {
+		h.ForceInternal = in.Spec.ForceInternal
+	}
 	return hosts, nil
 }
 
@@ -172,7 +186,12 @@ func (in *Routing) SetConditions(conditions []metav1.Condition) {
 }
 
 func (in *RoutingSpec) GetHost() (*common.Host, error) {
-	return common.NewHost(in.Hostname)
+	h, err := common.NewHost(in.Hostname)
+	if err != nil {
+		return nil, err
+	}
+	h.ForceInternal = in.ForceInternal
+	return h, nil
 }
 
 func (in *Routing) GetStatus() *SkiperatorStatus {

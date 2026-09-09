@@ -10,3 +10,6 @@ spec:
   ingresses:
     - foo.com
     - bar.com
+  ingressSettings:
+    - hostname: foo.com
+      forceInternal: true

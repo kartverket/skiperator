@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/api/common/podtypes"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"github.com/kartverket/skiperator/pkg/mesh"
@@ -41,18 +42,21 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	}
 
 	accessPolicy := object.GetCommonSpec().AccessPolicy
-	var ingresses []string
+	var hosts []*common.Host
 	var inboundPort int32
 	if r.GetType() == reconciliation.ApplicationType {
 		application := object.(*skiperatorv1alpha1.Application)
-		ingresses = application.Spec.Ingresses
+		// Use Hosts() so ForceInternal overrides from IngressSettings are applied.
+		if hostCollection, err := application.Spec.Hosts(); err == nil {
+			hosts = hostCollection.AllHosts()
+		}
 		// Use the ingress-facing port so gateway and inbound rules match the
 		// port that actually receives traffic — an extra container's
 		// IngressPort when one fronts the app, otherwise spec.Port.
 		inboundPort = int32(application.IngressTargetPort())
 	}
 
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.MeshMode(), namespace, inboundPort)
+	ingressRules := getIngressRules(accessPolicy, hosts, r.MeshMode(), namespace, inboundPort)
 	egressRules := getEgressRules(accessPolicy, object)
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -173,15 +177,15 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 }
 
 // TODO Clean up better
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, meshMode mesh.Mode, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, hosts []*common.Host, meshMode mesh.Mode, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
-	if len(ingresses) > 0 {
-		if hasInternalIngress(ingresses) {
+	if len(hosts) > 0 {
+		if hasInternalIngress(hosts) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(true, port, meshMode))
 		}
 
-		if hasExternalIngress(ingresses) {
+		if hasExternalIngress(hosts) {
 			ingressRules = append(ingressRules, getGatewayIngressRule(false, port, meshMode))
 		}
 	}
@@ -261,9 +265,9 @@ func getNamespaceSelector(rule podtypes.InternalRule, appNamespace string) *meta
 	}
 }
 
-func hasExternalIngress(ingresses []string) bool {
-	for _, hostname := range ingresses {
-		if !util.IsInternal(hostname) {
+func hasExternalIngress(hosts []*common.Host) bool {
+	for _, h := range hosts {
+		if !h.IsInternal() {
 			return true
 		}
 	}
@@ -271,9 +275,9 @@ func hasExternalIngress(ingresses []string) bool {
 	return false
 }
 
-func hasInternalIngress(ingresses []string) bool {
-	for _, hostname := range ingresses {
-		if util.IsInternal(hostname) {
+func hasInternalIngress(hosts []*common.Host) bool {
+	for _, h := range hosts {
+		if h.IsInternal() {
 			return true
 		}
 	}

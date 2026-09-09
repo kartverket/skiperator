@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/chmike/domain"
@@ -9,12 +10,27 @@ import (
 
 const hostnameSecretSeparator = "+"
 
+// internalHostnamePattern mirrors pkg/util.internalPattern and is duplicated
+// here to avoid an import cycle (api/common ↔ pkg/util). Keep in sync.
+var internalHostnamePattern = regexp.MustCompile(`(?i)[^.]\.(?:skip\.statkart\.no|kartverket-intern\.cloud)$`)
+
 // TODO: Add a mechanism for validating that the
 // hostname is covered by the CustomCertificateSecret if present
 type Host struct {
 	Hostname                string
 	CustomCertificateSecret *string
+	// ForceInternal routes this host through the internal ingress gateway even
+	// when the hostname does not match the known-internal domain suffixes.
+	ForceInternal bool
 }
+
+// IsInternal returns true when the host should be treated as an internal
+// endpoint — either because the hostname matches the known-internal domain
+// pattern or because ForceInternal has been explicitly set.
+func (h *Host) IsInternal() bool {
+	return h.ForceInternal || internalHostnamePattern.MatchString(h.Hostname)
+}
+
 
 type HostCollection struct {
 	hosts           map[string]*Host
