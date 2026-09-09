@@ -21,7 +21,7 @@ PROMETHEUS_VERSION                 := $(call extract-version,github.com/promethe
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
-KUBERNETES_VERSION          = 1.34.3
+KUBERNETES_VERSION          = 1.36.4
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
 

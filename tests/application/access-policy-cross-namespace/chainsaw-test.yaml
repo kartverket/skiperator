@@ -6,11 +6,13 @@ spec:
   skip: false
   concurrent: false
   skipDelete: false
+  # Only apply/assert/error/exec are tightened so a broken reconcile fails fast.
+  # cleanup and delete inherit tests/config.yaml, because this test creates its
+  # own Namespace and namespace teardown regularly exceeds 30s under the suite's
+  # parallelism.
   timeouts:
     apply: 30s
     assert: 30s
-    cleanup: 30s
-    delete: 30s
     error: 30s
     exec: 30s
   steps:
