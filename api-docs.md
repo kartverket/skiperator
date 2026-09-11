@@ -215,14 +215,6 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td>false</td>
       </tr>
       <tr>
-        <td><b><a href="#applicationspecingresssettingsindex">ingressSettings</a></b></td>
-        <td>[]object</td>
-        <td>
-          IngressSettings allows per-hostname configuration for entries listed in<br/>Ingresses. The Hostname field must match an entry in Ingresses exactly<br/>(bare hostname, without the optional +secret suffix).<br/>Currently supports overriding the internal/external gateway selection via<br/>ForceInternal.<br/>
-        </td>
-        <td>false</td>
-      </tr>
-      <tr>
         <td><b>ingresses</b></td>
         <td>[]string</td>
         <td>
@@ -2594,45 +2586,6 @@ RequestAuthentication specifies how incoming JWTs should be validated.
       </tr>
     </tbody>
 </table>
-<a id="applicationspecingresssettingsindex"></a>
-#### Application.spec.ingressSettings[index]
-
-<sup>[Parent](#applicationspec)</sup>
-
-IngressSetting holds optional per-hostname configuration for an entry in
-ApplicationSpec.Ingresses. Hostname must match the bare hostname of the
-ingress entry (without the optional +secret suffix).
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><b>hostname</b></td>
-        <td>string</td>
-        <td>
-          Hostname must match exactly one entry in spec.ingresses (without the<br/>optional +&lt;secret&gt; suffix).<br/>
-        </td>
-        <td>true</td>
-      </tr>
-      <tr>
-        <td><b>forceInternal</b></td>
-        <td>boolean</td>
-        <td>
-          ForceInternal forces this ingress to be served through the internal<br/>ingress gateway even when the hostname does not match the known-internal<br/>domain suffixes (skip.statkart.no / kartverket-intern.cloud).<br/>Use this when you want to expose an application on a custom hostname that<br/>should only be reachable from within the internal network.<br/>
-          <br/>
-            <i>Default</i>: `false`<br/>
-        </td>
-        <td>false</td>
-      </tr>
-    </tbody>
-</table>
 <a id="applicationspecistiosettings"></a>
 #### Application.spec.istioSettings
 
@@ -4421,16 +4374,6 @@ Status
           <br/>
         </td>
         <td>true</td>
-      </tr>
-      <tr>
-        <td><b>forceInternal</b></td>
-        <td>boolean</td>
-        <td>
-          ForceInternal forces this hostname to be served through the internal<br/>ingress gateway even when the hostname does not match the known-internal<br/>domain suffixes (skip.statkart.no / kartverket-intern.cloud).<br/>Use this when you want to expose a Routing on a custom hostname that<br/>should only be reachable from within the internal network.<br/>
-          <br/>
-            <i>Default</i>: `false`<br/>
-        </td>
-        <td>false</td>
       </tr>
       <tr>
         <td><b>ownership</b></td>

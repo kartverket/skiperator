@@ -1317,37 +1317,6 @@ spec:
                 description: The image the application will run. This image will be
                   added to a Deployment resource
                 type: string
-              ingressSettings:
-                description: |-
-                  IngressSettings allows per-hostname configuration for entries listed in
-                  Ingresses. The Hostname field must match an entry in Ingresses exactly
-                  (bare hostname, without the optional +secret suffix).
-                  Currently supports overriding the internal/external gateway selection via
-                  ForceInternal.
-                items:
-                  description: |-
-                    IngressSetting holds optional per-hostname configuration for an entry in
-                    ApplicationSpec.Ingresses. Hostname must match the bare hostname of the
-                    ingress entry (without the optional +secret suffix).
-                  properties:
-                    forceInternal:
-                      default: false
-                      description: |-
-                        ForceInternal forces this ingress to be served through the internal
-                        ingress gateway even when the hostname does not match the known-internal
-                        domain suffixes (skip.statkart.no / kartverket-intern.cloud).
-                        Use this when you want to expose an application on a custom hostname that
-                        should only be reachable from within the internal network.
-                      type: boolean
-                    hostname:
-                      description: |-
-                        Hostname must match exactly one entry in spec.ingresses (without the
-                        optional +<secret> suffix).
-                      type: string
-                  required:
-                  - hostname
-                  type: object
-                type: array
               ingresses:
                 description: |-
                   Any external hostnames that route to this application. Using a skip.statkart.no-address
