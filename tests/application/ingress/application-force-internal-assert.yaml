@@ -1,0 +1,60 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: force-internal-ingress-34888c0b0c2a4a2c
+spec:
+  selector:
+    app: istio-ingress-internal
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: force-internal
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-internal
+  podSelector:
+    matchLabels:
+      app: force-internal
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: ListenerSet
+metadata:
+  name: force-internal-gwapi-listener-773b3e048ecaa632
+spec:
+  parentRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: istio-internal
+    namespace: istio-gateways
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: force-internal-gwapi
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-internal
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 15008
+          protocol: TCP
+  podSelector:
+    matchLabels:
+      app: force-internal-gwapi
+  policyTypes:
+    - Ingress

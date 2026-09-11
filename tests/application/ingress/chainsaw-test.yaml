@@ -52,3 +52,8 @@ spec:
             file: application-is-external.yaml    
         - assert:
             file: application-is-external-assert.yaml
+    - try:
+        - create:
+            file: application-force-internal.yaml
+        - assert:
+            file: application-force-internal-assert.yaml
