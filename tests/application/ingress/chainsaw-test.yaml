@@ -9,6 +9,8 @@ spec:
   namespace: ingress
   steps:
     - try:
+        - apply:
+            file: namespace.yaml
         - create:
             file: application.yaml
         - assert:
