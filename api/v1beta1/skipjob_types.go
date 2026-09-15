@@ -64,6 +64,10 @@ type SKIPJobList struct {
 // A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field is set for SKIPJob, it may not be removed. If the Cron field is unset, it may not be added.
 // +kubebuilder:validation:XValidation:rule="(has(oldSelf.cron) && has(self.cron)) || (!has(oldSelf.cron) && !has(self.cron))", message="After creation of a SKIPJob you may not remove the Cron field if it was previously present, or add it if it was previously omitted. Please delete the SKIPJob to change its nature from a one-off/scheduled job."
 // +kubebuilder:validation:XValidation:rule="((!has(self.cron) && oldSelf.image == self.image && oldSelf.priority == self.priority && (has(oldSelf.command) == has(self.command)) && (!has(self.command) || oldSelf.command == self.command) && (has(oldSelf.resources) == has(self.resources)) && (!has(self.resources) || oldSelf.resources == self.resources) && (has(oldSelf.env) == has(self.env)) && (!has(self.env) || oldSelf.env == self.env) && (has(oldSelf.envFrom) == has(self.envFrom)) && (!has(self.envFrom) || oldSelf.envFrom == self.envFrom) && (has(oldSelf.filesFrom) == has(self.filesFrom)) && (!has(self.filesFrom) || oldSelf.filesFrom == self.filesFrom) && (has(oldSelf.additionalPorts) == has(self.additionalPorts)) && (!has(self.additionalPorts) || oldSelf.additionalPorts == self.additionalPorts) && (has(oldSelf.liveness) == has(self.liveness)) && (!has(self.liveness) || oldSelf.liveness == self.liveness) && (has(oldSelf.readiness) == has(self.readiness)) && (!has(self.readiness) || oldSelf.readiness == self.readiness) && (has(oldSelf.startup) == has(self.startup)) && (!has(self.startup) || oldSelf.startup == self.startup) && (has(oldSelf.accessPolicy) == has(self.accessPolicy)) && (!has(self.accessPolicy) || oldSelf.accessPolicy == self.accessPolicy) && (has(oldSelf.gcp) == has(self.gcp)) && (!has(self.gcp) || oldSelf.gcp == self.gcp) && (has(oldSelf.restartPolicy) == has(self.restartPolicy)) && (!has(self.restartPolicy) || oldSelf.restartPolicy == self.restartPolicy) && (has(oldSelf.podSettings) == has(self.podSettings)) && (!has(self.podSettings) || oldSelf.podSettings == self.podSettings)) || has(self.cron))", message="The container configuration is immutable for one-off jobs. Please delete your SKIPJob to change image, command, resources, networking, probes, env/files, or pod settings."
+// +kubebuilder:validation:XValidation:rule="has(self.cron) || ((has(oldSelf.extraContainers) == has(self.extraContainers)) && (!has(self.extraContainers) || oldSelf.extraContainers == self.extraContainers))",message="extraContainers is immutable for one-off jobs. Please delete your SKIPJob to change it."
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, self.extraContainers.filter(x, x.name == c.name).size() == 1)",message="extraContainers names must be unique"
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, !has(c.ingressPort))",message="ingressPort is not supported for SKIPJob"
+// +kubebuilder:validation:XValidation:rule="!has(self.extraContainers) || self.extraContainers.all(c, has(c.type) && c.type == 'init')",message="extraContainers in a SKIPJob must set type: init; a standard sidecar never exits and the Job would never complete"
 type SKIPJobSpec struct {
 	// Settings for the actual Job. If you use a scheduled job, the settings in here will also specify the template of the job.
 	//
@@ -123,6 +127,17 @@ type SKIPJobSpec struct {
 
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+
+	// Extra containers to run alongside the job container. Each entry must set
+	// type: init, which produces a native sidecar (an init container with
+	// restartPolicy: Always). Kubernetes stops a native sidecar when the job
+	// container exits, so the Job can complete. A standard sidecar never exits
+	// on its own and would keep the Job running until its deadline.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:validation:MaxItems=10
+	ExtraContainers []ContainerSpec `json:"extraContainers,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional

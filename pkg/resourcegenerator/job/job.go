@@ -107,6 +107,15 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector
 		containers = append(containers, cloudSqlProxyContainer)
 	}
 
+	podOpts := pod.PodOpts{LocalBuiltImages: skiperatorConfig.EnableLocallyBuiltImages}
+
+	// CEL requires type: init on every entry, so the sidecar return is always
+	// empty here. A plain sidecar in a Job never exits and would keep the Job
+	// running until its deadline, which is why jobs take only the init
+	// containers (native sidecars, torn down when the job container exits).
+	_, extraInitContainers, extraVolumes := pod.CreateExtraContainers(skipJob.Spec.ExtraContainers, podOpts)
+	podVolumes = pod.AppendUniqueVolumes(podVolumes, extraVolumes...)
+
 	jobSpec := batchv1.JobSpec{
 		Parallelism:           util.PointTo(int32(1)),
 		Completions:           util.PointTo(int32(1)),
@@ -133,6 +142,8 @@ func getJobSpec(logger *log.Logger, skipJob *skiperatorv1beta1.SKIPJob, selector
 		CompletionMode:          util.PointTo(batchv1.NonIndexedCompletion),
 		Suspend:                 skipJob.Spec.Job.Suspend,
 	}
+
+	jobSpec.Template.Spec.InitContainers = extraInitContainers
 
 	// it's not a default label, maybe it could be?
 	// used for selecting workloads by netpols, grafana etc
