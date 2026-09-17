@@ -1291,7 +1291,7 @@ alongside the main application container.
         <td><b>ingressPort</b></td>
         <td>integer</td>
         <td>
-          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/>
+          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/><br/>Not supported in a SKIPJob, which serves no ingress traffic and has no<br/>Service. Setting it there is rejected.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 1<br/>
@@ -1335,7 +1335,7 @@ alongside the main application container.
         <td><b>type</b></td>
         <td>enum</td>
         <td>
-          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/>
+          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/><br/>In a SKIPJob, &#34;init&#34; is the only accepted value and must be set<br/>explicitly. A standard sidecar never exits on its own, so the Job would<br/>keep running until its deadline instead of completing.<br/>
           <br/>
             <i>Enum</i>: standard, init<br/>
         </td>
@@ -8089,7 +8089,7 @@ alongside the main application container.
         <td><b>ingressPort</b></td>
         <td>integer</td>
         <td>
-          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/>
+          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/><br/>Not supported in a SKIPJob, which serves no ingress traffic and has no<br/>Service. Setting it there is rejected.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 1<br/>
@@ -8133,7 +8133,7 @@ alongside the main application container.
         <td><b>type</b></td>
         <td>enum</td>
         <td>
-          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/>
+          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/><br/>In a SKIPJob, &#34;init&#34; is the only accepted value and must be set<br/>explicitly. A standard sidecar never exits on its own, so the Job would<br/>keep running until its deadline instead of completing.<br/>
           <br/>
             <i>Enum</i>: standard, init<br/>
         </td>
