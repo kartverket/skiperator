@@ -1291,7 +1291,7 @@ alongside the main application container.
         <td><b>ingressPort</b></td>
         <td>integer</td>
         <td>
-          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/>
+          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/><br/>Not supported in a SKIPJob, which serves no ingress traffic and has no<br/>Service. Setting it there is rejected.<br/>
           <br/>
             <i>Format</i>: int32<br/>
             <i>Minimum</i>: 1<br/>
@@ -1335,7 +1335,7 @@ alongside the main application container.
         <td><b>type</b></td>
         <td>enum</td>
         <td>
-          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/>
+          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/><br/>In a SKIPJob, &#34;init&#34; is the only accepted value and must be set<br/>explicitly. A standard sidecar never exits on its own, so the Job would<br/>keep running until its deadline instead of completing.<br/>
           <br/>
             <i>Enum</i>: standard, init<br/>
         </td>
@@ -4898,6 +4898,14 @@ Once set, you may not change Container without deleting your current SKIPJob
         <td>false</td>
       </tr>
       <tr>
+        <td><b>extraContainers</b></td>
+        <td>[]object</td>
+        <td>
+          ExtraContainers is not supported in v1alpha1. The field is declared only<br/>so that setting it produces a clear error instead of being silently<br/>pruned from the object.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b><a href="#skipjobspeccontainerfilesfromindex">filesFrom</a></b></td>
         <td>[]object</td>
         <td>
@@ -6998,6 +7006,14 @@ A SKIPJob is either defined as a one-off or a scheduled job. If the Cron field i
         <td>false</td>
       </tr>
       <tr>
+        <td><b><a href="#skipjobspecextracontainersindex">extraContainers</a></b></td>
+        <td>[]object</td>
+        <td>
+          Extra containers to run alongside the job container. Each entry must set<br/>type: init, which produces a native sidecar (an init container with<br/>restartPolicy: Always). Kubernetes stops a native sidecar when the job<br/>container exits, so the Job can complete. A standard sidecar never exits<br/>on its own and would keep the Job running until its deadline.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
         <td><b><a href="#skipjobspecfilesfromindex">filesFrom</a></b></td>
         <td>[]object</td>
         <td>
@@ -7982,6 +7998,939 @@ Selects a key of a secret in the pod's namespace
         <td>string</td>
         <td>
           Name of Kubernetes Secret in which the deployment should mount environment variables from. Must be in the same namespace as the Application<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindex"></a>
+#### SKIPJob.spec.extraContainers[index]
+
+<sup>[Parent](#skipjobspec-1)</sup>
+
+ContainerSpec describes an extra container to run in the workload's pod
+alongside the main application container.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>image</b></td>
+        <td>string</td>
+        <td>
+          The container image to run.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the container. Must be unique within the pod and must not collide<br/>with the application name or a reserved name (e.g. cloudsql-proxy,<br/>istio-proxy, istio-validation, istio-init).<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexadditionalportsindex">additionalPorts</a></b></td>
+        <td>[]object</td>
+        <td>
+          Additional ports exposed by the container.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>args</b></td>
+        <td>[]string</td>
+        <td>
+          Arguments to the container entrypoint.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>command</b></td>
+        <td>[]string</td>
+        <td>
+          Override the command set in the image.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindex">env</a></b></td>
+        <td>[]object</td>
+        <td>
+          Environment variables set inside the container.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvfromindex">envFrom</a></b></td>
+        <td>[]object</td>
+        <td>
+          Environment variables mounted from ConfigMaps or Secrets. When specified<br/>all keys of the resource are assigned as environment variables.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexfilesfromindex">filesFrom</a></b></td>
+        <td>[]object</td>
+        <td>
+          Files mounted into the container from ConfigMaps, Secrets, PVCs or<br/>emptyDirs. The referenced resources are assumed to already exist.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>ingressPort</b></td>
+        <td>integer</td>
+        <td>
+          When set, the application&#39;s ingress traffic enters the pod through this<br/>container instead of the main container: the generated Service keeps its<br/>external port (spec.port) but routes its target port to this container&#39;s<br/>IngressPort. This suits any container that should sit in front of the<br/>application and receive incoming traffic first - an auth proxy, an API<br/>gateway, a TLS-terminating or rate-limiting proxy, etc. — which then<br/>forwards to the application (e.g. it listens on ingressPort and forwards<br/>to the app on spec.port via localhost).<br/><br/>The IngressPort value must be declared in this container&#39;s additionalPorts.<br/>At most one extra container may set this, and the value must differ from<br/>spec.port.<br/><br/>Not supported in a SKIPJob, which serves no ingress traffic and has no<br/>Service. Setting it there is rejected.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexliveness">liveness</a></b></td>
+        <td>object</td>
+        <td>
+          Liveness probe. When provided, path and port are required.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexreadiness">readiness</a></b></td>
+        <td>object</td>
+        <td>
+          Readiness probe. When provided, path and port are required.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexresources">resources</a></b></td>
+        <td>object</td>
+        <td>
+          ResourceRequirements to apply to the container.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexstartup">startup</a></b></td>
+        <td>object</td>
+        <td>
+          Startup probe. When provided, path and port are required.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type selects how the container runs:<br/>  - &#34;standard&#34; or omitted: a regular container running alongside the main<br/>    container for the lifetime of the pod.<br/>  - &#34;init&#34;: an init container that starts before the main container and<br/>    keeps running for the lifetime of the pod.<br/><br/>In a SKIPJob, &#34;init&#34; is the only accepted value and must be set<br/>explicitly. A standard sidecar never exits on its own, so the Job would<br/>keep running until its deadline instead of completing.<br/>
+          <br/>
+            <i>Enum</i>: standard, init<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexadditionalportsindex"></a>
+#### SKIPJob.spec.extraContainers[index].additionalPorts[index]
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>port</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>protocol</b></td>
+        <td>enum</td>
+        <td>
+          Protocol defines network protocols supported for things like container ports.<br/>
+          <br/>
+            <i>Enum</i>: TCP, UDP, SCTP<br/>
+        </td>
+        <td>true</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindex"></a>
+#### SKIPJob.spec.extraContainers[index].env[index]
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+EnvVar represents an environment variable present in a Container.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the environment variable.<br/>May consist of any printable ASCII characters except &#39;=&#39;.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Variable references $(VAR_NAME) are expanded<br/>using the previously defined environment variables in the container and<br/>any service environment variables. If a variable cannot be resolved,<br/>the reference in the input string will be unchanged. Double $$ are reduced<br/>to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.<br/>&#34;$$(VAR_NAME)&#34; will produce the string literal &#34;$(VAR_NAME)&#34;.<br/>Escaped references will never be expanded, regardless of whether the variable<br/>exists or not.<br/>Defaults to &#34;&#34;.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefrom">valueFrom</a></b></td>
+        <td>object</td>
+        <td>
+          Source for the environment variable&#39;s value. Cannot be used if value is not empty.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefrom"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindex)</sup>
+
+Source for the environment variable's value. Cannot be used if value is not empty.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefromconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefromfieldref">fieldRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels[&#39;&lt;KEY&gt;&#39;]`, `metadata.annotations[&#39;&lt;KEY&gt;&#39;]`,<br/>spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefromfilekeyref">fileKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          FileKeyRef selects a key of the env file.<br/>Requires the EnvFiles feature gate to be enabled.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefromresourcefieldref">resourceFieldRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a resource of the container: only resources limits and requests<br/>(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b><a href="#skipjobspecextracontainersindexenvindexvaluefromsecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret in the pod&#39;s namespace<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefromconfigmapkeyref"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom.configMapKeyRef
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindexvaluefrom)</sup>
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select from the ConfigMap&#39;s Data field.<br/>Keys in the BinaryData field are not currently propagated to container env vars.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: ``<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>optional</b></td>
+        <td>boolean</td>
+        <td>
+          Specify whether the ConfigMap or its key must be defined<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefromfieldref"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom.fieldRef
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindexvaluefrom)</sup>
+
+Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>fieldPath</b></td>
+        <td>string</td>
+        <td>
+          Path of the field to select in the specified API version.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>apiVersion</b></td>
+        <td>string</td>
+        <td>
+          Version of the schema the FieldPath is written in terms of, defaults to &#34;v1&#34;.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefromfilekeyref"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom.fileKeyRef
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindexvaluefrom)</sup>
+
+FileKeyRef selects a key of the env file.
+Requires the EnvFiles feature gate to be enabled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key within the env file. An invalid key will prevent the pod from starting.<br/>The keys defined within a source may consist of any printable ASCII characters except &#39;=&#39;.<br/>During Alpha stage of the EnvFiles feature gate, the key size is limited to 128 characters.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path within the volume from which to select the file.<br/>Must be relative and may not contain the &#39;..&#39; path or start with &#39;..&#39;.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>volumeName</b></td>
+        <td>string</td>
+        <td>
+          The name of the volume mount containing the env file.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>optional</b></td>
+        <td>boolean</td>
+        <td>
+          Specify whether the file or its key must be defined. If the file or key<br/>does not exist, then the env var is not published.<br/>If optional is set to true and the specified key does not exist,<br/>the environment variable will not be set in the Pod&#39;s containers.<br/><br/>If optional is set to false and the specified key does not exist,<br/>an error will be returned during Pod creation.<br/>
+          <br/>
+            <i>Default</i>: `false`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefromresourcefieldref"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom.resourceFieldRef
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindexvaluefrom)</sup>
+
+Selects a resource of the container: only resources limits and requests
+(limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>resource</b></td>
+        <td>string</td>
+        <td>
+          Required: resource to select<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>containerName</b></td>
+        <td>string</td>
+        <td>
+          Container name: required for volumes, optional for env vars<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>divisor</b></td>
+        <td>int or string</td>
+        <td>
+          Specifies the output format of the exposed resources, defaults to &#34;1&#34;<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvindexvaluefromsecretkeyref"></a>
+#### SKIPJob.spec.extraContainers[index].env[index].valueFrom.secretKeyRef
+
+<sup>[Parent](#skipjobspecextracontainersindexenvindexvaluefrom)</sup>
+
+Selects a key of a secret in the pod's namespace
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.  Must be a valid secret key.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.<br/>This field is effectively required, but due to backwards compatibility is<br/>allowed to be empty. Instances of this type with an empty value here are<br/>almost certainly wrong.<br/>More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: ``<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>optional</b></td>
+        <td>boolean</td>
+        <td>
+          Specify whether the Secret or its key must be defined<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexenvfromindex"></a>
+#### SKIPJob.spec.extraContainers[index].envFrom[index]
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>configMap</b></td>
+        <td>string</td>
+        <td>
+          Name of Kubernetes ConfigMap in which the deployment should mount environment variables from. Must be in the same namespace as the Application<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>secret</b></td>
+        <td>string</td>
+        <td>
+          Name of Kubernetes Secret in which the deployment should mount environment variables from. Must be in the same namespace as the Application<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexfilesfromindex"></a>
+#### SKIPJob.spec.extraContainers[index].filesFrom[index]
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+FilesFrom
+
+Struct representing information needed to mount a Kubernetes resource as a file to a Pod's directory.
+One of ConfigMap, Secret, EmptyDir or PersistentVolumeClaim must be present, and just represent the name of the resource in question
+NB. Out-of-the-box, skiperator provides a writable 'emptyDir'-volume at '/tmp'
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>mountPath</b></td>
+        <td>string</td>
+        <td>
+          The path to mount the file in the Pods directory. Required.<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>configMap</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>defaultMode</b></td>
+        <td>integer</td>
+        <td>
+          defaultMode is optional: mode bits used to set permissions on created files by default.<br/>Must be between 0000 and 0777 when written as YAML octal, or between 0 and 511 as JSON/decimal.<br/>YAML values with a leading zero are parsed as octal before CRD validation, so 0777 is validated as 511.<br/>Defaults to 0644.<br/>Directories within the path are not affected by this setting.<br/>This might be in conflict with other options that affect the file<br/>mode, like fsGroup, and the result can be other mode bits set.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
+            <i>Maximum</i>: 511<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>emptyDir</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>persistentVolumeClaim</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>secret</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>subPath</b></td>
+        <td>string</td>
+        <td>
+          The sub-path inside the volume from which the file should be mounted. Optional, defaults to the root of the volume.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexliveness"></a>
+#### SKIPJob.spec.extraContainers[index].liveness
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+Liveness probe. When provided, path and port are required.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path to access on the HTTP server<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>port</b></td>
+        <td>int or string</td>
+        <td>
+          Number of the port to access on the container<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>failureThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `3`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>initialDelay</b></td>
+        <td>integer</td>
+        <td>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `0`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>period</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds Kubernetes waits between each probe. Defaults to 10 seconds.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `10`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>successThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>timeout</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexreadiness"></a>
+#### SKIPJob.spec.extraContainers[index].readiness
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+Readiness probe. When provided, path and port are required.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path to access on the HTTP server<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>port</b></td>
+        <td>int or string</td>
+        <td>
+          Number of the port to access on the container<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>failureThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `3`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>initialDelay</b></td>
+        <td>integer</td>
+        <td>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `0`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>period</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds Kubernetes waits between each probe. Defaults to 10 seconds.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `10`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>successThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>timeout</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexresources"></a>
+#### SKIPJob.spec.extraContainers[index].resources
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+ResourceRequirements to apply to the container.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>limits</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Limits set the maximum the app is allowed to use. Exceeding this limit will<br/>make kubernetes kill the app and restart it.<br/><br/>Limits can be set on the CPU and memory, but it is not recommended to put a limit on CPU, see: https://home.robusta.dev/blog/stop-using-cpu-limits<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>requests</b></td>
+        <td>map[string]int or string</td>
+        <td>
+          Requests set the initial allocation that is done for the app and will<br/>thus be available to the app on startup. More is allocated on demand<br/>until the limit is reached.<br/><br/>Requests can be set on the CPU and memory.<br/>
+        </td>
+        <td>false</td>
+      </tr>
+    </tbody>
+</table>
+<a id="skipjobspecextracontainersindexstartup"></a>
+#### SKIPJob.spec.extraContainers[index].startup
+
+<sup>[Parent](#skipjobspecextracontainersindex)</sup>
+
+Startup probe. When provided, path and port are required.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>path</b></td>
+        <td>string</td>
+        <td>
+          The path to access on the HTTP server<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>port</b></td>
+        <td>int or string</td>
+        <td>
+          Number of the port to access on the container<br/>
+        </td>
+        <td>true</td>
+      </tr>
+      <tr>
+        <td><b>failureThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive failures for the probe to be considered failed after<br/>having succeeded. Defaults to 3. Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `3`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>initialDelay</b></td>
+        <td>integer</td>
+        <td>
+          Delay sending the first probe by X seconds. Can be useful for applications that<br/>are slow to start.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `0`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>period</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds Kubernetes waits between each probe. Defaults to 10 seconds.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `10`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>successThreshold</b></td>
+        <td>integer</td>
+        <td>
+          Minimum consecutive successes for the probe to be considered successful after having failed.<br/>Defaults to 1. Must be 1 for liveness and startup Probes. Minimum value is 1.<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
+        </td>
+        <td>false</td>
+      </tr>
+      <tr>
+        <td><b>timeout</b></td>
+        <td>integer</td>
+        <td>
+          Number of seconds after which the probe times out. Defaults to 1 second.<br/>Minimum value is 1<br/>
+          <br/>
+            <i>Format</i>: int32<br/>
+            <i>Default</i>: `1`<br/>
         </td>
         <td>false</td>
       </tr>

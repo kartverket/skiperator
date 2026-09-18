@@ -1,0 +1,16 @@
+# ingressPort is an Application-only concept; a SKIPJob has no Service.
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: skipjob-ingress-port
+spec:
+  image: image
+  extraContainers:
+    - name: sidecar
+      image: sidecar-image:1.0
+      type: init
+      ingressPort: 8080
+      additionalPorts:
+        - name: sidecar-http
+          port: 8080
+          protocol: TCP

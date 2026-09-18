@@ -29,6 +29,10 @@ type ContainerSpec struct {
 	//   - "init": an init container that starts before the main container and
 	//     keeps running for the lifetime of the pod.
 	//
+	// In a SKIPJob, "init" is the only accepted value and must be set
+	// explicitly. A standard sidecar never exits on its own, so the Job would
+	// keep running until its deadline instead of completing.
+	//
 	//+kubebuilder:validation:Enum=standard;init
 	//+kubebuilder:validation:Optional
 	Type string `json:"type,omitempty"`
@@ -98,6 +102,9 @@ type ContainerSpec struct {
 	// The IngressPort value must be declared in this container's additionalPorts.
 	// At most one extra container may set this, and the value must differ from
 	// spec.port.
+	//
+	// Not supported in a SKIPJob, which serves no ingress traffic and has no
+	// Service. Setting it there is rejected.
 	//
 	//+kubebuilder:validation:Optional
 	//+kubebuilder:validation:Minimum=1

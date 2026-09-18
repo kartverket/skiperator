@@ -1,0 +1,22 @@
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: skipjob-extra-containers
+spec:
+  image: image
+  extraContainers:
+    - name: sidecar
+      image: sidecar-image:1.0
+      type: init
+      args:
+        - --port=8080
+      env:
+        - name: FOO
+          value: bar
+      additionalPorts:
+        - name: sidecar-http
+          port: 8080
+          protocol: TCP
+      filesFrom:
+        - mountPath: /sidecar-config
+          configMap: sidecar-config
