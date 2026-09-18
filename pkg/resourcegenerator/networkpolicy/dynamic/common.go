@@ -47,9 +47,11 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	if r.GetType() == reconciliation.ApplicationType {
 		application := object.(*skiperatorv1alpha1.Application)
 		// Use Hosts() so ForceInternal overrides from IngressSettings are applied.
-		if hostCollection, err := application.Spec.Hosts(); err == nil {
-			hosts = hostCollection.AllHosts()
+		hostCollection, err := application.Spec.Hosts()
+		if err != nil {
+			return err
 		}
+		hosts = hostCollection.AllHosts()
 		// Use the ingress-facing port so gateway and inbound rules match the
 		// port that actually receives traffic — an extra container's
 		// IngressPort when one fronts the app, otherwise spec.Port.
