@@ -58,7 +58,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 								MatchLabels: mesh.GatewayNamespaceLabels(),
 							},
 							PodSelector: &metav1.LabelSelector{
-								MatchLabels: mesh.IngressGatewayLabels(util.IsInternal(host.Hostname)),
+								MatchLabels: mesh.IngressGatewayLabels(host.IsInternal()),
 							},
 						},
 					},
