@@ -642,12 +642,21 @@ func (s *ApplicationSpec) Hosts() (common.HostCollection, error) {
 	for _, setting := range s.IngressSettings {
 		settingsByHostname[strings.ToLower(setting.Hostname)] = setting
 	}
+	settingsCounter := 0
 	for _, h := range hosts.AllHosts() {
+		splitHostname, _, split := strings.Cut(h.Hostname, common.HostnameSecretSeparator)
+		if split {
+			h.Hostname = splitHostname
+		}
 		if setting, ok := settingsByHostname[h.Hostname]; ok {
 			h.ForceInternal = setting.ForceInternal
+			settingsCounter++
 		}
 	}
-
+	if settingsCounter == 0 && len(s.IngressSettings) > 0 {
+		errorsFound = append(errorsFound, errors.New("Hostname in IngressSettings does not match any hostname in Ingresses"))
+		return hosts, errors.Join(errorsFound...)
+	}
 	return hosts, errors.Join(errorsFound...)
 }
 

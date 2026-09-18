@@ -58,3 +58,48 @@ spec:
       app: force-internal-gwapi
   policyTypes:
     - Ingress
+---
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: force-internal-gwapi-customsecret-ingress-17b35ddeff21f49f
+  namespace: ingress
+spec:
+  selector:
+    app: istio-ingress-internal
+  servers:
+    - hosts:
+        - testmore.com
+      port:
+        name: http
+        number: 80
+        protocol: HTTP
+    - hosts:
+        - testmore.com
+      port:
+        name: https
+        number: 443
+        protocol: HTTPS
+      tls:
+        credentialName: testsecret
+        mode: SIMPLE
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: force-internal-gwapi-customsecret
+  namespace: ingress
+spec:
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-gateways
+          podSelector:
+            matchLabels:
+              app: istio-ingress-internal
+  podSelector:
+    matchLabels:
+      app: force-internal-gwapi-customsecret
+  policyTypes:
+    - Ingress

@@ -8,7 +8,7 @@ import (
 	"github.com/chmike/domain"
 )
 
-const hostnameSecretSeparator = "+"
+const HostnameSecretSeparator = "+"
 
 // internalHostnamePattern mirrors pkg/util.internalPattern and is duplicated
 // here to avoid an import cycle (api/common ↔ pkg/util). Keep in sync.
@@ -31,7 +31,6 @@ func (h *Host) IsInternal() bool {
 	return h.ForceInternal || internalHostnamePattern.MatchString(h.Hostname)
 }
 
-
 type HostCollection struct {
 	hosts           map[string]*Host
 	hostInsertOrder []string
@@ -44,7 +43,7 @@ func NewHost(hostname string) (*Host, error) {
 
 	var h Host
 	// If hostname is separated by +, the user wants to use a custom certificate
-	results := strings.Split(hostname, hostnameSecretSeparator)
+	results := strings.Split(hostname, HostnameSecretSeparator)
 
 	switch len(results) {
 	// No custom cert present
@@ -60,7 +59,7 @@ func NewHost(hostname string) (*Host, error) {
 		h = Host{Hostname: strings.ToLower(results[0]), CustomCertificateSecret: &secret}
 	// More than one '+' characters present
 	default:
-		return nil, fmt.Errorf("%s: not valid, contains multiple '%s' characters", hostname, hostnameSecretSeparator)
+		return nil, fmt.Errorf("%s: not valid, contains multiple '%s' characters", hostname, HostnameSecretSeparator)
 	}
 
 	// Verify that the hostname is an actual valid DNS name.
