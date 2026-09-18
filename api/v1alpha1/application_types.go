@@ -654,7 +654,7 @@ func (s *ApplicationSpec) Hosts() (common.HostCollection, error) {
 		}
 	}
 	if settingsCounter == 0 && len(s.IngressSettings) > 0 {
-		errorsFound = append(errorsFound, errors.New("Hostname in IngressSettings does not match any hostname in Ingresses"))
+		errorsFound = append(errorsFound, errors.New("hostname in IngressSettings does not match any hostname in Ingresses"))
 		return hosts, errors.Join(errorsFound...)
 	}
 	return hosts, errors.Join(errorsFound...)
