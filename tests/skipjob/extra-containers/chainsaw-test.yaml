@@ -1,0 +1,45 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: skipjob-extra-containers
+spec:
+  skip: false
+  concurrent: true
+  skipDelete: false
+  steps:
+    - try:
+        - create:
+            file: skipjob.yaml
+        - assert:
+            file: skipjob-assert.yaml
+    - try:
+        # A standard sidecar never exits, so the Job would never complete.
+        - create:
+            file: skipjob-standard-type.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1beta1
+                  kind: SKIPJob
+                check:
+                  (contains($error, 'must set type')): true
+    - try:
+        # ingressPort is an Application-only concept.
+        - create:
+            file: skipjob-ingress-port.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1beta1
+                  kind: SKIPJob
+                check:
+                  (contains($error, 'ingressPort is not supported for SKIPJob')): true
+    - try:
+        # extraContainers is v1beta1-only, and setting it on v1alpha1 must give
+        # a migration message instead of being silently pruned.
+        - create:
+            file: skipjob-v1alpha1.yaml
+            expect:
+              - match:
+                  apiVersion: skiperator.kartverket.no/v1alpha1
+                  kind: SKIPJob
+                check:
+                  (contains($error, 'only available in SKIPJob v1beta1')): true

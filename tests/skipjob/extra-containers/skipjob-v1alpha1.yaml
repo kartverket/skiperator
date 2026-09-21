@@ -1,0 +1,13 @@
+# extraContainers is v1beta1-only. Setting it on v1alpha1 must fail with a
+# migration message rather than being silently pruned.
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: SKIPJob
+metadata:
+  name: skipjob-v1alpha1-extra-containers
+spec:
+  container:
+    image: image
+    extraContainers:
+      - name: sidecar
+        image: sidecar-image:1.0
+        type: init

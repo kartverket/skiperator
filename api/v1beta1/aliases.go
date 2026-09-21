@@ -53,6 +53,9 @@ type CloudSQLProxySettings = commonpodtypes.CloudSQLProxySettings
 // internal port
 type InternalPort = commonpodtypes.InternalPort
 
+// extra containers
+type ContainerSpec = commonpodtypes.ContainerSpec
+
 // pod settings
 type PodSettings = commonpodtypes.PodSettings
 

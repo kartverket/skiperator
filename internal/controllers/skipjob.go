@@ -175,6 +175,12 @@ func (r *SKIPJobReconciler) Reconcile(ctx context.Context, req reconcile.Request
 		return common.DoNotRequeue()
 	}
 
+	if err := common.ValidateExtraContainers(skipJob.Spec.ExtraContainers, skipJob.KindPostFixedName(), skipJob); err != nil {
+		rLog.Error(err, "invalid extra container in skipjob manifest")
+		r.SetErrorState(ctx, skipJob, err, "invalid extra container in skipjob manifest", "InvalidSKIPJob")
+		return common.DoNotRequeue()
+	}
+
 	//We try to feed the access policy with port values dynamically,
 	//if unsuccessfull we just don't set ports, and rely on podselectors
 	r.UpdateAccessPolicy(ctx, skipJob)

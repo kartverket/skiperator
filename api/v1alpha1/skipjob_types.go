@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 var (
@@ -131,6 +132,14 @@ type ContainerSettings struct {
 
 	//+kubebuilder:validation:Optional
 	AdditionalPorts []InternalPort `json:"additionalPorts,omitempty"`
+
+	// ExtraContainers is not supported in v1alpha1. The field is declared only
+	// so that setting it produces a clear error instead of being silently
+	// pruned from the object.
+	//
+	//+kubebuilder:validation:Optional
+	ExtraContainers []runtime.RawExtension `json:"extraContainers,omitempty"`
+
 	//+kubebuilder:validation:Optional
 	Liveness *Probe `json:"liveness,omitempty"`
 	//+kubebuilder:validation:Optional

@@ -1,0 +1,12 @@
+# type: standard is rejected: a plain sidecar never exits, so the Job would
+# never complete.
+apiVersion: skiperator.kartverket.no/v1beta1
+kind: SKIPJob
+metadata:
+  name: skipjob-standard-type
+spec:
+  image: image
+  extraContainers:
+    - name: sidecar
+      image: sidecar-image:1.0
+      type: standard

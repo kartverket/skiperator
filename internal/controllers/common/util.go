@@ -15,8 +15,10 @@ import (
 	"github.com/kartverket/skiperator/pkg/metrics/usage"
 	"github.com/r3labs/diff/v3"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -258,6 +260,41 @@ func ValidateImageString(image string) error {
 	_, err := name.ParseReference(image)
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// ValidateExtraContainers covers the extra-container rules that CRD CEL
+// validation cannot express: image references are parsed with the OCI registry
+// library, and the container name is compared against the name of the workload's
+// own container (which is derived from metadata, not the spec).
+//
+// reservedName is the name of the container the operator generates for the
+// workload: the application name for an Application, and the postfixed name for
+// a SKIPJob.
+func ValidateExtraContainers(containers []podtypes.ContainerSpec, reservedName string, obj client.Object) error {
+	if len(containers) == 0 {
+		return nil
+	}
+
+	basePath := field.NewPath("spec").Child("extraContainers")
+	var errs field.ErrorList
+
+	for i, c := range containers {
+		path := basePath.Index(i)
+
+		if c.Name == reservedName {
+			errs = append(errs, field.Invalid(path.Child("name"), c.Name,
+				fmt.Sprintf("container name must not equal the name of the generated container (%s)", reservedName)))
+		}
+
+		if err := ValidateImageString(c.Image); err != nil {
+			errs = append(errs, field.Invalid(path.Child("image"), c.Image, err.Error()))
+		}
+	}
+
+	if len(errs) > 0 {
+		return apierrors.NewInvalid(obj.GetObjectKind().GroupVersionKind().GroupKind(), obj.GetName(), errs)
 	}
 	return nil
 }

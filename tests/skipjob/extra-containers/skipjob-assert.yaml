@@ -1,0 +1,47 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: skipjob-extra-containers
+spec:
+  template:
+    spec:
+      containers:
+        - name: skipjob-extra-containers-skipjob
+          image: image
+      # The extra container is a native sidecar: an init container that keeps
+      # running for the pod lifetime and is stopped when the job container
+      # exits, so the Job can complete.
+      initContainers:
+        - name: sidecar
+          image: sidecar-image:1.0
+          restartPolicy: Always
+          args:
+            - --port=8080
+          env:
+            - name: FOO
+              value: bar
+          ports:
+            - name: sidecar-http
+              containerPort: 8080
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsGroup: 150
+            runAsUser: 150
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cm-sidecar-config
+              mountPath: /sidecar-config
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cm-sidecar-config
+          configMap:
+            name: sidecar-config

@@ -14,6 +14,16 @@ func (src *SKIPJob) ConvertTo(dstRaw conversion.Hub) error {
 		return errors.New("cannot convert SKIPJob from v1alpha1 to v1beta1")
 	}
 
+	// extraContainers exists in v1alpha1 only so that setting it fails loudly.
+	// Rejecting it here rather than with a CEL rule on the v1alpha1 schema is
+	// deliberate: the mutating webhook is registered on v1beta1 with
+	// matchPolicy Equivalent, so every v1alpha1 write round-trips through this
+	// conversion before CEL validation runs. A CEL rule would therefore never
+	// see the field on create, because ConvertFrom drops it on the way back.
+	if len(src.Spec.Container.ExtraContainers) > 0 {
+		return errors.New("extraContainers is only available in SKIPJob v1beta1. Migrate this SKIPJob to apiVersion: skiperator.kartverket.no/v1beta1")
+	}
+
 	dst.ObjectMeta = src.ObjectMeta
 	dst.Spec.Job = src.Spec.Job
 	dst.Spec.Cron = src.Spec.Cron
