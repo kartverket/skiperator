@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/kartverket/skiperator/api/common"
 	skiperatorv1alpha1 "github.com/kartverket/skiperator/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
@@ -31,7 +32,7 @@ func validateApplicationConflicts(ctx context.Context, c client.Client, applicat
 			if !skiperatorManaged(listenerSet.Labels) || sameApplication(listenerSet.Labels, application) {
 				continue
 			}
-			if listenerSet.Spec.ParentRef.Name != GatewayNameForHost(host.Hostname) {
+			if listenerSet.Spec.ParentRef.Name != GatewayNameForHostObj(host) {
 				continue
 			}
 			for _, listener := range listenerSet.Spec.Listeners {
@@ -83,7 +84,7 @@ func validateRoutingConflicts(ctx context.Context, c client.Client, routing *ski
 		return err
 	}
 	host := hosts.AllHosts()[0]
-	if err := validateRoutingHostnameOwnership(ctx, c, routing, host.Hostname); err != nil {
+	if err := validateRoutingHostnameOwnership(ctx, c, routing, host); err != nil {
 		return err
 	}
 	conflict, alreadyServing, err := findRoutingPathConflict(ctx, c, routing, host.Hostname)
@@ -178,7 +179,7 @@ func routePathPrefixes(route gatewayapiv1.HTTPRoute) []string {
 
 // validateRoutingHostnameOwnership prevents standalone Routing from attaching
 // to a hostname already claimed by shared or application-owned ListenerSets.
-func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing, hostname string) error {
+func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, routing *skiperatorv1alpha1.Routing, host *common.Host) error {
 	listenerSets := &gatewayapiv1.ListenerSetList{}
 	if err := c.List(ctx, listenerSets); err != nil {
 		return fmt.Errorf("failed to list Gateway API ListenerSets: %w", err)
@@ -187,20 +188,20 @@ func validateRoutingHostnameOwnership(ctx context.Context, c client.Client, rout
 		if !skiperatorManaged(listenerSet.Labels) || sameRouting(listenerSet.Labels, routing) {
 			continue
 		}
-		if listenerSet.Spec.ParentRef.Name != GatewayNameForHost(hostname) {
+		if listenerSet.Spec.ParentRef.Name != GatewayNameForHostObj(host) {
 			continue
 		}
 		for _, listener := range listenerSet.Spec.Listeners {
-			if !listenerCoversHostname(listener.Hostname, hostname) {
+			if !listenerCoversHostname(listener.Hostname, host.Hostname) {
 				continue
 			}
-			if routing.UsesSharedOwnership() && sharedRoutingListenerSet(listenerSet.Labels, listenerSet.Name, hostname) {
+			if routing.UsesSharedOwnership() && sharedRoutingListenerSet(listenerSet.Labels, listenerSet.Name, host.Hostname) {
 				continue
 			}
 			if listenerSetAccepted(listenerSet) {
-				return fmt.Errorf("hostname %q already has an accepted ListenerSet %s/%s", hostname, listenerSet.Namespace, listenerSet.Name)
+				return fmt.Errorf("hostname %q already has an accepted ListenerSet %s/%s", host.Hostname, listenerSet.Namespace, listenerSet.Name)
 			}
-			return fmt.Errorf("hostname %q already has a pending ListenerSet %s/%s", hostname, listenerSet.Namespace, listenerSet.Name)
+			return fmt.Errorf("hostname %q already has a pending ListenerSet %s/%s", host.Hostname, listenerSet.Namespace, listenerSet.Name)
 		}
 	}
 	return nil

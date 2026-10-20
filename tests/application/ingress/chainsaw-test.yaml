@@ -9,6 +9,8 @@ spec:
   namespace: ingress
   steps:
     - try:
+        - apply:
+            file: namespace.yaml
         - create:
             file: application.yaml
         - assert:
@@ -52,3 +54,8 @@ spec:
             file: application-is-external.yaml    
         - assert:
             file: application-is-external-assert.yaml
+    - try:
+        - create:
+            file: application-force-internal.yaml
+        - assert:
+            file: application-force-internal-assert.yaml
