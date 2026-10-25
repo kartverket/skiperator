@@ -10,6 +10,8 @@ spec:
   steps:
     - try:
         - apply:
+            file: namespace.yaml
+        - apply:
             file: application.yaml
         - apply:
             file: routing.yaml
@@ -49,3 +51,8 @@ spec:
             file: patch-routing-remove-path-assert.yaml
         - error:
             file: patch-routing-remove-path-error.yaml
+    - try:
+        - create:
+            file: routing-force-internal.yaml
+        - assert:
+            file: routing-force-internal-assert.yaml

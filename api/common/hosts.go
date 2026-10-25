@@ -2,18 +2,33 @@ package common
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/chmike/domain"
 )
 
-const hostnameSecretSeparator = "+"
+const HostnameSecretSeparator = "+"
+
+// internalHostnamePattern mirrors pkg/util.internalPattern and is duplicated
+// here to avoid an import cycle (api/common ↔ pkg/util). Keep in sync.
+var internalHostnamePattern = regexp.MustCompile(`(?i)[^.]\.(?:skip\.statkart\.no|kartverket-intern\.cloud)$`)
 
 // TODO: Add a mechanism for validating that the
 // hostname is covered by the CustomCertificateSecret if present
 type Host struct {
 	Hostname                string
 	CustomCertificateSecret *string
+	// ForceInternal routes this host through the internal ingress gateway even
+	// when the hostname does not match the known-internal domain suffixes.
+	ForceInternal bool
+}
+
+// IsInternal returns true when the host should be treated as an internal
+// endpoint — either because the hostname matches the known-internal domain
+// pattern or because ForceInternal has been explicitly set.
+func (h *Host) IsInternal() bool {
+	return h.ForceInternal || internalHostnamePattern.MatchString(h.Hostname)
 }
 
 type HostCollection struct {
@@ -28,7 +43,7 @@ func NewHost(hostname string) (*Host, error) {
 
 	var h Host
 	// If hostname is separated by +, the user wants to use a custom certificate
-	results := strings.Split(hostname, hostnameSecretSeparator)
+	results := strings.Split(hostname, HostnameSecretSeparator)
 
 	switch len(results) {
 	// No custom cert present
@@ -44,7 +59,7 @@ func NewHost(hostname string) (*Host, error) {
 		h = Host{Hostname: strings.ToLower(results[0]), CustomCertificateSecret: &secret}
 	// More than one '+' characters present
 	default:
-		return nil, fmt.Errorf("%s: not valid, contains multiple '%s' characters", hostname, hostnameSecretSeparator)
+		return nil, fmt.Errorf("%s: not valid, contains multiple '%s' characters", hostname, HostnameSecretSeparator)
 	}
 
 	// Verify that the hostname is an actual valid DNS name.
