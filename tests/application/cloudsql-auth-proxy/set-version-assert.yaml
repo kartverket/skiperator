@@ -175,3 +175,16 @@ spec:
       number: 3307
       protocol: TCP
   resolution: STATIC
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: randomappwithversion
+spec:
+  egress:
+    - hosts:
+        - ./randomappwithversion-a0921a82f8f8e22c.cloudsql
+  outboundTrafficPolicy: {}
+  workloadSelector:
+    labels:
+      app: randomappwithversion
