@@ -777,10 +777,6 @@ func validateApplicationStatefulFields(app *skiperatorv1alpha1.Application) erro
 		return nil
 	}
 
-	if len(app.Spec.Stateful.VolumeClaimTemplates) == 0 {
-		return fmt.Errorf("spec.stateful.enabled=true requires at least one entry in spec.stateful.volumeClaimTemplates")
-	}
-
 	if app.Spec.Strategy.Type == "Recreate" {
 		return fmt.Errorf("spec.strategy.type=Recreate is not supported for stateful workloads")
 	}

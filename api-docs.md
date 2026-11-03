@@ -348,7 +348,7 @@ This allows product teams to avoid the need to set up networking on the cluster,
         <td><b><a href="#applicationspecstateful">stateful</a></b></td>
         <td>object</td>
         <td>
-          Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.<br/>Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.<br/>The enabled flag is immutable - delete and recreate the Application to change.<br/>
+          Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.<br/>Disallows Strategy.Type=Recreate and HPA-range replicas.<br/>The enabled flag is immutable - delete and recreate the Application to change.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -3538,7 +3538,7 @@ Startup is optional, but when provided, path and port are required
 <sup>[Parent](#applicationspec)</sup>
 
 Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.
-Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
+Disallows Strategy.Type=Recreate and HPA-range replicas.
 The enabled flag is immutable - delete and recreate the Application to change.
 
 <table>
