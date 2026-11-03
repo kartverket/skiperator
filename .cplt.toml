@@ -4,4 +4,4 @@ git_push_prevention = true
 allow_localhost_any = true
 
 [propose.allow]
-read = ["~/.kube/config"]
+read = ["~/.kube/config", "~/.agents/skills"]
