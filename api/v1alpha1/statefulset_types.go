@@ -3,9 +3,8 @@ package v1alpha1
 import corev1 "k8s.io/api/core/v1"
 
 // StatefulSpec configures the Application to be deployed as a StatefulSet
-// instead of a Deployment. Requires VolumeClaimTemplates. Disallows
-// Strategy.Type=Recreate and HPA-range replicas. All fields below take
-// effect only when Enabled=true.
+// instead of a Deployment. Disallows Strategy.Type=Recreate and HPA-range
+// replicas. All fields below take effect only when Enabled=true.
 //
 // +kubebuilder:object:generate=true
 type StatefulSpec struct {

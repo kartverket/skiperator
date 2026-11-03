@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: stateful-no-vct
+spec:
+  replicas: 2
+  serviceName: stateful-no-vct-headless
+  selector:
+    matchLabels:
+      app: stateful-no-vct
+  template:
+    metadata:
+      labels:
+        app: stateful-no-vct
+    spec:
+      containers:
+        - name: stateful-no-vct
+          image: image
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-no-vct
+spec:
+  selector:
+    app: stateful-no-vct
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stateful-no-vct-headless
+spec:
+  selector:
+    app: stateful-no-vct
+  clusterIP: None
+  publishNotReadyAddresses: true

@@ -308,7 +308,7 @@ type ApplicationSpec struct {
 	IstioSettings *IstioSettingsApplication `json:"istioSettings,omitempty"`
 
 	// Stateful, when set with enabled=true, generates a StatefulSet instead of a Deployment.
-	// Requires VolumeClaimTemplates. Disallows Strategy.Type=Recreate and HPA-range replicas.
+	// Disallows Strategy.Type=Recreate and HPA-range replicas.
 	// The enabled flag is immutable - delete and recreate the Application to change.
 	//
 	//+kubebuilder:validation:Optional
