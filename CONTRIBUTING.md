@@ -88,10 +88,10 @@ $ helm upgrade --install cilium cilium/cilium \
     --set k8sServicePort=6443
 ```
 
-Install Istio to make sure all CRDs are available
+Install Istio with the ambient profile. It installs all CRDs, and namespaces can use both ambient mode and sidecar mode.
 
 ```
-$ kubectl create ns istio-gateways && istioctl install
+$ kubectl create ns istio-gateways && istioctl install --set profile=ambient
 ```
 
 Cert-manager (version in link above) must be installed locally on your cluster with
