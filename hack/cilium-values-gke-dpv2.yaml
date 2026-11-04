@@ -41,5 +41,8 @@ l7Proxy: false
 endpointRoutes:
   enabled: true
 localRedirectPolicy: true
-enableIPv4Masquerade: false
+# Kind-compatible deviation from production GKE (masquerade off): Docker does not
+# NAT the pod subnet, so pods need masquerading to reach external addresses.
+enableIPv4Masquerade: true
+ipv4NativeRoutingCIDR: 10.244.0.0/16
 enableIPv6Masquerade: false

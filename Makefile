@@ -130,7 +130,7 @@ check-cilium-profile:
 	esac
 
 .PHONY: kind-cluster
-kind-cluster: check-kind
+kind-cluster: check-kind check-helm check-cilium-profile
 	@echo Create kind cluster... >&2
 	@kind create cluster --image $(KIND_IMAGE) --name ${KIND_CLUSTER_NAME} --config hack/kind-cluster-config.yaml
 

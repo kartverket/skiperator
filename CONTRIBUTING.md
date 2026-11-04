@@ -58,7 +58,7 @@ colima start --cpu 8 --memory 16 --disk 100
 Start a cluster on docker using `kind`.
 
 ```
-$ kind create cluster --name skiperator --config hack/kind-cluster-config.yaml
+kind create cluster --image kindest/node:v<KUBERNETES_VERSION> --name skiperator --config hack/kind-cluster-config.yaml
 ```
 
 Make sure Kind is the active context
