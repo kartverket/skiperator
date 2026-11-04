@@ -13,6 +13,7 @@ You're going to want to make sure to have the following things installed:
 - [kubectx and kubens](https://github.com/ahmetb/kubectx) (Optional)
 - docker version 17.03+.
 - [kind](https://kind.sigs.k8s.io)
+- [helm](https://helm.sh/docs/intro/install/)
 - [istioctl](https://istio.io/latest/docs/setup/install/istioctl/) (Optional)
 - wget
 - [cert-manager](https://cert-manager.io/docs/installation/) (Optional)
@@ -32,8 +33,12 @@ make setup-local
 make run-local
 ```
 
-`make setup-local` will create a kind cluster called `kind-skiperator`, with all dependencies installed.
+`make setup-local` will create a deterministic kind cluster called `kind-skiperator` with kube-proxy disabled and Cilium installed, together with all other dependencies.
 `make run-local` will build and run the operator. This step can be replaced with building through your IDE if you need debugging.
+
+The default local Cilium profile is `gdc-dpv2`. The supported profiles are
+`gdc-dpv2` and `gke-dpv2`. You can switch profile with:
+`make setup-local CILIUM_PROFILE=gke-dpv2`.
 
 If for any reason you need a clean local environment, delete your local kind cluster with `kind delete cluster --name skiperator`
 
@@ -53,7 +58,7 @@ colima start --cpu 8 --memory 16 --disk 100
 Start a cluster on docker using `kind`.
 
 ```
-$ kind create cluster
+$ kind create cluster --name skiperator --config hack/kind-cluster-config.yaml
 ```
 
 Make sure Kind is the active context
@@ -67,6 +72,20 @@ Optionally you may create a new namespace for Skiperator, for example
 ```
 $ kubectl create namespace skiperator-system
 $ kubens skiperator-system
+```
+
+Install Cilium in kube-proxy-free mode (to mirror Dataplane V2 behavior)
+
+```
+$ API_SERVER_IP=$(docker inspect skiperator-control-plane --format "{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}")
+$ helm repo add cilium https://helm.cilium.io
+$ helm repo update
+$ helm upgrade --install cilium cilium/cilium \
+    --namespace kube-system \
+    --version <CILIUM_VERSION> \
+    --values hack/cilium-values-gdc-dpv2.yaml \
+    --set k8sServiceHost=$API_SERVER_IP \
+    --set k8sServicePort=6443
 ```
 
 Install Istio to make sure all CRDs are available
