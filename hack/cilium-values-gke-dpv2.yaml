@@ -46,3 +46,6 @@ localRedirectPolicy: true
 enableIPv4Masquerade: true
 ipv4NativeRoutingCIDR: 10.244.0.0/16
 enableIPv6Masquerade: false
+# Istio ambient mode adds its own CNI plugin. Cilium must not remove it.
+cni:
+  exclusive: false
