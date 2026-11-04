@@ -57,6 +57,8 @@ spec:
       ports:
         - port: 8081
           protocol: TCP
+        - port: 15008
+          protocol: TCP
   podSelector:
     matchLabels:
       app: app-1
@@ -79,6 +81,8 @@ spec:
               app: istio-ingress-external
       ports:
         - port: 9000
+          protocol: TCP
+        - port: 15008
           protocol: TCP
   podSelector:
     matchLabels:
