@@ -217,30 +217,58 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, me
 	}
 
 	if accessPolicy.Inbound != nil {
-		ingressRules = append(ingressRules, networkingv1.NetworkPolicyIngressRule{
-			From:  getInboundPolicyPeers(accessPolicy.Inbound.Rules, namespace),
-			Ports: getInboundPorts(port, meshMode),
-		})
+		ingressRules = append(ingressRules, getInboundIngressRules(accessPolicy.Inbound.Rules, namespace, port, meshMode)...)
 	}
 
 	return ingressRules
 }
 
-// TODO investigate if we can just return nil if SKIPJob
-func getInboundPolicyPeers(inboundRules []podtypes.InternalRule, namespace string) []networkingv1.NetworkPolicyPeer {
-	var policyPeers []networkingv1.NetworkPolicyPeer
+// getInboundIngressRules puts all inbound rules without ports into one shared
+// ingress rule for the inbound port. Each rule with ports gets its own ingress
+// rule that opens the inbound port and the ports of the rule.
+func getInboundIngressRules(
+	inboundRules []podtypes.InternalRule,
+	namespace string,
+	port int32,
+	meshMode mesh.Mode,
+) []networkingv1.NetworkPolicyIngressRule {
+	inboundPorts := getInboundPorts(port, meshMode)
+	var sharedPeers []networkingv1.NetworkPolicyPeer
+	var portRules []networkingv1.NetworkPolicyIngressRule
 
 	for _, inboundRule := range inboundRules {
+		peer := getInboundPolicyPeer(inboundRule, namespace)
+		if len(inboundRule.Ports) == 0 {
+			sharedPeers = append(sharedPeers, peer)
+			continue
+		}
 
-		policyPeers = append(policyPeers, networkingv1.NetworkPolicyPeer{
-			NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
-			PodSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{"app": inboundRule.Application},
-			},
+		portRules = append(portRules, networkingv1.NetworkPolicyIngressRule{
+			From:  []networkingv1.NetworkPolicyPeer{peer},
+			Ports: append(slices.Clone(inboundPorts), inboundRule.Ports...),
 		})
 	}
 
-	return policyPeers
+	// The shared rule is kept when there are no rules at all. It then has no
+	// sources, so all pods can reach the inbound port, as before this change.
+	if len(sharedPeers) == 0 && len(portRules) > 0 {
+		return portRules
+	}
+
+	sharedRule := networkingv1.NetworkPolicyIngressRule{
+		From:  sharedPeers,
+		Ports: inboundPorts,
+	}
+	return append([]networkingv1.NetworkPolicyIngressRule{sharedRule}, portRules...)
+}
+
+func getInboundPolicyPeer(inboundRule podtypes.InternalRule, namespace string) networkingv1.NetworkPolicyPeer {
+	return networkingv1.NetworkPolicyPeer{
+		NamespaceSelector: getNamespaceSelector(inboundRule, namespace),
+		PodSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{"app": inboundRule.Application},
+		},
+	}
 }
 
 func getNamespaceSelector(rule podtypes.InternalRule, appNamespace string) *metav1.LabelSelector {

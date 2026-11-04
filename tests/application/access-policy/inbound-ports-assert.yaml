@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inbound-ports
+spec:
+  podSelector:
+    matchLabels:
+      app: inbound-ports
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: access-policy-ns
+          podSelector:
+            matchLabels:
+              app: inbound-ports-other
+      ports:
+        - port: 8080
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: access-policy-ns
+          podSelector:
+            matchLabels:
+              app: inbound-ports
+      ports:
+        - port: 8080
+        - port: 57800
+          protocol: TCP
+        - port: 7800
+          protocol: TCP

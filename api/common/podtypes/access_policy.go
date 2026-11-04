@@ -82,7 +82,8 @@ type InternalRule struct {
 	//
 	//+kubebuilder:validation:Optional
 	NamespacesByLabel map[string]string `json:"namespacesByLabel,omitempty"`
-	// The ports to allow for the above application.
+	// The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the
+	// application port.
 	//+kubebuilder:validation:Optional
 	Ports []v1.NetworkPolicyPort `json:"ports,omitempty"`
 }
