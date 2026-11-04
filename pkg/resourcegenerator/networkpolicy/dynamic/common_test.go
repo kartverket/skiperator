@@ -146,3 +146,29 @@ func TestGetInboundIngressRules(t *testing.T) {
 		})
 	}
 }
+
+func TestGetEgressRule(t *testing.T) {
+	tcp := corev1.ProtocolTCP
+	jgroups := networkingv1.NetworkPolicyPort{Protocol: &tcp, Port: new(intstr.FromInt32(7800))}
+	ztunnel := networkingv1.NetworkPolicyPort{Protocol: &tcp, Port: new(mesh.ZtunnelInboundPort)}
+
+	tests := []struct {
+		name      string
+		meshMode  mesh.Mode
+		wantPorts []networkingv1.NetworkPolicyPort
+	}{
+		{name: "sidecar opens only the rule ports", meshMode: mesh.ModeSidecar, wantPorts: []networkingv1.NetworkPolicyPort{jgroups}},
+		{name: "no mesh opens only the rule ports", meshMode: mesh.ModeNone, wantPorts: []networkingv1.NetworkPolicyPort{jgroups}},
+		{name: "ambient also opens the ztunnel port", meshMode: mesh.ModeAmbient, wantPorts: []networkingv1.NetworkPolicyPort{jgroups, ztunnel}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rule := podtypes.InternalRule{Application: "app", Ports: []networkingv1.NetworkPolicyPort{jgroups}}
+
+			got := getEgressRule(rule, "team-a", tt.meshMode)
+
+			assert.Equal(t, tt.wantPorts, got.Ports)
+		})
+	}
+}
