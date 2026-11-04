@@ -53,7 +53,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 	}
 
 	ingressRules := getIngressRules(accessPolicy, ingresses, r.MeshMode(), namespace, inboundPort)
-	egressRules := getEgressRules(accessPolicy, object)
+	egressRules := getEgressRules(accessPolicy, object, r.MeshMode())
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
 		PodSelector: metav1.LabelSelector{MatchLabels: util.GetPodAppSelector(name)},
@@ -103,7 +103,7 @@ func getCloudSQLEgressRule(skipObject skiperatorv1alpha1.SKIPObject) networkingv
 	}
 }
 
-func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1alpha1.SKIPObject) []networkingv1.NetworkPolicyEgressRule {
+func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1alpha1.SKIPObject, meshMode mesh.Mode) []networkingv1.NetworkPolicyEgressRule {
 	var egressRules []networkingv1.NetworkPolicyEgressRule
 
 	if util.IsCloudSqlProxyEnabled(skipObject.GetCommonSpec().GCP) {
@@ -118,7 +118,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1
 		if rule.Ports == nil {
 			continue
 		}
-		egressRules = append(egressRules, getEgressRule(rule, skipObject.GetNamespace()))
+		egressRules = append(egressRules, getEgressRule(rule, skipObject.GetNamespace(), meshMode))
 	}
 
 	for _, externalRule := range accessPolicy.Outbound.External {
@@ -156,8 +156,18 @@ func mapExternalPortsToNetworkPolicyPorts(externalPorts []podtypes.ExternalPort)
 	return ports
 }
 
-func getEgressRule(outboundRule podtypes.InternalRule, namespace string) networkingv1.NetworkPolicyEgressRule {
+// getEgressRule opens the ports of an outbound rule. In ambient mode, ztunnel
+// sends traffic to other pods on the HBONE port instead of the application
+// port, so the rule must also open that port.
+func getEgressRule(outboundRule podtypes.InternalRule, namespace string, meshMode mesh.Mode) networkingv1.NetworkPolicyEgressRule {
 	slices.SortFunc(outboundRule.Ports, sortNetPolPorts)
+	ports := outboundRule.Ports
+	if meshMode == mesh.ModeAmbient {
+		ports = append(slices.Clone(ports), networkingv1.NetworkPolicyPort{
+			Protocol: new(v1.ProtocolTCP),
+			Port:     new(mesh.ZtunnelInboundPort),
+		})
+	}
 	egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
 			{
@@ -167,7 +177,7 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string) network
 				NamespaceSelector: getNamespaceSelector(outboundRule, namespace),
 			},
 		},
-		Ports: outboundRule.Ports,
+		Ports: ports,
 	}
 	return egressRuleForOutboundRule
 }

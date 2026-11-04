@@ -33,12 +33,19 @@ spec:
       value: "false"
     - name: KC_HEALTH_ENABLED
       value: "true"
+    - name: KC_PROXY_HEADERS
+      value: xforwarded
+    # The kubernetes stack is deprecated. The default stack, jdbc-ping, finds
+    # the other pods through a shared database. KC_DB=dev-mem gives each pod
+    # its own database, so this test uses the kubernetes stack instead. It finds
+    # the other pods through DNS on the headless Service. Both stacks use the
+    # same JGroups ports, 7800 and 57800.
     - name: KC_CACHE_STACK
       value: kubernetes
     - name: KC_CACHE_EMBEDDED_MTLS_ENABLED
       value: "false"
     - name: JAVA_OPTS_APPEND
-      value: -Djgroups.dns.query=keycloak-headless.keycloak-jgroups-ns.svc.cluster.local
+      value: (join('', ['-Djgroups.dns.query=keycloak-headless.', $namespace, '.svc.cluster.local']))
   resources:
     requests:
       cpu: 200m
