@@ -1,0 +1,81 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: ambient-sidecar-interop
+spec:
+  description: |
+    An ambient pod and a sidecar pod must reach each other through their access
+    policies. Ambient to sidecar tests whether network policies must open the
+    HBONE port (15008) on a sidecar destination. Sidecar to ambient tests the
+    HBONE port on egress. Skiperator only generates egress rules for outbound
+    rules with ports, so the clients list port 8080.
+  skip: false
+  concurrent: false
+  skipDelete: false
+  timeouts:
+    assert: 600s
+    exec: 600s
+  steps:
+    - try:
+        - apply:
+            file: namespaces.yaml
+        - apply:
+            file: applications.yaml
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: web
+                namespace: interop-ambient-ns
+              status:
+                availableReplicas: 1
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: client
+                namespace: interop-ambient-ns
+              status:
+                availableReplicas: 1
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: web
+                namespace: interop-sidecar-ns
+              status:
+                availableReplicas: 1
+        - assert:
+            resource:
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: client
+                namespace: interop-sidecar-ns
+              status:
+                availableReplicas: 1
+    - name: ambient client reaches sidecar server
+      try:
+        - script:
+            content: |
+              for i in $(seq 1 30); do
+                kubectl exec deploy/client -c client -n interop-ambient-ns -- \
+                  curl -sf -m 5 -o /dev/null http://web.interop-sidecar-ns:8080 && echo "ambient -> sidecar OK" && exit 0
+                sleep 5
+              done
+              echo "ambient -> sidecar failed"
+              exit 1
+    - name: sidecar client reaches ambient server
+      try:
+        - script:
+            content: |
+              for i in $(seq 1 30); do
+                kubectl exec deploy/client -c client -n interop-sidecar-ns -- \
+                  curl -sf -m 5 -o /dev/null http://web.interop-ambient-ns:8080 && echo "sidecar -> ambient OK" && exit 0
+                sleep 5
+              done
+              echo "sidecar -> ambient failed"
+              exit 1
