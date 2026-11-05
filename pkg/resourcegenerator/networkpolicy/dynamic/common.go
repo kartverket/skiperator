@@ -118,7 +118,7 @@ func getEgressRules(accessPolicy *podtypes.AccessPolicy, skipObject skiperatorv1
 		if rule.Ports == nil {
 			continue
 		}
-		egressRules = append(egressRules, getEgressRule(rule, skipObject.GetNamespace(), meshMode))
+		egressRules = append(egressRules, getEgressRule(rule, skipObject.GetNamespace(), meshMode.IsEnabled()))
 	}
 
 	for _, externalRule := range accessPolicy.Outbound.External {
@@ -156,17 +156,17 @@ func mapExternalPortsToNetworkPolicyPorts(externalPorts []podtypes.ExternalPort)
 	return ports
 }
 
-// getEgressRule opens the ports of an outbound rule. In ambient mode, ztunnel
-// sends traffic to other pods on the HBONE port instead of the application
-// port, so the rule must also open that port.
-func getEgressRule(outboundRule podtypes.InternalRule, namespace string, meshMode mesh.Mode) networkingv1.NetworkPolicyEgressRule {
-	slices.SortFunc(outboundRule.Ports, sortNetPolPorts)
-	ports := outboundRule.Ports
-	if meshMode == mesh.ModeAmbient {
-		ports = append(slices.Clone(ports), networkingv1.NetworkPolicyPort{
-			Protocol: new(v1.ProtocolTCP),
-			Port:     new(mesh.ZtunnelInboundPort),
-		})
+// getEgressRule opens the ports of an outbound rule. Pods in the mesh also open
+// the HBONE port. Ambient pods send traffic to other pods on that port instead
+// of the application port, and sidecars do the same when the destination is an
+// ambient pod. The destination's mesh mode is unknown here, so the port is
+// opened for every destination the rule selects.
+// https://istio.io/latest/docs/ambient/usage/add-workloads/
+func getEgressRule(outboundRule podtypes.InternalRule, namespace string, withHBONE bool) networkingv1.NetworkPolicyEgressRule {
+	ports := slices.Clone(outboundRule.Ports)
+	slices.SortFunc(ports, sortNetPolPorts)
+	if withHBONE {
+		ports = append(ports, hbonePort())
 	}
 	egressRuleForOutboundRule := networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
@@ -235,14 +235,22 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, me
 
 // getInboundIngressRules puts all inbound rules without ports into one shared
 // ingress rule for the inbound port. Each rule with ports gets its own ingress
-// rule that opens the inbound port and the ports of the rule.
+// rule that opens the inbound port and the ports of the rule. Sources in ambient
+// mode reach a sidecar pod over HBONE too, so pods in either mesh mode open the
+// HBONE port.
 func getInboundIngressRules(
 	inboundRules []podtypes.InternalRule,
 	namespace string,
 	port int32,
 	meshMode mesh.Mode,
 ) []networkingv1.NetworkPolicyIngressRule {
-	inboundPorts := getInboundPorts(port, meshMode)
+	inboundPorts := getInboundPorts(port, meshMode.IsEnabled())
+	// Without an inbound port the shared rule is not port restricted, but a rule
+	// with ports still needs the HBONE port next to its own ports.
+	portRuleBase := inboundPorts
+	if port == 0 && meshMode.IsEnabled() {
+		portRuleBase = []networkingv1.NetworkPolicyPort{hbonePort()}
+	}
 	var sharedPeers []networkingv1.NetworkPolicyPeer
 	var portRules []networkingv1.NetworkPolicyIngressRule
 
@@ -255,7 +263,7 @@ func getInboundIngressRules(
 
 		portRules = append(portRules, networkingv1.NetworkPolicyIngressRule{
 			From:  []networkingv1.NetworkPolicyPeer{peer},
-			Ports: append(slices.Clone(inboundPorts), inboundRule.Ports...),
+			Ports: append(slices.Clone(portRuleBase), inboundRule.Ports...),
 		})
 	}
 
@@ -331,29 +339,33 @@ func getGatewayIngressRule(isInternal bool, port int32, meshMode mesh.Mode) netw
 				},
 			},
 		},
-		Ports: getInboundPorts(port, meshMode),
+		Ports: getInboundPorts(port, meshMode == mesh.ModeAmbient),
 	}
 }
 
 // getInboundPorts restricts an ingress rule to the port that receives traffic.
-// Ambient tunnels mesh traffic to ztunnel's HBONE port instead of the
-// application port, so ambient pods must accept both from the same sources.
-// A zero port means the rule is not port restricted at all.
+// Ambient tunnels mesh traffic to the HBONE port instead of the application
+// port, so a pod that receives HBONE traffic must accept both from the same
+// sources (withHBONE). A zero port means the rule is not port restricted at all.
 // https://istio.io/latest/docs/ambient/usage/networkpolicy/
-func getInboundPorts(port int32, meshMode mesh.Mode) []networkingv1.NetworkPolicyPort {
+func getInboundPorts(port int32, withHBONE bool) []networkingv1.NetworkPolicyPort {
 	if port == 0 {
 		return nil
 	}
 
 	ports := []networkingv1.NetworkPolicyPort{{Port: new(intstr.FromInt32(port))}}
-	if meshMode == mesh.ModeAmbient {
-		ports = append(ports, networkingv1.NetworkPolicyPort{
-			Protocol: new(v1.ProtocolTCP),
-			Port:     new(mesh.ZtunnelInboundPort),
-		})
+	if withHBONE {
+		ports = append(ports, hbonePort())
 	}
 
 	return ports
+}
+
+func hbonePort() networkingv1.NetworkPolicyPort {
+	return networkingv1.NetworkPolicyPort{
+		Protocol: new(v1.ProtocolTCP),
+		Port:     new(mesh.ZtunnelInboundPort),
+	}
 }
 
 var sortNetPolPorts = func(a networkingv1.NetworkPolicyPort, b networkingv1.NetworkPolicyPort) int {
