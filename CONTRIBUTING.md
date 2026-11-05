@@ -92,7 +92,10 @@ Install Istio with the ambient profile. It installs all CRDs, and namespaces can
 
 ```
 $ kubectl create ns istio-gateways && istioctl install --set profile=ambient
+$ istioctl tag set asm-stable --revision=default --overwrite
 ```
+
+The `asm-stable` tag is the revision that namespaces with sidecars use (`istio.io/rev=asm-stable`).
 
 Cert-manager (version in link above) must be installed locally on your cluster with
 
