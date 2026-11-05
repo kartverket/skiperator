@@ -18,12 +18,16 @@ CERT_MANAGER_VERSION               := $(call extract-version,github.com/cert-man
 GWAPI_VERSION                      := $(call extract-version,sigs.k8s.io/gateway-api)
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
+CILIUM_VERSION                     ?= 1.19.10
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
 KUBERNETES_VERSION          = 1.36.4
 KIND_IMAGE                 ?= kindest/node:v$(KUBERNETES_VERSION)
 KIND_CLUSTER_NAME          ?= skiperator
+CILIUM_PROFILE             ?= gdc-dpv2
+CILIUM_VALUES_FILE         ?= hack/cilium-values-$(CILIUM_PROFILE).yaml
+CILIUM_IMAGE_OVERRIDE      ?=
 
 LOCAL_WEBHOOK_CERTS_DIR    := $(shell mktemp -d -t skiperator-webhook-certs.XXXXXXX)
 WEBHOOK_HOST                = 0.0.0.0
@@ -100,7 +104,7 @@ run-local: build install-skiperator local-webhook
 	./bin/skiperator $(WEBHOOK_ARGS)
 
 .PHONY: setup-local
-setup-local: kind-cluster install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator install-webhook
+setup-local: kind-cluster install-cilium install-istio install-cert-manager install-prometheus-crds install-digdirator-crds install-skiperator install-webhook
 	@echo "Cluster $(SKIPERATOR_CONTEXT) is setup"
 
 .PHONY: local-webhook
@@ -112,14 +116,49 @@ local-webhook: ensure-kubectl
 
 #### KIND ####
 
-.PHONY: kind-cluster check-kind
+.PHONY: kind-cluster check-kind check-helm check-cilium-profile
 check-kind:
 	@which kind >/dev/null || (echo "kind not installed, please install it to proceed"; exit 1)
 
+check-helm:
+	@which helm >/dev/null || (echo "helm not installed, please install it to proceed"; exit 1)
+
+check-cilium-profile:
+	@case "$(CILIUM_PROFILE)" in \
+		gdc-dpv2|gke-dpv2) ;; \
+		*) echo "Unsupported CILIUM_PROFILE='$(CILIUM_PROFILE)'. Use gdc-dpv2 or gke-dpv2."; exit 1 ;; \
+	esac
+
 .PHONY: kind-cluster
-kind-cluster: check-kind
+kind-cluster: check-kind check-helm check-cilium-profile
 	@echo Create kind cluster... >&2
-	@kind create cluster --image $(KIND_IMAGE) --name ${KIND_CLUSTER_NAME}
+	@kind create cluster --image $(KIND_IMAGE) --name ${KIND_CLUSTER_NAME} --config hack/kind-cluster-config.yaml
+
+.PHONY: install-cilium
+install-cilium: check-helm check-cilium-profile ensure-kubectl
+	@echo "Installing Cilium in kube-proxy-free mode..."
+	@test -f $(CILIUM_VALUES_FILE) || (echo "Cilium values file not found: $(CILIUM_VALUES_FILE)"; exit 1)
+	@api_server_ip=$$(docker inspect $(KIND_CLUSTER_NAME)-control-plane --format '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}'); \
+	if [ -z "$$api_server_ip" ]; then \
+		echo "Could not determine API server IP for $(KIND_CLUSTER_NAME)-control-plane"; \
+		exit 1; \
+	fi; \
+	image_override_arg=""; \
+	if [ -n "$(CILIUM_IMAGE_OVERRIDE)" ]; then \
+		image_override_arg="--set image.override=$(CILIUM_IMAGE_OVERRIDE)"; \
+	fi; \
+	helm repo add cilium https://helm.cilium.io --force-update >/dev/null; \
+	helm repo update >/dev/null; \
+	helm upgrade --install cilium cilium/cilium \
+		--version $(CILIUM_VERSION) \
+		--namespace kube-system \
+		--kube-context $(SKIPERATOR_CONTEXT) \
+		--values $(CILIUM_VALUES_FILE) \
+		--set k8sServiceHost=$$api_server_ip \
+		--set k8sServicePort=6443 \
+		$$image_override_arg
+	@kubectl --context $(SKIPERATOR_CONTEXT) -n kube-system rollout status daemonset/cilium --timeout=180s
+	@kubectl --context $(SKIPERATOR_CONTEXT) -n kube-system rollout status deployment/cilium-operator --timeout=180s
 
 
 #### SKIPERATOR DEPENDENCIES ####

@@ -1,0 +1,59 @@
+# GDC VMware Dataplane V2-inspired profile for local kind clusters.
+# Values are selected from the provided GDC config where they are compatible with kind.
+
+# Shared (GKE + GDC)
+kubeProxyReplacement: true
+kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+autoDirectNodeRoutes: false
+socketLB:
+  hostNamespaceOnly: true
+nodePort:
+  enabled: true
+  bindProtection: true
+  autoProtectPortRange: true
+  enableHealthCheck: true
+bpf:
+  mapDynamicSizeRatio: 0.0025
+  policyMapMax: 16384
+  monitorAggregation: medium
+  monitorInterval: 5s
+  monitorFlags: all
+  hostLegacyRouting: true
+  # Kind-compatible deviation from production GDC (BPF masquerading on): Istio
+  # ambient mode does not work with BPF masquerading. Cilium uses iptables
+  # masquerading instead.
+  masquerade: false
+prometheus:
+  enabled: true
+  port: 9990
+operator:
+  replicas: 1
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+
+# GDC-specific
+routingMode: tunnel
+# Kind-compatible deviation from production GDC (which uses Geneve).
+tunnelProtocol: vxlan
+ipam:
+  mode: kubernetes
+endpointRoutes:
+  enabled: false
+enableIPv4Masquerade: true
+enableIPv6Masquerade: false
+healthChecking: true
+# Kind-compatible deviation from production GDC (egress gateway on): the egress
+# gateway needs BPF masquerading, and Istio ambient mode does not work with it.
+# Skiperator does not use the egress gateway.
+egressGateway:
+  enabled: false
+l7Proxy: false
+policyCIDRMatchMode:
+  - nodes
+hubble:
+  enabled: true
+# Istio ambient mode adds its own CNI plugin. Cilium must not remove it.
+cni:
+  exclusive: false

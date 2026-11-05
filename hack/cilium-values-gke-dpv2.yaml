@@ -1,0 +1,51 @@
+# GKE Dataplane V2-inspired profile for local kind clusters.
+# Values are selected from the provided GKE config where they are compatible with kind.
+
+# Shared (GKE + GDC)
+kubeProxyReplacement: true
+kubeProxyReplacementHealthzBindAddr: 0.0.0.0:10256
+autoDirectNodeRoutes: false
+socketLB:
+  hostNamespaceOnly: true
+nodePort:
+  enabled: true
+  bindProtection: true
+  autoProtectPortRange: true
+  enableHealthCheck: true
+bpf:
+  # Shared (GKE + GDC)
+  mapDynamicSizeRatio: 0.0025
+  policyMapMax: 16384
+  monitorAggregation: medium
+  monitorInterval: 5s
+  monitorFlags: all
+  hostLegacyRouting: true
+  # GKE-specific
+  lbMapMax: 262144
+  masquerade: false
+prometheus:
+  enabled: true
+  port: 9990
+operator:
+  replicas: 1
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+
+# GKE-specific
+routingMode: native
+ipam:
+  mode: kubernetes
+l7Proxy: false
+endpointRoutes:
+  enabled: true
+localRedirectPolicy: true
+# Kind-compatible deviation from production GKE (masquerade off): Docker does not
+# NAT the pod subnet, so pods need masquerading to reach external addresses.
+enableIPv4Masquerade: true
+ipv4NativeRoutingCIDR: 10.244.0.0/16
+enableIPv6Masquerade: false
+# Istio ambient mode adds its own CNI plugin. Cilium must not remove it.
+cni:
+  exclusive: false
