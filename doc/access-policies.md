@@ -77,7 +77,7 @@ spec:
 
 #### Receive traffic on more ports
 
-Skiperator opens the application port for all inbound rules. If a rule has `ports`, Skiperator also opens these ports for this rule only.
+Skiperator opens the application port for all inbound rules. If a rule has `ports`, Skiperator also opens these ports for this rule only. These ports are always TCP.
 
 For example, Keycloak pods in a cluster send cache data to each other on the JGroups ports 7800 and 57800. For the pods of `keycloak` to reach each other on these ports, this specification is necessary:
 
@@ -124,7 +124,7 @@ With a sidecar, this example works only for a stateful application (`spec.statef
 You can fix this in one of these ways:
 
 - Make the application stateful. `spec.stateful.enabled` is immutable, so an existing Application that is not stateful cannot be updated. Delete the Application and create it again with stateful enabled.
-- Create your own headless Service (`clusterIP: None`) with the same pod selector and ports.
+- Create your own headless Service (`clusterIP: None`) with the same pod selector and ports. If the pods become ready only after they find their peers, set `publishNotReadyAddresses: true` on it, as Skiperator does for its own headless Service.
 
 Tell the SKIP team if you need Skiperator to support this for applications that are not stateful.
 
