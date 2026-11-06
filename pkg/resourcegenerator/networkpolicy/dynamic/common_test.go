@@ -86,16 +86,16 @@ func TestGetInboundIngressRules(t *testing.T) {
 			port:     8080,
 			meshMode: mesh.ModeSidecar,
 			want: []networkingv1.NetworkPolicyIngressRule{
-				{From: []networkingv1.NetworkPolicyPeer{peer("a"), peer("b")}, Ports: []networkingv1.NetworkPolicyPort{appPort}},
+				{From: []networkingv1.NetworkPolicyPeer{peer("a"), peer("b")}, Ports: []networkingv1.NetworkPolicyPort{appPort, ztunnelPort}},
 			},
 		},
 		{
-			name:     "rule with ports opens them in addition to the inbound port",
+			name:     "rule with ports opens them in addition to the inbound and HBONE ports",
 			rules:    []podtypes.InternalRule{{Application: "keycloak", Ports: []networkingv1.NetworkPolicyPort{tcpPort(57800), tcpPort(7800)}}},
 			port:     8080,
 			meshMode: mesh.ModeSidecar,
 			want: []networkingv1.NetworkPolicyIngressRule{
-				{From: []networkingv1.NetworkPolicyPeer{peer("keycloak")}, Ports: []networkingv1.NetworkPolicyPort{appPort, tcpPort(57800), tcpPort(7800)}},
+				{From: []networkingv1.NetworkPolicyPeer{peer("keycloak")}, Ports: []networkingv1.NetworkPolicyPort{appPort, ztunnelPort, tcpPort(57800), tcpPort(7800)}},
 			},
 		},
 		{
@@ -116,14 +116,22 @@ func TestGetInboundIngressRules(t *testing.T) {
 			port:     8080,
 			meshMode: mesh.ModeSidecar,
 			want: []networkingv1.NetworkPolicyIngressRule{
-				{From: []networkingv1.NetworkPolicyPeer{peer("a")}, Ports: []networkingv1.NetworkPolicyPort{appPort}},
-				{From: []networkingv1.NetworkPolicyPeer{peer("keycloak")}, Ports: []networkingv1.NetworkPolicyPort{appPort, tcpPort(7800)}},
+				{From: []networkingv1.NetworkPolicyPeer{peer("a")}, Ports: []networkingv1.NetworkPolicyPort{appPort, ztunnelPort}},
+				{From: []networkingv1.NetworkPolicyPeer{peer("keycloak")}, Ports: []networkingv1.NetworkPolicyPort{appPort, ztunnelPort, tcpPort(7800)}},
 			},
 		},
 		{
-			name:     "without an inbound port only the ports of the rule are opened",
+			name:     "without an inbound port the ports of the rule and the HBONE port are opened",
 			rules:    []podtypes.InternalRule{{Application: "a", Ports: []networkingv1.NetworkPolicyPort{tcpPort(7800)}}},
 			meshMode: mesh.ModeSidecar,
+			want: []networkingv1.NetworkPolicyIngressRule{
+				{From: []networkingv1.NetworkPolicyPeer{peer("a")}, Ports: []networkingv1.NetworkPolicyPort{ztunnelPort, tcpPort(7800)}},
+			},
+		},
+		{
+			name:     "without an inbound port and without a mesh only the ports of the rule are opened",
+			rules:    []podtypes.InternalRule{{Application: "a", Ports: []networkingv1.NetworkPolicyPort{tcpPort(7800)}}},
+			meshMode: mesh.ModeNone,
 			want: []networkingv1.NetworkPolicyIngressRule{
 				{From: []networkingv1.NetworkPolicyPeer{peer("a")}, Ports: []networkingv1.NetworkPolicyPort{tcpPort(7800)}},
 			},
@@ -133,7 +141,16 @@ func TestGetInboundIngressRules(t *testing.T) {
 			port:     8080,
 			meshMode: mesh.ModeSidecar,
 			want: []networkingv1.NetworkPolicyIngressRule{
-				{Ports: []networkingv1.NetworkPolicyPort{appPort}},
+				{Ports: []networkingv1.NetworkPolicyPort{appPort, ztunnelPort}},
+			},
+		},
+		{
+			name:     "without a mesh the HBONE port stays closed",
+			rules:    []podtypes.InternalRule{{Application: "a"}},
+			port:     8080,
+			meshMode: mesh.ModeNone,
+			want: []networkingv1.NetworkPolicyIngressRule{
+				{From: []networkingv1.NetworkPolicyPeer{peer("a")}, Ports: []networkingv1.NetworkPolicyPort{appPort}},
 			},
 		},
 	}
@@ -145,4 +162,15 @@ func TestGetInboundIngressRules(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestGetEgressRule(t *testing.T) {
+	tcp := corev1.ProtocolTCP
+	jgroups := networkingv1.NetworkPolicyPort{Protocol: &tcp, Port: new(intstr.FromInt32(7800))}
+	ztunnel := networkingv1.NetworkPolicyPort{Protocol: &tcp, Port: new(mesh.ZtunnelInboundPort)}
+	rule := podtypes.InternalRule{Application: "app", Ports: []networkingv1.NetworkPolicyPort{jgroups}}
+
+	assert.Equal(t, []networkingv1.NetworkPolicyPort{jgroups, ztunnel}, getEgressRule(rule, "team-a", true).Ports)
+	assert.Equal(t, []networkingv1.NetworkPolicyPort{jgroups}, getEgressRule(rule, "team-a", false).Ports)
+	assert.Equal(t, []networkingv1.NetworkPolicyPort{jgroups}, rule.Ports)
 }
