@@ -123,7 +123,7 @@ With a sidecar, this example works only for a stateful application (`spec.statef
 
 You can fix this in one of these ways:
 
-- Make the application stateful.
+- Make the application stateful. `spec.stateful.enabled` is immutable, so an existing Application that is not stateful cannot be updated. Delete the Application and create it again with stateful enabled.
 - Create your own headless Service (`clusterIP: None`) with the same pod selector and ports.
 
 Tell the SKIP team if you need Skiperator to support this for applications that are not stateful.
