@@ -19,6 +19,7 @@ GWAPI_VERSION                      := $(call extract-version,sigs.k8s.io/gateway
 ISTIO_VERSION                      := $(call extract-version,istio.io/client-go)
 PROMETHEUS_VERSION                 := $(call extract-version,github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring)
 CILIUM_VERSION                     ?= 1.19.10
+ISTIOCTL                           := ./istio-$(ISTIO_VERSION)/bin/istioctl
 
 #### VARS ####
 SKIPERATOR_CONTEXT         ?= kind-$(KIND_CLUSTER_NAME)
@@ -163,9 +164,13 @@ install-cilium: check-helm check-cilium-profile ensure-kubectl
 
 #### SKIPERATOR DEPENDENCIES ####
 
-# Image tags for istio
-ISTIO_IMAGES = docker.io/istio/proxyv2:$(ISTIO_VERSION) docker.io/istio/pilot:$(ISTIO_VERSION)
+# Image tags for istio. Istio runs the distroless images by default.
+ISTIO_IMAGES = $(foreach image,proxyv2 pilot install-cni ztunnel,docker.io/istio/$(image):$(ISTIO_VERSION)-distroless)
 
+# Installs Istio with the ambient profile. This profile installs istiod,
+# istio-cni and ztunnel, and sidecar injection still works. A namespace with the
+# label istio.io/dataplane-mode=ambient uses ambient mode. A namespace with the
+# label istio.io/rev=asm-stable uses sidecars.
 .PHONY: install-istio
 install-istio: ensure-kubectl
 	@echo "Installing Gateway API crds"
@@ -188,9 +193,9 @@ install-istio: ensure-kubectl
 	@echo "Downloading Istio..."
 	@curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$(ISTIO_VERSION) TARGET_ARCH=$(ARCH) sh -
 	@echo "Installing Istio on Kubernetes cluster..."
-	@./istio-$(ISTIO_VERSION)/bin/istioctl install -y --context $(SKIPERATOR_CONTEXT)
+	@$(ISTIOCTL) install -y --set profile=ambient --set hub=docker.io/istio --context $(SKIPERATOR_CONTEXT)
 	@echo "Creating tag asm-stable..."
-	@./istio-$(ISTIO_VERSION)/bin/istioctl tag set asm-stable --revision=default --overwrite --context $(SKIPERATOR_CONTEXT)
+	@$(ISTIOCTL) tag set asm-stable --revision=default --overwrite --context $(SKIPERATOR_CONTEXT)
 	@echo "Istio installation complete."
 
 .PHONY: install-cert-manager

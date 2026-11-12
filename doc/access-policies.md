@@ -117,6 +117,10 @@ spec:
 
 The `ports` field only changes the Kubernetes network policy. If the application has an Istio sidecar, Istio blocks traffic to a pod address that it does not know. For a stateful application, add the ports to `additionalPorts`. Skiperator then adds the ports to the headless Service, and Istio knows the address of each pod. A port name that starts with `tcp-` tells Istio to send the traffic as TCP.
 
+##### Limit: port isolation in the mesh
+
+In the mesh, a rule with `ports` does not isolate those ports from other sources. Pods in ambient mode send mesh traffic over the HBONE port (15008), and a network policy cannot see the application port inside it. Skiperator opens 15008 for pods in ambient mode and in sidecar mode, so a source that is allowed by a rule can reach every port of the application, not only the ports of its own rule. To restrict ports, use an Istio `AuthorizationPolicy`.
+
 ##### Limit: applications that are not stateful
 
 With a sidecar, this example works only for a stateful application (`spec.stateful.enabled: true`). An application that is not stateful has no headless Service, so Istio does not know the address of each pod. The pods can reach each other through the normal Service, but not directly on a pod address. Istio drops this traffic without an error. Software such as JGroups connects directly to pod addresses, so it does not work.
