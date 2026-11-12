@@ -14,6 +14,8 @@ spec:
       ports:
         - port: 8443
           protocol: TCP
+        - port: 15008
+          protocol: TCP
   podSelector:
     matchLabels:
       app: app-proxy
