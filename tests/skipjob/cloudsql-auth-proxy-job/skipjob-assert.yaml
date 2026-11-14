@@ -115,3 +115,16 @@ spec:
       number: 3307
       protocol: TCP
   resolution: STATIC
+---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: randomjob-skipjob
+spec:
+  egress:
+    - hosts:
+        - ./randomjob-4a3d249f602654f2.cloudsql
+  outboundTrafficPolicy: {}
+  workloadSelector:
+    labels:
+      app: randomjob-skipjob

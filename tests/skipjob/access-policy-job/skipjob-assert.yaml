@@ -67,6 +67,21 @@ spec:
       protocol: HTTP
   resolution: DNS
 ---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: access-policy-job-skipjob
+spec:
+  egress:
+    - hosts:
+        - ./example.com
+        - ./foo.com
+        - access-policy-job-ns/minimal-application.access-policy-job-ns.svc.cluster.local
+  outboundTrafficPolicy: {}
+  workloadSelector:
+    labels:
+      app: access-policy-job-skipjob
+---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: SKIPJob
 metadata:
