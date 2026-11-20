@@ -35,10 +35,10 @@ func Generate(r reconciliation.Reconciliation) error {
 // parentGatewayRef points a ListenerSet at the shared Gateway selected for the
 // hostname. ListenerSets live in application namespaces, while shared Gateways
 // live in istio-gateways.
-func parentGatewayRef(hostname string) gatewayapiv1.ParentGatewayReference {
+func parentGatewayRef(h *common.Host) gatewayapiv1.ParentGatewayReference {
 	namespace := gatewayapiv1.Namespace(gwapi.IstioGatewayNamespace)
 	return gatewayapiv1.ParentGatewayReference{
-		Name:      gwapi.GatewayNameForHost(hostname),
+		Name:      gwapi.GatewayNameForHostObj(h),
 		Namespace: &namespace,
 	}
 }
@@ -63,15 +63,15 @@ func parentListenerSetRef(namespace string, name string, section gatewayapiv1.Se
 // newListenerSet adds HTTP and HTTPS listeners for one hostname. TLS
 // termination happens on the HTTPS listener using a Secret in the same namespace
 // as the ListenerSet.
-func newListenerSet(namespace string, name string, hostname string, secretName string, secretNamespace string, allowCrossNamespaceRoutes bool) *gatewayapiv1.ListenerSet {
+func newListenerSet(namespace string, name string, h *common.Host, secretName string, secretNamespace string, allowCrossNamespaceRoutes bool) *gatewayapiv1.ListenerSet {
 	return &gatewayapiv1.ListenerSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
 		Spec: gatewayapiv1.ListenerSetSpec{
-			ParentRef: parentGatewayRef(hostname),
-			Listeners: listeners(hostname, secretName, secretNamespace, allowCrossNamespaceRoutes),
+			ParentRef: parentGatewayRef(h),
+			Listeners: listeners(h.Hostname, secretName, secretNamespace, allowCrossNamespaceRoutes),
 		},
 	}
 }
@@ -158,7 +158,7 @@ func addListenerSetsWithName(r reconciliation.Reconciliation, namespace string, 
 		}
 		listenerSetNames = append(listenerSetNames, name)
 		hostnames = append(hostnames, gatewayapiv1.Hostname(h.Hostname))
-		r.AddResource(newListenerSet(namespace, name, h.Hostname, secretName, secretNamespace, allowCrossNamespaceRoutes))
+		r.AddResource(newListenerSet(namespace, name, h, secretName, secretNamespace, allowCrossNamespaceRoutes))
 	}
 	return listenerSetNames, hostnames, nil
 }

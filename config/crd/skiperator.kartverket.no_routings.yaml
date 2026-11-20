@@ -49,6 +49,15 @@ spec:
             type: object
           spec:
             properties:
+              forceInternal:
+                default: false
+                description: |-
+                  ForceInternal forces this hostname to be served through the internal
+                  ingress gateway even when the hostname does not match the known-internal
+                  domain suffixes (skip.statkart.no / kartverket-intern.cloud).
+                  Use this when you want to expose a Routing on a custom hostname that
+                  should only be reachable from within the internal network.
+                type: boolean
               hostname:
                 type: string
               ownership:

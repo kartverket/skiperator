@@ -3,6 +3,7 @@ package gwapi
 import (
 	"fmt"
 
+	"github.com/kartverket/skiperator/api/common"
 	"github.com/kartverket/skiperator/pkg/mesh"
 	"github.com/kartverket/skiperator/pkg/util"
 	gatewayapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -17,8 +18,19 @@ const (
 )
 
 // GatewayNameForHost selects shared Kubernetes Gateway API Gateway by hostname.
+// Deprecated: prefer GatewayNameForHostObj when a *common.Host is available so
+// that ForceInternal is respected.
 func GatewayNameForHost(hostname string) gatewayapiv1.ObjectName {
 	if util.IsInternal(hostname) {
+		return InternalGatewayName
+	}
+	return ExternalGatewayName
+}
+
+// GatewayNameForHostObj selects the shared Gateway API Gateway for a host,
+// respecting the ForceInternal override in addition to the domain regex.
+func GatewayNameForHostObj(h *common.Host) gatewayapiv1.ObjectName {
+	if h.IsInternal() {
 		return InternalGatewayName
 	}
 	return ExternalGatewayName

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -103,6 +104,15 @@ type ApplicationSpec struct {
 	// E.g. "foo.atkv3-dev.kartverket-intern.cloud+env-wildcard-cert"
 	//+kubebuilder:validation:Optional
 	Ingresses []string `json:"ingresses,omitempty"`
+
+	// IngressSettings allows per-hostname configuration for entries listed in
+	// Ingresses. The Hostname field must match an entry in Ingresses exactly
+	// (bare hostname, without the optional +secret suffix).
+	// Currently supports overriding the internal/external gateway selection via
+	// ForceInternal.
+	//
+	//+kubebuilder:validation:Optional
+	IngressSettings []IngressSetting `json:"ingressSettings,omitempty"`
 
 	// RoutingProvider controls which routing API Skiperator uses for ingresses.
 	// Legacy uses Istio Gateway and VirtualService. Standard uses Kubernetes Gateway API.
@@ -313,6 +323,29 @@ type ApplicationSpec struct {
 	//
 	//+kubebuilder:validation:Optional
 	Stateful *StatefulSpec `json:"stateful,omitempty"`
+}
+
+// IngressSetting holds optional per-hostname configuration for an entry in
+// ApplicationSpec.Ingresses. Hostname must match the bare hostname of the
+// ingress entry (without the optional +secret suffix).
+//
+// +kubebuilder:object:generate=true
+type IngressSetting struct {
+	// Hostname must match exactly one entry in spec.ingresses (without the
+	// optional +<secret> suffix).
+	//
+	//+kubebuilder:validation:Required
+	Hostname string `json:"hostname"`
+
+	// ForceInternal forces this ingress to be served through the internal
+	// ingress gateway even when the hostname does not match the known-internal
+	// domain suffixes (skip.statkart.no / kartverket-intern.cloud).
+	// Use this when you want to expose an application on a custom hostname that
+	// should only be reachable from within the internal network.
+	//
+	//+kubebuilder:validation:Optional
+	//+kubebuilder:default:=false
+	ForceInternal bool `json:"forceInternal,omitempty"`
 }
 
 // AuthorizationSettings Settings for overriding the default deny of all actuator endpoints. AllowAll will allow any
@@ -604,6 +637,26 @@ func (s *ApplicationSpec) Hosts() (common.HostCollection, error) {
 		}
 	}
 
+	// Apply per-hostname overrides from IngressSettings.
+	settingsByHostname := make(map[string]IngressSetting, len(s.IngressSettings))
+	for _, setting := range s.IngressSettings {
+		settingsByHostname[strings.ToLower(setting.Hostname)] = setting
+	}
+	settingsCounter := 0
+	for _, h := range hosts.AllHosts() {
+		splitHostname, _, split := strings.Cut(h.Hostname, common.HostnameSecretSeparator)
+		if split {
+			h.Hostname = splitHostname
+		}
+		if setting, ok := settingsByHostname[h.Hostname]; ok {
+			h.ForceInternal = setting.ForceInternal
+			settingsCounter++
+		}
+	}
+	if settingsCounter == 0 && len(s.IngressSettings) > 0 {
+		errorsFound = append(errorsFound, errors.New("hostname in IngressSettings does not match any hostname in Ingresses"))
+		return hosts, errors.Join(errorsFound...)
+	}
 	return hosts, errors.Join(errorsFound...)
 }
 
