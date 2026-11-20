@@ -75,9 +75,62 @@ spec:
           namespace: othernamespace
 ```
 
+#### Receive traffic on more ports
+
+Skiperator opens the application port for all inbound rules. If a rule has `ports`, Skiperator also opens these ports for this rule only. These ports are always TCP.
+
+For example, Keycloak pods in a cluster send cache data to each other on the JGroups ports 7800 and 57800. For the pods of `keycloak` to reach each other on these ports, this specification is necessary:
+
+```yaml
+apiVersion: "skiperator.kartverket.no/v1alpha1"
+kind: "Application"
+metadata:
+  name: keycloak
+...
+spec:
+  ...
+  additionalPorts:
+    - name: tcp-jgroups
+      port: 7800
+      protocol: TCP
+    - name: tcp-jgroups-fd
+      port: 57800
+      protocol: TCP
+  accessPolicy:
+    inbound:
+      rules:
+        - application: keycloak
+          ports:
+            - port: 7800
+              protocol: TCP
+            - port: 57800
+              protocol: TCP
+    outbound:
+      rules:
+        - application: keycloak
+          ports:
+            - port: 7800
+              protocol: TCP
+            - port: 57800
+              protocol: TCP
+```
+
+The `ports` field only changes the Kubernetes network policy. If the application has an Istio sidecar, Istio blocks traffic to a pod address that it does not know. For a stateful application, add the ports to `additionalPorts`. Skiperator then adds the ports to the headless Service, and Istio knows the address of each pod. A port name that starts with `tcp-` tells Istio to send the traffic as TCP.
+
+##### Limit: applications that are not stateful
+
+With a sidecar, this example works only for a stateful application (`spec.stateful.enabled: true`). An application that is not stateful has no headless Service, so Istio does not know the address of each pod. The pods can reach each other through the normal Service, but not directly on a pod address. Istio drops this traffic without an error. Software such as JGroups connects directly to pod addresses, so it does not work.
+
+You can fix this in one of these ways:
+
+- Make the application stateful. `spec.stateful.enabled` is immutable, so an existing Application that is not stateful cannot be updated. Delete the Application and create it again with stateful enabled.
+- Create your own headless Service (`clusterIP: None`) with the same pod selector and ports. If the pods become ready only after they find their peers, set `publishNotReadyAddresses: true` on it, as Skiperator does for its own headless Service.
+
+Tell the SKIP team if you need Skiperator to support this for applications that are not stateful.
+
 ### Outbound rules
 
-Inbound rules specifies what other applications your application receives traffic from. `spec.accessPolicy.outbound.rules` specifies which applications in the same cluster to open for. To open for external applications, use the field `spec.accessPolicy.outbound.external`.
+Outbound rules specify what other applications your application sends traffic to. `spec.accessPolicy.outbound.rules` specifies which applications in the same cluster to open for. To open for external applications, use the field `spec.accessPolicy.outbound.external`.
 
 #### Send requests to other app in the same namespace
 

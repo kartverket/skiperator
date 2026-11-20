@@ -1,0 +1,39 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: keycloak-jgroups
+spec:
+  description: |
+    Two Keycloak pods in a stateful app must form one JGroups cluster.
+    This needs inbound rules with ports 7800 and 57800, and these ports in additionalPorts.
+  skip: false
+  concurrent: false
+  skipDelete: false
+  namespace: keycloak-jgroups-ns
+  timeouts:
+    assert: 600s
+    exec: 600s
+  steps:
+    - try:
+        - apply:
+            file: namespace.yaml
+        - apply:
+            file: application.yaml
+        - assert:
+            file: application-assert.yaml
+        - script:
+            env:
+              - name: TEST_NS
+                value: ($namespace)
+            content: |
+              for i in $(seq 1 60); do
+                ok=0
+                for pod in keycloak-0 keycloak-1; do
+                  kubectl logs "$pod" -c keycloak -n "$TEST_NS" | grep -q 'ISPN000094: Received new cluster view.*(2)' && ok=$((ok+1))
+                done
+                [ "$ok" -eq 2 ] && echo "JGroups cluster has 2 members" && exit 0
+                sleep 5
+              done
+              echo "JGroups cluster did not form"
+              kubectl logs keycloak-0 -c keycloak -n "$TEST_NS" | grep ISPN || true
+              exit 1

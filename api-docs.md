@@ -481,7 +481,7 @@ other namespaces, namespace is required.
         <td><b><a href="#applicationspecaccesspolicyinboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -709,7 +709,7 @@ other namespaces, namespace is required.
         <td><b><a href="#applicationspecaccesspolicyoutboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5102,7 +5102,7 @@ other namespaces, namespace is required.
         <td><b><a href="#skipjobspeccontaineraccesspolicyinboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -5330,7 +5330,7 @@ other namespaces, namespace is required.
         <td><b><a href="#skipjobspeccontaineraccesspolicyoutboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7252,7 +7252,7 @@ other namespaces, namespace is required.
         <td><b><a href="#skipjobspecaccesspolicyinboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
@@ -7480,7 +7480,7 @@ other namespaces, namespace is required.
         <td><b><a href="#skipjobspecaccesspolicyoutboundrulesindexportsindex">ports</a></b></td>
         <td>[]object</td>
         <td>
-          The ports to allow for the above application.<br/>
+          The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the<br/>application port.<br/>
         </td>
         <td>false</td>
       </tr>
