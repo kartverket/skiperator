@@ -77,7 +77,7 @@ spec:
 
 #### Receive traffic on more ports
 
-Skiperator opens the application port for all inbound rules. If a rule has `ports`, Skiperator also opens these ports for this rule only. These ports are always TCP.
+Skiperator opens the application port for all inbound rules. If a rule has `ports`, Skiperator also opens these ports for this rule only. A port uses TCP if you do not set `protocol`. You can also set `protocol` to `UDP` or `SCTP`.
 
 For example, Keycloak pods in a cluster send cache data to each other on the JGroups ports 7800 and 57800. For the pods of `keycloak` to reach each other on these ports, this specification is necessary:
 
