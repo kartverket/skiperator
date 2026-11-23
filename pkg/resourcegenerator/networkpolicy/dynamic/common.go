@@ -52,7 +52,7 @@ func generateForCommon(r reconciliation.Reconciliation) error {
 		inboundPort = int32(application.IngressTargetPort())
 	}
 
-	ingressRules := getIngressRules(accessPolicy, ingresses, r.MeshMode(), namespace, inboundPort)
+	ingressRules := getIngressRules(accessPolicy, ingresses, r.MeshMode(), r.GetSkiperatorConfig().EnableAmbientInterop, namespace, inboundPort)
 	egressRules := getEgressRules(accessPolicy, object, r.MeshMode())
 
 	netpolSpec := networkingv1.NetworkPolicySpec{
@@ -183,7 +183,7 @@ func getEgressRule(outboundRule podtypes.InternalRule, namespace string, withHBO
 }
 
 // TODO Clean up better
-func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, meshMode mesh.Mode, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
+func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, meshMode mesh.Mode, ambientInterop bool, namespace string, port int32) []networkingv1.NetworkPolicyIngressRule {
 	var ingressRules []networkingv1.NetworkPolicyIngressRule
 
 	if len(ingresses) > 0 {
@@ -227,7 +227,10 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, me
 	}
 
 	if accessPolicy.Inbound != nil {
-		ingressRules = append(ingressRules, getInboundIngressRules(accessPolicy.Inbound.Rules, namespace, port, meshMode)...)
+		// Ambient pods always receive mesh traffic on the HBONE port. Sidecar pods
+		// need it only when ambient sources call them (ambientInterop).
+		withHBONE := meshMode == mesh.ModeAmbient || (meshMode == mesh.ModeSidecar && ambientInterop)
+		ingressRules = append(ingressRules, getInboundIngressRules(accessPolicy.Inbound.Rules, namespace, port, withHBONE)...)
 	}
 
 	return ingressRules
@@ -235,20 +238,19 @@ func getIngressRules(accessPolicy *podtypes.AccessPolicy, ingresses []string, me
 
 // getInboundIngressRules puts all inbound rules without ports into one shared
 // ingress rule for the inbound port. Each rule with ports gets its own ingress
-// rule that opens the inbound port and the ports of the rule. Sources in ambient
-// mode reach a sidecar pod over HBONE too, so pods in either mesh mode open the
-// HBONE port.
+// rule that opens the inbound port and the ports of the rule. withHBONE also
+// opens the HBONE port next to the inbound port and the ports of each rule.
 func getInboundIngressRules(
 	inboundRules []podtypes.InternalRule,
 	namespace string,
 	port int32,
-	meshMode mesh.Mode,
+	withHBONE bool,
 ) []networkingv1.NetworkPolicyIngressRule {
-	inboundPorts := getInboundPorts(port, meshMode.IsEnabled())
+	inboundPorts := getInboundPorts(port, withHBONE)
 	// Without an inbound port the shared rule is not port restricted, but a rule
 	// with ports still needs the HBONE port next to its own ports.
 	portRuleBase := inboundPorts
-	if port == 0 && meshMode.IsEnabled() {
+	if port == 0 && withHBONE {
 		portRuleBase = []networkingv1.NetworkPolicyPort{hbonePort()}
 	}
 	var sharedPeers []networkingv1.NetworkPolicyPeer

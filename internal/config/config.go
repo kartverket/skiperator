@@ -42,6 +42,7 @@ type SkiperatorConfig struct {
 	GCPIdentityProvider         string              `json:"gcpIdentityProvider,omitempty"`         // Provider for Workload Identity Federation (WIF)
 	GCPWorkloadIdentityPool     string              `json:"gcpWorkloadIdentityPool,omitempty"`     // Identity pool for Workload Identity Federation (WIF)
 	EnableWebhooks              bool                `json:"enableWebhooks,omitempty"`              // Whether to enable webhooks for SKIPJob resources
+	EnableAmbientInterop        bool                `json:"enableAmbientInterop,omitempty"`        // Set to true in clusters with ambient workloads. Opens the HBONE port (TCP 15008) on sidecar pods for every inbound source, so ambient pods can reach them, but ports in inbound rules no longer isolate traffic at the network policy level
 }
 
 var (
@@ -95,6 +96,7 @@ func parseConfig(cm *corev1.ConfigMap) error {
 		GCPIdentityProvider:         "",
 		GCPWorkloadIdentityPool:     "",
 		EnableWebhooks:              false,
+		EnableAmbientInterop:        false,
 	}
 
 	if err := dec.Decode(&cfg); err != nil {

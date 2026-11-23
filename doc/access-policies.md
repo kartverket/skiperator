@@ -119,7 +119,9 @@ The `ports` field only changes the Kubernetes network policy. If the application
 
 ##### Limit: port isolation in the mesh
 
-In the mesh, a rule with `ports` does not isolate those ports from other sources. Pods in ambient mode send mesh traffic over the HBONE port (15008), and a network policy cannot see the application port inside it. Skiperator opens 15008 for pods in ambient mode and in sidecar mode, so a source that is allowed by a rule can reach every port of the application, not only the ports of its own rule. To restrict ports, use an Istio `AuthorizationPolicy`.
+A rule with `ports` does not isolate those ports from other sources when the pod accepts HBONE traffic. Pods in ambient mode send mesh traffic over the HBONE port (15008), and a network policy cannot see the application port inside it. Skiperator always opens 15008 for pods in ambient mode. For pods in sidecar mode, Skiperator opens 15008 only if the operator config sets `enableAmbientInterop: true`. Set it in clusters where ambient pods call sidecar pods. It is `false` by default.
+
+When 15008 is open, a source that is allowed by a rule can reach every port of the application, not only the ports of its own rule. To restrict ports, use an Istio `AuthorizationPolicy`. Sidecar pods in a cluster with `enableAmbientInterop: false` keep this isolation, but ambient pods cannot reach them.
 
 ##### Limit: applications that are not stateful
 
