@@ -279,9 +279,9 @@ spec:
 
 ## Routing reference
 
-Routing is a separate custom resource that can be used to set up path-based routing for a Skiperator application. Use this
-instead of the `ingresses` field in the `Application` custom resource. The routes are processed in order, so the last
-route should be a catch-all route. This will only work for applications in the same namespace as the Routing resource.
+Routing is a separate custom resource that can be used to set up path-based routing for Skiperator applications. Use this
+instead of the `ingresses` field in the `Application` custom resource. Routes target Applications in the same namespace
+as the Routing resource.
 
 Below you will find a list of all accepted input parameters to the `Routing`
 custom resource. Only types are shown here. The fields are documented in the API, see [the API](https://skip.kartverket.no/docs/applikasjon-utrulling/skiperator/api-docs#routing)
@@ -302,6 +302,133 @@ spec:
     rewriteUri: false
     targetApp: frontend-app
 ```
+
+### Routing fields and defaults
+
+| Field | Required | Default | Description |
+| --- | --- | --- | --- |
+| `hostname` | Yes | — | Hostname to serve. Append `+secret-name` to use a custom TLS Secret. |
+| `routes` | Yes | — | Path-to-Application rules. Each route requires `pathPrefix` and `targetApp`. |
+| `routes[].pathPrefix` | Yes | — | URL path prefix, beginning with `/`. Use `/` to match all paths. |
+| `routes[].targetApp` | Yes | — | Name of an `Application` in the same namespace. |
+| `routes[].port` | No | Application's primary `spec.port` | Service port on the target Application. Set this when routing to another port exposed by that Application. |
+| `routes[].rewriteUri` | No | `false` | Rewrite the matched path prefix to `/`; details differ slightly by routing provider below. |
+| `routingProvider` | No | `Legacy` | `Legacy` uses Istio Gateway and VirtualService. `Standard` uses Kubernetes Gateway API. |
+| `ownership` | No | `Standalone` | `Standalone` serves a hostname exclusively. `Shared` lets multiple Standard Routing resources contribute paths to one hostname. |
+| `redirectToHTTPS` | No | `true` | Redirect HTTP requests to HTTPS. For shared ownership, the redirect is shared at the hostname level. |
+
+### Path matching and rewriting
+
+`pathPrefix` is a path-prefix match, not an exact match. For example, `/api`
+matches `/api` and `/api/v1`, but not `/apiv2`. A `/` route is a catch-all and
+overlaps every other path on that hostname.
+
+Matching precedence depends on the provider:
+
+- With `Legacy` (the default), Istio evaluates routes in the order listed. Put
+  specific prefixes before broader ones and the catch-all last. If `/` comes
+  first, it matches every request, so later routes such as `/api` will never be
+  reached.
+- With `Standard`, Gateway API selects the most specific matching path prefix.
+  Do not depend on YAML list order to resolve overlapping paths.
+
+`rewriteUri: true` replaces the matched prefix with `/`. On Standard routing,
+any unmatched suffix is retained by Gateway API's prefix rewrite. On Legacy
+routing, Istio's URI rewrite replaces the matched request URI with `/`. Leave
+it unset or false when the target application expects the original path.
+
+If `port` is omitted, Skiperator uses the target Application's primary Service
+port (`spec.port`). Set it explicitly to select another Service port exposed by
+the Application.
+
+### Routing providers and migration
+
+`routingProvider` is optional and defaults to `Legacy`.
+
+- `Legacy` creates Istio Gateway and VirtualService resources.
+- `Standard` creates Kubernetes Gateway API ListenerSet and HTTPRoute
+  resources.
+
+To move an existing Routing to Gateway API, change
+`spec.routingProvider` to `Standard`. During a migration, Skiperator keeps
+existing Legacy routing active until the Standard routing resources are ready,
+then removes the Legacy resources. A new Standard Routing has no Legacy
+fallback. Check the `Ready`, `StandardRoutingReady`, and
+`LegacyRoutingActive` conditions to see migration progress.
+
+### Sharing a hostname
+
+Use `ownership: Shared` when separate Routing resources, possibly in different
+namespaces, need to contribute paths under the same hostname. Shared ownership
+requires `routingProvider: Standard`. Each contributor still targets
+Applications in its own namespace.
+
+```yaml
+apiVersion: skiperator.kartverket.no/v1alpha1
+kind: Routing
+metadata:
+  name: team-a-routes
+  namespace: team-a
+spec:
+  hostname: api.example.com
+  routingProvider: Standard
+  ownership: Shared
+  routes:
+    - pathPrefix: /team-a
+      targetApp: api
+```
+
+Teams can create `Routing` resources in separate namespaces, using the same
+hostname and distinct path prefixes to direct requests to their Applications.
+Skiperator creates one shared set of Gateway API resources for that hostname
+and keeps it while any `Routing` using that hostname remains. It removes those
+resources only after the last such `Routing` is deleted.
+
+Avoid overlapping prefixes between namespaces. For example, `/team` and
+`/team/a` overlap. For Standard routing, Skiperator rejects a new path claim
+that overlaps another accepted HTTPRoute. If paths overlap because multiple
+routes were accepted concurrently or later changed, Gateway API determines
+which route handles each request and Skiperator reports a `RoutePathConflict`
+condition. A shared `/` catch-all therefore prevents other `Routing` resources from
+claiming paths on that hostname.
+
+`redirectToHTTPS` is also hostname-wide for shared ownership. If any `Routing`
+using the hostname enables the redirect, it remains enabled while shared
+hostname resources exist; setting it to false in another `Routing` does not
+disable that redirect.
+
+### TLS certificates
+
+By default, Skiperator provisions a managed certificate for the hostname.
+To use a team-provided certificate, append its Secret name to the hostname,
+separated by `+`:
+
+```yaml
+spec:
+  hostname: api.example.com+api-example-tls
+```
+
+The custom Secret must be provisioned in the `istio-gateways` namespace and
+contain a certificate valid for the hostname. Skiperator does not create that
+Secret. Standard routing uses a ReferenceGrant to allow a namespace-local
+ListenerSet to read it; the Secret itself remains in `istio-gateways`.
+
+Shared Routing cannot specify a custom certificate. All `Routing` resources
+using the shared hostname use its managed certificate. A missing or unusable custom
+certificate leaves Standard routing not ready; inspect the `Ready` and
+`StandardRoutingReady` condition messages.
+
+### Checking Routing status
+
+```sh
+kubectl get routing -n team-a
+kubectl describe routing public-apps -n team-a
+```
+
+The `Ready` condition and summary describe reconciliation. Standard Routing
+also reports `StandardRoutingReady`; migrations can report
+`LegacyRoutingActive`. Shared Routing reports `SharedRoutingResources`, and
+path overlaps are reported with `RoutePathConflict`.
 
 ## Developing
 
