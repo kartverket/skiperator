@@ -64,3 +64,8 @@ spec:
             file: external-blank-hostname-assert.yaml
         - error:
             file: external-blank-hostname-error.yaml
+    - try:
+        - apply:
+            file: inbound-ports.yaml
+        - assert:
+            file: inbound-ports-assert.yaml

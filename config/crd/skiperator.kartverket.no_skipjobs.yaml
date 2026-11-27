@@ -116,7 +116,9 @@ spec:
                                     is omitted.
                                   type: object
                                 ports:
-                                  description: The ports to allow for the above application.
+                                  description: |-
+                                    The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the
+                                    application port.
                                   items:
                                     description: NetworkPolicyPort describes a port
                                       to allow traffic on
@@ -250,7 +252,9 @@ spec:
                                     is omitted.
                                   type: object
                                 ports:
-                                  description: The ports to allow for the above application.
+                                  description: |-
+                                    The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the
+                                    application port.
                                   items:
                                     description: NetworkPolicyPort describes a port
                                       to allow traffic on
@@ -1229,7 +1233,9 @@ spec:
                                 takes precedence and namespacesByLabel is omitted.
                               type: object
                             ports:
-                              description: The ports to allow for the above application.
+                              description: |-
+                                The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the
+                                application port.
                               items:
                                 description: NetworkPolicyPort describes a port to
                                   allow traffic on
@@ -1360,7 +1366,9 @@ spec:
                                 takes precedence and namespacesByLabel is omitted.
                               type: object
                             ports:
-                              description: The ports to allow for the above application.
+                              description: |-
+                                The ports to allow for the above application. For inbound rules, Skiperator opens these ports in addition to the
+                                application port.
                               items:
                                 description: NetworkPolicyPort describes a port to
                                   allow traffic on
