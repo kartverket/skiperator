@@ -98,6 +98,23 @@ spec:
       number: 443
       protocol: HTTPS
 ---
+apiVersion: networking.istio.io/v1
+kind: Sidecar
+metadata:
+  name: access-policy
+  namespace: access-policy-ns
+spec:
+  egress:
+    - hosts:
+        - ./example.com
+        - ./foo.com
+        - access-policy-ns/access-policy-two.access-policy-ns.svc.cluster.local
+        - access-policy-other/access-policy-other.access-policy-other.svc.cluster.local
+  outboundTrafficPolicy: {}
+  workloadSelector:
+    labels:
+      app: access-policy
+---
 apiVersion: skiperator.kartverket.no/v1alpha1
 kind: Application
 metadata:

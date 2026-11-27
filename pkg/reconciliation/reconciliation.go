@@ -37,6 +37,11 @@ type Reconciliation interface {
 	SetGenerateLegacyRouting(bool)
 }
 
+type ResolvedOutboundRule struct {
+	Application string
+	Namespaces  []string
+}
+
 type baseReconciliation struct {
 	ctx                   context.Context
 	logger                log.Logger
