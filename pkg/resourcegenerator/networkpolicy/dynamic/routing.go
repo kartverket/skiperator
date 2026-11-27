@@ -62,7 +62,7 @@ func generateForRouting(r reconciliation.Reconciliation) error {
 							},
 						},
 					},
-					Ports: getInboundPorts(targetPort, r.MeshMode()),
+					Ports: getInboundPorts(targetPort, r.MeshMode() == mesh.ModeAmbient),
 				},
 			},
 		}
